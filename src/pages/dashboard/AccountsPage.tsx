@@ -17,12 +17,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
-const ACCOUNT_TYPES = [
-  { value: 'mobile_money', label: '📱 Mobile Money', icon: '📱' },
-  { value: 'bank', label: '🏦 Banque', icon: '🏦' },
-  { value: 'cash', label: '💵 Espèces', icon: '💵' },
-  { value: 'card', label: '💳 Carte', icon: '💳' },
-  { value: 'savings', label: '🏦 Épargne', icon: '🏦' },
+const getAccountTypes = (t: any) => [
+  { value: 'mobile_money', label: `📱 ${t.mobileMoney}`, icon: '📱' },
+  { value: 'bank', label: `🏦 ${t.bank}`, icon: '🏦' },
+  { value: 'cash', label: `💵 ${t.cash}`, icon: '💵' },
+  { value: 'card', label: `💳 ${t.card}`, icon: '💳' },
+  { value: 'savings', label: `🏦 ${t.savingsType}`, icon: '🏦' },
 ];
 
 const ICONS = ['💳', '📱', '🏦', '💵', '🌊', '🟠', '🟡', '🔵', '💰', '🏧'];
