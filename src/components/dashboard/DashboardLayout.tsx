@@ -3,34 +3,25 @@ import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useTheme } from '@/hooks/useTheme';
+import { useRole } from '@/hooks/useRole';
 import { supabase } from '@/integrations/supabase/client';
 import { dashT } from '@/i18n/dashTranslations';
 import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
-  Settings, LogOut, Globe, Menu, X, Sun, Moon, Smartphone
+  Settings, LogOut, Globe, Menu, X, Sun, Moon, Smartphone, CreditCard, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-const navItems = [
-  { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { key: 'transactions', icon: ArrowUpDown, path: '/dashboard/transactions' },
-  { key: 'budgets', icon: PieChart, path: '/dashboard/budgets' },
-  { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
-  { key: 'savings', icon: Target, path: '/dashboard/savings' },
-  { key: 'reports', icon: FileText, path: '/dashboard/reports' },
-  { key: 'settings', icon: Settings, path: '/dashboard/settings' },
-  { key: 'payment', icon: Smartphone, path: '/dashboard/payment' },
-] as const;
 
 const DashboardLayout = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const { locale, toggleLocale } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { isAdmin } = useRole();
   const navigate = useNavigate();
   const location = useLocation();
   const t = dashT[locale];
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
@@ -38,9 +29,12 @@ const DashboardLayout = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('display_name').eq('user_id', user.id).single()
-      .then(({ data }) => setProfile(data));
-  }, [user]);
+    supabase.from('profiles').select('display_name, onboarding_completed').eq('user_id', user.id).single()
+      .then(({ data }) => {
+        setProfile(data);
+        if (data && !data.onboarding_completed) navigate('/onboarding');
+      });
+  }, [user, navigate]);
 
   const handleLogout = async () => {
     await signOut();
@@ -54,6 +48,19 @@ const DashboardLayout = () => {
   }
 
   if (!user) return null;
+
+  const navItems = [
+    { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { key: 'transactions', icon: ArrowUpDown, path: '/dashboard/transactions' },
+    { key: 'accounts', icon: CreditCard, path: '/dashboard/accounts' },
+    { key: 'budgets', icon: PieChart, path: '/dashboard/budgets' },
+    { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
+    { key: 'savings', icon: Target, path: '/dashboard/savings' },
+    { key: 'reports', icon: FileText, path: '/dashboard/reports' },
+    { key: 'settings', icon: Settings, path: '/dashboard/settings' },
+    { key: 'payment', icon: Smartphone, path: '/dashboard/payment' },
+    ...(isAdmin ? [{ key: 'adminPricing', icon: Shield, path: '/dashboard/admin/pricing' }] : []),
+  ];
 
   return (
     <div className="min-h-screen bg-background flex">
