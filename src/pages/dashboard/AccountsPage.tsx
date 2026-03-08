@@ -65,7 +65,15 @@ const AccountsPage = () => {
     return openingBalance + income - expense;
   };
 
+  const accountLimitReached = !isPremium && accounts.length >= limits.accounts;
+
   const openNew = () => {
+    if (accountLimitReached) {
+      toast.error(locale === 'fr'
+        ? `Limite de ${limits.accounts} compte(s) atteinte. Passez à Premium !`
+        : `Limit of ${limits.accounts} account(s) reached. Upgrade to Premium!`);
+      return;
+    }
     setEditing(null);
     setForm({ name: '', type: 'mobile_money', icon: '💳', opening_balance: '0' });
     setDialogOpen(true);
