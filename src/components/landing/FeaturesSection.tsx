@@ -1,9 +1,8 @@
-import { forwardRef } from 'react';
 import { TrendingUp, PieChart, BarChart3, Users, Target, FileText, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { motion } from 'framer-motion';
 
-const FeaturesSection = forwardRef<HTMLElement>((_, ref) => {
+const FeaturesSection = () => {
   const { t } = useLanguage();
 
   const features = [
@@ -16,7 +15,7 @@ const FeaturesSection = forwardRef<HTMLElement>((_, ref) => {
   ];
 
   return (
-    <section ref={ref} id="features" className="py-28 relative overflow-hidden">
+    <section id="features" className="py-28 relative overflow-hidden">
       {/* Subtle bg */}
       <div className="absolute inset-0 bg-muted/30" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -65,8 +64,6 @@ const FeaturesSection = forwardRef<HTMLElement>((_, ref) => {
       </div>
     </section>
   );
-});
-
-FeaturesSection.displayName = 'FeaturesSection';
+};
 
 export default FeaturesSection;

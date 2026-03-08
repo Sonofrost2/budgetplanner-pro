@@ -1,15 +1,14 @@
-import { forwardRef } from 'react';
 import { Star, Quote } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { motion } from 'framer-motion';
 
-const TestimonialsSection = forwardRef<HTMLElement>((_, ref) => {
+const TestimonialsSection = () => {
   const { t } = useLanguage();
 
   const colors = ['bg-primary', 'bg-secondary', 'bg-accent'];
 
   return (
-    <section ref={ref} id="testimonials" className="py-28 relative overflow-hidden">
+    <section id="testimonials" className="py-28 relative overflow-hidden">
       <div className="absolute inset-0 bg-muted/30" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
@@ -59,8 +58,6 @@ const TestimonialsSection = forwardRef<HTMLElement>((_, ref) => {
       </div>
     </section>
   );
-});
-
-TestimonialsSection.displayName = 'TestimonialsSection';
+};
 
 export default TestimonialsSection;
