@@ -138,9 +138,11 @@ const DashboardHome = () => {
       });
   }, [user, locale, period]);
 
+  // Global balance: sum of all account real_balances (or opening_balances + all income - all expenses)
+  const totalBalance = accounts.reduce((s, a) => s + Number(a.real_balance), 0);
+  // Period-filtered stats for display
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
-  const balance = totalIncome - totalExpenses;
 
   if (loading) {
     return (
