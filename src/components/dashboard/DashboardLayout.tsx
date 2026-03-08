@@ -41,11 +41,15 @@ const DashboardLayout = () => {
         setProfile(data);
         if (data && !data.onboarding_completed) navigate('/onboarding');
       });
-    // Check user plan
-    supabase.from('payment_receipts').select('plan_name').eq('user_id', user.id).eq('status', 'confirmed')
+    // Check user plan from subscriptions
+    supabase.from('subscriptions').select('status, subscription_plans(name)').eq('user_id', user.id).eq('status', 'active')
       .order('created_at', { ascending: false }).limit(1)
       .then(({ data }) => {
-        setUserPlan(data && data.length > 0 ? data[0].plan_name : null);
+        if (data && data.length > 0) {
+          setUserPlan((data[0] as any).subscription_plans?.name || null);
+        } else {
+          setUserPlan(null);
+        }
       });
   }, [user, navigate]);
 
