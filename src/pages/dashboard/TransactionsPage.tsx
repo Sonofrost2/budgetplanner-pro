@@ -167,7 +167,6 @@ const TransactionsPage = () => {
       {limitReached && (
         <UpgradeBanner message={t.limitReachedTransactions(thisMonthCount, limits.transactionsPerMonth)} />
       )}
-      )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold font-display">{t.allTransactions}
