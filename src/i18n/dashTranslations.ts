@@ -290,6 +290,11 @@ export const dashT = {
     share: 'Share',
     memberExpenses: 'Member expenses',
     email: 'Email',
+    budgetExceeded: 'Budget exceeded',
+    goalReached: 'Goal reached!',
+    goalReachedDesc: 'Congratulations, you reached your goal!',
+    expenseByCategory: 'Expenses by category',
+    notifications: 'Notifications',
   },
 } as const;
 
