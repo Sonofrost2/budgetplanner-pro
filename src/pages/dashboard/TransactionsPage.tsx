@@ -221,7 +221,7 @@ const TransactionsPage = () => {
               {transactions.length === 0 ? (
                 <>
                   <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noTransactions}</p>
-                  <p className="text-sm text-muted-foreground/70 mb-4">{locale === 'fr' ? 'Commencez par ajouter votre première transaction' : 'Start by adding your first transaction'}</p>
+                  <p className="text-sm text-muted-foreground/70 mb-4">{t.addFirstTransaction}</p>
                   <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
                     <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
                   </Button>
