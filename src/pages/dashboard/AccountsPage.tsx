@@ -279,8 +279,8 @@ const AccountsPage = () => {
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {ACCOUNT_TYPES.slice(3).map(at => (
+               <div className="grid grid-cols-2 gap-2">
+                 {getAccountTypes(t).slice(3).map(at => (
                   <button
                     key={at.value}
                     type="button"
