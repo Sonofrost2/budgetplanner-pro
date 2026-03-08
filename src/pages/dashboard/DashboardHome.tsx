@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,12 +14,13 @@ import { useNavigate } from 'react-router-dom';
 const DashboardHome = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
+  const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
-  const fmt = (n: number) => n.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR' });
+  const fmt = (n: number) => fmtCurrency(n, locale);
 
   useEffect(() => {
     if (!user) return;
