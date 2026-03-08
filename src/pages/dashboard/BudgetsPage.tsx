@@ -144,7 +144,7 @@ const BudgetsPage = () => {
               <PieChart className="w-7 h-7 text-muted-foreground/40" />
             </div>
             <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noBudgets}</p>
-            <p className="text-sm text-muted-foreground/70 mb-4">{locale === 'fr' ? 'Créez un budget pour suivre vos dépenses' : 'Create a budget to track your spending'}</p>
+            <p className="text-sm text-muted-foreground/70 mb-4">{t.createBudgetDesc}</p>
             <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" />{t.addBudget}
             </Button>
