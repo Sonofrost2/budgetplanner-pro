@@ -12,6 +12,10 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import OnboardingPage from "./pages/OnboardingPage";
+import AboutPage from "./pages/AboutPage";
+import BlogPage from "./pages/BlogPage";
+import ContactPage from "./pages/ContactPage";
+import LegalPage from "./pages/LegalPage";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import TransactionsPage from "./pages/dashboard/TransactionsPage";
@@ -46,6 +50,10 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/legal/:slug" element={<LegalPage />} />
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<DashboardHome />} />
                 <Route path="transactions" element={<TransactionsPage />} />
