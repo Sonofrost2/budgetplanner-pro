@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { dashT } from '@/i18n/dashTranslations';
 import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
-  Settings, LogOut, Globe, Menu, X, Sun, Moon
+  Settings, LogOut, Globe, Menu, X, Sun, Moon, Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
