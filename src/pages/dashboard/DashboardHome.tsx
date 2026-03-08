@@ -51,6 +51,7 @@ const DashboardHome = () => {
   const t = dashT[locale];
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<{ name: string; income: number; expenses: number }[]>([]);
   const [categoryData, setCategoryData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -78,8 +79,12 @@ const DashboardHome = () => {
         .order('created_at', { ascending: false }).limit(5),
       supabase.from('budgets').select('*').eq('user_id', user.id)
         .order('created_at', { ascending: false }).limit(5),
-    ]).then(([txRes, catRes, accRes, savRes, budRes]) => {
+      // Fetch ALL transactions for global balance computation
+      supabase.from('transactions').select('type, amount, account_id')
+        .eq('user_id', user.id),
+    ]).then(([txRes, catRes, accRes, savRes, budRes, allTxRes]) => {
       setTransactions(txRes.data || []);
+      setAllTransactions(allTxRes.data || []);
       setAccounts(accRes.data || []);
       setSavingsGoals(savRes.data || []);
 
@@ -133,9 +138,11 @@ const DashboardHome = () => {
       });
   }, [user, locale, period]);
 
+  // Global balance: sum of all account real_balances (or opening_balances + all income - all expenses)
+  const totalBalance = accounts.reduce((s, a) => s + Number(a.real_balance), 0);
+  // Period-filtered stats for display
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
-  const balance = totalIncome - totalExpenses;
 
   if (loading) {
     return (
@@ -170,7 +177,7 @@ const DashboardHome = () => {
       </div>
 
       {/* Stats */}
-      <StatsCards balance={balance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t} />
+      <StatsCards balance={totalBalance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t} />
 
       {/* Accounts + Budgets + Savings row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

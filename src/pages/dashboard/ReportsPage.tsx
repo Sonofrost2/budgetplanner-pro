@@ -13,6 +13,7 @@ import { Download, Lock } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { Skeleton } from '@/components/ui/skeleton';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { toast } from 'sonner';
 
 const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899'];
 
@@ -76,7 +77,8 @@ const ReportsPage = () => {
       Date: tx.date, Description: tx.description, Type: tx.type,
       Category: (tx.categories as any)?.name || '', Amount: tx.amount,
     }));
-    exportToCSV(rows, 'transactions');
+    const success = exportToCSV(rows, 'transactions');
+    if (!success) toast.info(t.noTransactions);
   };
 
   const handleExportExcel = () => {
@@ -84,7 +86,8 @@ const ReportsPage = () => {
       Date: tx.date, Description: tx.description, Type: tx.type,
       Category: (tx.categories as any)?.name || '', Amount: tx.amount,
     }));
-    exportToExcel(rows, 'transactions');
+    const success = exportToExcel(rows, 'transactions');
+    if (!success) toast.info(t.noTransactions);
   };
 
   if (loading) {

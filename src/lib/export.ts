@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 
-export function exportToCSV(data: Record<string, any>[], filename: string) {
-  if (!data.length) return;
+export function exportToCSV(data: Record<string, any>[], filename: string): boolean {
+  if (!data.length) return false;
   const headers = Object.keys(data[0]);
   const csv = [
     headers.join(','),
@@ -10,14 +10,16 @@ export function exportToCSV(data: Record<string, any>[], filename: string) {
 
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   downloadBlob(blob, `${filename}.csv`);
+  return true;
 }
 
-export function exportToExcel(data: Record<string, any>[], filename: string) {
-  if (!data.length) return;
+export function exportToExcel(data: Record<string, any>[], filename: string): boolean {
+  if (!data.length) return false;
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Data');
   XLSX.writeFile(wb, `${filename}.xlsx`);
+  return true;
 }
 
 function downloadBlob(blob: Blob, filename: string) {
