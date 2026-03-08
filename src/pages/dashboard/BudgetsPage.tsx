@@ -102,12 +102,25 @@ const BudgetsPage = () => {
 
   return (
     <div className="space-y-6">
+      {budgetLimitReached && (
+        <UpgradeBanner message={locale === 'fr'
+          ? `Limite atteinte : ${limits.budgets} budget(s) maximum en plan gratuit. Passez à Premium pour des budgets illimités.`
+          : `Limit reached: ${limits.budgets} budget(s) max on free plan. Upgrade to Premium for unlimited budgets.`}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-display">{t.budgets}</h2>
         <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+          if (budgetLimitReached) {
+            toast.error(locale === 'fr'
+              ? `Limite de ${limits.budgets} budget(s) atteinte. Passez à Premium !`
+              : `Limit of ${limits.budgets} budget(s) reached. Upgrade to Premium!`);
+            return;
+          }
           setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly' });
           setDialogOpen(true);
-        }}>
+        }} disabled={budgetLimitReached}>
           <Plus className="w-4 h-4 mr-1" />{t.addBudget}
         </Button>
       </div>

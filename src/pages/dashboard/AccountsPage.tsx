@@ -138,9 +138,16 @@ const AccountsPage = () => {
 
   return (
     <div className="space-y-6">
+      {accountLimitReached && (
+        <UpgradeBanner message={locale === 'fr'
+          ? `Limite atteinte : ${limits.accounts} compte(s) maximum en plan gratuit. Passez à Premium pour des comptes illimités.`
+          : `Limit reached: ${limits.accounts} account(s) max on free plan. Upgrade to Premium for unlimited accounts.`}
+        />
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold font-display">{t.accounts}</h2>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={accountLimitReached}>
           <Plus className="w-4 h-4 mr-1" />{t.addAccount}
         </Button>
       </div>
