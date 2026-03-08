@@ -423,3 +423,4 @@ export const dashT = {
 } as const;
 
 export type DashTranslations = typeof dashT.fr;
+export type DashTranslationKey = keyof DashTranslations;

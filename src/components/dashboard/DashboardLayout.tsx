@@ -107,7 +107,7 @@ const DashboardLayout = () => {
             : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
         }`}>
         <item.icon className="w-[18px] h-[18px]" />
-        <span>{t[item.key as keyof typeof t]}</span>
+        <span>{t[item.key as keyof typeof t] as string}</span>
         {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
       </Link>
     );

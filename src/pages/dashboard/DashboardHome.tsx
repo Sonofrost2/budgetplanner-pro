@@ -48,7 +48,7 @@ const DashboardHome = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
-  const t = dashT[locale] as Record<string, string>;
+  const t = dashT[locale];
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<{ name: string; income: number; expenses: number }[]>([]);
