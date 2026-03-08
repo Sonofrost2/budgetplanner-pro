@@ -8,7 +8,13 @@ const FREE_LIMITS = {
   budgets: 1,
 };
 
-const PAID_LIMITS = {
+const PRO_LIMITS = {
+  transactionsPerMonth: Infinity,
+  accounts: Infinity,
+  budgets: Infinity,
+};
+
+const PREMIUM_LIMITS = {
   transactionsPerMonth: Infinity,
   accounts: Infinity,
   budgets: Infinity,
