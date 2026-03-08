@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { CreditCard, Plus, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import type { DashTranslations } from '@/i18n/dashTranslations';
 
 interface Account {
   id: string;
@@ -16,7 +17,7 @@ interface Account {
 interface AccountsWidgetProps {
   accounts: Account[];
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: DashTranslations;
 }
 
 export const AccountsWidget = ({ accounts, fmt, t }: AccountsWidgetProps) => {

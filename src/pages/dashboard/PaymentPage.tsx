@@ -66,9 +66,7 @@ const PaymentPage = () => {
     setSubscribing(plan.id);
     try {
       const price = getPrice(plan);
-      const desc = locale === 'fr'
-        ? `Abonnement ${plan.name} - Budget Planner Pro`
-        : `${plan.name} Subscription - Budget Planner Pro`;
+      const desc = t.subscriptionDesc(plan.name);
 
       const { data, error } = await supabase.functions.invoke('paydunya-checkout', {
         body: {
@@ -101,9 +99,9 @@ const PaymentPage = () => {
         });
 
         window.open(data.response_text, '_blank');
-        toast.success(locale === 'fr' ? 'Redirection vers le paiement...' : 'Redirecting to payment...');
+        toast.success(t.redirectingPayment);
       } else {
-        toast.error(data?.response_text || (locale === 'fr' ? 'Erreur lors de la création du paiement' : 'Error creating payment'));
+        toast.error(data?.response_text || t.paymentError);
       }
     } catch (err: any) {
       toast.error(err.message || 'Error');
@@ -121,7 +119,7 @@ const PaymentPage = () => {
     }).eq('id', subscription.id);
     setCanceling(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(locale === 'fr' ? 'Abonnement résilié. Accès actif jusqu\'à la fin de la période.' : 'Subscription canceled. Access active until end of period.');
+    toast.success(t.subscriptionCanceledMsg);
     setSubscription({ ...subscription, status: 'canceled', canceled_at: new Date().toISOString() });
   };
 
@@ -147,14 +145,14 @@ const PaymentPage = () => {
           }
 
           setSubscription({ ...pendingSubs[0], status: 'active' } as Subscription);
-          toast.success(locale === 'fr' ? '🎉 Abonnement activé !' : '🎉 Subscription activated!');
+          toast.success(t.subscriptionActivated);
         }
         window.history.replaceState({}, '', '/dashboard/payment');
       };
       confirmSub();
     }
     if (params.get('canceled') === 'true') {
-      toast.info(locale === 'fr' ? 'Paiement annulé' : 'Payment canceled');
+      toast.info(t.paymentCanceled);
       window.history.replaceState({}, '', '/dashboard/payment');
     }
   }, [user, locale]);
@@ -191,30 +189,30 @@ const PaymentPage = () => {
         {isCurrent && (
           <div className="absolute -top-3 left-4">
             <Badge className="text-xs bg-primary text-primary-foreground">
-              {locale === 'fr' ? 'Plan actuel' : 'Current plan'}
+              {t.currentPlan}
             </Badge>
           </div>
         )}
         {plan.trial_days > 0 && !isCurrent && (
           <div className="absolute -top-3 right-4">
             <Badge variant="destructive" className="text-xs">
-              {plan.trial_days} {locale === 'fr' ? 'jours d\'essai' : 'days trial'}
+              {plan.trial_days} {t.daysTrial}
             </Badge>
           </div>
         )}
         <CardHeader className="pb-4">
           <CardTitle className="text-xl flex items-center gap-2">
             {icon}
-            <span className="capitalize">{plan.name === 'free' ? (locale === 'fr' ? 'Gratuit' : 'Free') : plan.name.charAt(0).toUpperCase() + plan.name.slice(1)}</span>
+            <span className="capitalize">{plan.name === 'free' ? t.freePlan : plan.name.charAt(0).toUpperCase() + plan.name.slice(1)}</span>
           </CardTitle>
           <div className="pt-2">
             <span className="text-4xl font-bold">{price === 0 ? '0' : fmt(price, locale).replace(/\s/g, ' ')}</span>
             <span className="text-muted-foreground text-sm ml-1">
-              {currency}/{annual ? (locale === 'fr' ? 'mois (annuel)' : 'mo (annual)') : (locale === 'fr' ? 'mois' : 'mo')}
+              {currency}/{annual ? t.perMonthAnnual : t.perMonth}
             </span>
           </div>
           {annual && price > 0 && (
-            <p className="text-xs text-muted-foreground line-through">{fmt(originalPrice, locale)}/{locale === 'fr' ? 'mois' : 'mo'}</p>
+            <p className="text-xs text-muted-foreground line-through">{fmt(originalPrice, locale)}/{t.perMonth}</p>
           )}
         </CardHeader>
         <CardContent className="space-y-3">
@@ -235,17 +233,17 @@ const PaymentPage = () => {
           {isCurrent ? (
             <div className="w-full space-y-2">
               <Button className="w-full" disabled>
-                {locale === 'fr' ? 'Plan actuel' : 'Current plan'}
+                {t.currentPlan}
               </Button>
               {plan.name !== 'free' && (
                 <Button variant="outline" size="sm" className="w-full" onClick={handleCancel} disabled={canceling}>
-                  {canceling ? <Loader2 className="w-4 h-4 animate-spin" /> : (locale === 'fr' ? 'Résilier' : 'Cancel')}
+                  {canceling ? <Loader2 className="w-4 h-4 animate-spin" /> : t.cancelLabel}
                 </Button>
               )}
             </div>
           ) : plan.name === 'free' ? (
             <Button variant="outline" className="w-full" disabled>
-              {locale === 'fr' ? 'Inclus' : 'Included'}
+              {t.included}
             </Button>
           ) : (
             <Button
@@ -256,7 +254,7 @@ const PaymentPage = () => {
               disabled={subscribing === plan.id}
             >
               {subscribing === plan.id && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {locale === 'fr' ? `Souscrire à ${plan.name.charAt(0).toUpperCase() + plan.name.slice(1)}` : `Subscribe to ${plan.name.charAt(0).toUpperCase() + plan.name.slice(1)}`}
+              {t.subscribeTo(plan.name.charAt(0).toUpperCase() + plan.name.slice(1))}
             </Button>
           )}
         </CardFooter>
@@ -264,29 +262,17 @@ const PaymentPage = () => {
     );
   };
 
-  const freeDisabled = locale === 'fr'
-    ? ['Transactions illimitées', 'Comptes illimités', 'Prévisions IA', 'Gestion familiale', 'Exports avancés']
-    : ['Unlimited transactions', 'Unlimited accounts', 'AI Forecasts', 'Family management', 'Advanced exports'];
-
-  const proDisabled = locale === 'fr'
-    ? ['Prévisions IA avancées', 'Gestion familiale', 'Support prioritaire 24/7']
-    : ['Advanced AI Forecasts', 'Family management', 'Priority support 24/7'];
-
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
       <div className="text-center space-y-2">
-        <h2 className="text-3xl font-bold font-display">
-          {locale === 'fr' ? 'Choisissez votre plan' : 'Choose your plan'}
-        </h2>
-        <p className="text-muted-foreground max-w-lg mx-auto">
-          {locale === 'fr' ? 'Débloquez toutes les fonctionnalités pour maîtriser vos finances' : 'Unlock all features to master your finances'}
-        </p>
+        <h2 className="text-3xl font-bold font-display">{t.choosePlan}</h2>
+        <p className="text-muted-foreground max-w-lg mx-auto">{t.choosePlanDesc}</p>
       </div>
 
       {/* Annual toggle */}
       <div className="flex items-center justify-center gap-4">
         <span className={`text-sm font-medium ${!annual ? 'text-foreground' : 'text-muted-foreground'}`}>
-          {locale === 'fr' ? 'Mensuel' : 'Monthly'}
+          {t.monthly}
         </span>
         <button
           onClick={() => setAnnual(!annual)}
@@ -295,22 +281,20 @@ const PaymentPage = () => {
           <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform ${annual ? 'translate-x-7' : 'translate-x-0.5'}`} />
         </button>
         <span className={`text-sm font-medium ${annual ? 'text-foreground' : 'text-muted-foreground'}`}>
-          {locale === 'fr' ? 'Annuel' : 'Annual'}
+          {t.yearly}
         </span>
         {annual && <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">-20%</span>}
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
-        <PlanCard plan={freePlan} icon={<Zap className="w-5 h-5 text-muted-foreground" />} isCurrent={!subscription || subscription.status !== 'active'} disabledFeatures={freeDisabled} />
-        <PlanCard plan={proPlan} icon={<Star className="w-5 h-5 text-primary" />} isCurrent={currentPlanId === proPlan?.id && subscription?.status === 'active'} isHighlighted disabledFeatures={proDisabled} />
+        <PlanCard plan={freePlan} icon={<Zap className="w-5 h-5 text-muted-foreground" />} isCurrent={!subscription || subscription.status !== 'active'} disabledFeatures={[...t.freeExcluded]} />
+        <PlanCard plan={proPlan} icon={<Star className="w-5 h-5 text-primary" />} isCurrent={currentPlanId === proPlan?.id && subscription?.status === 'active'} isHighlighted disabledFeatures={[...t.proExcluded]} />
         <PlanCard plan={premiumPlan} icon={<Crown className="w-5 h-5 text-primary" />} isCurrent={currentPlanId === premiumPlan?.id && subscription?.status === 'active'} />
       </div>
 
       <Card className="border-none shadow-[var(--shadow-card)]">
         <CardContent className="flex flex-wrap items-center justify-center gap-4 py-4">
-          <p className="text-sm text-muted-foreground">
-            {locale === 'fr' ? 'Moyens de paiement acceptés :' : 'Accepted payment methods:'}
-          </p>
+          <p className="text-sm text-muted-foreground">{t.paymentMethods}</p>
           {['🟠 Orange Money', '🟡 MTN Money', '🔵 Moov Money', '🌊 Wave', '💳 Carte bancaire'].map(m => (
             <Badge key={m} variant="secondary" className="text-xs">{m}</Badge>
           ))}
@@ -320,9 +304,7 @@ const PaymentPage = () => {
       <div className="text-center text-xs text-muted-foreground space-y-1">
         <p className="flex items-center justify-center gap-1">
           <AlertCircle className="w-3 h-3" />
-          {locale === 'fr'
-            ? 'Vous pouvez résilier à tout moment. L\'accès reste actif jusqu\'à la fin de la période payée.'
-            : 'You can cancel anytime. Access remains active until the end of the paid period.'}
+          {t.cancelAnytime}
         </p>
       </div>
     </div>

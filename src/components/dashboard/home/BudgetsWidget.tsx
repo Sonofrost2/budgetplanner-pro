@@ -1,3 +1,4 @@
+import type { DashTranslations } from '@/i18n/dashTranslations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -16,7 +17,7 @@ interface BudgetWithSpent {
 interface BudgetsWidgetProps {
   budgets: BudgetWithSpent[];
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: DashTranslations;
 }
 
 export const BudgetsWidget = ({ budgets, fmt, t }: BudgetsWidgetProps) => {

@@ -1,13 +1,14 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { DashTranslations } from '@/i18n/dashTranslations';
 
 interface StatsCardsProps {
   balance: number;
   totalIncome: number;
   totalExpenses: number;
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: DashTranslations;
 }
 
 export const StatsCards = ({ balance, totalIncome, totalExpenses, fmt, t }: StatsCardsProps) => {

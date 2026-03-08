@@ -90,21 +90,19 @@ const TransactionsPage = () => {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.description.trim()) errs.description = locale === 'fr' ? 'Description requise' : 'Description required';
-    if (form.description.trim().length > 200) errs.description = locale === 'fr' ? '200 caractères max' : '200 characters max';
-    if (!form.amount || Number(form.amount) <= 0) errs.amount = locale === 'fr' ? 'Montant invalide' : 'Invalid amount';
-    if (Number(form.amount) > 999999999) errs.amount = locale === 'fr' ? 'Montant trop élevé' : 'Amount too high';
-    if (!form.date) errs.date = locale === 'fr' ? 'Date requise' : 'Date required';
-    if (form.notes && form.notes.length > 500) errs.notes = locale === 'fr' ? '500 caractères max' : '500 characters max';
+    if (!form.description.trim()) errs.description = t.descriptionRequired;
+    if (form.description.trim().length > 200) errs.description = t.maxChars(200);
+    if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
+    if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
+    if (!form.date) errs.date = t.dateRequired;
+    if (form.notes && form.notes.length > 500) errs.notes = t.maxChars(500);
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const openNew = () => {
     if (limitReached) {
-      toast.error(locale === 'fr'
-        ? `Limite de ${limits.transactionsPerMonth} transactions/mois atteinte. Passez à Premium !`
-        : `Limit of ${limits.transactionsPerMonth} transactions/month reached. Upgrade to Premium!`);
+      toast.error(t.limitTransactionsToast(limits.transactionsPerMonth));
       return;
     }
     setEditing(null);
@@ -167,10 +165,7 @@ const TransactionsPage = () => {
   return (
     <div className="space-y-6">
       {limitReached && (
-        <UpgradeBanner message={locale === 'fr'
-          ? `Limite atteinte : ${thisMonthCount}/${limits.transactionsPerMonth} transactions ce mois. Passez à Premium pour un accès illimité.`
-          : `Limit reached: ${thisMonthCount}/${limits.transactionsPerMonth} transactions this month. Upgrade to Premium for unlimited access.`}
-        />
+        <UpgradeBanner message={t.limitReachedTransactions(thisMonthCount, limits.transactionsPerMonth)} />
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -225,15 +220,13 @@ const TransactionsPage = () => {
               {transactions.length === 0 ? (
                 <>
                   <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noTransactions}</p>
-                  <p className="text-sm text-muted-foreground/70 mb-4">{locale === 'fr' ? 'Commencez par ajouter votre première transaction' : 'Start by adding your first transaction'}</p>
+                  <p className="text-sm text-muted-foreground/70 mb-4">{t.addFirstTransaction}</p>
                   <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
                     <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
                   </Button>
                 </>
               ) : (
-                <p className="text-lg font-semibold text-muted-foreground">
-                  {locale === 'fr' ? 'Aucun résultat pour cette recherche' : 'No results found'}
-                </p>
+                 <p className="text-lg font-semibold text-muted-foreground">{t.noResults}</p>
               )}
             </div>
           ) : (
@@ -268,7 +261,7 @@ const TransactionsPage = () => {
               </div>
               <div className="flex items-center justify-between px-5 py-3.5 border-t border-border/50 bg-muted/20">
                 <span className="text-xs text-muted-foreground">
-                  {filtered.length} {locale === 'fr' ? 'résultats' : 'results'} — {t.page || 'Page'} {page + 1}/{totalPages}
+                  {filtered.length} {t.results} — {t.page} {page + 1}/{totalPages}
                 </span>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="rounded-xl h-8" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
@@ -289,9 +282,9 @@ const TransactionsPage = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addTransaction}</DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              {locale === 'fr' ? 'Remplissez les informations de la transaction' : 'Fill in the transaction details'}
-            </DialogDescription>
+             <DialogDescription className="text-sm text-muted-foreground">
+               {t.fillTransactionDetails}
+             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 py-2">

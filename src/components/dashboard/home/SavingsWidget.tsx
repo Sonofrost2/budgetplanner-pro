@@ -1,3 +1,4 @@
+import type { DashTranslations } from '@/i18n/dashTranslations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -17,7 +18,7 @@ interface SavingsGoal {
 interface SavingsWidgetProps {
   goals: SavingsGoal[];
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: DashTranslations;
   locale: string;
 }
 

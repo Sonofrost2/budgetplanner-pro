@@ -17,12 +17,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
-const ACCOUNT_TYPES = [
-  { value: 'mobile_money', label: '📱 Mobile Money', icon: '📱' },
-  { value: 'bank', label: '🏦 Banque', icon: '🏦' },
-  { value: 'cash', label: '💵 Espèces', icon: '💵' },
-  { value: 'card', label: '💳 Carte', icon: '💳' },
-  { value: 'savings', label: '🏦 Épargne', icon: '🏦' },
+const getAccountTypes = (t: any) => [
+  { value: 'mobile_money', label: `📱 ${t.mobileMoney}`, icon: '📱' },
+  { value: 'bank', label: `🏦 ${t.bank}`, icon: '🏦' },
+  { value: 'cash', label: `💵 ${t.cash}`, icon: '💵' },
+  { value: 'card', label: `💳 ${t.card}`, icon: '💳' },
+  { value: 'savings', label: `🏦 ${t.savingsType}`, icon: '🏦' },
 ];
 
 const ICONS = ['💳', '📱', '🏦', '💵', '🌊', '🟠', '🟡', '🔵', '💰', '🏧'];
@@ -71,18 +71,16 @@ const AccountsPage = () => {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = locale === 'fr' ? 'Nom requis' : 'Name required';
-    if (form.name.trim().length > 100) errs.name = locale === 'fr' ? '100 caractères max' : '100 characters max';
-    if (Number(form.opening_balance) < 0) errs.opening_balance = locale === 'fr' ? 'Solde invalide' : 'Invalid balance';
+    if (!form.name.trim()) errs.name = t.nameRequired;
+    if (form.name.trim().length > 100) errs.name = t.maxChars(100);
+    if (Number(form.opening_balance) < 0) errs.opening_balance = t.invalidBalance;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const openNew = () => {
     if (accountLimitReached) {
-      toast.error(locale === 'fr'
-        ? `Limite de ${limits.accounts} compte(s) atteinte. Passez à Premium !`
-        : `Limit of ${limits.accounts} account(s) reached. Upgrade to Premium!`);
+      toast.error(t.limitAccountsToast(limits.accounts));
       return;
     }
     setEditing(null);
@@ -154,10 +152,7 @@ const AccountsPage = () => {
   return (
     <div className="space-y-6">
       {accountLimitReached && (
-        <UpgradeBanner message={locale === 'fr'
-          ? `Limite atteinte : ${limits.accounts} compte(s) maximum en plan gratuit.`
-          : `Limit reached: ${limits.accounts} account(s) max on free plan.`}
-        />
+        <UpgradeBanner message={t.limitAccountsReached(limits.accounts)} />
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -174,7 +169,7 @@ const AccountsPage = () => {
               <Wallet className="w-7 h-7 text-muted-foreground/40" />
             </div>
             <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noAccounts}</p>
-            <p className="text-sm text-muted-foreground/70 mb-4">{locale === 'fr' ? 'Ajoutez votre premier compte pour commencer' : 'Add your first account to get started'}</p>
+            <p className="text-sm text-muted-foreground/70 mb-4">{t.addFirstAccount}</p>
             <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" />{t.addAccount}
             </Button>
@@ -196,7 +191,7 @@ const AccountsPage = () => {
                       </div>
                       <div>
                         <span>{acc.name}</span>
-                        <p className="text-[11px] font-normal text-muted-foreground">{ACCOUNT_TYPES.find(at => at.value === acc.type)?.label || acc.type}</p>
+                        <p className="text-[11px] font-normal text-muted-foreground">{getAccountTypes(t).find(at => at.value === acc.type)?.label || acc.type}</p>
                       </div>
                     </CardTitle>
                     <div className="flex gap-1">
@@ -248,17 +243,17 @@ const AccountsPage = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addAccount}</DialogTitle>
-            <DialogDescription>{locale === 'fr' ? 'Configurez votre compte de paiement' : 'Set up your payment account'}</DialogDescription>
+            <DialogDescription>{t.configureAccount}</DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
             {/* Account name */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{locale === 'fr' ? 'Nom du compte' : 'Account name'}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.accountName}</Label>
               <Input
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 maxLength={100}
-                placeholder={locale === 'fr' ? 'Ex: Wave, Orange Money...' : 'E.g: Wave, Orange Money...'}
+                placeholder={t.accountNamePlaceholder}
                 className={`rounded-xl h-11 ${errors.name ? 'border-destructive' : ''}`}
               />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
@@ -267,8 +262,8 @@ const AccountsPage = () => {
             {/* Type */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.type}</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {ACCOUNT_TYPES.slice(0, 3).map(at => (
+               <div className="grid grid-cols-3 gap-2">
+                 {getAccountTypes(t).slice(0, 3).map(at => (
                   <button
                     key={at.value}
                     type="button"
@@ -284,8 +279,8 @@ const AccountsPage = () => {
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {ACCOUNT_TYPES.slice(3).map(at => (
+               <div className="grid grid-cols-2 gap-2">
+                 {getAccountTypes(t).slice(3).map(at => (
                   <button
                     key={at.value}
                     type="button"
@@ -305,7 +300,7 @@ const AccountsPage = () => {
 
             {/* Icon */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{locale === 'fr' ? 'Icône' : 'Icon'}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.iconLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {ICONS.map(ic => (
                   <button key={ic} type="button" onClick={() => setForm(f => ({ ...f, icon: ic }))}
@@ -332,7 +327,7 @@ const AccountsPage = () => {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
             <Button className="text-primary-foreground rounded-xl min-w-[120px]" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>
-              {saving ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') : t.save}
+              {saving ? t.saving : t.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -343,7 +338,7 @@ const AccountsPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{t.updateRealBalance}</DialogTitle>
-            <DialogDescription>{locale === 'fr' ? 'Mettez à jour le solde réel de votre compte' : 'Update the real balance of your account'}</DialogDescription>
+            <DialogDescription>{t.updateBalanceDesc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.realBalance}</Label>

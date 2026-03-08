@@ -65,19 +65,17 @@ const BudgetsPage = () => {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = locale === 'fr' ? 'Nom requis' : 'Name required';
-    if (form.name.trim().length > 100) errs.name = locale === 'fr' ? '100 caractères max' : '100 characters max';
-    if (!form.amount || Number(form.amount) <= 0) errs.amount = locale === 'fr' ? 'Montant invalide' : 'Invalid amount';
-    if (Number(form.amount) > 999999999) errs.amount = locale === 'fr' ? 'Montant trop élevé' : 'Amount too high';
+    if (!form.name.trim()) errs.name = t.nameRequired;
+    if (form.name.trim().length > 100) errs.name = t.maxChars(100);
+    if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
+    if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const openNew = () => {
     if (budgetLimitReached) {
-      toast.error(locale === 'fr'
-        ? `Limite de ${limits.budgets} budget(s) atteinte. Passez à Premium !`
-        : `Limit of ${limits.budgets} budget(s) reached. Upgrade to Premium!`);
+      toast.error(t.limitBudgetsToast(limits.budgets));
       return;
     }
     setErrors({});
@@ -121,18 +119,15 @@ const BudgetsPage = () => {
   }
 
   const periodLabels: Record<string, string> = {
-    weekly: locale === 'fr' ? 'Hebdomadaire' : 'Weekly',
-    monthly: locale === 'fr' ? 'Mensuel' : 'Monthly',
-    yearly: locale === 'fr' ? 'Annuel' : 'Yearly',
+    weekly: t.weekly,
+    monthly: t.monthly,
+    yearly: t.yearly,
   };
 
   return (
     <div className="space-y-6">
       {budgetLimitReached && (
-        <UpgradeBanner message={locale === 'fr'
-          ? `Limite atteinte : ${limits.budgets} budget(s) maximum en plan gratuit.`
-          : `Limit reached: ${limits.budgets} budget(s) max on free plan.`}
-        />
+        <UpgradeBanner message={t.limitBudgetsReached(limits.budgets)} />
       )}
 
       <div className="flex items-center justify-between">
@@ -149,7 +144,7 @@ const BudgetsPage = () => {
               <PieChart className="w-7 h-7 text-muted-foreground/40" />
             </div>
             <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noBudgets}</p>
-            <p className="text-sm text-muted-foreground/70 mb-4">{locale === 'fr' ? 'Créez un budget pour suivre vos dépenses' : 'Create a budget to track your spending'}</p>
+            <p className="text-sm text-muted-foreground/70 mb-4">{t.createBudgetDesc}</p>
             <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" />{t.addBudget}
             </Button>
@@ -211,7 +206,7 @@ const BudgetsPage = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{t.addBudget}</DialogTitle>
-            <DialogDescription>{locale === 'fr' ? 'Définissez un budget pour mieux contrôler vos dépenses' : 'Set a budget to better control your spending'}</DialogDescription>
+            <DialogDescription>{t.createBudgetDesc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
             {/* Budget name */}
@@ -221,7 +216,7 @@ const BudgetsPage = () => {
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 maxLength={100}
-                placeholder={locale === 'fr' ? 'Ex: Courses du mois' : 'E.g: Monthly groceries'}
+                placeholder={t.budgetPlaceholder}
                 className={`rounded-xl h-11 ${errors.name ? 'border-destructive' : ''}`}
               />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
@@ -234,7 +229,7 @@ const BudgetsPage = () => {
                 {t.category}
               </Label>
               <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
-                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir une catégorie...' : 'Select a category...'} /></SelectTrigger>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger>
                 <SelectContent>
                   {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
                 </SelectContent>
@@ -283,7 +278,7 @@ const BudgetsPage = () => {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
             <Button className="text-primary-foreground rounded-xl min-w-[120px]" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>
-              {saving ? (locale === 'fr' ? 'Création...' : 'Creating...') : t.save}
+              {saving ? t.creating : t.save}
             </Button>
           </DialogFooter>
         </DialogContent>

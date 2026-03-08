@@ -102,7 +102,7 @@ const ReportsPage = () => {
   return (
     <div className="space-y-6">
       {!canExportAdvanced && (
-        <UpgradeBanner message={locale === 'fr' ? 'Les exports avancés (CSV/Excel) sont réservés au plan Premium.' : 'Advanced exports (CSV/Excel) are available on the Premium plan only.'} />
+        <UpgradeBanner message={t.upgradeExport} />
       )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold font-display">{t.reportTitle}</h2>
