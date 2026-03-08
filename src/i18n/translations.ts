@@ -88,9 +88,9 @@ export const translations = {
     // Testimonials
     testimonials: {
       sectionTitle: 'Ils nous font confiance',
-      sectionSubtitle: 'Découvrez ce que nos utilisateurs pensent de BudgetPlan',
+      sectionSubtitle: 'Découvrez ce que nos utilisateurs pensent de Budget Planner',
       items: [
-        { name: 'Marie L.', role: 'Mère de famille', text: "BudgetPlan a transformé notre gestion financière familiale. On voit enfin clairement où va notre argent !" },
+        { name: 'Marie L.', role: 'Mère de famille', text: "Budget Planner a transformé notre gestion financière familiale. On voit enfin clairement où va notre argent !" },
         { name: 'Thomas D.', role: 'Freelance', text: "Les prévisions financières m'aident à anticiper mes revenus irréguliers. Indispensable pour les indépendants." },
         { name: 'Sophie M.', role: 'Étudiante', text: "Même avec la version gratuite, j'arrive à bien gérer mon budget. L'interface est super intuitive !" },
       ],
