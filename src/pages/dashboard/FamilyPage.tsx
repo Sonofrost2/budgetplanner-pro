@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,14 +11,16 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Users, Mail, Crown, UserMinus, Trash2, Share2, Inbox } from 'lucide-react';
+import { Plus, Users, Mail, Crown, UserMinus, Trash2, Share2, Inbox, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
 const FamilyPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
+  const { canUseFamily } = useSubscription();
   const t = dashT[locale];
 
   const [groups, setGroups] = useState<any[]>([]);
