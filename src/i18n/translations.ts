@@ -1,0 +1,251 @@
+export type Locale = 'fr' | 'en';
+
+export const translations = {
+  fr: {
+    // Nav
+    nav: {
+      features: 'Fonctionnalités',
+      pricing: 'Tarifs',
+      testimonials: 'Témoignages',
+      login: 'Connexion',
+      signup: "S'inscrire",
+      getStarted: 'Commencer gratuitement',
+    },
+    // Hero
+    hero: {
+      badge: '🎉 Essai gratuit de 14 jours',
+      title: 'Prenez le contrôle de vos',
+      titleHighlight: 'finances',
+      subtitle: "Suivez vos dépenses, planifiez vos budgets et atteignez vos objectifs financiers en famille ou en solo. Simple, intelligent et accessible.",
+      cta: 'Commencer gratuitement',
+      ctaSecondary: 'Voir la démo',
+      users: '+ de 10 000 utilisateurs',
+      rating: '4.9/5 satisfaction',
+      secure: 'Données sécurisées',
+    },
+    // Features
+    features: {
+      sectionTitle: 'Tout ce dont vous avez besoin',
+      sectionSubtitle: 'Des outils puissants pour gérer votre argent intelligemment',
+      tracking: {
+        title: 'Suivi des revenus & dépenses',
+        desc: 'Enregistrez facilement toutes vos transactions et visualisez où va votre argent.',
+      },
+      budgets: {
+        title: 'Budgets par catégorie',
+        desc: 'Créez des budgets personnalisés et recevez des alertes avant de dépasser vos limites.',
+      },
+      forecasts: {
+        title: 'Prévisions financières',
+        desc: "Anticipez vos finances grâce à des projections basées sur votre historique.",
+      },
+      family: {
+        title: 'Gestion familiale',
+        desc: 'Invitez votre famille, partagez des budgets et suivez les dépenses de chacun.',
+      },
+      savings: {
+        title: "Objectifs d'épargne",
+        desc: "Définissez des objectifs et suivez votre progression vers vos rêves.",
+      },
+      reports: {
+        title: 'Rapports détaillés',
+        desc: "Analysez vos habitudes avec des rapports mensuels et annuels exportables.",
+      },
+    },
+    // Pricing
+    pricing: {
+      sectionTitle: 'Des tarifs simples et transparents',
+      sectionSubtitle: 'Commencez gratuitement, passez à Premium quand vous êtes prêt',
+      free: 'Gratuit',
+      premium: 'Premium',
+      popular: 'Populaire',
+      perMonth: '/mois',
+      freePlan: {
+        price: '0€',
+        features: [
+          '50 transactions/mois',
+          '5 catégories de budget',
+          'Tableau de bord basique',
+          '1 utilisateur',
+        ],
+      },
+      premiumPlan: {
+        price: '9,99€',
+        features: [
+          'Transactions illimitées',
+          'Catégories illimitées',
+          'Prévisions financières',
+          'Gestion familiale multi-membres',
+          "Objectifs d'épargne",
+          'Rapports détaillés & exports',
+          'Support prioritaire',
+        ],
+      },
+      trialNote: '14 jours d\'essai gratuit inclus',
+      ctaFree: 'Commencer gratuitement',
+      ctaPremium: 'Essayer Premium',
+    },
+    // Testimonials
+    testimonials: {
+      sectionTitle: 'Ils nous font confiance',
+      sectionSubtitle: 'Découvrez ce que nos utilisateurs pensent de BudgetPlan',
+      items: [
+        { name: 'Marie L.', role: 'Mère de famille', text: "BudgetPlan a transformé notre gestion financière familiale. On voit enfin clairement où va notre argent !" },
+        { name: 'Thomas D.', role: 'Freelance', text: "Les prévisions financières m'aident à anticiper mes revenus irréguliers. Indispensable pour les indépendants." },
+        { name: 'Sophie M.', role: 'Étudiante', text: "Même avec la version gratuite, j'arrive à bien gérer mon budget. L'interface est super intuitive !" },
+      ],
+    },
+    // Footer
+    footer: {
+      description: 'Votre compagnon financier intelligent pour une gestion sereine de votre argent.',
+      product: 'Produit',
+      company: 'Entreprise',
+      legal: 'Légal',
+      about: 'À propos',
+      blog: 'Blog',
+      careers: 'Carrières',
+      contact: 'Contact',
+      privacy: 'Confidentialité',
+      terms: 'Conditions',
+      cookies: 'Cookies',
+      rights: 'Tous droits réservés.',
+    },
+    // Auth
+    auth: {
+      loginTitle: 'Bon retour parmi nous !',
+      loginSubtitle: 'Connectez-vous pour accéder à votre tableau de bord',
+      signupTitle: 'Créez votre compte',
+      signupSubtitle: 'Commencez à gérer vos finances dès maintenant',
+      email: 'Email',
+      password: 'Mot de passe',
+      confirmPassword: 'Confirmer le mot de passe',
+      name: 'Nom complet',
+      login: 'Se connecter',
+      signup: "S'inscrire",
+      forgotPassword: 'Mot de passe oublié ?',
+      noAccount: "Pas encore de compte ?",
+      hasAccount: 'Déjà un compte ?',
+      orContinueWith: 'Ou continuer avec',
+    },
+  },
+  en: {
+    nav: {
+      features: 'Features',
+      pricing: 'Pricing',
+      testimonials: 'Testimonials',
+      login: 'Log in',
+      signup: 'Sign up',
+      getStarted: 'Get started free',
+    },
+    hero: {
+      badge: '🎉 14-day free trial',
+      title: 'Take control of your',
+      titleHighlight: 'finances',
+      subtitle: 'Track your expenses, plan your budgets, and reach your financial goals with family or solo. Simple, smart, and accessible.',
+      cta: 'Get started free',
+      ctaSecondary: 'See the demo',
+      users: '10,000+ users',
+      rating: '4.9/5 satisfaction',
+      secure: 'Secure data',
+    },
+    features: {
+      sectionTitle: 'Everything you need',
+      sectionSubtitle: 'Powerful tools to manage your money smartly',
+      tracking: {
+        title: 'Income & Expense Tracking',
+        desc: 'Easily record all your transactions and see where your money goes.',
+      },
+      budgets: {
+        title: 'Category Budgets',
+        desc: 'Create custom budgets and get alerts before exceeding your limits.',
+      },
+      forecasts: {
+        title: 'Financial Forecasts',
+        desc: 'Anticipate your finances with projections based on your history.',
+      },
+      family: {
+        title: 'Family Management',
+        desc: 'Invite your family, share budgets, and track spending for each member.',
+      },
+      savings: {
+        title: 'Savings Goals',
+        desc: 'Set goals and track your progress toward your dreams.',
+      },
+      reports: {
+        title: 'Detailed Reports',
+        desc: 'Analyze your habits with exportable monthly and annual reports.',
+      },
+    },
+    pricing: {
+      sectionTitle: 'Simple, transparent pricing',
+      sectionSubtitle: 'Start free, upgrade to Premium when you\'re ready',
+      free: 'Free',
+      premium: 'Premium',
+      popular: 'Popular',
+      perMonth: '/month',
+      freePlan: {
+        price: '$0',
+        features: [
+          '50 transactions/month',
+          '5 budget categories',
+          'Basic dashboard',
+          '1 user',
+        ],
+      },
+      premiumPlan: {
+        price: '$9.99',
+        features: [
+          'Unlimited transactions',
+          'Unlimited categories',
+          'Financial forecasts',
+          'Family multi-member management',
+          'Savings goals',
+          'Detailed reports & exports',
+          'Priority support',
+        ],
+      },
+      trialNote: '14-day free trial included',
+      ctaFree: 'Get started free',
+      ctaPremium: 'Try Premium',
+    },
+    testimonials: {
+      sectionTitle: 'Trusted by thousands',
+      sectionSubtitle: 'See what our users think about BudgetPlan',
+      items: [
+        { name: 'Marie L.', role: 'Mother', text: 'BudgetPlan transformed our family\'s financial management. We can finally see where our money goes!' },
+        { name: 'Thomas D.', role: 'Freelancer', text: 'The financial forecasts help me anticipate my irregular income. Essential for freelancers.' },
+        { name: 'Sophie M.', role: 'Student', text: 'Even with the free version, I can manage my budget well. The interface is super intuitive!' },
+      ],
+    },
+    footer: {
+      description: 'Your smart financial companion for stress-free money management.',
+      product: 'Product',
+      company: 'Company',
+      legal: 'Legal',
+      about: 'About',
+      blog: 'Blog',
+      careers: 'Careers',
+      contact: 'Contact',
+      privacy: 'Privacy',
+      terms: 'Terms',
+      cookies: 'Cookies',
+      rights: 'All rights reserved.',
+    },
+    auth: {
+      loginTitle: 'Welcome back!',
+      loginSubtitle: 'Log in to access your dashboard',
+      signupTitle: 'Create your account',
+      signupSubtitle: 'Start managing your finances now',
+      email: 'Email',
+      password: 'Password',
+      confirmPassword: 'Confirm password',
+      name: 'Full name',
+      login: 'Log in',
+      signup: 'Sign up',
+      forgotPassword: 'Forgot password?',
+      noAccount: "Don't have an account?",
+      hasAccount: 'Already have an account?',
+      orContinueWith: 'Or continue with',
+    },
+  },
+} as const;
