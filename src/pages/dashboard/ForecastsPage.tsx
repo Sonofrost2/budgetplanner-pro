@@ -59,13 +59,16 @@ const ForecastsPage = () => {
 
   return (
     <div className="space-y-6">
+      {!canUseForecast && (
+        <UpgradeBanner message={locale === 'fr' ? 'Les prévisions IA sont réservées au plan Premium.' : 'AI forecasts are available on the Premium plan only.'} />
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display">{t.forecastTitle}</h2>
           <p className="text-muted-foreground mt-1">{t.forecastSubtitle}</p>
         </div>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={generateForecast} disabled={loading || !hasData}>
-          {loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={generateForecast} disabled={loading || !hasData || !canUseForecast}>
+          {!canUseForecast ? <Lock className="w-4 h-4 mr-1" /> : loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
           {loading ? t.generating : t.generateForecast}
         </Button>
       </div>
