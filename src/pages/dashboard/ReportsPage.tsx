@@ -13,6 +13,7 @@ import { Download, Lock } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { Skeleton } from '@/components/ui/skeleton';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { toast } from 'sonner';
 
 const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899'];
 
