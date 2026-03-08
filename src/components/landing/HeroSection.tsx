@@ -82,7 +82,7 @@ const HeroSection = () => {
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                     <Wallet className="w-3 h-3" /> Solde total
                   </div>
-                  <p className="text-lg font-bold">1,250,000 XOF</p>
+                  <p className="text-lg font-bold">430,000 XOF</p>
                 </div>
                 <div className="rounded-xl bg-muted/50 p-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
