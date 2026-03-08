@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         </a>
       </div>
       <p style="color:#9ca3af;font-size:13px;text-align:center;margin-top:24px;">
-        Merci de votre confiance !<br>L'équipe BudgetPlan
+        Merci de votre confiance !<br>L'équipe Budget Planner
       </p>
     </div>
   </div>
