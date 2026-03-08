@@ -32,6 +32,7 @@ import AdminPricingPage from "./pages/dashboard/AdminPricingPage";
 import CategoriesPage from "./pages/dashboard/CategoriesPage";
 import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import FamilyPage from "./pages/dashboard/FamilyPage";
+import GuidePage from "./pages/dashboard/GuidePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
