@@ -283,8 +283,9 @@ const TransactionsPage = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addTransaction}</DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              {locale === 'fr' ? 'Remplissez les informations de la transaction' : 'Fill in the transaction details'}
+             <DialogDescription className="text-sm text-muted-foreground">
+               {t.fillTransactionDetails}
+             </DialogDescription>
             </DialogDescription>
           </DialogHeader>
 
