@@ -1,68 +1,106 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Download } from 'lucide-react';
+import { exportToCSV, exportToExcel } from '@/lib/export';
 
 const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899'];
 
 const ReportsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
+  const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
 
-  const fmt = (n: number) => n.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR' });
+  const fmt = (n: number) => fmtCurrency(n, locale);
 
   useEffect(() => {
     if (!user) return;
     const now = new Date();
 
-    // Last 12 months data
     const twelveAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1).toISOString().split('T')[0];
-    supabase.from('transactions').select('type, amount, date').eq('user_id', user.id).gte('date', twelveAgo)
-      .then(({ data }) => {
-        const months: any[] = [];
-        for (let i = 11; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const label = d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
-          const txs = (data || []).filter(tx => {
-            const td = new Date(tx.date);
-            return td.getMonth() === d.getMonth() && td.getFullYear() === d.getFullYear();
-          });
-          months.push({
-            name: label,
-            income: txs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
-            expenses: txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
-          });
-        }
-        setMonthlyData(months);
-      });
+    
+    Promise.all([
+      supabase.from('transactions').select('type, amount, date, description, categories(name)').eq('user_id', user.id).gte('date', twelveAgo).order('date', { ascending: false }),
+      supabase.from('transactions').select('amount, categories(name, color)').eq('user_id', user.id).eq('type', 'expense')
+        .gte('date', new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0])
+        .lte('date', new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]),
+    ]).then(([txRes, catRes]) => {
+      const data = txRes.data || [];
+      setAllTransactions(data);
 
-    // Category breakdown for current month
-    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-    supabase.from('transactions').select('amount, categories(name, color)').eq('user_id', user.id)
-      .eq('type', 'expense').gte('date', start).lte('date', end)
-      .then(({ data }) => {
-        const catMap: Record<string, { name: string; value: number; color: string }> = {};
-        (data || []).forEach(tx => {
-          const name = (tx.categories as any)?.name || 'Other';
-          const color = (tx.categories as any)?.color || '#6C63FF';
-          if (!catMap[name]) catMap[name] = { name, value: 0, color };
-          catMap[name].value += Number(tx.amount);
+      const months: any[] = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const label = d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
+        const txs = data.filter(tx => {
+          const td = new Date(tx.date);
+          return td.getMonth() === d.getMonth() && td.getFullYear() === d.getFullYear();
         });
-        setCategoryData(Object.values(catMap).sort((a, b) => b.value - a.value));
+        months.push({
+          name: label,
+          income: txs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
+          expenses: txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
+        });
+      }
+      setMonthlyData(months);
+
+      const catMap: Record<string, { name: string; value: number; color: string }> = {};
+      (catRes.data || []).forEach(tx => {
+        const name = (tx.categories as any)?.name || 'Other';
+        const color = (tx.categories as any)?.color || '#6C63FF';
+        if (!catMap[name]) catMap[name] = { name, value: 0, color };
+        catMap[name].value += Number(tx.amount);
       });
+      setCategoryData(Object.values(catMap).sort((a, b) => b.value - a.value));
+    });
   }, [user, locale]);
+
+  const handleExportCSV = () => {
+    const rows = allTransactions.map(tx => ({
+      Date: tx.date,
+      Description: tx.description,
+      Type: tx.type,
+      Category: (tx.categories as any)?.name || '',
+      Amount: tx.amount,
+    }));
+    exportToCSV(rows, 'transactions');
+  };
+
+  const handleExportExcel = () => {
+    const rows = allTransactions.map(tx => ({
+      Date: tx.date,
+      Description: tx.description,
+      Type: tx.type,
+      Category: (tx.categories as any)?.name || '',
+      Amount: tx.amount,
+    }));
+    exportToExcel(rows, 'transactions');
+  };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold font-display">{t.reportTitle}</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h2 className="text-2xl font-bold font-display">{t.reportTitle}</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <Download className="w-4 h-4 mr-1" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel}>
+            <Download className="w-4 h-4 mr-1" /> Excel
+          </Button>
+        </div>
+      </div>
 
       <Tabs defaultValue="monthly">
         <TabsList>
@@ -77,9 +115,9 @@ const ReportsPage = () => {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                    <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" />
                     <Tooltip formatter={(v: number) => fmt(v)} />
                     <Legend />
                     <Bar dataKey="income" fill="hsl(170, 65%, 45%)" name={t.income} radius={[4, 4, 0, 0]} />
