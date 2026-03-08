@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Trash2, PiggyBank } from 'lucide-react';
@@ -15,19 +17,25 @@ import { toast } from 'sonner';
 const SavingsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
+  const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const [goals, setGoals] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
   const [addAmount, setAddAmount] = useState('');
-  const [form, setForm] = useState({ name: '', target_amount: '', icon: '🎯', deadline: '' });
+  const [form, setForm] = useState({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
 
-  const fmt = (n: number) => n.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR' });
+  const fmt = (n: number) => fmtCurrency(n, locale);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('savings_goals').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-    setGoals(data || []);
+    const [goalsRes, accRes] = await Promise.all([
+      supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance)').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('payment_accounts').select('*').eq('user_id', user.id),
+    ]);
+    setGoals(goalsRes.data || []);
+    setAccounts(accRes.data || []);
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -37,6 +45,7 @@ const SavingsPage = () => {
     const { error } = await supabase.from('savings_goals').insert({
       user_id: user.id, name: form.name.trim(), target_amount: Number(form.target_amount),
       icon: form.icon || '🎯', deadline: form.deadline || null,
+      account_id: form.account_id || null,
     });
     if (error) { toast.error(error.message); return; }
     setDialogOpen(false);
@@ -70,7 +79,7 @@ const SavingsPage = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-display">{t.savings}</h2>
         <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
-          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '' });
+          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
           setDialogOpen(true);
         }}>
           <Plus className="w-4 h-4 mr-1" />{t.addGoal}
@@ -100,6 +109,9 @@ const SavingsPage = () => {
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
+                  {g.payment_accounts && (
+                    <span className="text-xs text-muted-foreground">{g.payment_accounts.icon} {g.payment_accounts.name}</span>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between text-sm">
@@ -141,6 +153,15 @@ const SavingsPage = () => {
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t.account}</Label>
+              <Select value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))}>
+                <SelectTrigger><SelectValue placeholder={t.selectAccount} /></SelectTrigger>
+                <SelectContent>
+                  {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

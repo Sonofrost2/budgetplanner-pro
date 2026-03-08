@@ -85,6 +85,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_accounts: {
+        Row: {
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          opening_balance: number
+          real_balance: number
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          icon?: string
+          id?: string
+          name: string
+          opening_balance?: number
+          real_balance?: number
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          opening_balance?: number
+          real_balance?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -93,6 +129,7 @@ export type Database = {
           display_name: string | null
           id: string
           locale: string
+          onboarding_completed: boolean
           updated_at: string
           user_id: string
         }
@@ -103,6 +140,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           locale?: string
+          onboarding_completed?: boolean
           updated_at?: string
           user_id: string
         }
@@ -113,6 +151,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           locale?: string
+          onboarding_completed?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -120,6 +159,7 @@ export type Database = {
       }
       savings_goals: {
         Row: {
+          account_id: string | null
           created_at: string
           current_amount: number
           deadline: string | null
@@ -131,6 +171,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_id?: string | null
           created_at?: string
           current_amount?: number
           deadline?: string | null
@@ -142,6 +183,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_id?: string | null
           created_at?: string
           current_amount?: number
           deadline?: string | null
@@ -152,10 +194,55 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "savings_goals_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          active: boolean
+          base_price: number
+          created_at: string
+          currency_prices: Json
+          features: Json
+          id: string
+          name: string
+          trial_days: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          base_price?: number
+          created_at?: string
+          currency_prices?: Json
+          features?: Json
+          id?: string
+          name: string
+          trial_days?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          base_price?: number
+          created_at?: string
+          currency_prices?: Json
+          features?: Json
+          id?: string
+          name?: string
+          trial_days?: number
+          updated_at?: string
+        }
         Relationships: []
       }
       transactions: {
         Row: {
+          account_id: string | null
           amount: number
           category_id: string | null
           created_at: string
@@ -168,6 +255,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_id?: string | null
           amount: number
           category_id?: string | null
           created_at?: string
@@ -180,6 +268,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
           category_id?: string | null
           created_at?: string
@@ -193,6 +282,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transactions_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
@@ -201,15 +297,39 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -336,6 +456,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

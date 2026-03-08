@@ -20,35 +20,38 @@ const TransactionsPage = () => {
   const t = dashT[locale];
   const [transactions, setTransactions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', date: new Date().toISOString().split('T')[0], notes: '' });
+  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '' });
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const [txRes, catRes] = await Promise.all([
-      supabase.from('transactions').select('*, categories(name, icon, color)').eq('user_id', user.id).order('date', { ascending: false }),
+    const [txRes, catRes, accRes] = await Promise.all([
+      supabase.from('transactions').select('*, categories(name, icon, color), payment_accounts(name, icon)').eq('user_id', user.id).order('date', { ascending: false }),
       supabase.from('categories').select('*').eq('user_id', user.id),
+      supabase.from('payment_accounts').select('*').eq('user_id', user.id),
     ]);
     setTransactions(txRes.data || []);
     setCategories(catRes.data || []);
+    setAccounts(accRes.data || []);
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const openNew = () => {
     setEditing(null);
-    setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '' });
+    setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', account_id: accounts[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (tx: any) => {
     setEditing(tx);
-    setForm({ description: tx.description, amount: String(tx.amount), type: tx.type, category_id: tx.category_id || '', date: tx.date, notes: tx.notes || '' });
+    setForm({ description: tx.description, amount: String(tx.amount), type: tx.type, category_id: tx.category_id || '', account_id: tx.account_id || '', date: tx.date, notes: tx.notes || '' });
     setDialogOpen(true);
   };
 
@@ -60,6 +63,7 @@ const TransactionsPage = () => {
       amount: Number(form.amount),
       type: form.type,
       category_id: form.category_id || null,
+      account_id: form.account_id || null,
       date: form.date,
       notes: form.notes.trim() || null,
     };
@@ -133,7 +137,7 @@ const TransactionsPage = () => {
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{tx.description}</p>
                       <p className="text-xs text-muted-foreground">
-                        {tx.categories?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}
+                        {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}
                       </p>
                     </div>
                   </div>
@@ -184,6 +188,17 @@ const TransactionsPage = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t.account}</Label>
+              <Select value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))}>
+                <SelectTrigger><SelectValue placeholder={t.selectAccount} /></SelectTrigger>
+                <SelectContent>
+                  {accounts.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>{t.description}</Label>
