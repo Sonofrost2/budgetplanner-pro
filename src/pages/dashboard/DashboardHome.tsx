@@ -14,12 +14,13 @@ import { useNavigate } from 'react-router-dom';
 const DashboardHome = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
+  const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
-  const fmt = (n: number) => n.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR' });
+  const fmt = (n: number) => fmtCurrency(n, locale);
 
   useEffect(() => {
     if (!user) return;
