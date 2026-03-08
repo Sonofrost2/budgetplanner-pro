@@ -68,6 +68,7 @@ const AnimatedRoutes = () => {
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="receipts" element={<ReceiptsPage />} />
           <Route path="family" element={<FamilyPage />} />
+          <Route path="guide" element={<GuidePage />} />
           <Route path="admin/pricing" element={<AdminPricingPage />} />
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />

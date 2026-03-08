@@ -94,6 +94,7 @@ const DashboardLayout = () => {
     { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
     { key: 'settings', icon: Settings, path: '/dashboard/settings' },
     { key: 'payment', icon: Crown, path: '/dashboard/payment' },
+    { key: 'guide', icon: HelpCircle, path: '/dashboard/guide' },
     ...(isAdmin ? [{ key: 'adminPricing', icon: Shield, path: '/dashboard/admin/pricing' }] : []),
   ];
 
