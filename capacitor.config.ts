@@ -8,6 +8,15 @@ const config: CapacitorConfig = {
     url: 'https://2f84ea3c-29cc-4df2-ab1d-da5d2ef488ee.lovableproject.com?forceHideBadge=true',
     cleartext: true,
   },
+  android: {
+    buildOptions: {
+      keystorePath: undefined,
+      keystoreAlias: undefined,
+    },
+  },
+  ios: {
+    scheme: 'Budget Planner',
+  },
 };
 
 export default config;
