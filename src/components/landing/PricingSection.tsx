@@ -191,11 +191,13 @@ const PricingSection = () => {
 
                 {/* Price */}
                 <div className="mb-6">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-extrabold">{card.price?.formatted ?? '—'}</span>
-                    <span className="text-sm text-muted-foreground font-medium">
-                      {card.plan?.name === 'free' ? '' : annual ? t.pricing.perMonthAnnual : t.pricing.perMonth}
-                    </span>
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                    <span className="text-3xl sm:text-4xl font-extrabold">{card.price?.formatted ?? '—'}</span>
+                    {card.plan?.name !== 'free' && (
+                      <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                        {annual ? t.pricing.perMonthAnnual : t.pricing.perMonth}
+                      </span>
+                    )}
                   </div>
                   {annual && card.plan && card.plan.name !== 'free' && (
                     <p className="mt-1 text-xs text-muted-foreground line-through">
