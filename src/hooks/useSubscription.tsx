@@ -50,7 +50,10 @@ export const useSubscription = () => {
   const isPro = planTier === 'pro';
   const isPaid = isPro || isPremium;
 
-  const limits = isPaid ? PAID_LIMITS : FREE_LIMITS;
+  const limits = isPremium ? PREMIUM_LIMITS : isPro ? PRO_LIMITS : FREE_LIMITS;
+  const canUseForecast = isPremium;
+  const canUseFamily = isPremium;
+  const canExportAdvanced = isPremium;
 
-  return { isPremium, isPro, isPaid, planTier, loading, limits };
+  return { isPremium, isPro, isPaid, planTier, loading, limits, canUseForecast, canUseFamily, canExportAdvanced };
 };
