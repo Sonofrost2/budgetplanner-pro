@@ -227,9 +227,7 @@ const TransactionsPage = () => {
                   </Button>
                 </>
               ) : (
-                <p className="text-lg font-semibold text-muted-foreground">
-                  {locale === 'fr' ? 'Aucun résultat pour cette recherche' : 'No results found'}
-                </p>
+                 <p className="text-lg font-semibold text-muted-foreground">{t.noResults}</p>
               )}
             </div>
           ) : (
