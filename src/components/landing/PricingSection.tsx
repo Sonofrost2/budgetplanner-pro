@@ -58,11 +58,14 @@ const PricingSection = () => {
     );
   }
 
-  const getAnnualPrice = (prices: Record<string, number>) => {
-    const p = formatPrice(prices);
-    if (!p || p.amount === 0) return p;
-    const discounted = Math.round(p.amount * 0.8 * 100) / 100;
-    const currency = p.currency;
+  const getDisplayPrice = (plan: Plan) => {
+    if (plan.name === 'free') return { amount: 0, formatted: '0', currency: 'EUR' };
+    const base = formatPrice(plan.currency_prices);
+    if (!base || base.amount === 0) return base;
+    if (!annual) return base;
+    // Apply 20% discount for annual
+    const discounted = Math.round(base.amount * 0.8 * 100) / 100;
+    const { currency } = base;
     const isCfa = currency === 'XOF' || currency === 'XAF';
     const formatted = isCfa
       ? `${Math.round(discounted).toLocaleString('fr-FR')} CFA`
@@ -70,13 +73,8 @@ const PricingSection = () => {
     return { amount: discounted, formatted, currency };
   };
 
-  const displayPrice = (plan: Plan) => {
-    if (plan.name === 'free') return { amount: 0, formatted: '0', currency: 'EUR' };
-    return annual ? getAnnualPrice(plan.currency_prices) : formatPrice(plan.currency_prices);
-  };
-
-  const proPrice = proPlan ? displayPrice(proPlan) : null;
-  const premiumPrice = premiumPlan ? displayPrice(premiumPlan) : null;
+  const proPrice = proPlan ? getDisplayPrice(proPlan) : null;
+  const premiumPrice = premiumPlan ? getDisplayPrice(premiumPlan) : null;
 
   const planCards = [
     {
@@ -88,7 +86,7 @@ const PricingSection = () => {
       cta: t.pricing.ctaFree,
       featured: false,
       features: freePlan?.features || [],
-      excluded: ['Transactions illimitées', 'Comptes illimités', 'Prévisions IA', 'Gestion familiale', 'Exports avancés'],
+      excluded: t.pricing.excludedFree as readonly string[],
       trial: 0,
     },
     {
@@ -100,7 +98,7 @@ const PricingSection = () => {
       cta: t.pricing.ctaPro,
       featured: true,
       features: proPlan?.features || [],
-      excluded: ['Prévisions IA avancées', 'Gestion familiale', 'Support prioritaire 24/7'],
+      excluded: t.pricing.excludedPro as readonly string[],
       trial: proPlan?.trial_days || 0,
     },
     {
@@ -112,7 +110,7 @@ const PricingSection = () => {
       cta: t.pricing.ctaPremium,
       featured: false,
       features: premiumPlan?.features || [],
-      excluded: [],
+      excluded: [] as string[],
       trial: premiumPlan?.trial_days || 0,
     },
   ];
@@ -129,7 +127,7 @@ const PricingSection = () => {
           className="text-center mb-14"
         >
           <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-accent/10 text-accent mb-4">
-            Pricing
+            {t.pricing.badge}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">{t.pricing.sectionTitle}</h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">{t.pricing.sectionSubtitle}</p>
