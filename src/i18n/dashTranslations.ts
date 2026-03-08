@@ -148,6 +148,7 @@ export const dashT = {
     overBudget: 'Over budget!',
     onTrack: 'On track',
     exceeded: 'Exceeded by',
+    payment: 'Payment',
   },
 } as const;
 
