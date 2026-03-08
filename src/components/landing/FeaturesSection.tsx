@@ -1,48 +1,72 @@
-import { TrendingUp, PieChart, BarChart3, Users, Target, FileText } from 'lucide-react';
+import { forwardRef } from 'react';
+import { TrendingUp, PieChart, BarChart3, Users, Target, FileText, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { motion } from 'framer-motion';
 
-const FeaturesSection = () => {
+const FeaturesSection = forwardRef<HTMLElement>((_, ref) => {
   const { t } = useLanguage();
 
   const features = [
-    { icon: TrendingUp, ...t.features.tracking, color: 'text-primary', bg: 'bg-primary/10' },
-    { icon: PieChart, ...t.features.budgets, color: 'text-secondary', bg: 'bg-secondary/10' },
-    { icon: BarChart3, ...t.features.forecasts, color: 'text-accent', bg: 'bg-accent/10' },
-    { icon: Users, ...t.features.family, color: 'text-primary', bg: 'bg-primary/10' },
-    { icon: Target, ...t.features.savings, color: 'text-secondary', bg: 'bg-secondary/10' },
-    { icon: FileText, ...t.features.reports, color: 'text-accent', bg: 'bg-accent/10' },
+    { icon: TrendingUp, ...t.features.tracking, gradient: 'from-primary/20 to-primary/5', iconBg: 'bg-primary/15', iconColor: 'text-primary' },
+    { icon: PieChart, ...t.features.budgets, gradient: 'from-secondary/20 to-secondary/5', iconBg: 'bg-secondary/15', iconColor: 'text-secondary' },
+    { icon: BarChart3, ...t.features.forecasts, gradient: 'from-accent/20 to-accent/5', iconBg: 'bg-accent/15', iconColor: 'text-accent' },
+    { icon: Users, ...t.features.family, gradient: 'from-primary/20 to-primary/5', iconBg: 'bg-primary/15', iconColor: 'text-primary' },
+    { icon: Target, ...t.features.savings, gradient: 'from-secondary/20 to-secondary/5', iconBg: 'bg-secondary/15', iconColor: 'text-secondary' },
+    { icon: FileText, ...t.features.reports, gradient: 'from-accent/20 to-accent/5', iconBg: 'bg-accent/15', iconColor: 'text-accent' },
   ];
 
   return (
-    <section id="features" className="py-24 bg-muted/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold">{t.features.sectionTitle}</h2>
-          <p className="mt-4 text-lg text-muted-foreground">{t.features.sectionSubtitle}</p>
-        </div>
+    <section ref={ref} id="features" className="py-28 relative overflow-hidden">
+      {/* Subtle bg */}
+      <div className="absolute inset-0 bg-muted/30" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-20"
+        >
+          <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary mb-4">
+            Features
+          </span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">{t.features.sectionTitle}</h2>
+          <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">{t.features.sectionSubtitle}</p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300 hover:shadow-[var(--shadow-soft)]"
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+              className="group relative p-7 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all duration-500 hover:shadow-[var(--shadow-elevated)] hover:-translate-y-1"
             >
-              <div className={`w-12 h-12 rounded-xl ${feature.bg} flex items-center justify-center mb-4`}>
-                <feature.icon className={`w-6 h-6 ${feature.color}`} />
+              {/* Gradient overlay on hover */}
+              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+              
+              <div className="relative">
+                <div className={`w-14 h-14 rounded-2xl ${feature.iconBg} flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110`}>
+                  <feature.icon className={`w-7 h-7 ${feature.iconColor}`} />
+                </div>
+                <h3 className="text-lg font-bold mb-2.5">{feature.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{feature.desc}</p>
+                <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <span>En savoir plus</span>
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                </div>
               </div>
-              <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">{feature.desc}</p>
             </motion.div>
           ))}
         </div>
       </div>
     </section>
   );
-};
+});
+
+FeaturesSection.displayName = 'FeaturesSection';
 
 export default FeaturesSection;
