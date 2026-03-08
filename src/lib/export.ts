@@ -13,8 +13,8 @@ export function exportToCSV(data: Record<string, any>[], filename: string): bool
   return true;
 }
 
-export function exportToExcel(data: Record<string, any>[], filename: string) {
-  if (!data.length) return;
+export function exportToExcel(data: Record<string, any>[], filename: string): boolean {
+  if (!data.length) return false;
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Data');
