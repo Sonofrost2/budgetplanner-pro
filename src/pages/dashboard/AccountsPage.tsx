@@ -243,7 +243,7 @@ const AccountsPage = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addAccount}</DialogTitle>
-            <DialogDescription>{locale === 'fr' ? 'Configurez votre compte de paiement' : 'Set up your payment account'}</DialogDescription>
+            <DialogDescription>{t.configureAccount}</DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
             {/* Account name */}
