@@ -8,9 +8,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { dashT } from '@/i18n/dashTranslations';
 import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
-  Settings, LogOut, Globe, Menu, X, Sun, Moon, Smartphone, CreditCard, Shield
+  Settings, LogOut, Globe, Menu, X, Sun, Moon, Smartphone, CreditCard, Shield,
+  Tag, Receipt, Search, Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const DashboardLayout = () => {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -22,6 +26,8 @@ const DashboardLayout = () => {
   const t = dashT[locale];
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean } | null>(null);
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [userPlan, setUserPlan] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
@@ -34,11 +40,25 @@ const DashboardLayout = () => {
         setProfile(data);
         if (data && !data.onboarding_completed) navigate('/onboarding');
       });
+    // Check user plan
+    supabase.from('payment_receipts').select('plan_name').eq('user_id', user.id).eq('status', 'confirmed')
+      .order('created_at', { ascending: false }).limit(1)
+      .then(({ data }) => {
+        setUserPlan(data && data.length > 0 ? data[0].plan_name : null);
+      });
   }, [user, navigate]);
 
   const handleLogout = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleGlobalSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (globalSearch.trim()) {
+      navigate(`/dashboard/transactions?q=${encodeURIComponent(globalSearch.trim())}`);
+      setGlobalSearch('');
+    }
   };
 
   if (authLoading) {
@@ -53,10 +73,12 @@ const DashboardLayout = () => {
     { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { key: 'transactions', icon: ArrowUpDown, path: '/dashboard/transactions' },
     { key: 'accounts', icon: CreditCard, path: '/dashboard/accounts' },
+    { key: 'categories', icon: Tag, path: '/dashboard/categories' },
     { key: 'budgets', icon: PieChart, path: '/dashboard/budgets' },
     { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
     { key: 'savings', icon: Target, path: '/dashboard/savings' },
     { key: 'reports', icon: FileText, path: '/dashboard/reports' },
+    { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
     { key: 'settings', icon: Settings, path: '/dashboard/settings' },
     { key: 'payment', icon: Smartphone, path: '/dashboard/payment' },
     ...(isAdmin ? [{ key: 'adminPricing', icon: Shield, path: '/dashboard/admin/pricing' }] : []),
@@ -78,7 +100,7 @@ const DashboardLayout = () => {
           </Button>
         </div>
 
-        <nav className="p-3 space-y-1">
+        <nav className="p-3 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
           {navItems.map(item => {
             const active = location.pathname === item.path;
             return (
@@ -92,6 +114,13 @@ const DashboardLayout = () => {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border space-y-1">
+          {/* Plan badge */}
+          <div className="flex items-center gap-2 px-3 py-2">
+            <Crown className="w-4 h-4 text-accent" />
+            <Badge variant="secondary" className="text-xs">
+              {userPlan || t.freePlan}
+            </Badge>
+          </div>
           <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" onClick={toggleTheme}>
             {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             {theme === 'light' ? (locale === 'fr' ? 'Mode sombre' : 'Dark mode') : (locale === 'fr' ? 'Mode clair' : 'Light mode')}
@@ -116,10 +145,30 @@ const DashboardLayout = () => {
             <Menu className="w-5 h-5" />
           </Button>
           <h1 className="text-xl font-bold font-display">{t.welcome}, {profile?.display_name?.split(' ')[0] || 'User'} 👋</h1>
+          <div className="flex-1" />
+          <form onSubmit={handleGlobalSearch} className="hidden sm:flex relative max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={globalSearch}
+              onChange={e => setGlobalSearch(e.target.value)}
+              placeholder={t.searchGlobal}
+              className="pl-10 h-9 w-64"
+            />
+          </form>
         </header>
 
         <div className="p-4 lg:p-8">
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
     </div>

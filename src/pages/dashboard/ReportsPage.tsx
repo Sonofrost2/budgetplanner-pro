@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Download } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '@/lib/export';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899'];
 
@@ -21,13 +22,13 @@ const ReportsPage = () => {
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
   useEffect(() => {
     if (!user) return;
     const now = new Date();
-
     const twelveAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1).toISOString().split('T')[0];
     
     Promise.all([
@@ -63,30 +64,37 @@ const ReportsPage = () => {
         catMap[name].value += Number(tx.amount);
       });
       setCategoryData(Object.values(catMap).sort((a, b) => b.value - a.value));
+      setLoading(false);
     });
   }, [user, locale]);
 
   const handleExportCSV = () => {
     const rows = allTransactions.map(tx => ({
-      Date: tx.date,
-      Description: tx.description,
-      Type: tx.type,
-      Category: (tx.categories as any)?.name || '',
-      Amount: tx.amount,
+      Date: tx.date, Description: tx.description, Type: tx.type,
+      Category: (tx.categories as any)?.name || '', Amount: tx.amount,
     }));
     exportToCSV(rows, 'transactions');
   };
 
   const handleExportExcel = () => {
     const rows = allTransactions.map(tx => ({
-      Date: tx.date,
-      Description: tx.description,
-      Type: tx.type,
-      Category: (tx.categories as any)?.name || '',
-      Amount: tx.amount,
+      Date: tx.date, Description: tx.description, Type: tx.type,
+      Category: (tx.categories as any)?.name || '', Amount: tx.amount,
     }));
     exportToExcel(rows, 'transactions');
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <div className="flex gap-2"><Skeleton className="h-9 w-20" /><Skeleton className="h-9 w-20" /></div>
+        </div>
+        <Skeleton className="h-96 rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

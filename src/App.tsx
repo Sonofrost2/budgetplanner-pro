@@ -21,6 +21,8 @@ import SettingsPage from "./pages/dashboard/SettingsPage";
 import PaymentPage from "./pages/dashboard/PaymentPage";
 import AccountsPage from "./pages/dashboard/AccountsPage";
 import AdminPricingPage from "./pages/dashboard/AdminPricingPage";
+import CategoriesPage from "./pages/dashboard/CategoriesPage";
+import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +51,8 @@ const App = () => (
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="payment" element={<PaymentPage />} />
                 <Route path="accounts" element={<AccountsPage />} />
+                <Route path="categories" element={<CategoriesPage />} />
+                <Route path="receipts" element={<ReceiptsPage />} />
                 <Route path="admin/pricing" element={<AdminPricingPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />

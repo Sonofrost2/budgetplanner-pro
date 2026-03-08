@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Wallet, Mail, Lock, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Wallet, Mail, Lock, User, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,12 +12,12 @@ import { toast } from 'sonner';
 const Signup = () => {
   const { t } = useLanguage();
   const { signUp } = useAuth();
-  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +35,7 @@ const Signup = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success('Account created! Check your email to confirm.');
-      navigate('/dashboard');
+      setSuccess(true);
     }
   };
 
@@ -65,51 +64,70 @@ const Signup = () => {
             <span className="text-xl font-bold font-display">Budget Planner</span>
           </div>
 
-          <h1 className="text-2xl font-bold">{t.auth.signupTitle}</h1>
-          <p className="mt-2 text-muted-foreground">{t.auth.signupSubtitle}</p>
-
-          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="name">{t.auth.name}</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jean Dupont" className="pl-10" required />
+          {success ? (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
+              <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-8 h-8 text-secondary" />
               </div>
-            </div>
+              <h1 className="text-2xl font-bold mb-3">{t.auth.checkEmail || 'Vérifiez votre email'}</h1>
+              <p className="text-muted-foreground mb-6">
+                {t.auth.checkEmailDesc || 'Un lien de confirmation a été envoyé à votre adresse email. Cliquez dessus pour activer votre compte.'}
+              </p>
+              <Link to="/login">
+                <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+                  {t.auth.login}
+                </Button>
+              </Link>
+            </motion.div>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold">{t.auth.signupTitle}</h1>
+              <p className="mt-2 text-muted-foreground">{t.auth.signupSubtitle}</p>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">{t.auth.email}</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.com" className="pl-10" required />
-              </div>
-            </div>
+              <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+                <div className="space-y-2">
+                  <Label htmlFor="name">{t.auth.name}</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jean Dupont" className="pl-10" required />
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">{t.auth.password}</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10" required minLength={6} />
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">{t.auth.email}</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.com" className="pl-10" required />
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="pl-10" required minLength={6} />
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">{t.auth.password}</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10" required minLength={6} />
+                  </div>
+                </div>
 
-            <Button type="submit" className="w-full text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} disabled={loading}>
-              {loading ? '...' : t.auth.signup}
-            </Button>
-          </form>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="pl-10" required minLength={6} />
+                  </div>
+                </div>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            {t.auth.hasAccount}{' '}
-            <Link to="/login" className="text-primary font-semibold hover:underline">{t.auth.login}</Link>
-          </p>
+                <Button type="submit" className="w-full text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} disabled={loading}>
+                  {loading ? '...' : t.auth.signup}
+                </Button>
+              </form>
+
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                {t.auth.hasAccount}{' '}
+                <Link to="/login" className="text-primary font-semibold hover:underline">{t.auth.login}</Link>
+              </p>
+            </>
+          )}
         </motion.div>
       </div>
     </div>

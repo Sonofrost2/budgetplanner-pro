@@ -1,30 +1,43 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, ArrowUpDown, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
+import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import { useSearchParams } from 'react-router-dom';
+
+const PAGE_SIZE = 20;
 
 const TransactionsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
+  const [searchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterAccount, setFilterAccount] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [page, setPage] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '' });
 
   const fmt = (n: number) => fmtCurrency(n, locale);
@@ -39,9 +52,27 @@ const TransactionsPage = () => {
     setTransactions(txRes.data || []);
     setCategories(catRes.data || []);
     setAccounts(accRes.data || []);
+    setLoading(false);
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const filtered = useMemo(() => {
+    return transactions.filter(tx => {
+      if (filterType !== 'all' && tx.type !== filterType) return false;
+      if (filterCategory !== 'all' && tx.category_id !== filterCategory) return false;
+      if (filterAccount !== 'all' && tx.account_id !== filterAccount) return false;
+      if (searchQuery && !tx.description.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      if (startDate && tx.date < startDate) return false;
+      if (endDate && tx.date > endDate) return false;
+      return true;
+    });
+  }, [transactions, filterType, filterCategory, filterAccount, searchQuery, startDate, endDate]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  useEffect(() => { setPage(0); }, [filterType, filterCategory, filterAccount, searchQuery, startDate, endDate]);
 
   const openNew = () => {
     setEditing(null);
@@ -58,16 +89,10 @@ const TransactionsPage = () => {
   const handleSave = async () => {
     if (!user || !form.description.trim() || !form.amount || Number(form.amount) <= 0) return;
     const payload = {
-      user_id: user.id,
-      description: form.description.trim(),
-      amount: Number(form.amount),
-      type: form.type,
-      category_id: form.category_id || null,
-      account_id: form.account_id || null,
-      date: form.date,
-      notes: form.notes.trim() || null,
+      user_id: user.id, description: form.description.trim(), amount: Number(form.amount),
+      type: form.type, category_id: form.category_id || null, account_id: form.account_id || null,
+      date: form.date, notes: form.notes.trim() || null,
     };
-
     if (editing) {
       const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id);
       if (error) { toast.error(error.message); return; }
@@ -80,32 +105,44 @@ const TransactionsPage = () => {
     toast.success(t.saved);
   };
 
-  const handleDelete = async (id: string) => {
-    await supabase.from('transactions').delete().eq('id', id);
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    await supabase.from('transactions').delete().eq('id', deleteId);
+    setDeleteId(null);
     fetchData();
     toast.success(t.delete + ' ✓');
   };
 
-  const filtered = transactions.filter(tx => {
-    if (filterType !== 'all' && tx.type !== filterType) return false;
-    if (filterCategory !== 'all' && tx.category_id !== filterCategory) return false;
-    return true;
-  });
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-40" />
+        </div>
+        <div className="flex gap-3"><Skeleton className="h-10 w-40" /><Skeleton className="h-10 w-48" /></div>
+        <Skeleton className="h-96 rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold font-display">{t.allTransactions}</h2>
         <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
-          <Plus className="w-4 h-4 mr-1" />
-          {t.addTransaction}
+          <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
         </Button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder={t.search + '...'} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+        </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.all}</SelectItem>
             <SelectItem value="income">{t.incomeType}</SelectItem>
@@ -113,48 +150,77 @@ const TransactionsPage = () => {
           </SelectContent>
         </Select>
         <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.all} {t.category}</SelectItem>
-            {categories.map(c => (
-              <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>
-            ))}
+            {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filterAccount} onValueChange={setFilterAccount}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t.allAccounts}</SelectItem>
+            {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40" placeholder={t.startDate} />
+        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40" placeholder={t.endDate} />
       </div>
 
       {/* Transactions list */}
       <Card className="border-none shadow-[var(--shadow-card)]">
         <CardContent className="p-0">
           {filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-12">{t.noTransactions}</p>
+            <div className="py-16 text-center">
+              <Inbox className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+              <p className="text-lg font-medium text-muted-foreground mb-2">{t.noTransactions}</p>
+              <Button size="sm" className="text-primary-foreground mt-2" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+                <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
+              </Button>
+            </div>
           ) : (
-            <div className="divide-y divide-border">
-              {filtered.map(tx => (
-                <div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-muted/30 transition-colors">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-xl flex-shrink-0">{tx.categories?.icon || '📁'}</span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{tx.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}
-                      </p>
+            <>
+              <div className="divide-y divide-border">
+                {paginated.map(tx => (
+                  <div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-xl flex-shrink-0">{tx.categories?.icon || '📁'}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{tx.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
+                        {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
+                      </span>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(tx)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(tx.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
-                      {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
-                    </span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(tx)}>
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(tx.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
+                ))}
+              </div>
+              {/* Pagination */}
+              <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+                <span className="text-sm text-muted-foreground">
+                  {filtered.length} {locale === 'fr' ? 'résultats' : 'results'} — {t.page || 'Page'} {page + 1}/{totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                    <ChevronLeft className="w-4 h-4 mr-1" />{t.previous}
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                    {t.next}<ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
                 </div>
-              ))}
-            </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -162,9 +228,7 @@ const TransactionsPage = () => {
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? t.edit : t.addTransaction}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? t.edit : t.addTransaction}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -194,9 +258,7 @@ const TransactionsPage = () => {
               <Select value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))}>
                 <SelectTrigger><SelectValue placeholder={t.selectAccount} /></SelectTrigger>
                 <SelectContent>
-                  {accounts.map(a => (
-                    <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>
-                  ))}
+                  {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -225,6 +287,16 @@ const TransactionsPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDeleteDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title={t.confirmDelete}
+        description={t.confirmDeleteMessage}
+        cancelLabel={t.cancel}
+        confirmLabel={t.delete}
+      />
     </div>
   );
 };

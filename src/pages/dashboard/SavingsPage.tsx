@@ -11,8 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2, PiggyBank } from 'lucide-react';
+import { Plus, Trash2, PiggyBank, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
+import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 
 const SavingsPage = () => {
   const { user } = useAuth();
@@ -25,6 +27,8 @@ const SavingsPage = () => {
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
   const [addAmount, setAddAmount] = useState('');
   const [form, setForm] = useState({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
+  const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -36,6 +40,7 @@ const SavingsPage = () => {
     ]);
     setGoals(goalsRes.data || []);
     setAccounts(accRes.data || []);
+    setLoading(false);
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -44,8 +49,7 @@ const SavingsPage = () => {
     if (!user || !form.name.trim() || Number(form.target_amount) <= 0) return;
     const { error } = await supabase.from('savings_goals').insert({
       user_id: user.id, name: form.name.trim(), target_amount: Number(form.target_amount),
-      icon: form.icon || '🎯', deadline: form.deadline || null,
-      account_id: form.account_id || null,
+      icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
     });
     if (error) { toast.error(error.message); return; }
     setDialogOpen(false);
@@ -67,12 +71,28 @@ const SavingsPage = () => {
     toast.success(t.saved);
   };
 
-  const handleDelete = async (id: string) => {
-    await supabase.from('savings_goals').delete().eq('id', id);
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    await supabase.from('savings_goals').delete().eq('id', deleteId);
+    setDeleteId(null);
     fetchData();
   };
 
   const icons = ['🎯', '🏖️', '🏠', '🚗', '💻', '📚', '💍', '🎓', '🛡️', '✈️'];
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-9 w-36" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -88,9 +108,15 @@ const SavingsPage = () => {
 
       {goals.length === 0 ? (
         <Card className="border-none shadow-[var(--shadow-card)]">
-          <CardContent className="py-12 text-center">
-            <PiggyBank className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">{t.noGoals}</p>
+          <CardContent className="py-16 text-center">
+            <PiggyBank className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+            <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
+            <Button size="sm" className="text-primary-foreground mt-2" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+              setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
+              setDialogOpen(true);
+            }}>
+              <Plus className="w-4 h-4 mr-1" />{t.addGoal}
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -105,7 +131,7 @@ const SavingsPage = () => {
                     <CardTitle className="text-base font-semibold flex items-center gap-2">
                       <span className="text-xl">{g.icon}</span>{g.name}
                     </CardTitle>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => handleDelete(g.id)}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setDeleteId(g.id)}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -134,7 +160,6 @@ const SavingsPage = () => {
         </div>
       )}
 
-      {/* Create goal dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{t.addGoal}</DialogTitle></DialogHeader>
@@ -181,7 +206,6 @@ const SavingsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add amount dialog */}
       <Dialog open={!!addAmountDialog} onOpenChange={() => setAddAmountDialog(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>{t.addSaving}</DialogTitle></DialogHeader>
@@ -195,6 +219,16 @@ const SavingsPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDeleteDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title={t.confirmDelete}
+        description={t.confirmDeleteMessage}
+        cancelLabel={t.cancel}
+        confirmLabel={t.delete}
+      />
     </div>
   );
 };
