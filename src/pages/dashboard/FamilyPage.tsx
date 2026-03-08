@@ -100,11 +100,21 @@ const FamilyPage = () => {
       if (memberIds.length > 0) {
         const { data: txs } = await supabase
           .from('transactions')
-          .select('*, profiles:user_id(display_name), categories(name, icon)')
+          .select('*, categories(name, icon)')
           .in('user_id', memberIds)
           .order('date', { ascending: false })
           .limit(50);
-        setMemberTransactions(txs || []);
+        
+        // Fetch profiles for transaction users
+        const txUserIds = [...new Set((txs || []).map((tx: any) => tx.user_id))];
+        const { data: txProfiles } = await supabase.from('profiles').select('user_id, display_name').in('user_id', txUserIds);
+        const profileMap: Record<string, any> = {};
+        (txProfiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
+        
+        setMemberTransactions((txs || []).map((tx: any) => ({
+          ...tx,
+          profiles: profileMap[tx.user_id] || null,
+        })));
       }
     }
 
