@@ -1,4 +1,4 @@
-import { TrendingUp, PieChart, BarChart3, Users, Target, FileText, ArrowRight } from 'lucide-react';
+import { TrendingUp, PieChart, BarChart3, Users, Target, FileText } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { motion } from 'framer-motion';
 
@@ -28,7 +28,7 @@ const FeaturesSection = () => {
           className="text-center mb-20"
         >
           <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary mb-4">
-            Features
+            {t.nav.features}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">{t.features.sectionTitle}</h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">{t.features.sectionSubtitle}</p>
@@ -53,10 +53,6 @@ const FeaturesSection = () => {
                 </div>
                 <h3 className="text-lg font-bold mb-2.5">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.desc}</p>
-                <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <span>En savoir plus</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                </div>
               </div>
             </motion.div>
           ))}

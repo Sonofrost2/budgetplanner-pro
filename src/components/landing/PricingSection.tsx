@@ -59,7 +59,13 @@ const PricingSection = () => {
   }
 
   const getDisplayPrice = (plan: Plan) => {
-    if (plan.name === 'free') return { amount: 0, formatted: '0', currency: 'EUR' };
+    if (plan.name === 'free') {
+      const base = formatPrice(plan.currency_prices);
+      const currency = base?.currency || 'EUR';
+      const isCfa = currency === 'XOF' || currency === 'XAF';
+      const formatted = isCfa ? '0 CFA' : currency === 'EUR' ? '0 €' : currency === 'USD' ? '0 $' : currency === 'GBP' ? '0 £' : `0 ${currency}`;
+      return { amount: 0, formatted, currency };
+    }
     const base = formatPrice(plan.currency_prices);
     if (!base || base.amount === 0) return base;
     if (!annual) return base;
@@ -142,7 +148,7 @@ const PricingSection = () => {
             onClick={() => setAnnual(!annual)}
             className={`relative w-14 h-7 rounded-full transition-all duration-300 ${annual ? 'bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]' : 'bg-muted-foreground/25'}`}
           >
-            <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-300 ${annual ? 'translate-x-7' : 'translate-x-0.5'}`} />
+            <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-300 ${annual ? 'translate-x-7' : 'translate-x-0'}`} />
           </button>
           <span className={`text-sm font-semibold transition-colors ${annual ? 'text-foreground' : 'text-muted-foreground'}`}>
             {t.pricing.annual}
