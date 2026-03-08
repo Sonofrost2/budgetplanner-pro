@@ -59,7 +59,13 @@ const PricingSection = () => {
   }
 
   const getDisplayPrice = (plan: Plan) => {
-    if (plan.name === 'free') return { amount: 0, formatted: '0', currency: 'EUR' };
+    if (plan.name === 'free') {
+      const base = formatPrice(plan.currency_prices);
+      const currency = base?.currency || 'EUR';
+      const isCfa = currency === 'XOF' || currency === 'XAF';
+      const formatted = isCfa ? '0 CFA' : currency === 'EUR' ? '0 €' : currency === 'USD' ? '0 $' : currency === 'GBP' ? '0 £' : `0 ${currency}`;
+      return { amount: 0, formatted, currency };
+    }
     const base = formatPrice(plan.currency_prices);
     if (!base || base.amount === 0) return base;
     if (!annual) return base;
