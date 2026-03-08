@@ -146,9 +146,18 @@ const TransactionsPage = () => {
 
   return (
     <div className="space-y-6">
+      {limitReached && (
+        <UpgradeBanner message={locale === 'fr'
+          ? `Limite atteinte : ${thisMonthCount}/${limits.transactionsPerMonth} transactions ce mois. Passez à Premium pour un accès illimité.`
+          : `Limit reached: ${thisMonthCount}/${limits.transactionsPerMonth} transactions this month. Upgrade to Premium for unlimited access.`}
+        />
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold font-display">{t.allTransactions}</h2>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+        <h2 className="text-2xl font-bold font-display">{t.allTransactions}
+          {!isPremium && <span className="text-sm font-normal text-muted-foreground ml-2">({thisMonthCount}/{limits.transactionsPerMonth})</span>}
+        </h2>
+        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
           <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
         </Button>
       </div>
