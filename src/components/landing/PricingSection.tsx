@@ -85,7 +85,7 @@ const PricingSection = () => {
       plan: freePlan,
       name: t.pricing.free,
       icon: Zap,
-      price: { formatted: '0' },
+      price: freePlan ? getDisplayPrice(freePlan) : { formatted: '0' },
       desc: t.pricing.freeDesc,
       cta: t.pricing.ctaFree,
       featured: false,
