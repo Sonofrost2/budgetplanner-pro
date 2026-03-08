@@ -65,10 +65,10 @@ const BudgetsPage = () => {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = locale === 'fr' ? 'Nom requis' : 'Name required';
-    if (form.name.trim().length > 100) errs.name = locale === 'fr' ? '100 caractères max' : '100 characters max';
-    if (!form.amount || Number(form.amount) <= 0) errs.amount = locale === 'fr' ? 'Montant invalide' : 'Invalid amount';
-    if (Number(form.amount) > 999999999) errs.amount = locale === 'fr' ? 'Montant trop élevé' : 'Amount too high';
+    if (!form.name.trim()) errs.name = t.nameRequired;
+    if (form.name.trim().length > 100) errs.name = t.maxChars(100);
+    if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
+    if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
