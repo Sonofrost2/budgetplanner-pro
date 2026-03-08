@@ -1,4 +1,4 @@
-import { TrendingUp, PieChart, BarChart3, Users, Target, FileText, ArrowRight } from 'lucide-react';
+import { TrendingUp, PieChart, BarChart3, Users, Target, FileText } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { motion } from 'framer-motion';
 
