@@ -173,10 +173,18 @@ const TransactionsPage = () => {
           {filtered.length === 0 ? (
             <div className="py-16 text-center">
               <Inbox className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
-              <p className="text-lg font-medium text-muted-foreground mb-2">{t.noTransactions}</p>
-              <Button size="sm" className="text-primary-foreground mt-2" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
-                <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
-              </Button>
+              {transactions.length === 0 ? (
+                <>
+                  <p className="text-lg font-medium text-muted-foreground mb-2">{t.noTransactions}</p>
+                  <Button size="sm" className="text-primary-foreground mt-2" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+                    <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-lg font-medium text-muted-foreground mb-2">
+                  {locale === 'fr' ? 'Aucun résultat pour cette recherche' : 'No results found for this search'}
+                </p>
+              )}
             </div>
           ) : (
             <>
