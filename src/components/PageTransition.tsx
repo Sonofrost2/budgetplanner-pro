@@ -7,18 +7,13 @@ const pageVariants = {
   exit: { opacity: 0, y: -8 },
 };
 
-const pageTransition = {
-  duration: 0.25,
-  ease: [0.25, 0.1, 0.25, 1],
-};
-
 export const PageTransition = ({ children, className }: { children: ReactNode; className?: string }) => (
   <motion.div
     variants={pageVariants}
     initial="initial"
     animate="animate"
     exit="exit"
-    transition={pageTransition}
+    transition={{ duration: 0.25, ease: 'easeOut' }}
     className={className}
   >
     {children}
