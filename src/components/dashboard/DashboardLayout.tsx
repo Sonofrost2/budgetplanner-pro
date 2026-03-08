@@ -157,6 +157,7 @@ const DashboardLayout = () => {
               className="pl-10 h-9 w-64"
             />
           </form>
+          <NotificationBell />
         </header>
 
         <div className="p-4 lg:p-8">
