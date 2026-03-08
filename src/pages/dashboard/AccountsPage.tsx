@@ -191,7 +191,7 @@ const AccountsPage = () => {
                       </div>
                       <div>
                         <span>{acc.name}</span>
-                        <p className="text-[11px] font-normal text-muted-foreground">{ACCOUNT_TYPES.find(at => at.value === acc.type)?.label || acc.type}</p>
+                        <p className="text-[11px] font-normal text-muted-foreground">{getAccountTypes(t).find(at => at.value === acc.type)?.label || acc.type}</p>
                       </div>
                     </CardTitle>
                     <div className="flex gap-1">
