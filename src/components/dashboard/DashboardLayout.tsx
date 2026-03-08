@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { dashT } from '@/i18n/dashTranslations';
 import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
-  Settings, LogOut, Globe, Menu, X, Sun, Moon, Smartphone, CreditCard, Shield,
+  Settings, LogOut, Globe, Menu, X, Sun, Moon, CreditCard, Shield,
   Tag, Receipt, Search, Crown, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,6 @@ const DashboardLayout = () => {
         setProfile(data);
         if (data && !data.onboarding_completed) navigate('/onboarding');
       });
-    // Check user plan from subscriptions
     supabase.from('subscriptions').select('status, subscription_plans(name)').eq('user_id', user.id).eq('status', 'active')
       .order('created_at', { ascending: false }).limit(1)
       .then(({ data }) => {
@@ -68,13 +67,18 @@ const DashboardLayout = () => {
 
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center animate-pulse" style={{ background: 'var(--gradient-primary)' }}>
+          <Wallet className="w-5 h-5 text-primary-foreground" />
+        </div>
+        <span className="text-sm text-muted-foreground">Chargement...</span>
+      </div>
     </div>;
   }
 
   if (!user) return null;
 
-  const navItems = [
+  const mainNav = [
     { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { key: 'transactions', icon: ArrowUpDown, path: '/dashboard/transactions' },
     { key: 'accounts', icon: CreditCard, path: '/dashboard/accounts' },
@@ -84,73 +88,98 @@ const DashboardLayout = () => {
     { key: 'savings', icon: Target, path: '/dashboard/savings' },
     { key: 'reports', icon: FileText, path: '/dashboard/reports' },
     { key: 'family', icon: Users, path: '/dashboard/family' },
+  ];
+
+  const secondaryNav = [
     { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
     { key: 'settings', icon: Settings, path: '/dashboard/settings' },
     { key: 'payment', icon: Crown, path: '/dashboard/payment' },
     ...(isAdmin ? [{ key: 'adminPricing', icon: Shield, path: '/dashboard/admin/pricing' }] : []),
   ];
 
+  const renderNavItem = (item: { key: string; icon: any; path: string }) => {
+    const active = location.pathname === item.path;
+    return (
+      <Link key={item.key} to={item.path} onClick={() => setSidebarOpen(false)}
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+          active
+            ? 'bg-primary/10 text-primary shadow-sm'
+            : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+        }`}>
+        <item.icon className="w-[18px] h-[18px]" />
+        <span>{t[item.key as keyof typeof t]}</span>
+        {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
+      </Link>
+    );
+  };
+
+  const planColor = userPlan === 'premium' ? 'bg-accent/15 text-accent border-accent/20' :
+    userPlan === 'pro' ? 'bg-primary/15 text-primary border-primary/20' :
+    'bg-muted text-muted-foreground border-border';
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform lg:translate-x-0 lg:static lg:z-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-card border-r border-border/50 transform transition-transform lg:translate-x-0 lg:static lg:z-auto flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        {/* Logo */}
+        <div className="flex items-center justify-between p-5 border-b border-border/50">
+          <Link to="/dashboard" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md" style={{ background: 'var(--gradient-primary)' }}>
               <Wallet className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-bold font-display">Budget Planner</span>
+            <span className="font-extrabold font-display text-base">Budget Planner</span>
           </Link>
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
+          <Button variant="ghost" size="icon" className="lg:hidden rounded-xl" onClick={() => setSidebarOpen(false)}>
             <X className="w-4 h-4" />
           </Button>
         </div>
 
-        <nav className="p-3 space-y-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-          {navItems.map(item => {
-            const active = location.pathname === item.path;
-            return (
-              <Link key={item.key} to={item.path} onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                <item.icon className="w-4 h-4" />
-                {t[item.key as keyof typeof t]}
-              </Link>
-            );
-          })}
+        {/* Main nav */}
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+          <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Menu</p>
+          {mainNav.map(renderNavItem)}
+          
+          <div className="my-3 h-px bg-border/50" />
+          
+          <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Plus</p>
+          {secondaryNav.map(renderNavItem)}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border space-y-1">
-          {/* Plan badge */}
-          <div className="flex items-center gap-2 px-3 py-2">
+        {/* Bottom */}
+        <div className="p-3 border-t border-border/50 space-y-1">
+          <div className="flex items-center gap-2.5 px-3 py-2.5">
             <Crown className="w-4 h-4 text-accent" />
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="outline" className={`text-[10px] font-bold uppercase ${planColor}`}>
               {userPlan || t.freePlan}
             </Badge>
           </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" onClick={toggleTheme}>
-            {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            {theme === 'light' ? (locale === 'fr' ? 'Mode sombre' : 'Dark mode') : (locale === 'fr' ? 'Mode clair' : 'Light mode')}
-          </Button>
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" onClick={toggleLocale}>
-            <Globe className="w-4 h-4" />
-            {locale === 'fr' ? 'English' : 'Français'}
-          </Button>
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive hover:text-destructive" onClick={handleLogout}>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="flex-1 justify-start gap-2 text-muted-foreground rounded-xl h-9" onClick={toggleTheme}>
+              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              <span className="text-xs">{theme === 'light' ? 'Sombre' : 'Clair'}</span>
+            </Button>
+            <Button variant="ghost" size="icon" className="text-muted-foreground rounded-xl h-9 w-9" onClick={toggleLocale}>
+              <Globe className="w-4 h-4" />
+            </Button>
+          </div>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive/80 hover:text-destructive hover:bg-destructive/5 rounded-xl h-9" onClick={handleLogout}>
             <LogOut className="w-4 h-4" />
-            {t.logout}
+            <span className="text-xs">{t.logout}</span>
           </Button>
         </div>
       </aside>
 
-      {sidebarOpen && <div className="fixed inset-0 bg-foreground/20 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       {/* Main */}
       <main className="flex-1 min-w-0">
-        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-lg border-b border-border px-4 lg:px-8 py-4 flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 lg:px-8 h-16 flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="lg:hidden rounded-xl" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-bold font-display">{t.welcome}, {profile?.display_name?.split(' ')[0] || 'User'} 👋</h1>
+          <h1 className="text-lg font-bold font-display">
+            {t.welcome}, {profile?.display_name?.split(' ')[0] || 'User'} 👋
+          </h1>
           <div className="flex-1" />
           <form onSubmit={handleGlobalSearch} className="hidden sm:flex relative max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -158,7 +187,7 @@ const DashboardLayout = () => {
               value={globalSearch}
               onChange={e => setGlobalSearch(e.target.value)}
               placeholder={t.searchGlobal}
-              className="pl-10 h-9 w-64"
+              className="pl-10 h-9 w-56 rounded-xl border-border/50 bg-muted/50 focus:bg-background"
             />
           </form>
           <NotificationBell />
