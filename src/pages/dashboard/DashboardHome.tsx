@@ -79,8 +79,12 @@ const DashboardHome = () => {
         .order('created_at', { ascending: false }).limit(5),
       supabase.from('budgets').select('*').eq('user_id', user.id)
         .order('created_at', { ascending: false }).limit(5),
-    ]).then(([txRes, catRes, accRes, savRes, budRes]) => {
+      // Fetch ALL transactions for global balance computation
+      supabase.from('transactions').select('type, amount, account_id')
+        .eq('user_id', user.id),
+    ]).then(([txRes, catRes, accRes, savRes, budRes, allTxRes]) => {
       setTransactions(txRes.data || []);
+      setAllTransactions(allTxRes.data || []);
       setAccounts(accRes.data || []);
       setSavingsGoals(savRes.data || []);
 
