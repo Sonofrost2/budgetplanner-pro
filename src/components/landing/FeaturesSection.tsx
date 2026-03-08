@@ -28,7 +28,7 @@ const FeaturesSection = () => {
           className="text-center mb-20"
         >
           <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary mb-4">
-            Features
+            {t.nav.features}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">{t.features.sectionTitle}</h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">{t.features.sectionSubtitle}</p>
