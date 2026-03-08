@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, 
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
 const ACCOUNT_TYPES = [
   { value: 'mobile_money', label: '📱 Mobile Money' },
