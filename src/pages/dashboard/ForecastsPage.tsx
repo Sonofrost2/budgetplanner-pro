@@ -2,19 +2,22 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from 'recharts';
-import { Loader2, Sparkles, TrendingUp, TrendingDown, Lightbulb, AlertTriangle } from 'lucide-react';
+import { Loader2, Sparkles, TrendingUp, TrendingDown, Lightbulb, AlertTriangle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
 const ForecastsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { canUseForecast } = useSubscription();
   const t = dashT[locale];
   const [loading, setLoading] = useState(false);
   const [forecast, setForecast] = useState<any>(null);
@@ -56,13 +59,16 @@ const ForecastsPage = () => {
 
   return (
     <div className="space-y-6">
+      {!canUseForecast && (
+        <UpgradeBanner message={locale === 'fr' ? 'Les prévisions IA sont réservées au plan Premium.' : 'AI forecasts are available on the Premium plan only.'} />
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display">{t.forecastTitle}</h2>
           <p className="text-muted-foreground mt-1">{t.forecastSubtitle}</p>
         </div>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={generateForecast} disabled={loading || !hasData}>
-          {loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={generateForecast} disabled={loading || !hasData || !canUseForecast}>
+          {!canUseForecast ? <Lock className="w-4 h-4 mr-1" /> : loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
           {loading ? t.generating : t.generateForecast}
         </Button>
       </div>

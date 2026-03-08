@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,14 +11,16 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Users, Mail, Crown, UserMinus, Trash2, Share2, Inbox } from 'lucide-react';
+import { Plus, Users, Mail, Crown, UserMinus, Trash2, Share2, Inbox, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
 const FamilyPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
+  const { canUseFamily } = useSubscription();
   const t = dashT[locale];
 
   const [groups, setGroups] = useState<any[]>([]);
@@ -209,11 +212,13 @@ const FamilyPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {!canUseFamily && (
+        <UpgradeBanner message={locale === 'fr' ? 'La gestion familiale est réservée au plan Premium.' : 'Family management is available on the Premium plan only.'} />
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold font-display">{t.family}</h2>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => setCreateOpen(true)}>
-          <Plus className="w-4 h-4 mr-1" />{t.createGroup}
+        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => setCreateOpen(true)} disabled={!canUseFamily}>
+          {!canUseFamily ? <Lock className="w-4 h-4 mr-1" /> : <Plus className="w-4 h-4 mr-1" />}{t.createGroup}
         </Button>
       </div>
 

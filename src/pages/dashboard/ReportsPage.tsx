@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Download } from 'lucide-react';
+import { Download, Lock } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { Skeleton } from '@/components/ui/skeleton';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
 const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899'];
 
@@ -18,6 +20,7 @@ const ReportsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { canExportAdvanced } = useSubscription();
   const t = dashT[locale];
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
@@ -98,14 +101,17 @@ const ReportsPage = () => {
 
   return (
     <div className="space-y-6">
+      {!canExportAdvanced && (
+        <UpgradeBanner message={locale === 'fr' ? 'Les exports avancés (CSV/Excel) sont réservés au plan Premium.' : 'Advanced exports (CSV/Excel) are available on the Premium plan only.'} />
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold font-display">{t.reportTitle}</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
-            <Download className="w-4 h-4 mr-1" /> CSV
+          <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!canExportAdvanced}>
+            {!canExportAdvanced ? <Lock className="w-4 h-4 mr-1" /> : <Download className="w-4 h-4 mr-1" />} CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportExcel}>
-            <Download className="w-4 h-4 mr-1" /> Excel
+          <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={!canExportAdvanced}>
+            {!canExportAdvanced ? <Lock className="w-4 h-4 mr-1" /> : <Download className="w-4 h-4 mr-1" />} Excel
           </Button>
         </div>
       </div>
