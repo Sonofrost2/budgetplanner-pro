@@ -152,10 +152,7 @@ const AccountsPage = () => {
   return (
     <div className="space-y-6">
       {accountLimitReached && (
-        <UpgradeBanner message={locale === 'fr'
-          ? `Limite atteinte : ${limits.accounts} compte(s) maximum en plan gratuit.`
-          : `Limit reached: ${limits.accounts} account(s) max on free plan.`}
-        />
+        <UpgradeBanner message={t.limitAccountsReached(limits.accounts)} />
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
