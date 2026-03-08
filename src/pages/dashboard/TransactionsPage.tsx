@@ -118,6 +118,21 @@ const TransactionsPage = () => {
     setDialogOpen(true);
   };
 
+  // Helper to update account real_balance after transaction changes
+  const updateAccountBalance = async (accountId: string | null) => {
+    if (!accountId || !user) return;
+    // Recalculate: opening_balance + sum(income) - sum(expense) for this account
+    const [accRes, txRes] = await Promise.all([
+      supabase.from('payment_accounts').select('opening_balance').eq('id', accountId).single(),
+      supabase.from('transactions').select('type, amount').eq('user_id', user.id).eq('account_id', accountId),
+    ]);
+    if (accRes.error || txRes.error) return;
+    const opening = Number(accRes.data.opening_balance) || 0;
+    const income = (txRes.data || []).filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+    const expense = (txRes.data || []).filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+    await supabase.from('payment_accounts').update({ real_balance: opening + income - expense }).eq('id', accountId);
+  };
+
   const handleSave = async () => {
     if (!user || !validate()) return;
     setSaving(true);
@@ -129,9 +144,13 @@ const TransactionsPage = () => {
     if (editing) {
       const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
+      // Update old and new account balances if account changed
+      const affectedAccounts = new Set([editing.account_id, payload.account_id].filter(Boolean));
+      for (const accId of affectedAccounts) await updateAccountBalance(accId);
     } else {
       const { error } = await supabase.from('transactions').insert(payload);
       if (error) { toast.error(error.message); setSaving(false); return; }
+      await updateAccountBalance(payload.account_id);
     }
     setSaving(false);
     setDialogOpen(false);
@@ -141,7 +160,11 @@ const TransactionsPage = () => {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    await supabase.from('transactions').delete().eq('id', deleteId);
+    // Get the transaction to know its account before deleting
+    const txToDelete = transactions.find(tx => tx.id === deleteId);
+    const { error } = await supabase.from('transactions').delete().eq('id', deleteId);
+    if (error) { toast.error(error.message); setDeleteId(null); return; }
+    if (txToDelete?.account_id) await updateAccountBalance(txToDelete.account_id);
     setDeleteId(null);
     fetchData();
     toast.success(t.delete + ' ✓');
