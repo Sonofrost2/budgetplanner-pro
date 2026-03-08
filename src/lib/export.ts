@@ -10,6 +10,7 @@ export function exportToCSV(data: Record<string, any>[], filename: string): bool
 
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   downloadBlob(blob, `${filename}.csv`);
+  return true;
 }
 
 export function exportToExcel(data: Record<string, any>[], filename: string) {
