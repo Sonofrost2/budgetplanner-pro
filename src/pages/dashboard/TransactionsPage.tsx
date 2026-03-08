@@ -262,7 +262,7 @@ const TransactionsPage = () => {
               </div>
               <div className="flex items-center justify-between px-5 py-3.5 border-t border-border/50 bg-muted/20">
                 <span className="text-xs text-muted-foreground">
-                  {filtered.length} {locale === 'fr' ? 'résultats' : 'results'} — {t.page || 'Page'} {page + 1}/{totalPages}
+                  {filtered.length} {t.results} — {t.page} {page + 1}/{totalPages}
                 </span>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="rounded-xl h-8" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
