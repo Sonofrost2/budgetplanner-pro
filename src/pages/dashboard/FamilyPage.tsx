@@ -56,11 +56,29 @@ const FamilyPage = () => {
     // Get members for each group
     const membersMap: Record<string, any[]> = {};
     for (const g of grps) {
-      const { data } = await supabase
+      const { data: rawMembers } = await supabase
         .from('family_members')
-        .select('*, profiles:user_id(display_name, avatar_url)')
+        .select('*')
         .eq('group_id', g.id);
-      membersMap[g.id] = data || [];
+      
+      // Fetch profiles separately since there's no direct FK
+      const membersList = rawMembers || [];
+      if (membersList.length > 0) {
+        const userIds = membersList.map((m: any) => m.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url')
+          .in('user_id', userIds);
+        
+        const profileMap: Record<string, any> = {};
+        (profiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
+        membersMap[g.id] = membersList.map((m: any) => ({
+          ...m,
+          profiles: profileMap[m.user_id] || null,
+        }));
+      } else {
+        membersMap[g.id] = [];
+      }
     }
     setMembers(membersMap);
 
