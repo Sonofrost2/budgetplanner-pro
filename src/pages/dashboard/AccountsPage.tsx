@@ -71,9 +71,9 @@ const AccountsPage = () => {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = locale === 'fr' ? 'Nom requis' : 'Name required';
-    if (form.name.trim().length > 100) errs.name = locale === 'fr' ? '100 caractères max' : '100 characters max';
-    if (Number(form.opening_balance) < 0) errs.opening_balance = locale === 'fr' ? 'Solde invalide' : 'Invalid balance';
+    if (!form.name.trim()) errs.name = t.nameRequired;
+    if (form.name.trim().length > 100) errs.name = t.maxChars(100);
+    if (Number(form.opening_balance) < 0) errs.opening_balance = t.invalidBalance;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
