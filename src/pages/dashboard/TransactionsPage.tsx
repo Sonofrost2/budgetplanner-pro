@@ -165,10 +165,8 @@ const TransactionsPage = () => {
   return (
     <div className="space-y-6">
       {limitReached && (
-        <UpgradeBanner message={locale === 'fr'
-          ? `Limite atteinte : ${thisMonthCount}/${limits.transactionsPerMonth} transactions ce mois. Passez à Premium pour un accès illimité.`
-          : `Limit reached: ${thisMonthCount}/${limits.transactionsPerMonth} transactions this month. Upgrade to Premium for unlimited access.`}
-        />
+        <UpgradeBanner message={t.limitReachedTransactions(thisMonthCount, limits.transactionsPerMonth)} />
+      )}
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
