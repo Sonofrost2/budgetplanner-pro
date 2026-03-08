@@ -102,9 +102,7 @@ const TransactionsPage = () => {
 
   const openNew = () => {
     if (limitReached) {
-      toast.error(locale === 'fr'
-        ? `Limite de ${limits.transactionsPerMonth} transactions/mois atteinte. Passez à Premium !`
-        : `Limit of ${limits.transactionsPerMonth} transactions/month reached. Upgrade to Premium!`);
+      toast.error(t.limitTransactionsToast(limits.transactionsPerMonth));
       return;
     }
     setEditing(null);
