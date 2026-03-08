@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { dashT } from '@/i18n/dashTranslations';
 import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
-  Settings, LogOut, Globe, Menu, X, Sun, Moon
+  Settings, LogOut, Globe, Menu, X, Sun, Moon, Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -19,6 +19,7 @@ const navItems = [
   { key: 'savings', icon: Target, path: '/dashboard/savings' },
   { key: 'reports', icon: FileText, path: '/dashboard/reports' },
   { key: 'settings', icon: Settings, path: '/dashboard/settings' },
+  { key: 'payment', icon: Smartphone, path: '/dashboard/payment' },
 ] as const;
 
 const DashboardLayout = () => {
