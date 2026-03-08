@@ -41,6 +41,8 @@ const ReportsPage = () => {
         .gte('date', new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0])
         .lte('date', new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]),
     ]).then(([txRes, catRes]) => {
+      if (txRes.error) console.error('Reports transactions error:', txRes.error.message);
+      if (catRes.error) console.error('Reports categories error:', catRes.error.message);
       const data = txRes.data || [];
       setAllTransactions(data);
 
@@ -68,6 +70,9 @@ const ReportsPage = () => {
         catMap[name].value += Number(tx.amount);
       });
       setCategoryData(Object.values(catMap).sort((a, b) => b.value - a.value));
+      setLoading(false);
+    }).catch(err => {
+      console.error('Reports fetch error:', err);
       setLoading(false);
     });
   }, [user, locale]);

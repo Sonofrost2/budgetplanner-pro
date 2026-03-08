@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -62,7 +62,7 @@ const DashboardHome = () => {
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
-  useEffect(() => {
+  const fetchDashboard = useCallback(() => {
     if (!user) return;
     const { start, end } = getDateRange(period);
 
@@ -79,10 +79,14 @@ const DashboardHome = () => {
         .order('created_at', { ascending: false }).limit(5),
       supabase.from('budgets').select('*').eq('user_id', user.id)
         .order('created_at', { ascending: false }).limit(5),
-      // Fetch ALL transactions for global balance computation
       supabase.from('transactions').select('type, amount, account_id')
         .eq('user_id', user.id),
     ]).then(([txRes, catRes, accRes, savRes, budRes, allTxRes]) => {
+      if (txRes.error) console.error('Transactions fetch error:', txRes.error.message);
+      if (accRes.error) console.error('Accounts fetch error:', accRes.error.message);
+      if (savRes.error) console.error('Savings fetch error:', savRes.error.message);
+      if (budRes.error) console.error('Budgets fetch error:', budRes.error.message);
+
       setTransactions(txRes.data || []);
       setAllTransactions(allTxRes.data || []);
       setAccounts(accRes.data || []);
@@ -108,7 +112,9 @@ const DashboardHome = () => {
         return { ...b, spent };
       });
       setBudgets(budgetsWithSpent);
-
+      setLoading(false);
+    }).catch(err => {
+      console.error('Dashboard fetch error:', err);
       setLoading(false);
     });
 
@@ -122,7 +128,8 @@ const DashboardHome = () => {
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
     supabase.from('transactions').select('type, amount, date')
       .eq('user_id', user.id).gte('date', sixMonthsAgo)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.error('Chart fetch error:', error.message); return; }
         const chartData = months.map(m => {
           const monthTxs = (data || []).filter((tx: any) => {
             const txDate = new Date(tx.date);
@@ -138,7 +145,19 @@ const DashboardHome = () => {
       });
   }, [user, locale, period]);
 
-  // Global balance: sum of all account real_balances (or opening_balances + all income - all expenses)
+  // Fetch on mount and period/user changes
+  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+
+  // Auto-refresh when window regains focus (after navigating to transactions/accounts pages)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchDashboard();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [fetchDashboard]);
+
+  // Global balance: sum of all account real_balances
   const totalBalance = accounts.reduce((s, a) => s + Number(a.real_balance), 0);
   // Period-filtered stats for display
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
