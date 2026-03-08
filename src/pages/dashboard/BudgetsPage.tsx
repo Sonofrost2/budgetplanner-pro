@@ -127,10 +127,7 @@ const BudgetsPage = () => {
   return (
     <div className="space-y-6">
       {budgetLimitReached && (
-        <UpgradeBanner message={locale === 'fr'
-          ? `Limite atteinte : ${limits.budgets} budget(s) maximum en plan gratuit.`
-          : `Limit reached: ${limits.budgets} budget(s) max on free plan.`}
-        />
+        <UpgradeBanner message={t.limitBudgetsReached(limits.budgets)} />
       )}
 
       <div className="flex items-center justify-between">
