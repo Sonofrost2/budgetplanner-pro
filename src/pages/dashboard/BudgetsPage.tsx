@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2, AlertTriangle, PieChart, Inbox } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, PieChart, Inbox, Calendar, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -29,7 +29,9 @@ const BudgetsPage = () => {
   const [spending, setSpending] = useState<Record<string, number>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
@@ -61,19 +63,37 @@ const BudgetsPage = () => {
 
   const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
 
-  const handleSave = async () => {
-    if (!user || !form.name.trim() || !form.amount || Number(form.amount) <= 0) return;
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = locale === 'fr' ? 'Nom requis' : 'Name required';
+    if (form.name.trim().length > 100) errs.name = locale === 'fr' ? '100 caractères max' : '100 characters max';
+    if (!form.amount || Number(form.amount) <= 0) errs.amount = locale === 'fr' ? 'Montant invalide' : 'Invalid amount';
+    if (Number(form.amount) > 999999999) errs.amount = locale === 'fr' ? 'Montant trop élevé' : 'Amount too high';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const openNew = () => {
     if (budgetLimitReached) {
       toast.error(locale === 'fr'
         ? `Limite de ${limits.budgets} budget(s) atteinte. Passez à Premium !`
         : `Limit of ${limits.budgets} budget(s) reached. Upgrade to Premium!`);
       return;
     }
+    setErrors({});
+    setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly' });
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!user || !validate()) return;
+    setSaving(true);
     const { error } = await supabase.from('budgets').insert({
       user_id: user.id, name: form.name.trim(), amount: Number(form.amount),
       category_id: form.category_id || null, period: form.period,
     });
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(error.message); setSaving(false); return; }
+    setSaving(false);
     setDialogOpen(false);
     fetchData();
     toast.success(t.saved);
@@ -94,46 +114,43 @@ const BudgetsPage = () => {
           <Skeleton className="h-9 w-36" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
         </div>
       </div>
     );
   }
 
+  const periodLabels: Record<string, string> = {
+    weekly: locale === 'fr' ? 'Hebdomadaire' : 'Weekly',
+    monthly: locale === 'fr' ? 'Mensuel' : 'Monthly',
+    yearly: locale === 'fr' ? 'Annuel' : 'Yearly',
+  };
+
   return (
     <div className="space-y-6">
       {budgetLimitReached && (
         <UpgradeBanner message={locale === 'fr'
-          ? `Limite atteinte : ${limits.budgets} budget(s) maximum en plan gratuit. Passez à Premium pour des budgets illimités.`
-          : `Limit reached: ${limits.budgets} budget(s) max on free plan. Upgrade to Premium for unlimited budgets.`}
+          ? `Limite atteinte : ${limits.budgets} budget(s) maximum en plan gratuit.`
+          : `Limit reached: ${limits.budgets} budget(s) max on free plan.`}
         />
       )}
 
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-display">{t.budgets}</h2>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
-          if (budgetLimitReached) {
-            toast.error(locale === 'fr'
-              ? `Limite de ${limits.budgets} budget(s) atteinte. Passez à Premium !`
-              : `Limit of ${limits.budgets} budget(s) reached. Upgrade to Premium!`);
-            return;
-          }
-          setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly' });
-          setDialogOpen(true);
-        }} disabled={budgetLimitReached}>
+        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={budgetLimitReached}>
           <Plus className="w-4 h-4 mr-1" />{t.addBudget}
         </Button>
       </div>
 
       {budgets.length === 0 ? (
-        <Card className="border-none shadow-[var(--shadow-card)]">
+        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
           <CardContent className="py-16 text-center">
-            <PieChart className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-lg font-medium text-muted-foreground mb-2">{t.noBudgets}</p>
-            <Button size="sm" className="text-primary-foreground mt-2" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
-              setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly' });
-              setDialogOpen(true);
-            }}>
+            <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
+              <PieChart className="w-7 h-7 text-muted-foreground/40" />
+            </div>
+            <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noBudgets}</p>
+            <p className="text-sm text-muted-foreground/70 mb-4">{locale === 'fr' ? 'Créez un budget pour suivre vos dépenses' : 'Create a budget to track your spending'}</p>
+            <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" />{t.addBudget}
             </Button>
           </CardContent>
@@ -142,34 +159,45 @@ const BudgetsPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {budgets.map(b => {
             const spent = spending[b.category_id] || 0;
-            const pct = Math.min((spent / Number(b.amount)) * 100, 100);
-            const over = spent > Number(b.amount);
+            const amount = Number(b.amount);
+            const pct = amount > 0 ? Math.min((spent / amount) * 100, 100) : 0;
+            const over = spent > amount;
+            const remaining = amount - spent;
             return (
-              <Card key={b.id} className={`border-none shadow-[var(--shadow-card)] ${over ? 'ring-2 ring-destructive/30' : ''}`}>
-                <CardHeader className="pb-2">
+              <Card key={b.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${over ? 'ring-1 ring-destructive/20' : ''}`}>
+                <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
-                      <span>{b.categories?.icon || '📁'}</span>
-                      {b.name}
+                    <CardTitle className="text-base font-bold flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (b.categories?.color || '#6C63FF') + '20' }}>
+                        {b.categories?.icon || '📁'}
+                      </div>
+                      <div>
+                        <span>{b.name}</span>
+                        <p className="text-[11px] font-normal text-muted-foreground">{b.categories?.name || '-'} · {periodLabels[b.period] || b.period}</p>
+                      </div>
                     </CardTitle>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setDeleteId(b.id)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(b.id)}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{t.spent}: <strong className={over ? 'text-destructive' : ''}>{fmt(spent)}</strong></span>
-                    <span className="text-muted-foreground">{t.budgetAmount}: <strong>{fmt(Number(b.amount))}</strong></span>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-2xl font-extrabold">{fmt(spent)}</span>
+                    <span className="text-sm text-muted-foreground">/ {fmt(amount)}</span>
                   </div>
-                  <Progress value={pct} className={`h-3 ${over ? '[&>div]:bg-destructive' : '[&>div]:bg-secondary'}`} />
+                  <Progress value={pct} className={`h-3 rounded-full ${over ? '[&>div]:bg-destructive' : '[&>div]:bg-secondary'}`} />
                   {over ? (
-                    <p className="text-xs text-destructive flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      {t.overBudget} {t.exceeded} {fmt(spent - Number(b.amount))}
-                    </p>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/5 border border-destructive/10">
+                      <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                      <p className="text-xs font-semibold text-destructive">
+                        {t.overBudget} — {t.exceeded} {fmt(spent - amount)}
+                      </p>
+                    </div>
                   ) : (
-                    <p className="text-xs text-secondary">{t.onTrack} — {t.remaining}: {fmt(Number(b.amount) - spent)}</p>
+                    <p className="text-xs font-medium text-secondary px-1">
+                      ✓ {t.onTrack} — {t.remaining}: {fmt(remaining)}
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -178,44 +206,85 @@ const BudgetsPage = () => {
         </div>
       )}
 
+      {/* Add Budget Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{t.addBudget}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">{t.addBudget}</DialogTitle>
+            <DialogDescription>{locale === 'fr' ? 'Définissez un budget pour mieux contrôler vos dépenses' : 'Set a budget to better control your spending'}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5 py-2">
+            {/* Budget name */}
             <div className="space-y-2">
-              <Label>{t.budgetName}</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} />
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.budgetName}</Label>
+              <Input
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                maxLength={100}
+                placeholder={locale === 'fr' ? 'Ex: Courses du mois' : 'E.g: Monthly groceries'}
+                className={`rounded-xl h-11 ${errors.name ? 'border-destructive' : ''}`}
+              />
+              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
+
+            {/* Category */}
             <div className="space-y-2">
-              <Label>{t.category}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Tag className="w-3 h-3" />
+                {t.category}
+              </Label>
               <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir une catégorie...' : 'Select a category...'} /></SelectTrigger>
                 <SelectContent>
                   {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Amount + Period row */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t.budgetAmount}</Label>
-                <Input type="number" min="1" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.budgetAmount}</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  value={form.amount}
+                  onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                  placeholder="0"
+                  className={`rounded-xl h-11 text-lg font-bold ${errors.amount ? 'border-destructive' : ''}`}
+                />
+                {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
               </div>
               <div className="space-y-2">
-                <Label>{t.period}</Label>
-                <Select value={form.period} onValueChange={v => setForm(f => ({ ...f, period: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="weekly">{t.weekly}</SelectItem>
-                    <SelectItem value="monthly">{t.monthly}</SelectItem>
-                    <SelectItem value="yearly">{t.yearly}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3" />
+                  {t.period}
+                </Label>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {['weekly', 'monthly', 'yearly'].map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, period: p }))}
+                      className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all text-left ${
+                        form.period === p
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border text-muted-foreground hover:bg-muted/50'
+                      }`}
+                    >
+                      {p === 'weekly' ? t.weekly : p === 'monthly' ? t.monthly : t.yearly}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t.cancel}</Button>
-            <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl min-w-[120px]" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>
+              {saving ? (locale === 'fr' ? 'Création...' : 'Creating...') : t.save}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
