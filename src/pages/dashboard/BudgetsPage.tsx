@@ -75,9 +75,7 @@ const BudgetsPage = () => {
 
   const openNew = () => {
     if (budgetLimitReached) {
-      toast.error(locale === 'fr'
-        ? `Limite de ${limits.budgets} budget(s) atteinte. Passez à Premium !`
-        : `Limit of ${limits.budgets} budget(s) reached. Upgrade to Premium!`);
+      toast.error(t.limitBudgetsToast(limits.budgets));
       return;
     }
     setErrors({});
