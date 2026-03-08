@@ -17,7 +17,7 @@ interface Account {
 interface AccountsWidgetProps {
   accounts: Account[];
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: DashTranslations;
 }
 
 export const AccountsWidget = ({ accounts, fmt, t }: AccountsWidgetProps) => {

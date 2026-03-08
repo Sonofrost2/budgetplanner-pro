@@ -8,7 +8,7 @@ interface StatsCardsProps {
   totalIncome: number;
   totalExpenses: number;
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: DashTranslations;
 }
 
 export const StatsCards = ({ balance, totalIncome, totalExpenses, fmt, t }: StatsCardsProps) => {

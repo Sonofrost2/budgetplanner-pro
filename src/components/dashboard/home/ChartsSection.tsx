@@ -9,7 +9,7 @@ interface ChartsSectionProps {
   monthlyData: { name: string; income: number; expenses: number }[];
   categoryData: { name: string; value: number; color: string }[];
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: DashTranslations;
 }
 
 export const ChartsSection = ({ monthlyData, categoryData, fmt, t }: ChartsSectionProps) => (

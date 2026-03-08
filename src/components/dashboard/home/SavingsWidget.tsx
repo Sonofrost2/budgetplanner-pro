@@ -17,7 +17,7 @@ interface SavingsGoal {
 interface SavingsWidgetProps {
   goals: SavingsGoal[];
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: DashTranslations;
   locale: string;
 }
 

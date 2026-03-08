@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 interface ForecastWidgetProps {
   monthlyData: { name: string; income: number; expenses: number }[];
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: DashTranslations;
 }
 
 export const ForecastWidget = ({ monthlyData, fmt, t }: ForecastWidgetProps) => {

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 interface RecentTransactionsProps {
   transactions: any[];
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: DashTranslations;
   locale: string;
 }
 
