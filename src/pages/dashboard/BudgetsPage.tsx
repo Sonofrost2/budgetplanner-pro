@@ -59,8 +59,16 @@ const BudgetsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
+
   const handleSave = async () => {
     if (!user || !form.name.trim() || !form.amount || Number(form.amount) <= 0) return;
+    if (budgetLimitReached) {
+      toast.error(locale === 'fr'
+        ? `Limite de ${limits.budgets} budget(s) atteinte. Passez à Premium !`
+        : `Limit of ${limits.budgets} budget(s) reached. Upgrade to Premium!`);
+      return;
+    }
     const { error } = await supabase.from('budgets').insert({
       user_id: user.id, name: form.name.trim(), amount: Number(form.amount),
       category_id: form.category_id || null, period: form.period,
