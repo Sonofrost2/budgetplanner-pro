@@ -216,7 +216,7 @@ const BudgetsPage = () => {
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 maxLength={100}
-                placeholder={locale === 'fr' ? 'Ex: Courses du mois' : 'E.g: Monthly groceries'}
+                placeholder={t.budgetPlaceholder}
                 className={`rounded-xl h-11 ${errors.name ? 'border-destructive' : ''}`}
               />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
