@@ -166,8 +166,8 @@ const OnboardingPage = () => {
   const currentStep = STEPS[step];
 
   // Determine visible steps for progress (exclude payment if free)
-  const visibleSteps = isPaidPlan ? [...STEPS] : [...STEPS].filter(s => s !== 'payment');
-  const visibleStepIndex = visibleSteps.indexOf(currentStep as string);
+  const visibleSteps: string[] = isPaidPlan ? [...STEPS] : [...STEPS].filter(s => s !== 'payment');
+  const visibleStepIndex = visibleSteps.indexOf(currentStep);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4" style={{ backgroundImage: 'var(--gradient-hero)' }}>
