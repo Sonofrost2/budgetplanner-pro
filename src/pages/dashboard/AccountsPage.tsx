@@ -80,9 +80,7 @@ const AccountsPage = () => {
 
   const openNew = () => {
     if (accountLimitReached) {
-      toast.error(locale === 'fr'
-        ? `Limite de ${limits.accounts} compte(s) atteinte. Passez à Premium !`
-        : `Limit of ${limits.accounts} account(s) reached. Upgrade to Premium!`);
+      toast.error(t.limitAccountsToast(limits.accounts));
       return;
     }
     setEditing(null);
