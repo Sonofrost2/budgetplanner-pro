@@ -4,19 +4,18 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, TrendingUp, TrendingDown, Inbox } from 'lucide-react';
-import { motion } from 'framer-motion';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend
-} from 'recharts';
+import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6'];
+import { StatsCards } from '@/components/dashboard/home/StatsCards';
+import { AccountsWidget } from '@/components/dashboard/home/AccountsWidget';
+import { SavingsWidget } from '@/components/dashboard/home/SavingsWidget';
+import { BudgetsWidget } from '@/components/dashboard/home/BudgetsWidget';
+import { ForecastWidget } from '@/components/dashboard/home/ForecastWidget';
+import { ChartsSection } from '@/components/dashboard/home/ChartsSection';
+import { RecentTransactions } from '@/components/dashboard/home/RecentTransactions';
 
 type PeriodKey = 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisYear';
 
@@ -49,11 +48,14 @@ const DashboardHome = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
-  const t = dashT[locale];
+  const t = dashT[locale] as Record<string, string>;
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<{ name: string; income: number; expenses: number }[]>([]);
+  const [categoryData, setCategoryData] = useState<{ name: string; value: number; color: string }[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<any[]>([]);
+  const [budgets, setBudgets] = useState<any[]>([]);
   const [period, setPeriod] = useState<PeriodKey>('thisMonth');
   const [loading, setLoading] = useState(true);
 
@@ -65,32 +67,49 @@ const DashboardHome = () => {
 
     Promise.all([
       supabase.from('transactions').select('*, categories(name, icon, color)')
-        .eq('user_id', user.id)
-        .gte('date', start).lte('date', end)
+        .eq('user_id', user.id).gte('date', start).lte('date', end)
         .order('date', { ascending: false }),
-      // Expense breakdown by category for current period
       supabase.from('transactions').select('amount, categories(name, color, icon)')
         .eq('user_id', user.id).eq('type', 'expense')
         .gte('date', start).lte('date', end),
-    ]).then(([txRes, catRes]) => {
+      supabase.from('payment_accounts').select('*').eq('user_id', user.id)
+        .order('created_at', { ascending: false }),
+      supabase.from('savings_goals').select('*').eq('user_id', user.id)
+        .order('created_at', { ascending: false }).limit(5),
+      supabase.from('budgets').select('*').eq('user_id', user.id)
+        .order('created_at', { ascending: false }).limit(5),
+    ]).then(([txRes, catRes, accRes, savRes, budRes]) => {
       setTransactions(txRes.data || []);
+      setAccounts(accRes.data || []);
+      setSavingsGoals(savRes.data || []);
 
       // Category pie data
-      const catMap: Record<string, { name: string; value: number; color: string; icon: string }> = {};
-      (catRes.data || []).forEach(tx => {
-        const name = (tx.categories as any)?.name || 'Autre';
-        const color = (tx.categories as any)?.color || '#6C63FF';
-        const icon = (tx.categories as any)?.icon || '📁';
-        if (!catMap[name]) catMap[name] = { name, value: 0, color, icon };
+      const catMap: Record<string, { name: string; value: number; color: string }> = {};
+      (catRes.data || []).forEach((tx: any) => {
+        const name = tx.categories?.name || 'Autre';
+        const color = tx.categories?.color || '#6C63FF';
+        if (!catMap[name]) catMap[name] = { name, value: 0, color };
         catMap[name].value += Number(tx.amount);
       });
       setCategoryData(Object.values(catMap).sort((a, b) => b.value - a.value));
+
+      // Budgets with spent calculation
+      const budgetsData = budRes.data || [];
+      const allTx = txRes.data || [];
+      const budgetsWithSpent = budgetsData.map((b: any) => {
+        const spent = allTx
+          .filter((tx: any) => tx.type === 'expense' && tx.category_id === b.category_id)
+          .reduce((s: number, tx: any) => s + Number(tx.amount), 0);
+        return { ...b, spent };
+      });
+      setBudgets(budgetsWithSpent);
+
       setLoading(false);
     });
 
     // Chart: last 6 months
     const now = new Date();
-    const months: any[] = [];
+    const months: { date: Date; label: string }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       months.push({ date: d, label: d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' }) });
@@ -100,14 +119,14 @@ const DashboardHome = () => {
       .eq('user_id', user.id).gte('date', sixMonthsAgo)
       .then(({ data }) => {
         const chartData = months.map(m => {
-          const monthTxs = (data || []).filter(tx => {
+          const monthTxs = (data || []).filter((tx: any) => {
             const txDate = new Date(tx.date);
             return txDate.getMonth() === m.date.getMonth() && txDate.getFullYear() === m.date.getFullYear();
           });
           return {
             name: m.label,
-            income: monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
-            expenses: monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
+            income: monthTxs.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0),
+            expenses: monthTxs.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0),
           };
         });
         setMonthlyData(chartData);
@@ -125,14 +144,16 @@ const DashboardHome = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
         </div>
-        <Skeleton className="h-72 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Period selector + Add */}
       <div className="flex items-center justify-between gap-3">
         <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
@@ -149,124 +170,23 @@ const DashboardHome = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: t.totalBalance, value: fmt(balance), color: '', icon: null, delay: 0 },
-          { label: t.income, value: `+${fmt(totalIncome)}`, color: 'text-secondary', icon: TrendingUp, delay: 0.1 },
-          { label: t.expenses, value: `-${fmt(totalExpenses)}`, color: 'text-destructive', icon: TrendingDown, delay: 0.2 },
-        ].map((s, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: s.delay }}>
-            <Card className="border-none shadow-[var(--shadow-card)]">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  {s.icon && <s.icon className={`w-4 h-4 ${s.color}`} />}
-                  {s.label}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+      <StatsCards balance={balance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t} />
+
+      {/* Accounts + Budgets + Savings row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <AccountsWidget accounts={accounts} fmt={fmt} t={t} />
+        <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />
+        <SavingsWidget goals={savingsGoals} fmt={fmt} t={t} locale={locale} />
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Monthly evolution line chart */}
-        <Card className="border-none shadow-[var(--shadow-card)]">
-          <CardHeader><CardTitle className="text-base font-semibold">{t.monthlyOverview}</CardTitle></CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyData}>
-                  <defs>
-                    <linearGradient id="incG" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(170, 65%, 45%)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(170, 65%, 45%)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="expG" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(250, 70%, 58%)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(250, 70%, 58%)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 45%)" />
-                  <YAxis tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 45%)" />
-                  <Tooltip formatter={(v: number) => fmt(v)} />
-                  <Area type="monotone" dataKey="income" stroke="hsl(170, 65%, 45%)" fill="url(#incG)" strokeWidth={2} name={t.income} />
-                  <Area type="monotone" dataKey="expenses" stroke="hsl(250, 70%, 58%)" fill="url(#expG)" strokeWidth={2} name={t.expenses} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Forecast widget */}
+      <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />
 
-        {/* Expense by category pie chart */}
-        <Card className="border-none shadow-[var(--shadow-card)]">
-          <CardHeader><CardTitle className="text-base font-semibold">{t.expenseByCategory || 'Dépenses par catégorie'}</CardTitle></CardHeader>
-          <CardContent>
-            {categoryData.length === 0 ? (
-              <div className="h-64 flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">{t.noTransactions}</p>
-              </div>
-            ) : (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      innerRadius={40}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      labelLine={{ strokeWidth: 1 }}
-                    >
-                      {categoryData.map((entry, i) => (
-                        <Cell key={i} fill={entry.color || COLORS[i % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(v: number) => fmt(v)} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Charts */}
+      <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} />
 
       {/* Recent Transactions */}
-      <Card className="border-none shadow-[var(--shadow-card)]">
-        <CardHeader><CardTitle className="text-base font-semibold">{t.recentTransactions}</CardTitle></CardHeader>
-        <CardContent>
-          {transactions.length === 0 ? (
-            <div className="text-center py-10">
-              <Inbox className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">{t.noTransactions}</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {transactions.slice(0, 5).map(tx => (
-                <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{tx.categories?.icon || '📁'}</span>
-                    <div>
-                      <p className="text-sm font-medium">{tx.description}</p>
-                      <p className="text-xs text-muted-foreground">{tx.categories?.name} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</p>
-                    </div>
-                  </div>
-                  <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
-                    {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <RecentTransactions transactions={transactions} fmt={fmt} t={t} locale={locale} />
     </div>
   );
 };
