@@ -119,9 +119,9 @@ const BudgetsPage = () => {
   }
 
   const periodLabels: Record<string, string> = {
-    weekly: locale === 'fr' ? 'Hebdomadaire' : 'Weekly',
-    monthly: locale === 'fr' ? 'Mensuel' : 'Monthly',
-    yearly: locale === 'fr' ? 'Annuel' : 'Yearly',
+    weekly: t.weekly,
+    monthly: t.monthly,
+    yearly: t.yearly,
   };
 
   return (
