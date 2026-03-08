@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, 
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
 const ACCOUNT_TYPES = [
   { value: 'mobile_money', label: '📱 Mobile Money' },
@@ -29,6 +31,7 @@ const AccountsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
   const [accounts, setAccounts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -62,7 +65,15 @@ const AccountsPage = () => {
     return openingBalance + income - expense;
   };
 
+  const accountLimitReached = !isPremium && accounts.length >= limits.accounts;
+
   const openNew = () => {
+    if (accountLimitReached) {
+      toast.error(locale === 'fr'
+        ? `Limite de ${limits.accounts} compte(s) atteinte. Passez à Premium !`
+        : `Limit of ${limits.accounts} account(s) reached. Upgrade to Premium!`);
+      return;
+    }
     setEditing(null);
     setForm({ name: '', type: 'mobile_money', icon: '💳', opening_balance: '0' });
     setDialogOpen(true);
@@ -127,9 +138,16 @@ const AccountsPage = () => {
 
   return (
     <div className="space-y-6">
+      {accountLimitReached && (
+        <UpgradeBanner message={locale === 'fr'
+          ? `Limite atteinte : ${limits.accounts} compte(s) maximum en plan gratuit. Passez à Premium pour des comptes illimités.`
+          : `Limit reached: ${limits.accounts} account(s) max on free plan. Upgrade to Premium for unlimited accounts.`}
+        />
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold font-display">{t.accounts}</h2>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={accountLimitReached}>
           <Plus className="w-4 h-4 mr-1" />{t.addAccount}
         </Button>
       </div>

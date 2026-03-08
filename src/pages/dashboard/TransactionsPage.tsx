@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, ArrowUpDown, I
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import { useSearchParams } from 'react-router-dom';
 
 const PAGE_SIZE = 20;
@@ -22,6 +24,7 @@ const TransactionsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
   const [searchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -74,7 +77,22 @@ const TransactionsPage = () => {
 
   useEffect(() => { setPage(0); }, [filterType, filterCategory, filterAccount, searchQuery, startDate, endDate]);
 
+  // Count transactions this month for limit check
+  const thisMonthCount = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    return transactions.filter(tx => tx.date >= start).length;
+  }, [transactions]);
+
+  const limitReached = !isPremium && thisMonthCount >= limits.transactionsPerMonth;
+
   const openNew = () => {
+    if (limitReached) {
+      toast.error(locale === 'fr'
+        ? `Limite de ${limits.transactionsPerMonth} transactions/mois atteinte. Passez à Premium !`
+        : `Limit of ${limits.transactionsPerMonth} transactions/month reached. Upgrade to Premium!`);
+      return;
+    }
     setEditing(null);
     setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', account_id: accounts[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '' });
     setDialogOpen(true);
@@ -128,9 +146,18 @@ const TransactionsPage = () => {
 
   return (
     <div className="space-y-6">
+      {limitReached && (
+        <UpgradeBanner message={locale === 'fr'
+          ? `Limite atteinte : ${thisMonthCount}/${limits.transactionsPerMonth} transactions ce mois. Passez à Premium pour un accès illimité.`
+          : `Limit reached: ${thisMonthCount}/${limits.transactionsPerMonth} transactions this month. Upgrade to Premium for unlimited access.`}
+        />
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold font-display">{t.allTransactions}</h2>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+        <h2 className="text-2xl font-bold font-display">{t.allTransactions}
+          {!isPremium && <span className="text-sm font-normal text-muted-foreground ml-2">({thisMonthCount}/{limits.transactionsPerMonth})</span>}
+        </h2>
+        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
           <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
         </Button>
       </div>

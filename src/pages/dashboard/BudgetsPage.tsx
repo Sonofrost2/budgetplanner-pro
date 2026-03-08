@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,11 +16,13 @@ import { Plus, Trash2, AlertTriangle, PieChart, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
 const BudgetsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
   const [budgets, setBudgets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -56,8 +59,16 @@ const BudgetsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
+
   const handleSave = async () => {
     if (!user || !form.name.trim() || !form.amount || Number(form.amount) <= 0) return;
+    if (budgetLimitReached) {
+      toast.error(locale === 'fr'
+        ? `Limite de ${limits.budgets} budget(s) atteinte. Passez à Premium !`
+        : `Limit of ${limits.budgets} budget(s) reached. Upgrade to Premium!`);
+      return;
+    }
     const { error } = await supabase.from('budgets').insert({
       user_id: user.id, name: form.name.trim(), amount: Number(form.amount),
       category_id: form.category_id || null, period: form.period,
@@ -91,12 +102,25 @@ const BudgetsPage = () => {
 
   return (
     <div className="space-y-6">
+      {budgetLimitReached && (
+        <UpgradeBanner message={locale === 'fr'
+          ? `Limite atteinte : ${limits.budgets} budget(s) maximum en plan gratuit. Passez à Premium pour des budgets illimités.`
+          : `Limit reached: ${limits.budgets} budget(s) max on free plan. Upgrade to Premium for unlimited budgets.`}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-display">{t.budgets}</h2>
         <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+          if (budgetLimitReached) {
+            toast.error(locale === 'fr'
+              ? `Limite de ${limits.budgets} budget(s) atteinte. Passez à Premium !`
+              : `Limit of ${limits.budgets} budget(s) reached. Upgrade to Premium!`);
+            return;
+          }
           setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly' });
           setDialogOpen(true);
-        }}>
+        }} disabled={budgetLimitReached}>
           <Plus className="w-4 h-4 mr-1" />{t.addBudget}
         </Button>
       </div>
