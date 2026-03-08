@@ -14,7 +14,7 @@ const Footer = () => {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
                 <Wallet className="w-4 h-4 text-primary-foreground" />
               </div>
-              <span className="text-lg font-bold font-[Space_Grotesk]">BudgetPlan</span>
+              <span className="text-lg font-bold font-[Space_Grotesk]">Budget Planner</span>
             </div>
             <p className="text-sm text-muted-foreground">{t.footer.description}</p>
           </div>
