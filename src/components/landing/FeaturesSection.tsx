@@ -53,10 +53,6 @@ const FeaturesSection = () => {
                 </div>
                 <h3 className="text-lg font-bold mb-2.5">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{feature.desc}</p>
-                <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <span>En savoir plus</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-                </div>
               </div>
             </motion.div>
           ))}
