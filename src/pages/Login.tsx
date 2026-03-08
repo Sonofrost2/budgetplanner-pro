@@ -52,7 +52,7 @@ const Login = () => {
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
               <Wallet className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold font-display">BudgetPlan</span>
+            <span className="text-xl font-bold font-display">Budget Planner</span>
           </div>
 
           <h1 className="text-2xl font-bold">{t.auth.loginTitle}</h1>

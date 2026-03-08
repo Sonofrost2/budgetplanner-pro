@@ -208,7 +208,7 @@ const OnboardingPage = () => {
           {currentStep === 'welcome' && (
             <div className="text-center space-y-4">
               <Sparkles className="w-12 h-12 text-primary mx-auto" />
-              <h2 className="text-2xl font-bold font-display">{isFr ? 'Bienvenue sur BudgetPlan !' : 'Welcome to BudgetPlan!'}</h2>
+              <h2 className="text-2xl font-bold font-display">{isFr ? 'Bienvenue sur Budget Planner !' : 'Welcome to Budget Planner!'}</h2>
               <p className="text-muted-foreground">{isFr ? 'Configurons votre espace en quelques étapes simples.' : "Let's set up your space in a few simple steps."}</p>
               <Button className="text-primary-foreground mt-4" style={{ background: 'var(--gradient-primary)' }} onClick={() => setStep(1)}>
                 {isFr ? 'Commencer' : 'Get Started'} <ArrowRight className="w-4 h-4 ml-2" />

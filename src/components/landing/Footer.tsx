@@ -49,7 +49,7 @@ const Footer = () => {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} BudgetPlan. {t.footer.rights}
+          © {new Date().getFullYear()} Budget Planner. {t.footer.rights}
         </div>
       </div>
     </footer>

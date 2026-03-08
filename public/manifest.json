@@ -1,6 +1,6 @@
 {
-  "name": "BudgetPlan",
-  "short_name": "BudgetPlan",
+  "name": "Budget Planner",
+  "short_name": "Budget Planner",
   "description": "Gérez vos finances facilement – budget, dépenses, épargne",
   "start_url": "/",
   "display": "standalone",

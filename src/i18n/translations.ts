@@ -210,9 +210,9 @@ export const translations = {
     },
     testimonials: {
       sectionTitle: 'Trusted by thousands',
-      sectionSubtitle: 'See what our users think about BudgetPlan',
+      sectionSubtitle: 'See what our users think about Budget Planner',
       items: [
-        { name: 'Marie L.', role: 'Mother', text: 'BudgetPlan transformed our family\'s financial management. We can finally see where our money goes!' },
+        { name: 'Marie L.', role: 'Mother', text: 'Budget Planner transformed our family\'s financial management. We can finally see where our money goes!' },
         { name: 'Thomas D.', role: 'Freelancer', text: 'The financial forecasts help me anticipate my irregular income. Essential for freelancers.' },
         { name: 'Sophie M.', role: 'Student', text: 'Even with the free version, I can manage my budget well. The interface is super intuitive!' },
       ],
