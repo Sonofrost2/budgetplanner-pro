@@ -9,9 +9,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, ArrowUpDown, Inbox } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -41,7 +42,9 @@ const TransactionsPage = () => {
   const [editing, setEditing] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -77,7 +80,6 @@ const TransactionsPage = () => {
 
   useEffect(() => { setPage(0); }, [filterType, filterCategory, filterAccount, searchQuery, startDate, endDate]);
 
-  // Count transactions this month for limit check
   const thisMonthCount = useMemo(() => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -85,6 +87,18 @@ const TransactionsPage = () => {
   }, [transactions]);
 
   const limitReached = !isPremium && thisMonthCount >= limits.transactionsPerMonth;
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!form.description.trim()) errs.description = locale === 'fr' ? 'Description requise' : 'Description required';
+    if (form.description.trim().length > 200) errs.description = locale === 'fr' ? '200 caractères max' : '200 characters max';
+    if (!form.amount || Number(form.amount) <= 0) errs.amount = locale === 'fr' ? 'Montant invalide' : 'Invalid amount';
+    if (Number(form.amount) > 999999999) errs.amount = locale === 'fr' ? 'Montant trop élevé' : 'Amount too high';
+    if (!form.date) errs.date = locale === 'fr' ? 'Date requise' : 'Date required';
+    if (form.notes && form.notes.length > 500) errs.notes = locale === 'fr' ? '500 caractères max' : '500 characters max';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const openNew = () => {
     if (limitReached) {
@@ -94,18 +108,21 @@ const TransactionsPage = () => {
       return;
     }
     setEditing(null);
+    setErrors({});
     setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', account_id: accounts[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (tx: any) => {
     setEditing(tx);
+    setErrors({});
     setForm({ description: tx.description, amount: String(tx.amount), type: tx.type, category_id: tx.category_id || '', account_id: tx.account_id || '', date: tx.date, notes: tx.notes || '' });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
-    if (!user || !form.description.trim() || !form.amount || Number(form.amount) <= 0) return;
+    if (!user || !validate()) return;
+    setSaving(true);
     const payload = {
       user_id: user.id, description: form.description.trim(), amount: Number(form.amount),
       type: form.type, category_id: form.category_id || null, account_id: form.account_id || null,
@@ -113,11 +130,12 @@ const TransactionsPage = () => {
     };
     if (editing) {
       const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id);
-      if (error) { toast.error(error.message); return; }
+      if (error) { toast.error(error.message); setSaving(false); return; }
     } else {
       const { error } = await supabase.from('transactions').insert(payload);
-      if (error) { toast.error(error.message); return; }
+      if (error) { toast.error(error.message); setSaving(false); return; }
     }
+    setSaving(false);
     setDialogOpen(false);
     fetchData();
     toast.success(t.saved);
@@ -144,6 +162,8 @@ const TransactionsPage = () => {
     );
   }
 
+  const filteredCategories = categories.filter(c => c.type === form.type);
+
   return (
     <div className="space-y-6">
       {limitReached && (
@@ -157,7 +177,7 @@ const TransactionsPage = () => {
         <h2 className="text-2xl font-bold font-display">{t.allTransactions}
           {!isPremium && <span className="text-sm font-normal text-muted-foreground ml-2">({thisMonthCount}/{limits.transactionsPerMonth})</span>}
         </h2>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
+        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
           <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
         </Button>
       </div>
@@ -166,10 +186,10 @@ const TransactionsPage = () => {
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder={t.search + '...'} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+          <Input placeholder={t.search + '...'} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 rounded-xl" />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-36 rounded-xl"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.all}</SelectItem>
             <SelectItem value="income">{t.incomeType}</SelectItem>
@@ -177,81 +197,85 @@ const TransactionsPage = () => {
           </SelectContent>
         </Select>
         <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-44 rounded-xl"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.all} {t.category}</SelectItem>
             {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterAccount} onValueChange={setFilterAccount}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-44 rounded-xl"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.allAccounts}</SelectItem>
             {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40" placeholder={t.startDate} />
-        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40" placeholder={t.endDate} />
+        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40 rounded-xl" />
+        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 rounded-xl" />
       </div>
 
       {/* Transactions list */}
-      <Card className="border-none shadow-[var(--shadow-card)]">
+      <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden">
         <CardContent className="p-0">
           {filtered.length === 0 ? (
             <div className="py-16 text-center">
-              <Inbox className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+              <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
+                <Inbox className="w-7 h-7 text-muted-foreground/40" />
+              </div>
               {transactions.length === 0 ? (
                 <>
-                  <p className="text-lg font-medium text-muted-foreground mb-2">{t.noTransactions}</p>
-                  <Button size="sm" className="text-primary-foreground mt-2" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+                  <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noTransactions}</p>
+                  <p className="text-sm text-muted-foreground/70 mb-4">{locale === 'fr' ? 'Commencez par ajouter votre première transaction' : 'Start by adding your first transaction'}</p>
+                  <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
                     <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
                   </Button>
                 </>
               ) : (
-                <p className="text-lg font-medium text-muted-foreground mb-2">
-                  {locale === 'fr' ? 'Aucun résultat pour cette recherche' : 'No results found for this search'}
+                <p className="text-lg font-semibold text-muted-foreground">
+                  {locale === 'fr' ? 'Aucun résultat pour cette recherche' : 'No results found'}
                 </p>
               )}
             </div>
           ) : (
             <>
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-border/50">
                 {paginated.map(tx => (
-                  <div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-muted/30 transition-colors">
+                  <div key={tx.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-xl flex-shrink-0">{tx.categories?.icon || '📁'}</span>
+                      <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center text-lg flex-shrink-0">
+                        {tx.categories?.icon || '📁'}
+                      </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{tx.description}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}
+                        <p className="text-sm font-semibold truncate">{tx.description}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`text-sm font-bold ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
                         {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
                       </span>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(tx)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => openEdit(tx)}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(tx.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive" onClick={() => setDeleteId(tx.id)}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>
                 ))}
               </div>
-              {/* Pagination */}
-              <div className="flex items-center justify-between px-6 py-4 border-t border-border">
-                <span className="text-sm text-muted-foreground">
+              <div className="flex items-center justify-between px-5 py-3.5 border-t border-border/50 bg-muted/20">
+                <span className="text-xs text-muted-foreground">
                   {filtered.length} {locale === 'fr' ? 'résultats' : 'results'} — {t.page || 'Page'} {page + 1}/{totalPages}
                 </span>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-                    <ChevronLeft className="w-4 h-4 mr-1" />{t.previous}
+                  <Button variant="outline" size="sm" className="rounded-xl h-8" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                    <ChevronLeft className="w-3.5 h-3.5 mr-1" />{t.previous}
                   </Button>
-                  <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-                    {t.next}<ChevronRight className="w-4 h-4 ml-1" />
+                  <Button variant="outline" size="sm" className="rounded-xl h-8" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                    {t.next}<ChevronRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 </div>
               </div>
@@ -260,65 +284,155 @@ const TransactionsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
+      {/* Add/Edit Dialog — improved */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editing ? t.edit : t.addTransaction}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addTransaction}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {locale === 'fr' ? 'Remplissez les informations de la transaction' : 'Fill in the transaction details'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* Type toggle */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.type}</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, type: 'expense', category_id: '' }))}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    form.type === 'expense'
+                      ? 'border-destructive bg-destructive/10 text-destructive'
+                      : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  <TrendingDown className="w-4 h-4" />
+                  {t.expenseType}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, type: 'income', category_id: '' }))}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    form.type === 'income'
+                      ? 'border-secondary bg-secondary/10 text-secondary'
+                      : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  {t.incomeType}
+                </button>
+              </div>
+            </div>
+
+            {/* Amount + Date row */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t.type}</Label>
-                <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="expense">{t.expenseType}</SelectItem>
-                    <SelectItem value="income">{t.incomeType}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  {t.amount}
+                </Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={form.amount}
+                    onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                    className={`rounded-xl h-11 text-lg font-bold pl-4 ${errors.amount ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                    placeholder="0"
+                  />
+                </div>
+                {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
               </div>
               <div className="space-y-2">
-                <Label>{t.category}</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3" />
+                  {t.date}
+                </Label>
+                <Input
+                  type="date"
+                  value={form.date}
+                  onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                  className={`rounded-xl h-11 ${errors.date ? 'border-destructive' : ''}`}
+                />
+                {errors.date && <p className="text-xs text-destructive">{errors.date}</p>}
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <FileText className="w-3 h-3" />
+                {t.description}
+              </Label>
+              <Input
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                maxLength={200}
+                placeholder={locale === 'fr' ? 'Ex: Courses supermarché' : 'E.g: Grocery shopping'}
+                className={`rounded-xl h-11 ${errors.description ? 'border-destructive' : ''}`}
+              />
+              {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
+            </div>
+
+            {/* Category + Account row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Tag className="w-3 h-3" />
+                  {t.category}
+                </Label>
                 <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir...' : 'Select...'} /></SelectTrigger>
                   <SelectContent>
-                    {categories.filter(c => c.type === form.type).map(c => (
+                    {filteredCategories.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>{t.account}</Label>
-              <Select value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))}>
-                <SelectTrigger><SelectValue placeholder={t.selectAccount} /></SelectTrigger>
-                <SelectContent>
-                  {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>{t.description}</Label>
-              <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} maxLength={200} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t.amount}</Label>
-                <Input type="number" min="0.01" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>{t.date}</Label>
-                <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <CreditCard className="w-3 h-3" />
+                  {t.account}
+                </Label>
+                <Select value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir...' : 'Select...'} /></SelectTrigger>
+                  <SelectContent>
+                    {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+
+            {/* Notes */}
             <div className="space-y-2">
-              <Label>{t.notes}</Label>
-              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} maxLength={500} />
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {t.notes} <span className="text-muted-foreground/50 font-normal normal-case">({locale === 'fr' ? 'optionnel' : 'optional'})</span>
+              </Label>
+              <Textarea
+                value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                maxLength={500}
+                rows={2}
+                className={`rounded-xl resize-none ${errors.notes ? 'border-destructive' : ''}`}
+                placeholder={locale === 'fr' ? 'Ajoutez une note...' : 'Add a note...'}
+              />
+              {errors.notes && <p className="text-xs text-destructive">{errors.notes}</p>}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t.cancel}</Button>
-            <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button
+              className="text-primary-foreground rounded-xl min-w-[120px]"
+              style={{ background: 'var(--gradient-primary)' }}
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') : t.save}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
