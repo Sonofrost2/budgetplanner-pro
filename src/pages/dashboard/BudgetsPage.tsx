@@ -206,7 +206,7 @@ const BudgetsPage = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{t.addBudget}</DialogTitle>
-            <DialogDescription>{locale === 'fr' ? 'Définissez un budget pour mieux contrôler vos dépenses' : 'Set a budget to better control your spending'}</DialogDescription>
+            <DialogDescription>{t.createBudgetDesc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
             {/* Budget name */}
