@@ -22,6 +22,7 @@ const BudgetsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
   const [budgets, setBudgets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
