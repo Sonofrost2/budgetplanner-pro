@@ -99,18 +99,30 @@ const AccountsPage = () => {
   const handleSave = async () => {
     if (!user || !validate()) return;
     setSaving(true);
+    const openingBal = Number(form.opening_balance) || 0;
     const payload = {
       user_id: user.id, name: form.name.trim(), type: form.type, icon: form.icon,
-      opening_balance: Number(form.opening_balance) || 0,
-      real_balance: editing ? undefined : Number(form.opening_balance) || 0,
+      opening_balance: openingBal,
+      real_balance: editing ? undefined : openingBal,
     };
     if (editing) {
       const { real_balance, ...updatePayload } = payload;
       const { error } = await supabase.from('payment_accounts').update(updatePayload).eq('id', editing.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
     } else {
-      const { error } = await supabase.from('payment_accounts').insert(payload);
+      const { data: newAcc, error } = await supabase.from('payment_accounts').insert(payload).select('id').single();
       if (error) { toast.error(error.message); setSaving(false); return; }
+      // Inject opening balance as an income transaction for consistency
+      if (openingBal > 0 && newAcc) {
+        await supabase.from('transactions').insert({
+          user_id: user.id,
+          type: 'income',
+          amount: openingBal,
+          description: `${t.openingBalance} – ${form.name.trim()}`,
+          account_id: newAcc.id,
+          date: new Date().toISOString().split('T')[0],
+        });
+      }
     }
     setSaving(false);
     setDialogOpen(false);
