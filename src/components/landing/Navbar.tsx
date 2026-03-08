@@ -18,7 +18,7 @@ const Navbar = () => {
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
               <Wallet className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold font-[Space_Grotesk]">BudgetPlan</span>
+            <span className="text-xl font-bold font-[Space_Grotesk]">Budget Planner</span>
           </Link>
 
           {/* Desktop nav */}

@@ -28,10 +28,10 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           invoice: {
             total_amount: amount,
-            description: description || 'Paiement BudgetPlanner Pro',
+            description: description || 'Paiement Budget Planner Pro',
           },
           store: {
-            name: 'BudgetPlanner Pro',
+            name: 'Budget Planner Pro',
             tagline: 'Gérez vos finances facilement',
             website_url: return_url || 'https://budgetplanner-pro.lovable.app',
           },

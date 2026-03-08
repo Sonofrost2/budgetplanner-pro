@@ -71,7 +71,7 @@ const DashboardLayout = () => {
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
               <Wallet className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-bold font-display">BudgetPlan</span>
+            <span className="font-bold font-display">Budget Planner</span>
           </Link>
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="w-4 h-4" />

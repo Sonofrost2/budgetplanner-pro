@@ -51,7 +51,7 @@ const Signup = () => {
           <div className="w-16 h-16 rounded-2xl bg-secondary-foreground/20 flex items-center justify-center mx-auto mb-6">
             <Wallet className="w-8 h-8" />
           </div>
-          <h2 className="text-3xl font-bold font-display mb-4">BudgetPlan</h2>
+          <h2 className="text-3xl font-bold font-display mb-4">Budget Planner</h2>
           <p className="text-lg opacity-90 max-w-sm">{t.hero.subtitle}</p>
         </div>
       </div>
@@ -62,7 +62,7 @@ const Signup = () => {
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
               <Wallet className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold font-display">BudgetPlan</span>
+            <span className="text-xl font-bold font-display">Budget Planner</span>
           </div>
 
           <h1 className="text-2xl font-bold">{t.auth.signupTitle}</h1>

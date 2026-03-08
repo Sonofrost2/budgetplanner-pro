@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         </a>
       </div>
       <p style="color:#9ca3af;font-size:13px;text-align:center;margin-top:24px;">
-        Merci de votre confiance !<br>L'équipe BudgetPlan
+        Merci de votre confiance !<br>L'équipe Budget Planner
       </p>
     </div>
   </div>
@@ -76,9 +76,9 @@ Deno.serve(async (req) => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        sender: { name: 'BudgetPlan', email: 'noreply@budgetplanner-pro.lovable.app' },
+        sender: { name: 'Budget Planner', email: 'noreply@budgetplanner-pro.lovable.app' },
         to: [{ email, name: displayName || email }],
-        subject: '✅ Confirmation de paiement - BudgetPlan',
+        subject: '✅ Confirmation de paiement - Budget Planner',
         htmlContent,
       }),
     });
