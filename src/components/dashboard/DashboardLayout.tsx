@@ -82,7 +82,7 @@ const DashboardLayout = () => {
     { key: 'family', icon: Users, path: '/dashboard/family' },
     { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
     { key: 'settings', icon: Settings, path: '/dashboard/settings' },
-    { key: 'payment', icon: Smartphone, path: '/dashboard/payment' },
+    { key: 'payment', icon: Crown, path: '/dashboard/payment' },
     ...(isAdmin ? [{ key: 'adminPricing', icon: Shield, path: '/dashboard/admin/pricing' }] : []),
   ];
 
