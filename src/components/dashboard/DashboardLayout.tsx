@@ -19,6 +19,7 @@ const navItems = [
   { key: 'savings', icon: Target, path: '/dashboard/savings' },
   { key: 'reports', icon: FileText, path: '/dashboard/reports' },
   { key: 'settings', icon: Settings, path: '/dashboard/settings' },
+  { key: 'payment', icon: Smartphone, path: '/dashboard/payment' },
 ] as const;
 
 const DashboardLayout = () => {
