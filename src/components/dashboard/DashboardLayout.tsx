@@ -78,6 +78,7 @@ const DashboardLayout = () => {
     { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
     { key: 'savings', icon: Target, path: '/dashboard/savings' },
     { key: 'reports', icon: FileText, path: '/dashboard/reports' },
+    { key: 'family', icon: Users, path: '/dashboard/family' },
     { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
     { key: 'settings', icon: Settings, path: '/dashboard/settings' },
     { key: 'payment', icon: Smartphone, path: '/dashboard/payment' },

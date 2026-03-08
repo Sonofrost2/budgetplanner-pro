@@ -9,6 +9,8 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import OnboardingPage from "./pages/OnboardingPage";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
@@ -23,6 +25,7 @@ import AccountsPage from "./pages/dashboard/AccountsPage";
 import AdminPricingPage from "./pages/dashboard/AdminPricingPage";
 import CategoriesPage from "./pages/dashboard/CategoriesPage";
 import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
+import FamilyPage from "./pages/dashboard/FamilyPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +43,8 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<DashboardHome />} />
@@ -53,6 +58,7 @@ const App = () => (
                 <Route path="accounts" element={<AccountsPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="receipts" element={<ReceiptsPage />} />
+                <Route path="family" element={<FamilyPage />} />
                 <Route path="admin/pricing" element={<AdminPricingPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
