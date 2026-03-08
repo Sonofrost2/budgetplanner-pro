@@ -285,7 +285,6 @@ const TransactionsPage = () => {
              <DialogDescription className="text-sm text-muted-foreground">
                {t.fillTransactionDetails}
              </DialogDescription>
-            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 py-2">
