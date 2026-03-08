@@ -422,5 +422,5 @@ export const dashT = {
   },
 } as const;
 
-export type DashTranslations = typeof dashT.fr;
-export type DashTranslationKey = keyof DashTranslations;
+export type DashTranslations = typeof dashT.fr | typeof dashT.en;
+export type DashTranslationKey = keyof typeof dashT.fr;
