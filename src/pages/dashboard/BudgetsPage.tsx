@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,20 +11,25 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, PieChart, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
+import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 
 const BudgetsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
+  const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const [budgets, setBudgets] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [spending, setSpending] = useState<Record<string, number>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly' });
+  const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const fmt = (n: number) => n.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: 'EUR' });
+  const fmt = (n: number) => fmtCurrency(n, locale);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -34,7 +40,6 @@ const BudgetsPage = () => {
     setBudgets(budRes.data || []);
     setCategories(catRes.data || []);
 
-    // Get current month spending per category
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -46,6 +51,7 @@ const BudgetsPage = () => {
       if (tx.category_id) spendMap[tx.category_id] = (spendMap[tx.category_id] || 0) + Number(tx.amount);
     });
     setSpending(spendMap);
+    setLoading(false);
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -62,10 +68,26 @@ const BudgetsPage = () => {
     toast.success(t.saved);
   };
 
-  const handleDelete = async (id: string) => {
-    await supabase.from('budgets').delete().eq('id', id);
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    await supabase.from('budgets').delete().eq('id', deleteId);
+    setDeleteId(null);
     fetchData();
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-9 w-36" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -81,8 +103,15 @@ const BudgetsPage = () => {
 
       {budgets.length === 0 ? (
         <Card className="border-none shadow-[var(--shadow-card)]">
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">{t.noBudgets}</p>
+          <CardContent className="py-16 text-center">
+            <PieChart className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+            <p className="text-lg font-medium text-muted-foreground mb-2">{t.noBudgets}</p>
+            <Button size="sm" className="text-primary-foreground mt-2" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+              setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly' });
+              setDialogOpen(true);
+            }}>
+              <Plus className="w-4 h-4 mr-1" />{t.addBudget}
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -99,7 +128,7 @@ const BudgetsPage = () => {
                       <span>{b.categories?.icon || '📁'}</span>
                       {b.name}
                     </CardTitle>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => handleDelete(b.id)}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setDeleteId(b.id)}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -166,6 +195,16 @@ const BudgetsPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDeleteDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        title={t.confirmDelete}
+        description={t.confirmDeleteMessage}
+        cancelLabel={t.cancel}
+        confirmLabel={t.delete}
+      />
     </div>
   );
 };

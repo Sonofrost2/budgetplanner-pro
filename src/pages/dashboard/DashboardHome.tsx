@@ -6,10 +6,39 @@ import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, TrendingUp, TrendingDown } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, TrendingUp, TrendingDown, Inbox } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { Skeleton } from '@/components/ui/skeleton';
+
+type PeriodKey = 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisYear';
+
+const getDateRange = (period: PeriodKey) => {
+  const now = new Date();
+  let start: Date;
+  switch (period) {
+    case 'thisWeek': {
+      const day = now.getDay();
+      start = new Date(now);
+      start.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+      break;
+    }
+    case 'thisQuarter': {
+      const q = Math.floor(now.getMonth() / 3);
+      start = new Date(now.getFullYear(), q * 3, 1);
+      break;
+    }
+    case 'thisYear':
+      start = new Date(now.getFullYear(), 0, 1);
+      break;
+    default:
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+  start.setHours(0, 0, 0, 0);
+  return { start: start.toISOString().split('T')[0], end: now.toISOString().split('T')[0] };
+};
 
 const DashboardHome = () => {
   const { user } = useAuth();
@@ -19,33 +48,34 @@ const DashboardHome = () => {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [period, setPeriod] = useState<PeriodKey>('thisMonth');
+  const [loading, setLoading] = useState(true);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
   useEffect(() => {
     if (!user) return;
-    // Get current month transactions
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const { start, end } = getDateRange(period);
 
     supabase.from('transactions').select('*, categories(name, icon, color)')
       .eq('user_id', user.id)
-      .gte('date', startOfMonth).lte('date', endOfMonth)
+      .gte('date', start).lte('date', end)
       .order('date', { ascending: false })
-      .then(({ data }) => setTransactions(data || []));
+      .then(({ data }) => {
+        setTransactions(data || []);
+        setLoading(false);
+      });
 
-    // Get last 6 months data for chart
+    // Chart: last 6 months
+    const now = new Date();
     const months: any[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       months.push({ date: d, label: d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' }) });
     }
-
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
     supabase.from('transactions').select('type, amount, date')
-      .eq('user_id', user.id)
-      .gte('date', sixMonthsAgo)
+      .eq('user_id', user.id).gte('date', sixMonthsAgo)
       .then(({ data }) => {
         const chartData = months.map(m => {
           const monthTxs = (data || []).filter(tx => {
@@ -60,19 +90,39 @@ const DashboardHome = () => {
         });
         setMonthlyData(chartData);
       });
-  }, [user, locale]);
+  }, [user, locale, period]);
 
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const balance = totalIncome - totalExpenses;
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between"><Skeleton className="h-9 w-40" /><Skeleton className="h-9 w-40" /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+        </div>
+        <Skeleton className="h-72 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div />
+      <div className="flex items-center justify-between gap-3">
+        <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="thisWeek">{t.thisWeek}</SelectItem>
+            <SelectItem value="thisMonth">{t.thisMonth}</SelectItem>
+            <SelectItem value="thisQuarter">{t.thisQuarter}</SelectItem>
+            <SelectItem value="thisYear">{t.thisYear}</SelectItem>
+          </SelectContent>
+        </Select>
         <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => navigate('/dashboard/transactions')}>
-          <Plus className="w-4 h-4 mr-1" />
-          {t.addTransaction}
+          <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
         </Button>
       </div>
 
@@ -93,7 +143,6 @@ const DashboardHome = () => {
               </CardHeader>
               <CardContent>
                 <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                {i === 0 && <p className="text-xs text-muted-foreground mt-1">{t.thisMonth}</p>}
               </CardContent>
             </Card>
           </motion.div>
@@ -134,7 +183,10 @@ const DashboardHome = () => {
         <CardHeader><CardTitle className="text-base font-semibold">{t.recentTransactions}</CardTitle></CardHeader>
         <CardContent>
           {transactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">{t.noTransactions}</p>
+            <div className="text-center py-10">
+              <Inbox className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">{t.noTransactions}</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {transactions.slice(0, 5).map(tx => (
