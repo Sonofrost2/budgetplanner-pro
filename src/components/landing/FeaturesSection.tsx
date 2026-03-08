@@ -64,8 +64,6 @@ const FeaturesSection = () => {
       </div>
     </section>
   );
-});
-
-FeaturesSection.displayName = 'FeaturesSection';
+};
 
 export default FeaturesSection;

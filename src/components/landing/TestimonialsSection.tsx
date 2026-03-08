@@ -58,8 +58,6 @@ const TestimonialsSection = () => {
       </div>
     </section>
   );
-});
-
-TestimonialsSection.displayName = 'TestimonialsSection';
+};
 
 export default TestimonialsSection;
