@@ -77,7 +77,8 @@ const ReportsPage = () => {
       Date: tx.date, Description: tx.description, Type: tx.type,
       Category: (tx.categories as any)?.name || '', Amount: tx.amount,
     }));
-    exportToCSV(rows, 'transactions');
+    const success = exportToCSV(rows, 'transactions');
+    if (!success) toast.info(t.noTransactions);
   };
 
   const handleExportExcel = () => {
@@ -85,7 +86,8 @@ const ReportsPage = () => {
       Date: tx.date, Description: tx.description, Type: tx.type,
       Category: (tx.categories as any)?.name || '', Amount: tx.amount,
     }));
-    exportToExcel(rows, 'transactions');
+    const success = exportToExcel(rows, 'transactions');
+    if (!success) toast.info(t.noTransactions);
   };
 
   if (loading) {
