@@ -19,6 +19,7 @@ export function exportToExcel(data: Record<string, any>[], filename: string): bo
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Data');
   XLSX.writeFile(wb, `${filename}.xlsx`);
+  return true;
 }
 
 function downloadBlob(blob: Blob, filename: string) {
