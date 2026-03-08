@@ -32,6 +32,7 @@ import AdminPricingPage from "./pages/dashboard/AdminPricingPage";
 import CategoriesPage from "./pages/dashboard/CategoriesPage";
 import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import FamilyPage from "./pages/dashboard/FamilyPage";
+import GuidePage from "./pages/dashboard/GuidePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ const AnimatedRoutes = () => {
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="receipts" element={<ReceiptsPage />} />
           <Route path="family" element={<FamilyPage />} />
+          <Route path="guide" element={<GuidePage />} />
           <Route path="admin/pricing" element={<AdminPricingPage />} />
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
