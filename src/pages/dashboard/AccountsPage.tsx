@@ -300,7 +300,7 @@ const AccountsPage = () => {
 
             {/* Icon */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{locale === 'fr' ? 'Icône' : 'Icon'}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.iconLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {ICONS.map(ic => (
                   <button key={ic} type="button" onClick={() => setForm(f => ({ ...f, icon: ic }))}
