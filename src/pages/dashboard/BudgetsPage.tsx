@@ -229,7 +229,7 @@ const BudgetsPage = () => {
                 {t.category}
               </Label>
               <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
-                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir une catégorie...' : 'Select a category...'} /></SelectTrigger>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger>
                 <SelectContent>
                   {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
                 </SelectContent>
