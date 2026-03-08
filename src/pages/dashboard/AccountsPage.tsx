@@ -253,7 +253,7 @@ const AccountsPage = () => {
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 maxLength={100}
-                placeholder={locale === 'fr' ? 'Ex: Wave, Orange Money...' : 'E.g: Wave, Orange Money...'}
+                placeholder={t.accountNamePlaceholder}
                 className={`rounded-xl h-11 ${errors.name ? 'border-destructive' : ''}`}
               />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
