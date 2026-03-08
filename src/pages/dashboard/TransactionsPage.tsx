@@ -24,6 +24,7 @@ const TransactionsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
   const [searchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<any[]>([]);
