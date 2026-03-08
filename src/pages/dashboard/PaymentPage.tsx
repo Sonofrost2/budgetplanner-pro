@@ -173,8 +173,8 @@ const PaymentPage = () => {
 
   // Features the free plan DOESN'T have (shown as X)
   const freeDisabled = locale === 'fr'
-    ? ['Prévisions IA', 'Export PDF/Excel', 'Gestion familiale', 'Support prioritaire', 'Budgets illimités']
-    : ['AI Forecasts', 'PDF/Excel export', 'Family management', 'Priority support', 'Unlimited budgets'];
+    ? ['Comptes illimités', 'Budgets illimités', 'Catégories illimitées', 'Prévisions IA', 'Rapports avancés & exports', 'Gestion familiale', "Objectifs d'épargne", 'Support prioritaire']
+    : ['Unlimited accounts', 'Unlimited budgets', 'Unlimited categories', 'AI Forecasts', 'Advanced reports & exports', 'Family management', 'Savings goals', 'Priority support'];
 
   if (loading) {
     return (
