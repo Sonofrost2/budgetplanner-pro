@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { CreditCard, Plus, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import type { DashTranslations } from '@/i18n/dashTranslations';
 
 interface Account {
   id: string;
