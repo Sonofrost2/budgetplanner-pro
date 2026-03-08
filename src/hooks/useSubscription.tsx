@@ -8,9 +8,17 @@ const FREE_LIMITS = {
   budgets: 1,
 };
 
+const PAID_LIMITS = {
+  transactionsPerMonth: Infinity,
+  accounts: Infinity,
+  budgets: Infinity,
+};
+
+export type PlanTier = 'free' | 'pro' | 'premium';
+
 export const useSubscription = () => {
   const { user } = useAuth();
-  const [isPremium, setIsPremium] = useState(false);
+  const [planTier, setPlanTier] = useState<PlanTier>('free');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,14 +32,19 @@ export const useSubscription = () => {
       .limit(1)
       .then(({ data }) => {
         const sub = data?.[0] as any;
-        setIsPremium(sub?.subscription_plans?.name === 'premium');
+        const name = sub?.subscription_plans?.name;
+        if (name === 'premium') setPlanTier('premium');
+        else if (name === 'pro') setPlanTier('pro');
+        else setPlanTier('free');
         setLoading(false);
       });
   }, [user]);
 
-  const limits = isPremium
-    ? { transactionsPerMonth: Infinity, accounts: Infinity, budgets: Infinity }
-    : FREE_LIMITS;
+  const isPremium = planTier === 'premium';
+  const isPro = planTier === 'pro';
+  const isPaid = isPro || isPremium;
 
-  return { isPremium, loading, limits };
+  const limits = isPaid ? PAID_LIMITS : FREE_LIMITS;
+
+  return { isPremium, isPro, isPaid, planTier, loading, limits };
 };

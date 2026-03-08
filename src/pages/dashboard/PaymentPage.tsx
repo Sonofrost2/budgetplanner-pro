@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Check, X, Crown, Zap, Loader2, AlertCircle } from 'lucide-react';
+import { Check, X, Crown, Zap, Loader2, AlertCircle, Star } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Plan = {
@@ -38,8 +38,9 @@ const PaymentPage = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
-  const [subscribing, setSubscribing] = useState(false);
+  const [subscribing, setSubscribing] = useState<string | null>(null);
   const [canceling, setCanceling] = useState(false);
+  const [annual, setAnnual] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -56,13 +57,13 @@ const PaymentPage = () => {
   }, [user]);
 
   const getPrice = (plan: Plan) => {
-    const prices = plan.currency_prices;
-    return prices[currency] ?? plan.base_price;
+    const price = plan.currency_prices[currency] ?? plan.base_price;
+    return annual ? Math.round(price * 0.8 * 100) / 100 : price;
   };
 
   const handleSubscribe = async (plan: Plan) => {
     if (!user) return;
-    setSubscribing(true);
+    setSubscribing(plan.id);
     try {
       const price = getPrice(plan);
       const desc = locale === 'fr'
@@ -82,7 +83,6 @@ const PaymentPage = () => {
       if (error) throw error;
 
       if (data?.response_code === '00' && data?.response_text) {
-        // Save pending subscription
         await supabase.from('subscriptions').insert({
           user_id: user.id,
           plan_id: plan.id,
@@ -91,7 +91,6 @@ const PaymentPage = () => {
           last_payment_token: data.token || null,
         });
 
-        // Also save receipt
         await supabase.from('payment_receipts').insert({
           user_id: user.id,
           plan_name: plan.name,
@@ -109,7 +108,7 @@ const PaymentPage = () => {
     } catch (err: any) {
       toast.error(err.message || 'Error');
     } finally {
-      setSubscribing(false);
+      setSubscribing(null);
     }
   };
 
@@ -126,17 +125,15 @@ const PaymentPage = () => {
     setSubscription({ ...subscription, status: 'canceled', canceled_at: new Date().toISOString() });
   };
 
-  // Check URL params for payment return
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('success') === 'true' && params.get('plan')) {
-      // Confirm pending subscription
       const confirmSub = async () => {
         if (!user) return;
         const { data: pendingSubs } = await supabase.from('subscriptions')
           .select('*').eq('user_id', user.id).eq('status', 'pending')
           .order('created_at', { ascending: false }).limit(1);
-        
+
         if (pendingSubs && pendingSubs.length > 0) {
           await supabase.from('subscriptions').update({
             status: 'active',
@@ -144,16 +141,14 @@ const PaymentPage = () => {
             current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           }).eq('id', pendingSubs[0].id);
 
-          // Confirm receipt
           if (pendingSubs[0].last_payment_token) {
             await supabase.from('payment_receipts').update({ status: 'confirmed' })
               .eq('payment_token', pendingSubs[0].last_payment_token).eq('user_id', user.id);
           }
 
           setSubscription({ ...pendingSubs[0], status: 'active' } as Subscription);
-          toast.success(locale === 'fr' ? '🎉 Abonnement Premium activé !' : '🎉 Premium subscription activated!');
+          toast.success(locale === 'fr' ? '🎉 Abonnement activé !' : '🎉 Subscription activated!');
         }
-        // Clean URL
         window.history.replaceState({}, '', '/dashboard/payment');
       };
       confirmSub();
@@ -165,170 +160,152 @@ const PaymentPage = () => {
   }, [user, locale]);
 
   const freePlan = plans.find(p => p.name === 'free');
+  const proPlan = plans.find(p => p.name === 'pro');
   const premiumPlan = plans.find(p => p.name === 'premium');
-  const isSubscribed = subscription?.status === 'active' && subscription?.plan_id === premiumPlan?.id;
-
-  const freeFeatures = freePlan?.features || [];
-  const premiumFeatures = premiumPlan?.features || [];
-
-  // Features the free plan DOESN'T have (shown as X)
-  const freeDisabled = locale === 'fr'
-    ? ['Comptes illimités', 'Budgets illimités', 'Catégories illimitées', 'Prévisions IA', 'Rapports avancés & exports', 'Gestion familiale', "Objectifs d'épargne", 'Support prioritaire']
-    : ['Unlimited accounts', 'Unlimited budgets', 'Unlimited categories', 'AI Forecasts', 'Advanced reports & exports', 'Family management', 'Savings goals', 'Priority support'];
+  const currentPlanId = subscription?.plan_id;
 
   if (loading) {
     return (
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="space-y-6 max-w-5xl mx-auto">
         <Skeleton className="h-8 w-48" />
-        <div className="grid md:grid-cols-2 gap-6">
-          <Skeleton className="h-96" />
-          <Skeleton className="h-96" />
+        <div className="grid md:grid-cols-3 gap-6">
+          <Skeleton className="h-96" /><Skeleton className="h-96" /><Skeleton className="h-96" />
         </div>
       </div>
     );
   }
 
+  const PlanCard = ({ plan, icon, isCurrent, isHighlighted, disabledFeatures }: {
+    plan: Plan | undefined;
+    icon: React.ReactNode;
+    isCurrent: boolean;
+    isHighlighted?: boolean;
+    disabledFeatures?: string[];
+  }) => {
+    if (!plan) return null;
+    const price = getPrice(plan);
+    const originalPrice = plan.currency_prices[currency] ?? plan.base_price;
+    return (
+      <Card className={`relative overflow-hidden ${isHighlighted ? 'border-primary border-2' : 'border-border'}`}>
+        {isHighlighted && <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-bl-full" />}
+        {isCurrent && (
+          <div className="absolute -top-3 left-4">
+            <Badge className="text-xs bg-primary text-primary-foreground">
+              {locale === 'fr' ? 'Plan actuel' : 'Current plan'}
+            </Badge>
+          </div>
+        )}
+        {plan.trial_days > 0 && !isCurrent && (
+          <div className="absolute -top-3 right-4">
+            <Badge variant="destructive" className="text-xs">
+              {plan.trial_days} {locale === 'fr' ? 'jours d\'essai' : 'days trial'}
+            </Badge>
+          </div>
+        )}
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl flex items-center gap-2">
+            {icon}
+            <span className="capitalize">{plan.name === 'free' ? (locale === 'fr' ? 'Gratuit' : 'Free') : plan.name.charAt(0).toUpperCase() + plan.name.slice(1)}</span>
+          </CardTitle>
+          <div className="pt-2">
+            <span className="text-4xl font-bold">{price === 0 ? '0' : fmt(price, locale).replace(/\s/g, ' ')}</span>
+            <span className="text-muted-foreground text-sm ml-1">
+              {currency}/{annual ? (locale === 'fr' ? 'mois (annuel)' : 'mo (annual)') : (locale === 'fr' ? 'mois' : 'mo')}
+            </span>
+          </div>
+          {annual && price > 0 && (
+            <p className="text-xs text-muted-foreground line-through">{fmt(originalPrice, locale)}/{locale === 'fr' ? 'mois' : 'mo'}</p>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {plan.features.map((f, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm">
+              <Check className={`w-4 h-4 flex-shrink-0 ${isHighlighted ? 'text-primary' : 'text-secondary'}`} />
+              <span className={isHighlighted ? 'font-medium' : ''}>{f}</span>
+            </div>
+          ))}
+          {(disabledFeatures || []).map((f, i) => (
+            <div key={`d-${i}`} className="flex items-center gap-2 text-sm text-muted-foreground/50">
+              <X className="w-4 h-4 flex-shrink-0" />
+              <span className="line-through">{f}</span>
+            </div>
+          ))}
+        </CardContent>
+        <CardFooter>
+          {isCurrent ? (
+            <div className="w-full space-y-2">
+              <Button className="w-full" disabled>
+                {locale === 'fr' ? 'Plan actuel' : 'Current plan'}
+              </Button>
+              {plan.name !== 'free' && (
+                <Button variant="outline" size="sm" className="w-full" onClick={handleCancel} disabled={canceling}>
+                  {canceling ? <Loader2 className="w-4 h-4 animate-spin" /> : (locale === 'fr' ? 'Résilier' : 'Cancel')}
+                </Button>
+              )}
+            </div>
+          ) : plan.name === 'free' ? (
+            <Button variant="outline" className="w-full" disabled>
+              {locale === 'fr' ? 'Inclus' : 'Included'}
+            </Button>
+          ) : (
+            <Button
+              className={`w-full ${isHighlighted ? 'text-primary-foreground' : ''}`}
+              style={isHighlighted ? { background: 'var(--gradient-primary)' } : undefined}
+              variant={isHighlighted ? 'default' : 'outline'}
+              onClick={() => handleSubscribe(plan)}
+              disabled={subscribing === plan.id}
+            >
+              {subscribing === plan.id && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {locale === 'fr' ? `Souscrire à ${plan.name.charAt(0).toUpperCase() + plan.name.slice(1)}` : `Subscribe to ${plan.name.charAt(0).toUpperCase() + plan.name.slice(1)}`}
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
+    );
+  };
+
+  const freeDisabled = locale === 'fr'
+    ? ['Transactions illimitées', 'Comptes illimités', 'Prévisions IA', 'Gestion familiale', 'Exports avancés']
+    : ['Unlimited transactions', 'Unlimited accounts', 'AI Forecasts', 'Family management', 'Advanced exports'];
+
+  const proDisabled = locale === 'fr'
+    ? ['Prévisions IA avancées', 'Gestion familiale', 'Support prioritaire 24/7']
+    : ['Advanced AI Forecasts', 'Family management', 'Priority support 24/7'];
+
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="space-y-8 max-w-5xl mx-auto">
       <div className="text-center space-y-2">
         <h2 className="text-3xl font-bold font-display">
           {locale === 'fr' ? 'Choisissez votre plan' : 'Choose your plan'}
         </h2>
         <p className="text-muted-foreground max-w-lg mx-auto">
-          {locale === 'fr'
-            ? 'Débloquez toutes les fonctionnalités pour maîtriser vos finances'
-            : 'Unlock all features to master your finances'}
+          {locale === 'fr' ? 'Débloquez toutes les fonctionnalités pour maîtriser vos finances' : 'Unlock all features to master your finances'}
         </p>
       </div>
 
-      {/* Current subscription status */}
-      {isSubscribed && (
-        <Card className="border-secondary/30 bg-secondary/5">
-          <CardContent className="flex items-center gap-3 py-4">
-            <Crown className="w-5 h-5 text-secondary" />
-            <div className="flex-1">
-              <p className="font-semibold text-sm">
-                {locale === 'fr' ? 'Abonnement Premium actif' : 'Active Premium subscription'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {locale === 'fr' ? 'Prochain renouvellement :' : 'Next renewal:'}{' '}
-                {new Date(subscription!.current_period_end).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}
-              </p>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleCancel} disabled={canceling}>
-              {canceling ? <Loader2 className="w-4 h-4 animate-spin" /> : (locale === 'fr' ? 'Résilier' : 'Cancel')}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Free Plan */}
-        <Card className="border-border relative">
-          {!isSubscribed && !subscription && (
-            <div className="absolute -top-3 left-4">
-              <Badge variant="secondary" className="text-xs">
-                {locale === 'fr' ? 'Plan actuel' : 'Current plan'}
-              </Badge>
-            </div>
-          )}
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Zap className="w-5 h-5 text-muted-foreground" />
-              {locale === 'fr' ? 'Gratuit' : 'Free'}
-            </CardTitle>
-            <CardDescription>
-              {locale === 'fr' ? 'Pour découvrir l\'application' : 'To discover the app'}
-            </CardDescription>
-            <div className="pt-2">
-              <span className="text-4xl font-bold">0</span>
-              <span className="text-muted-foreground text-sm ml-1">{currency}/{locale === 'fr' ? 'mois' : 'mo'}</span>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {freeFeatures.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-secondary flex-shrink-0" />
-                <span>{f}</span>
-              </div>
-            ))}
-            {freeDisabled.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground/50">
-                <X className="w-4 h-4 flex-shrink-0" />
-                <span className="line-through">{f}</span>
-              </div>
-            ))}
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" disabled>
-              {locale === 'fr' ? 'Plan actuel' : 'Current plan'}
-            </Button>
-          </CardFooter>
-        </Card>
-
-        {/* Premium Plan */}
-        <Card className="border-primary relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-bl-full" />
-          {isSubscribed && (
-            <div className="absolute -top-3 left-4">
-              <Badge className="text-xs bg-primary text-primary-foreground">
-                {locale === 'fr' ? 'Plan actuel' : 'Current plan'}
-              </Badge>
-            </div>
-          )}
-          {premiumPlan?.trial_days ? (
-            <div className="absolute -top-3 right-4">
-              <Badge variant="destructive" className="text-xs">
-                {premiumPlan.trial_days} {locale === 'fr' ? 'jours d\'essai' : 'days trial'}
-              </Badge>
-            </div>
-          ) : null}
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Crown className="w-5 h-5 text-primary" />
-              Premium
-            </CardTitle>
-            <CardDescription>
-              {locale === 'fr' ? 'Pour maîtriser ses finances' : 'To master your finances'}
-            </CardDescription>
-            <div className="pt-2">
-              <span className="text-4xl font-bold">{premiumPlan ? fmt(getPrice(premiumPlan), locale).replace(/\s/g, ' ') : '—'}</span>
-              <span className="text-muted-foreground text-sm ml-1">/{locale === 'fr' ? 'mois' : 'mo'}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {locale === 'fr' ? 'Prélèvement mensuel automatique' : 'Automatic monthly billing'}
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {premiumFeatures.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                <span className="font-medium">{f}</span>
-              </div>
-            ))}
-          </CardContent>
-          <CardFooter>
-            {isSubscribed ? (
-              <Button className="w-full" disabled>
-                <Crown className="w-4 h-4 mr-2" />
-                {locale === 'fr' ? 'Abonnement actif' : 'Active subscription'}
-              </Button>
-            ) : (
-              <Button
-                className="w-full text-primary-foreground"
-                style={{ background: 'var(--gradient-primary)' }}
-                onClick={() => premiumPlan && handleSubscribe(premiumPlan)}
-                disabled={subscribing}
-              >
-                {subscribing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {locale === 'fr' ? 'Souscrire à Premium' : 'Subscribe to Premium'}
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
+      {/* Annual toggle */}
+      <div className="flex items-center justify-center gap-4">
+        <span className={`text-sm font-medium ${!annual ? 'text-foreground' : 'text-muted-foreground'}`}>
+          {locale === 'fr' ? 'Mensuel' : 'Monthly'}
+        </span>
+        <button
+          onClick={() => setAnnual(!annual)}
+          className={`relative w-14 h-7 rounded-full transition-colors ${annual ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+        >
+          <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform ${annual ? 'translate-x-7' : 'translate-x-0.5'}`} />
+        </button>
+        <span className={`text-sm font-medium ${annual ? 'text-foreground' : 'text-muted-foreground'}`}>
+          {locale === 'fr' ? 'Annuel' : 'Annual'}
+        </span>
+        {annual && <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">-20%</span>}
       </div>
 
-      {/* Payment methods info */}
+      <div className="grid md:grid-cols-3 gap-6">
+        <PlanCard plan={freePlan} icon={<Zap className="w-5 h-5 text-muted-foreground" />} isCurrent={!subscription || subscription.status !== 'active'} disabledFeatures={freeDisabled} />
+        <PlanCard plan={proPlan} icon={<Star className="w-5 h-5 text-primary" />} isCurrent={currentPlanId === proPlan?.id && subscription?.status === 'active'} isHighlighted disabledFeatures={proDisabled} />
+        <PlanCard plan={premiumPlan} icon={<Crown className="w-5 h-5 text-primary" />} isCurrent={currentPlanId === premiumPlan?.id && subscription?.status === 'active'} />
+      </div>
+
       <Card className="border-none shadow-[var(--shadow-card)]">
         <CardContent className="flex flex-wrap items-center justify-center gap-4 py-4">
           <p className="text-sm text-muted-foreground">
