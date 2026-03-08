@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { NotificationBell } from '@/components/dashboard/NotificationBell';
 
 const DashboardLayout = () => {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -156,6 +157,7 @@ const DashboardLayout = () => {
               className="pl-10 h-9 w-64"
             />
           </form>
+          <NotificationBell />
         </header>
 
         <div className="p-4 lg:p-8">

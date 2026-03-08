@@ -9,9 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, TrendingUp, TrendingDown, Inbox } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend
+} from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6'];
 
 type PeriodKey = 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisYear';
 
@@ -48,6 +53,7 @@ const DashboardHome = () => {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
   const [period, setPeriod] = useState<PeriodKey>('thisMonth');
   const [loading, setLoading] = useState(true);
 
@@ -57,14 +63,30 @@ const DashboardHome = () => {
     if (!user) return;
     const { start, end } = getDateRange(period);
 
-    supabase.from('transactions').select('*, categories(name, icon, color)')
-      .eq('user_id', user.id)
-      .gte('date', start).lte('date', end)
-      .order('date', { ascending: false })
-      .then(({ data }) => {
-        setTransactions(data || []);
-        setLoading(false);
+    Promise.all([
+      supabase.from('transactions').select('*, categories(name, icon, color)')
+        .eq('user_id', user.id)
+        .gte('date', start).lte('date', end)
+        .order('date', { ascending: false }),
+      // Expense breakdown by category for current period
+      supabase.from('transactions').select('amount, categories(name, color, icon)')
+        .eq('user_id', user.id).eq('type', 'expense')
+        .gte('date', start).lte('date', end),
+    ]).then(([txRes, catRes]) => {
+      setTransactions(txRes.data || []);
+
+      // Category pie data
+      const catMap: Record<string, { name: string; value: number; color: string; icon: string }> = {};
+      (catRes.data || []).forEach(tx => {
+        const name = (tx.categories as any)?.name || 'Autre';
+        const color = (tx.categories as any)?.color || '#6C63FF';
+        const icon = (tx.categories as any)?.icon || '📁';
+        if (!catMap[name]) catMap[name] = { name, value: 0, color, icon };
+        catMap[name].value += Number(tx.amount);
       });
+      setCategoryData(Object.values(catMap).sort((a, b) => b.value - a.value));
+      setLoading(false);
+    });
 
     // Chart: last 6 months
     const now = new Date();
@@ -149,34 +171,72 @@ const DashboardHome = () => {
         ))}
       </div>
 
-      {/* Chart */}
-      <Card className="border-none shadow-[var(--shadow-card)]">
-        <CardHeader><CardTitle className="text-base font-semibold">{t.monthlyOverview}</CardTitle></CardHeader>
-        <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyData}>
-                <defs>
-                  <linearGradient id="incG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(170, 65%, 45%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(170, 65%, 45%)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="expG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(250, 70%, 58%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(250, 70%, 58%)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(220, 10%, 45%)" />
-                <YAxis tick={{ fontSize: 12 }} stroke="hsl(220, 10%, 45%)" />
-                <Tooltip />
-                <Area type="monotone" dataKey="income" stroke="hsl(170, 65%, 45%)" fill="url(#incG)" strokeWidth={2} />
-                <Area type="monotone" dataKey="expenses" stroke="hsl(250, 70%, 58%)" fill="url(#expG)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Monthly evolution line chart */}
+        <Card className="border-none shadow-[var(--shadow-card)]">
+          <CardHeader><CardTitle className="text-base font-semibold">{t.monthlyOverview}</CardTitle></CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={monthlyData}>
+                  <defs>
+                    <linearGradient id="incG" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(170, 65%, 45%)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(170, 65%, 45%)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="expG" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(250, 70%, 58%)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(250, 70%, 58%)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 45%)" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 45%)" />
+                  <Tooltip formatter={(v: number) => fmt(v)} />
+                  <Area type="monotone" dataKey="income" stroke="hsl(170, 65%, 45%)" fill="url(#incG)" strokeWidth={2} name={t.income} />
+                  <Area type="monotone" dataKey="expenses" stroke="hsl(250, 70%, 58%)" fill="url(#expG)" strokeWidth={2} name={t.expenses} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Expense by category pie chart */}
+        <Card className="border-none shadow-[var(--shadow-card)]">
+          <CardHeader><CardTitle className="text-base font-semibold">{t.expenseByCategory || 'Dépenses par catégorie'}</CardTitle></CardHeader>
+          <CardContent>
+            {categoryData.length === 0 ? (
+              <div className="h-64 flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">{t.noTransactions}</p>
+              </div>
+            ) : (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      innerRadius={40}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      labelLine={{ strokeWidth: 1 }}
+                    >
+                      {categoryData.map((entry, i) => (
+                        <Cell key={i} fill={entry.color || COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => fmt(v)} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Recent Transactions */}
       <Card className="border-none shadow-[var(--shadow-card)]">
