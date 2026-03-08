@@ -1,9 +1,8 @@
-import { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Wallet, Heart } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 
-const Footer = forwardRef<HTMLElement>((_, ref) => {
+const Footer = () => {
   const { t } = useLanguage();
 
   return (

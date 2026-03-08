@@ -1,9 +1,8 @@
-import { forwardRef } from 'react';
 import { Star, Quote } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { motion } from 'framer-motion';
 
-const TestimonialsSection = forwardRef<HTMLElement>((_, ref) => {
+const TestimonialsSection = () => {
   const { t } = useLanguage();
 
   const colors = ['bg-primary', 'bg-secondary', 'bg-accent'];

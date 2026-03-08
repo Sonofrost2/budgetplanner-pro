@@ -1,9 +1,8 @@
-import { forwardRef } from 'react';
 import { TrendingUp, PieChart, BarChart3, Users, Target, FileText, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { motion } from 'framer-motion';
 
-const FeaturesSection = forwardRef<HTMLElement>((_, ref) => {
+const FeaturesSection = () => {
   const { t } = useLanguage();
 
   const features = [
