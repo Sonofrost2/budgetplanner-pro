@@ -90,12 +90,12 @@ const TransactionsPage = () => {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.description.trim()) errs.description = locale === 'fr' ? 'Description requise' : 'Description required';
-    if (form.description.trim().length > 200) errs.description = locale === 'fr' ? '200 caractères max' : '200 characters max';
-    if (!form.amount || Number(form.amount) <= 0) errs.amount = locale === 'fr' ? 'Montant invalide' : 'Invalid amount';
-    if (Number(form.amount) > 999999999) errs.amount = locale === 'fr' ? 'Montant trop élevé' : 'Amount too high';
-    if (!form.date) errs.date = locale === 'fr' ? 'Date requise' : 'Date required';
-    if (form.notes && form.notes.length > 500) errs.notes = locale === 'fr' ? '500 caractères max' : '500 characters max';
+    if (!form.description.trim()) errs.description = t.descriptionRequired;
+    if (form.description.trim().length > 200) errs.description = t.maxChars(200);
+    if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
+    if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
+    if (!form.date) errs.date = t.dateRequired;
+    if (form.notes && form.notes.length > 500) errs.notes = t.maxChars(500);
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
