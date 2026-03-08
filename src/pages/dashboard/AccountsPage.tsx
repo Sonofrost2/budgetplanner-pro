@@ -338,7 +338,7 @@ const AccountsPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{t.updateRealBalance}</DialogTitle>
-            <DialogDescription>{locale === 'fr' ? 'Mettez à jour le solde réel de votre compte' : 'Update the real balance of your account'}</DialogDescription>
+            <DialogDescription>{t.updateBalanceDesc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.realBalance}</Label>
