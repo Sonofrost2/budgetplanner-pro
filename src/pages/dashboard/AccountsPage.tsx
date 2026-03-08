@@ -262,8 +262,8 @@ const AccountsPage = () => {
             {/* Type */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.type}</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {ACCOUNT_TYPES.slice(0, 3).map(at => (
+               <div className="grid grid-cols-3 gap-2">
+                 {getAccountTypes(t).slice(0, 3).map(at => (
                   <button
                     key={at.value}
                     type="button"
