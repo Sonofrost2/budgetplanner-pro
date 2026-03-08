@@ -213,7 +213,7 @@ const FamilyPage = () => {
   return (
     <div className="space-y-6">
       {!canUseFamily && (
-        <UpgradeBanner message={locale === 'fr' ? 'La gestion familiale est réservée au plan Premium.' : 'Family management is available on the Premium plan only.'} />
+        <UpgradeBanner message={t.upgradeFamily} />
       )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold font-display">{t.family}</h2>
