@@ -19,7 +19,7 @@ type Plan = {
 
 const PricingSection = () => {
   const { t } = useLanguage();
-  const { formatPrice, loading: geoLoading } = useGeolocatedCurrency();
+  const { formatPrice, loading: geoLoading, detectedCurrency } = useGeolocatedCurrency();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [annual, setAnnual] = useState(false);
