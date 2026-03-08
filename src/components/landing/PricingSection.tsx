@@ -19,7 +19,7 @@ type Plan = {
 
 const PricingSection = () => {
   const { t } = useLanguage();
-  const { formatPrice, loading: geoLoading } = useGeolocatedCurrency();
+  const { formatPrice, loading: geoLoading, detectedCurrency } = useGeolocatedCurrency();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [annual, setAnnual] = useState(false);
@@ -60,11 +60,9 @@ const PricingSection = () => {
 
   const getDisplayPrice = (plan: Plan) => {
     if (plan.name === 'free') {
-      const base = formatPrice(plan.currency_prices);
-      const currency = base?.currency || 'EUR';
-      const isCfa = currency === 'XOF' || currency === 'XAF';
-      const formatted = isCfa ? '0 CFA' : currency === 'EUR' ? '0 €' : currency === 'USD' ? '0 $' : currency === 'GBP' ? '0 £' : `0 ${currency}`;
-      return { amount: 0, formatted, currency };
+      const isCfa = detectedCurrency === 'XOF' || detectedCurrency === 'XAF';
+      const formatted = isCfa ? '0 CFA' : detectedCurrency === 'EUR' ? '0 €' : detectedCurrency === 'USD' ? '0 $' : detectedCurrency === 'GBP' ? '0 £' : `0 ${detectedCurrency}`;
+      return { amount: 0, formatted, currency: detectedCurrency };
     }
     const base = formatPrice(plan.currency_prices);
     if (!base || base.amount === 0) return base;
