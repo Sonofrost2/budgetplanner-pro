@@ -77,7 +77,7 @@ const OnboardingPage = () => {
         body: {
           action: 'create',
           amount: price.amount,
-          description: `BudgetPlan Premium - ${price.formatted}/mois`,
+          description: `Budget Planner Premium - ${price.formatted}/mois`,
           return_url: window.location.origin + '/onboarding',
           cancel_url: window.location.origin + '/onboarding',
         },
