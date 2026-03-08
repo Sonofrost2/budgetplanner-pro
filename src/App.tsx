@@ -2,10 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { AnimatePresence } from "framer-motion";
+import { PageTransition } from "@/components/PageTransition";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -34,6 +36,45 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  // Use top-level path segment as key so dashboard sub-routes don't re-animate the shell
+  const routeKey = location.pathname.startsWith('/dashboard') ? '/dashboard' : location.pathname;
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={routeKey}>
+        <Route path="/" element={<PageTransition><Index /></PageTransition>} />
+        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+        <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
+        <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+        <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
+        <Route path="/onboarding" element={<PageTransition><OnboardingPage /></PageTransition>} />
+        <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
+        <Route path="/blog" element={<PageTransition><BlogPage /></PageTransition>} />
+        <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
+        <Route path="/legal/:slug" element={<PageTransition><LegalPage /></PageTransition>} />
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<DashboardHome />} />
+          <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="budgets" element={<BudgetsPage />} />
+          <Route path="forecasts" element={<ForecastsPage />} />
+          <Route path="savings" element={<SavingsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="payment" element={<PaymentPage />} />
+          <Route path="accounts" element={<AccountsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="receipts" element={<ReceiptsPage />} />
+          <Route path="family" element={<FamilyPage />} />
+          <Route path="admin/pricing" element={<AdminPricingPage />} />
+        </Route>
+        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -43,34 +84,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/onboarding" element={<OnboardingPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/blog" element={<BlogPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/legal/:slug" element={<LegalPage />} />
-              <Route path="/dashboard" element={<DashboardLayout />}>
-                <Route index element={<DashboardHome />} />
-                <Route path="transactions" element={<TransactionsPage />} />
-                <Route path="budgets" element={<BudgetsPage />} />
-                <Route path="forecasts" element={<ForecastsPage />} />
-                <Route path="savings" element={<SavingsPage />} />
-                <Route path="reports" element={<ReportsPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="payment" element={<PaymentPage />} />
-                <Route path="accounts" element={<AccountsPage />} />
-                <Route path="categories" element={<CategoriesPage />} />
-                <Route path="receipts" element={<ReceiptsPage />} />
-                <Route path="family" element={<FamilyPage />} />
-                <Route path="admin/pricing" element={<AdminPricingPage />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AnimatedRoutes />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
