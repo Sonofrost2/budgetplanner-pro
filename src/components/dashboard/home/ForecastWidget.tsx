@@ -1,3 +1,4 @@
+import type { DashTranslations } from '@/i18n/dashTranslations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';

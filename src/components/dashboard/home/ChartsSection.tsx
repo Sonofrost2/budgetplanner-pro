@@ -1,3 +1,4 @@
+import type { DashTranslations } from '@/i18n/dashTranslations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 import {
