@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 
-export function exportToCSV(data: Record<string, any>[], filename: string) {
-  if (!data.length) return;
+export function exportToCSV(data: Record<string, any>[], filename: string): boolean {
+  if (!data.length) return false;
   const headers = Object.keys(data[0]);
   const csv = [
     headers.join(','),
