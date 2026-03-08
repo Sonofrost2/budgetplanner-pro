@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, Sparkles, Wallet, Globe, CreditCard, ArrowRight, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle2, Sparkles, Wallet, Globe, CreditCard, ArrowRight, ArrowLeft, Plus, Trash2, Loader2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-const STEPS = ['welcome', 'plan', 'preferences', 'accounts', 'done'] as const;
+const STEPS = ['welcome', 'plan', 'preferences', 'accounts', 'payment', 'done'] as const;
 
 const ACCOUNT_TYPES = [
   { value: 'mobile_money', label: '📱 Mobile Money' },
@@ -34,6 +35,11 @@ const OnboardingPage = () => {
   const [accounts, setAccounts] = useState<{ name: string; type: string; icon: string; opening_balance: string }[]>([
     { name: '', type: 'mobile_money', icon: '📱', opening_balance: '0' },
   ]);
+  // Payment state
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentToken, setPaymentToken] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
@@ -59,12 +65,63 @@ const OnboardingPage = () => {
   const updateAccount = (i: number, field: string, value: string) =>
     setAccounts(a => a.map((acc, idx) => idx === i ? { ...acc, [field]: value } : acc));
 
+  const isPaidPlan = selectedPlan !== 'free';
+  const selectedPlanData = plans.find(p => p.name === selectedPlan);
+
+  const handlePayment = async () => {
+    if (!selectedPlanData) return;
+    const price = formatPrice(selectedPlanData.currency_prices || {});
+    setPaymentLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('paydunya-checkout', {
+        body: {
+          action: 'create',
+          amount: price.amount,
+          description: `BudgetPlan Premium - ${price.formatted}/mois`,
+          return_url: window.location.origin + '/onboarding',
+          cancel_url: window.location.origin + '/onboarding',
+        },
+      });
+      if (error) throw error;
+      if (data?.response_code === '00' && data?.response_text) {
+        window.open(data.response_text, '_blank');
+        if (data.token) setPaymentToken(data.token);
+        toast.info(isFr ? 'Finalisez le paiement dans l\'onglet ouvert, puis vérifiez ici.' : 'Complete payment in the opened tab, then verify here.');
+      } else {
+        toast.error(data?.response_text || (isFr ? 'Erreur lors du paiement' : 'Payment error'));
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleVerifyPayment = async () => {
+    if (!paymentToken) return;
+    setVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('paydunya-checkout', {
+        body: { action: 'verify', token: paymentToken },
+      });
+      if (error) throw error;
+      if (data?.status === 'completed') {
+        setPaymentConfirmed(true);
+        toast.success(isFr ? 'Paiement confirmé !' : 'Payment confirmed!');
+      } else {
+        toast.warning(isFr ? `Statut : ${data?.status || 'en attente'}` : `Status: ${data?.status || 'pending'}`);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const handleFinish = async () => {
     if (!user) return;
-    // Save preferences
     await supabase.from('profiles').update({ currency, locale: lang, onboarding_completed: true }).eq('user_id', user.id);
     setLocale(lang as 'fr' | 'en');
-    // Save accounts
     const validAccounts = accounts.filter(a => a.name.trim());
     if (validAccounts.length > 0) {
       await supabase.from('payment_accounts').insert(
@@ -78,12 +135,39 @@ const OnboardingPage = () => {
         }))
       );
     }
-    toast.success(locale === 'fr' ? 'Configuration terminée !' : 'Setup complete!');
+    toast.success(isFr ? 'Configuration terminée !' : 'Setup complete!');
     navigate('/dashboard');
+  };
+
+  // For "next" button: skip payment step if free plan
+  const handleNext = () => {
+    const nextIndex = step + 1;
+    const nextStep = STEPS[nextIndex];
+    // Skip payment step if free plan
+    if (nextStep === 'payment' && !isPaidPlan) {
+      setStep(nextIndex + 1);
+    } else {
+      setStep(nextIndex);
+    }
+  };
+
+  const handleBack = () => {
+    const prevIndex = step - 1;
+    const prevStep = STEPS[prevIndex];
+    // Skip payment step going back if free plan
+    if (prevStep === 'payment' && !isPaidPlan) {
+      setStep(prevIndex - 1);
+    } else {
+      setStep(prevIndex);
+    }
   };
 
   const isFr = lang === 'fr';
   const currentStep = STEPS[step];
+
+  // Determine visible steps for progress (exclude payment if free)
+  const visibleSteps = isPaidPlan ? STEPS : STEPS.filter(s => s !== 'payment');
+  const visibleStepIndex = visibleSteps.indexOf(currentStep);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4" style={{ backgroundImage: 'var(--gradient-hero)' }}>
@@ -91,8 +175,8 @@ const OnboardingPage = () => {
         <CardContent className="p-8">
           {/* Progress */}
           <div className="flex gap-1 mb-8">
-            {STEPS.map((_, i) => (
-              <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= step ? 'bg-primary' : 'bg-muted'}`} />
+            {visibleSteps.map((_, i) => (
+              <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= visibleStepIndex ? 'bg-primary' : 'bg-muted'}`} />
             ))}
           </div>
 
@@ -209,6 +293,80 @@ const OnboardingPage = () => {
             </div>
           )}
 
+          {currentStep === 'payment' && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-bold font-display flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-primary" />
+                {isFr ? 'Paiement Premium' : 'Premium Payment'}
+              </h2>
+
+              {selectedPlanData && (
+                <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">Premium</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedPlanData.trial_days > 0
+                          ? (isFr ? `${selectedPlanData.trial_days} jours d'essai gratuit inclus` : `${selectedPlanData.trial_days}-day free trial included`)
+                          : (isFr ? 'Accès immédiat' : 'Immediate access')}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-lg">{formatPrice(selectedPlanData.currency_prices || {}).formatted}</p>
+                      <p className="text-xs text-muted-foreground">/{isFr ? 'mois' : 'mo'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!paymentConfirmed ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    {isFr
+                      ? 'Cliquez sur "Payer" pour être redirigé vers la page de paiement sécurisée. Revenez ensuite ici pour vérifier.'
+                      : 'Click "Pay" to be redirected to the secure payment page. Then come back here to verify.'}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {['🟠 Orange Money', '🟡 MTN', '🔵 Moov', '🌊 Wave', '💳 Carte'].map(m => (
+                      <Badge key={m} variant="secondary" className="text-xs py-1 px-2">{m}</Badge>
+                    ))}
+                  </div>
+
+                  <Button
+                    className="w-full text-primary-foreground"
+                    style={{ background: 'var(--gradient-primary)' }}
+                    onClick={handlePayment}
+                    disabled={paymentLoading}
+                  >
+                    {paymentLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    {isFr ? 'Payer maintenant' : 'Pay now'}
+                  </Button>
+
+                  {paymentToken && (
+                    <div className="space-y-3 pt-2 border-t border-border">
+                      <p className="text-sm text-muted-foreground">
+                        {isFr ? 'Paiement effectué ? Vérifiez le statut :' : 'Payment done? Check the status:'}
+                      </p>
+                      <Button variant="outline" className="w-full" onClick={handleVerifyPayment} disabled={verifying}>
+                        {verifying && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        {isFr ? 'Vérifier le paiement' : 'Verify payment'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/10 border border-secondary/30">
+                  <CheckCircle2 className="w-6 h-6 text-secondary flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-secondary">{isFr ? 'Paiement confirmé !' : 'Payment confirmed!'}</p>
+                    <p className="text-sm text-muted-foreground">{isFr ? 'Vous pouvez maintenant finaliser votre configuration.' : 'You can now finalize your setup.'}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {currentStep === 'done' && (
             <div className="text-center space-y-4">
               <CheckCircle2 className="w-12 h-12 text-secondary mx-auto" />
@@ -223,12 +381,24 @@ const OnboardingPage = () => {
           {/* Navigation */}
           {currentStep !== 'welcome' && currentStep !== 'done' && (
             <div className="flex justify-between mt-6">
-              <Button variant="ghost" onClick={() => setStep(s => s - 1)}>
+              <Button variant="ghost" onClick={handleBack}>
                 <ArrowLeft className="w-4 h-4 mr-1" />{isFr ? 'Retour' : 'Back'}
               </Button>
-              <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => setStep(s => s + 1)}>
-                {isFr ? 'Suivant' : 'Next'} <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+              {/* On payment step, only allow next if paid or has trial */}
+              {currentStep === 'payment' ? (
+                <Button
+                  className="text-primary-foreground"
+                  style={{ background: 'var(--gradient-primary)' }}
+                  onClick={handleNext}
+                  disabled={!paymentConfirmed && !(selectedPlanData?.trial_days > 0)}
+                >
+                  {isFr ? 'Suivant' : 'Next'} <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              ) : (
+                <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={handleNext}>
+                  {isFr ? 'Suivant' : 'Next'} <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
