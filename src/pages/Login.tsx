@@ -70,7 +70,7 @@ const Login = () => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <Label htmlFor="password">{t.auth.password}</Label>
-                <a href="#" className="text-xs text-primary hover:underline">{t.auth.forgotPassword}</a>
+                <Link to="/forgot-password" className="text-xs text-primary hover:underline">{t.auth.forgotPassword}</Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

@@ -85,6 +85,97 @@ export type Database = {
         }
         Relationships: []
       }
+      family_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      family_invitations: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          invited_by: string
+          invited_email: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          invited_by: string
+          invited_email: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          invited_by?: string
+          invited_email?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_invitations_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "family_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "family_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_accounts: {
         Row: {
           created_at: string
@@ -237,6 +328,45 @@ export type Database = {
           },
         ]
       }
+      shared_budgets: {
+        Row: {
+          budget_id: string
+          created_at: string
+          group_id: string
+          id: string
+          shared_by: string
+        }
+        Insert: {
+          budget_id: string
+          created_at?: string
+          group_id: string
+          id?: string
+          shared_by: string
+        }
+        Update: {
+          budget_id?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          shared_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_budgets_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_budgets_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "family_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           active: boolean
@@ -358,6 +488,14 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_family_member: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_family_owner: {
+        Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
     }
