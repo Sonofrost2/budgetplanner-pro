@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { DashTranslations } from '@/i18n/dashTranslations';
 
 interface StatsCardsProps {
   balance: number;
