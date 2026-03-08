@@ -77,7 +77,22 @@ const TransactionsPage = () => {
 
   useEffect(() => { setPage(0); }, [filterType, filterCategory, filterAccount, searchQuery, startDate, endDate]);
 
+  // Count transactions this month for limit check
+  const thisMonthCount = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    return transactions.filter(tx => tx.date >= start).length;
+  }, [transactions]);
+
+  const limitReached = !isPremium && thisMonthCount >= limits.transactionsPerMonth;
+
   const openNew = () => {
+    if (limitReached) {
+      toast.error(locale === 'fr'
+        ? `Limite de ${limits.transactionsPerMonth} transactions/mois atteinte. Passez à Premium !`
+        : `Limit of ${limits.transactionsPerMonth} transactions/month reached. Upgrade to Premium!`);
+      return;
+    }
     setEditing(null);
     setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', account_id: accounts[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '' });
     setDialogOpen(true);
