@@ -169,7 +169,7 @@ const AccountsPage = () => {
               <Wallet className="w-7 h-7 text-muted-foreground/40" />
             </div>
             <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noAccounts}</p>
-            <p className="text-sm text-muted-foreground/70 mb-4">{locale === 'fr' ? 'Ajoutez votre premier compte pour commencer' : 'Add your first account to get started'}</p>
+            <p className="text-sm text-muted-foreground/70 mb-4">{t.addFirstAccount}</p>
             <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" />{t.addAccount}
             </Button>
