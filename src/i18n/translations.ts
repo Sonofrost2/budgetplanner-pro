@@ -32,6 +32,7 @@ export const translations = {
       reports: { title: 'Rapports détaillés', desc: "Analysez vos habitudes avec des rapports mensuels et annuels exportables." },
     },
     pricing: {
+      badge: 'Tarifs',
       sectionTitle: 'Des tarifs simples et transparents',
       sectionSubtitle: 'Commencez gratuitement, passez à Pro ou Premium quand vous êtes prêt',
       free: 'Gratuit',
@@ -46,6 +47,8 @@ export const translations = {
       ctaFree: 'Commencer gratuitement',
       ctaPro: 'Essayer Pro',
       ctaPremium: 'Essayer Premium',
+      excludedFree: ['Transactions illimitées', 'Comptes illimités', 'Prévisions IA', 'Gestion familiale', 'Exports avancés'],
+      excludedPro: ['Prévisions IA avancées', 'Gestion familiale', 'Support prioritaire 24/7'],
     },
     testimonials: {
       sectionTitle: 'Ils nous font confiance',
@@ -110,6 +113,7 @@ export const translations = {
       reports: { title: 'Detailed Reports', desc: 'Analyze your habits with exportable monthly and annual reports.' },
     },
     pricing: {
+      badge: 'Pricing',
       sectionTitle: 'Simple, transparent pricing',
       sectionSubtitle: 'Start free, upgrade to Pro or Premium when you\'re ready',
       free: 'Free', premium: 'Premium', popular: 'Popular', perMonth: '/month',
@@ -119,6 +123,8 @@ export const translations = {
       freeDesc: 'To discover the app',
       trialDays: 'days free trial',
       ctaFree: 'Get started free', ctaPro: 'Try Pro', ctaPremium: 'Try Premium',
+      excludedFree: ['Unlimited transactions', 'Unlimited accounts', 'AI Forecasts', 'Family management', 'Advanced exports'],
+      excludedPro: ['Advanced AI Forecasts', 'Family management', 'Priority support 24/7'],
     },
     testimonials: {
       sectionTitle: 'Trusted by thousands',
