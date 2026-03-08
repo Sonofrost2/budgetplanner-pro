@@ -108,6 +108,31 @@ const OnboardingPage = () => {
       if (data?.status === 'completed') {
         setPaymentConfirmed(true);
         toast.success(isFr ? 'Paiement confirmé !' : 'Payment confirmed!');
+
+        // Save receipt in database
+        const price = formatPrice(selectedPlanData?.currency_prices || {});
+        if (user) {
+          await supabase.from('payment_receipts').insert({
+            user_id: user.id,
+            plan_name: selectedPlan,
+            amount: price.amount || 0,
+            currency: price.currency || currency,
+            payment_token: paymentToken,
+            status: 'confirmed',
+          });
+        }
+
+        // Send confirmation email
+        const { data: profile } = await supabase.from('profiles').select('display_name').eq('user_id', user!.id).single();
+        supabase.functions.invoke('send-payment-confirmation', {
+          body: {
+            email: user!.email,
+            displayName: profile?.display_name || user!.email,
+            planName: selectedPlan === 'free' ? 'Gratuit' : 'Premium',
+            amount: price.formatted || `${price.amount} ${price.currency}`,
+            currency: price.currency || currency,
+          },
+        }).catch(err => console.error('Email confirmation error:', err));
       } else {
         toast.warning(isFr ? `Statut : ${data?.status || 'en attente'}` : `Status: ${data?.status || 'pending'}`);
       }
