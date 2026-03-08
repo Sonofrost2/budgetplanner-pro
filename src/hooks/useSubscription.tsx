@@ -6,18 +6,21 @@ const FREE_LIMITS = {
   transactionsPerMonth: 15,
   accounts: 1,
   budgets: 1,
+  categories: 5,
 };
 
 const PRO_LIMITS = {
   transactionsPerMonth: Infinity,
   accounts: Infinity,
   budgets: Infinity,
+  categories: Infinity,
 };
 
 const PREMIUM_LIMITS = {
   transactionsPerMonth: Infinity,
   accounts: Infinity,
   budgets: Infinity,
+  categories: Infinity,
 };
 
 export type PlanTier = 'free' | 'pro' | 'premium';
@@ -54,6 +57,7 @@ export const useSubscription = () => {
   const canUseForecast = isPremium;
   const canUseFamily = isPremium;
   const canExportAdvanced = isPaid;
+  const canUseAISuggestions = isPaid;
 
-  return { isPremium, isPro, isPaid, planTier, loading, limits, canUseForecast, canUseFamily, canExportAdvanced };
+  return { isPremium, isPro, isPaid, planTier, loading, limits, canUseForecast, canUseFamily, canExportAdvanced, canUseAISuggestions };
 };
