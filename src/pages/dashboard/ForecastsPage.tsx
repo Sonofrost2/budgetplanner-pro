@@ -60,7 +60,7 @@ const ForecastsPage = () => {
   return (
     <div className="space-y-6">
       {!canUseForecast && (
-        <UpgradeBanner message={locale === 'fr' ? 'Les prévisions IA sont réservées au plan Premium.' : 'AI forecasts are available on the Premium plan only.'} />
+        <UpgradeBanner message={t.upgradeForecast} />
       )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

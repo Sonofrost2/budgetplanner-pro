@@ -169,7 +169,7 @@ const SavingsPage = () => {
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} />
             </div>
             <div className="space-y-2">
-              <Label>Icône</Label>
+              <Label>{t.iconLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {icons.map(ic => (
                   <button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))}

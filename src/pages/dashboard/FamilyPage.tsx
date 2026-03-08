@@ -377,7 +377,7 @@ const FamilyPage = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>{t.email || 'Email'}</Label>
-              <Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="membre@exemple.com" />
+              <Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder={t.invitePlaceholder} />
             </div>
           </div>
           <DialogFooter>
