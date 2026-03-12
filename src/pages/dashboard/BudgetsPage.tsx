@@ -118,13 +118,18 @@ const BudgetsPage = () => {
   const handleSave = async () => {
     if (!user || !validate()) return;
     setSaving(true);
-    const { error } = await supabase.from('budgets').insert({
-      user_id: user.id, name: form.name.trim(), amount: Number(form.amount),
+    const payload = {
+      name: form.name.trim(), amount: Number(form.amount),
       category_id: form.category_id || null, period: form.period,
-    });
+      alert_threshold: Number(form.alert_threshold) || 80,
+    };
+    const { error } = editId
+      ? await supabase.from('budgets').update(payload).eq('id', editId)
+      : await supabase.from('budgets').insert({ ...payload, user_id: user.id });
     if (error) { toast.error(error.message); setSaving(false); return; }
     setSaving(false);
     setDialogOpen(false);
+    setEditId(null);
     fetchData();
     toast.success(t.saved);
   };
