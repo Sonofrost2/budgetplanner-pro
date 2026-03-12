@@ -289,6 +289,12 @@ export const dashT = {
     savingsEstimatedDate: 'Date estimée',
     savingsTotalContributions: 'Total versé',
     savingsContributionCount: 'versement(s)',
+    withdrawSaving: 'Retirer des fonds',
+    withdrawAmount: 'Montant à retirer',
+    savingsWithdrawDesc: 'Retirer de l\'épargne vers un compte',
+    savingsTargetAccount: 'Compte cible',
+    savingsSourceAccount: 'Compte source (à débiter)',
+    savingsEvolution: 'Évolution',
   },
   en: {
     dashboard: 'Dashboard',
