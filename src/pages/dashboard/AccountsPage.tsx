@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -34,6 +35,8 @@ const AccountsPage = () => {
   const { fmt: fmtCurrency } = useProfile();
   const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const typeFilter = searchParams.get('type') || '';
   const [accounts, setAccounts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -46,6 +49,11 @@ const AccountsPage = () => {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
+
+  const filteredAccounts = useMemo(() => {
+    if (!typeFilter) return accounts;
+    return accounts.filter(a => a.type === typeFilter);
+  }, [accounts, typeFilter]);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -63,12 +71,10 @@ const AccountsPage = () => {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const getTheoreticalBalance = (accountId: string) => {
-    const account = accounts.find(a => a.id === accountId);
-    const opening = Number(account?.opening_balance) || 0;
     const txs = transactions.filter(tx => tx.account_id === accountId);
     const income = txs.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0);
     const expense = txs.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
-    return opening + income - expense;
+    return income - expense;
   };
 
   const accountLimitReached = !isPremium && accounts.length >= limits.accounts;
@@ -183,7 +189,43 @@ const AccountsPage = () => {
         </div>
       </div>
 
-      {accounts.length === 0 ? (
+      {/* Type filter chips */}
+      {accounts.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSearchParams({})}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${!typeFilter ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/50'}`}
+          >
+            {locale === 'fr' ? 'Tous' : 'All'} ({accounts.length})
+          </button>
+          {[...new Set(accounts.map(a => a.type))].map(type => {
+            const count = accounts.filter(a => a.type === type).length;
+            const typeLabels: Record<string, Record<string, string>> = {
+              fr: { bank: 'Banque', mobile_money: 'Mobile Money', cash: 'Espèces', card: 'Carte', savings: 'Épargne' },
+              en: { bank: 'Bank', mobile_money: 'Mobile Money', cash: 'Cash', card: 'Card', savings: 'Savings' },
+            };
+            const icons: Record<string, string> = { bank: '🏦', mobile_money: '📱', cash: '💵', card: '💳', savings: '🐖' };
+            const labels = typeLabels[locale] || typeLabels.en;
+            return (
+              <button
+                key={type}
+                onClick={() => setSearchParams(typeFilter === type ? {} : { type })}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${typeFilter === type ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/50'}`}
+              >
+                {icons[type] || '💳'} {labels[type] || type} ({count})
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {filteredAccounts.length === 0 && accounts.length > 0 ? (
+        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+          <CardContent className="py-12 text-center">
+            <p className="text-sm text-muted-foreground">{locale === 'fr' ? 'Aucun compte de ce type' : 'No accounts of this type'}</p>
+          </CardContent>
+        </Card>
+      ) : accounts.length === 0 ? (
         <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
           <CardContent className="py-16 text-center">
             <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
@@ -198,7 +240,7 @@ const AccountsPage = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {accounts.map(acc => {
+          {filteredAccounts.map(acc => {
             const theoretical = getTheoreticalBalance(acc.id);
             const real = Number(acc.real_balance);
             const discrepancy = real - theoretical;

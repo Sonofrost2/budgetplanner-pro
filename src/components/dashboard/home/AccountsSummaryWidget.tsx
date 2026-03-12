@@ -34,13 +34,13 @@ export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSumm
   const labels = typeLabels[locale] || typeLabels.en;
 
   return (
-    <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl cursor-pointer" onClick={() => navigate('/dashboard/accounts')}>
+    <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-bold">{(t as any).accountsSummary || 'Synthèse comptes'}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {Object.entries(grouped).map(([type, { total: subtotal, count }]) => (
-          <div key={type} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
+          <div key={type} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0 cursor-pointer rounded-lg px-2 hover:bg-muted/50 transition-colors" onClick={() => navigate(`/dashboard/accounts?type=${type}`)}>
             <div className="flex items-center gap-2">
               <span className="text-lg">{typeIcons[type] || '💳'}</span>
               <div>
