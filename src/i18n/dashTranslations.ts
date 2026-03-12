@@ -310,6 +310,7 @@ export const dashT = {
     savingsCompleted: 'Atteint',
     savingsTotal: 'Total',
     savingsMonthlyNeeded: 'Mensualité requise',
+    savingsMonthlyContribution: 'Mensualité prévue',
     savingsReminder: 'Rappel épargne',
     savingsReminderBehind: 'Versement insuffisant pour',
     savingsNoContribThisMonth: 'Aucun versement ce mois pour',
