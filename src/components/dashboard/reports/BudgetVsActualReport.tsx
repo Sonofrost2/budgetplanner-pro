@@ -68,7 +68,7 @@ const BudgetVsActualReport = () => {
   return (
     <Card className="border-none shadow-[var(--shadow-card)]">
       <CardHeader>
-        <CardTitle className="text-base">{(t as any).budgetVsActual || 'Budget vs Réel'}</CardTitle>
+        <CardTitle className="text-base">{t.budgetVsActual}</CardTitle>
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
