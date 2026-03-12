@@ -16,6 +16,7 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 import { SavingsGoalCard } from '@/components/dashboard/savings/SavingsGoalCard';
+import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSummaryTable';
 
 const SavingsPage = () => {
   const { user } = useAuth();
