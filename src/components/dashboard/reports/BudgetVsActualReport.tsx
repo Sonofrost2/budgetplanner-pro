@@ -107,7 +107,7 @@ const BudgetVsActualReport = () => {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell className="font-bold">{(t as any).savingsTotal || 'Total'}</TableCell>
+                  <TableCell className="font-bold">{t.savingsTotal}</TableCell>
                   <TableCell className="text-right font-bold">{fmt(totalBudget)}</TableCell>
                   <TableCell className="text-right font-bold">{fmt(totalActual)}</TableCell>
                   <TableCell className={`text-right font-bold ${totalBudget - totalActual >= 0 ? 'text-secondary' : 'text-destructive'}`}>

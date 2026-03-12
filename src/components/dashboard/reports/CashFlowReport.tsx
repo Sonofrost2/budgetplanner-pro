@@ -92,7 +92,7 @@ const CashFlowReport = () => {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell className="font-bold">{(t as any).savingsTotal || 'Total'}</TableCell>
+                <TableCell className="font-bold">{t.savingsTotal}</TableCell>
                 <TableCell></TableCell>
                 <TableCell className="text-right font-bold text-secondary">+{fmt(totalIncome)}</TableCell>
                 <TableCell className="text-right font-bold text-destructive">-{fmt(totalExpenses)}</TableCell>

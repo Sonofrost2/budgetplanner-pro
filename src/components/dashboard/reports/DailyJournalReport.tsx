@@ -107,7 +107,7 @@ const DailyJournalReport = () => {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell className="font-bold">{(t as any).savingsTotal || 'Total'}</TableCell>
+                  <TableCell className="font-bold">{t.savingsTotal}</TableCell>
                   <TableCell className="text-right font-bold text-secondary">+{fmt(totalIncome)}</TableCell>
                   <TableCell className="text-right font-bold text-destructive">-{fmt(totalExpenses)}</TableCell>
                   <TableCell className={`text-right font-bold ${totalIncome - totalExpenses >= 0 ? 'text-secondary' : 'text-destructive'}`}>{fmt(totalIncome - totalExpenses)}</TableCell>
