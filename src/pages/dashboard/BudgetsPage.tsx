@@ -45,15 +45,34 @@ const BudgetsPage = () => {
     setBudgets(budRes.data || []);
     setCategories(catRes.data || []);
 
+    // Fetch ALL expense transactions (we'll filter per-budget period client-side)
+    const { data: txs } = await supabase.from('transactions').select('category_id, amount, date')
+      .eq('user_id', user.id).eq('type', 'expense');
+
+    // Calculate spending per category per budget period
+    const budgetsData = budRes.data || [];
     const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-    const { data: txs } = await supabase.from('transactions').select('category_id, amount')
-      .eq('user_id', user.id).eq('type', 'expense').gte('date', start).lte('date', end);
-    
     const spendMap: Record<string, number> = {};
-    (txs || []).forEach(tx => {
-      if (tx.category_id) spendMap[tx.category_id] = (spendMap[tx.category_id] || 0) + Number(tx.amount);
+    budgetsData.forEach((b: any) => {
+      let start: string;
+      let end: string;
+      if (b.period === 'weekly') {
+        const day = now.getDay();
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+        start = weekStart.toISOString().split('T')[0];
+        end = now.toISOString().split('T')[0];
+      } else if (b.period === 'yearly') {
+        start = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+        end = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
+      } else {
+        start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      }
+      const spent = (txs || [])
+        .filter(tx => tx.category_id === b.category_id && tx.date >= start && tx.date <= end)
+        .reduce((s, tx) => s + Number(tx.amount), 0);
+      if (b.category_id) spendMap[b.category_id] = spent;
     });
     setSpending(spendMap);
     setLoading(false);

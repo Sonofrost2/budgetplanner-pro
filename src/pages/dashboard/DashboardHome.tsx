@@ -51,7 +51,6 @@ const DashboardHome = () => {
   const t = dashT[locale];
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<{ name: string; income: number; expenses: number }[]>([]);
   const [categoryData, setCategoryData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);

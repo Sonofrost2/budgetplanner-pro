@@ -236,16 +236,9 @@ const TransactionsPage = () => {
   };
 
   const updateAccountBalance = async (accountId: string | null) => {
-    if (!accountId || !user) return;
-    const [accRes, txRes] = await Promise.all([
-      supabase.from('payment_accounts').select('opening_balance').eq('id', accountId).single(),
-      supabase.from('transactions').select('type, amount').eq('user_id', user.id).eq('account_id', accountId),
-    ]);
-    if (accRes.error || txRes.error) return;
-    const opening = Number(accRes.data.opening_balance) || 0;
-    const income = (txRes.data || []).filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-    const expense = (txRes.data || []).filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
-    await supabase.from('payment_accounts').update({ real_balance: opening + income - expense }).eq('id', accountId);
+    if (!accountId) return;
+    const { error } = await supabase.rpc('recalculate_account_balance', { p_account_id: accountId });
+    if (error) console.error('recalculate_account_balance error:', error);
   };
 
   const handleSave = async () => {
