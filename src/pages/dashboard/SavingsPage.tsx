@@ -244,6 +244,7 @@ const SavingsPage = () => {
           </p>
         </div>
         <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+          setEditGoalId(null);
           setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
           setDialogOpen(true);
         }}>
