@@ -112,16 +112,13 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {(t as any).fromAccount || 'Compte source'}
             </Label>
-            <Select value={fromAccountId} onValueChange={setFromAccountId}>
-              <SelectTrigger className={`rounded-xl h-11 ${errors.from ? 'border-destructive' : ''}`}>
-                <SelectValue placeholder={t.selectAccount} />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map(a => (
-                  <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AccountCombobox
+              accounts={accounts}
+              value={fromAccountId}
+              onValueChange={setFromAccountId}
+              placeholder={t.selectAccount}
+              error={!!errors.from}
+            />
             {errors.from && <p className="text-xs text-destructive">{errors.from}</p>}
           </div>
 
@@ -129,16 +126,14 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {(t as any).toAccount || 'Compte destination'}
             </Label>
-            <Select value={toAccountId} onValueChange={setToAccountId}>
-              <SelectTrigger className={`rounded-xl h-11 ${errors.to ? 'border-destructive' : ''}`}>
-                <SelectValue placeholder={t.selectAccount} />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.filter(a => a.id !== fromAccountId).map(a => (
-                  <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AccountCombobox
+              accounts={accounts}
+              value={toAccountId}
+              onValueChange={setToAccountId}
+              placeholder={t.selectAccount}
+              excludeId={fromAccountId}
+              error={!!errors.to}
+            />
             {errors.to && <p className="text-xs text-destructive">{errors.to}</p>}
           </div>
 
