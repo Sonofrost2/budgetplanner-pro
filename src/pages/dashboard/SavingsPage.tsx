@@ -35,7 +35,7 @@ const SavingsPage = () => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [targetAccountId, setTargetAccountId] = useState('');
-  const [form, setForm] = useState({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
+  const [form, setForm] = useState({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '' });
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
