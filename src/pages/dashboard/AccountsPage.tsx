@@ -35,6 +35,8 @@ const AccountsPage = () => {
   const { fmt: fmtCurrency } = useProfile();
   const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const typeFilter = searchParams.get('type') || '';
   const [accounts, setAccounts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,6 +49,11 @@ const AccountsPage = () => {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
+
+  const filteredAccounts = useMemo(() => {
+    if (!typeFilter) return accounts;
+    return accounts.filter(a => a.type === typeFilter);
+  }, [accounts, typeFilter]);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
