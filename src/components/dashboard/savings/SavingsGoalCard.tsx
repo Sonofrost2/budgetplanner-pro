@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
@@ -23,10 +23,11 @@ interface SavingsGoalCardProps {
   locale: string;
   onAddSaving: () => void;
   onWithdraw: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 }
 
-export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onDelete }: SavingsGoalCardProps) => {
+export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onEdit, onDelete }: SavingsGoalCardProps) => {
   const pct = goal.target_amount > 0 ? Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100) : 0;
   const done = pct >= 100;
   const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.current_amount));
@@ -34,7 +35,6 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
 
   const deposits = contributions.filter(c => c.type === 'deposit');
 
-  // Monthly average based on deposits only
   const monthlyAvg = deposits.length > 0 ? (() => {
     const dates = deposits.map(c => new Date(c.date).getTime());
     const minDate = Math.min(...dates);
@@ -48,7 +48,24 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
     ? new Date(Date.now() + (remaining / monthlyAvg) * 30 * 24 * 60 * 60 * 1000)
     : null;
 
-  // Build evolution chart data (cumulative over time)
+  // Monthly schedule calculation
+  const scheduleInfo = (() => {
+    if (!goal.deadline || done) return null;
+    const deadlineDate = new Date(goal.deadline);
+    const now = new Date();
+    const msLeft = deadlineDate.getTime() - now.getTime();
+    const monthsLeft = Math.max(1, Math.ceil(msLeft / (1000 * 60 * 60 * 24 * 30)));
+    const monthlyNeeded = remaining / monthsLeft;
+
+    let status: 'on_track' | 'behind' | 'ahead' = 'on_track';
+    if (monthlyAvg > 0) {
+      if (monthlyAvg >= monthlyNeeded * 1.1) status = 'ahead';
+      else if (monthlyAvg < monthlyNeeded * 0.9) status = 'behind';
+    }
+    return { monthsLeft, monthlyNeeded, status };
+  })();
+
+  // Build evolution chart data
   const chartData = (() => {
     if (contributions.length === 0) return [];
     const sorted = [...contributions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -62,9 +79,20 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
     });
   })();
 
+  const statusColors = {
+    on_track: 'text-secondary',
+    behind: 'text-destructive',
+    ahead: 'text-primary',
+  };
+  const statusLabels = {
+    on_track: t.savingsOnTrack,
+    behind: t.savingsBehind,
+    ahead: t.savingsAhead,
+  };
+
   return (
     <Card className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden ${done ? 'ring-2 ring-secondary/30' : ''}`}>
-      {/* ── Header: Goal Identity ── */}
+      {/* ── Header ── */}
       <div className="p-5 pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -89,15 +117,20 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={onDelete}>
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={onEdit}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={onDelete}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
       <Separator />
 
-      {/* ── Section: Progress ── */}
+      {/* ── Progress ── */}
       <div className="px-5 py-4 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -124,7 +157,6 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
           </div>
         </div>
 
-        {/* Stats row */}
         {deposits.length > 0 && (
           <div className="grid grid-cols-3 gap-2 pt-1">
             <div className="bg-muted/50 rounded-lg p-2.5 text-center">
@@ -151,7 +183,29 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
         )}
       </div>
 
-      {/* ── Section: Evolution Chart ── */}
+      {/* ── Monthly Schedule ── */}
+      {scheduleInfo && !done && (
+        <>
+          <Separator />
+          <div className="px-5 py-4 space-y-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <CalendarClock className="w-3.5 h-3.5" />
+              {t.savingsMonthlySchedule}
+            </span>
+            <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
+              <div>
+                <p className="text-sm font-bold text-foreground">{fmt(scheduleInfo.monthlyNeeded)}<span className="text-xs font-normal text-muted-foreground"> / {locale === 'fr' ? 'mois' : 'mo'}</span></p>
+                <p className="text-xs text-muted-foreground">{scheduleInfo.monthsLeft} {t.savingsMonthsLeft}</p>
+              </div>
+              <span className={`text-xs font-bold ${statusColors[scheduleInfo.status]}`}>
+                {statusLabels[scheduleInfo.status]}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Evolution Chart ── */}
       {chartData.length >= 2 && (
         <>
           <Separator />
@@ -174,13 +228,7 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }}
                     formatter={(value: number) => [fmt(value), locale === 'fr' ? 'Épargné' : 'Saved']}
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="total"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    fill={`url(#grad-${goal.id})`}
-                  />
+                  <Area type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2} fill={`url(#grad-${goal.id})`} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -190,7 +238,7 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
 
       <Separator />
 
-      {/* ── Section: Contribution History ── */}
+      {/* ── Contribution History ── */}
       <div className="px-5 py-4 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -212,9 +260,7 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
                 <div key={c.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/40 transition-colors">
                   <div className="flex items-center gap-2.5">
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${isWithdrawal ? 'bg-destructive/10' : 'bg-primary/10'}`}>
-                      {isWithdrawal
-                        ? <ArrowUpRight className="w-3.5 h-3.5 text-destructive" />
-                        : <ArrowDownLeft className="w-3.5 h-3.5 text-primary" />}
+                      {isWithdrawal ? <ArrowUpRight className="w-3.5 h-3.5 text-destructive" /> : <ArrowDownLeft className="w-3.5 h-3.5 text-primary" />}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">
@@ -242,27 +288,17 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
         )}
       </div>
 
-      {/* ── Footer: Actions ── */}
+      {/* ── Footer ── */}
       <Separator />
       <div className="p-4 flex gap-2">
         {!done && (
-          <Button
-            onClick={onAddSaving}
-            className="flex-1 rounded-xl text-primary-foreground"
-            style={{ background: 'var(--gradient-primary)' }}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {t.addSaving}
+          <Button onClick={onAddSaving} className="flex-1 rounded-xl text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+            <Plus className="w-4 h-4 mr-2" />{t.addSaving}
           </Button>
         )}
         {Number(goal.current_amount) > 0 && (
-          <Button
-            onClick={onWithdraw}
-            variant="outline"
-            className="flex-1 rounded-xl"
-          >
-            <ArrowUpRight className="w-4 h-4 mr-2" />
-            {t.withdrawSaving}
+          <Button onClick={onWithdraw} variant="outline" className="flex-1 rounded-xl">
+            <ArrowUpRight className="w-4 h-4 mr-2" />{t.withdrawSaving}
           </Button>
         )}
       </div>

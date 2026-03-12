@@ -26,6 +26,7 @@ const SavingsPage = () => {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [contributions, setContributions] = useState<Record<string, any[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editGoalId, setEditGoalId] = useState<string | null>(null);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
   const [withdrawDialog, setWithdrawDialog] = useState<string | null>(null);
   const [addAmount, setAddAmount] = useState('');
@@ -88,14 +89,23 @@ const SavingsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleCreate = async () => {
+  const handleCreateOrEdit = async () => {
     if (!user || !form.name.trim() || Number(form.target_amount) <= 0) return;
-    const { error } = await supabase.from('savings_goals').insert({
-      user_id: user.id, name: form.name.trim(), target_amount: Number(form.target_amount),
-      icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
-    });
-    if (error) { toast.error(error.message); return; }
+    if (editGoalId) {
+      const { error } = await supabase.from('savings_goals').update({
+        name: form.name.trim(), target_amount: Number(form.target_amount),
+        icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
+      }).eq('id', editGoalId);
+      if (error) { toast.error(error.message); return; }
+    } else {
+      const { error } = await supabase.from('savings_goals').insert({
+        user_id: user.id, name: form.name.trim(), target_amount: Number(form.target_amount),
+        icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
+      });
+      if (error) { toast.error(error.message); return; }
+    }
     setDialogOpen(false);
+    setEditGoalId(null);
     fetchData();
     toast.success(t.saved);
   };
@@ -234,6 +244,7 @@ const SavingsPage = () => {
           </p>
         </div>
         <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+          setEditGoalId(null);
           setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
           setDialogOpen(true);
         }}>
@@ -247,6 +258,7 @@ const SavingsPage = () => {
             <PiggyBank className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
             <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+              setEditGoalId(null);
               setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
               setDialogOpen(true);
             }}>
@@ -266,6 +278,15 @@ const SavingsPage = () => {
               locale={locale}
               onAddSaving={() => { setAddAmountDialog(g.id); setAddAmount(''); setSourceAccountId(''); }}
               onWithdraw={() => { setWithdrawDialog(g.id); setWithdrawAmount(''); setTargetAccountId(''); }}
+              onEdit={() => {
+                setEditGoalId(g.id);
+                setForm({
+                  name: g.name, target_amount: String(g.target_amount),
+                  icon: g.icon || '🎯', deadline: g.deadline || '',
+                  account_id: g.account_id || '',
+                });
+                setDialogOpen(true);
+              }}
               onDelete={() => setDeleteId(g.id)}
             />
           ))}
@@ -273,11 +294,11 @@ const SavingsPage = () => {
       )}
 
       {/* Create Goal Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditGoalId(null); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{t.addGoal}</DialogTitle>
-            <DialogDescription>{locale === 'fr' ? 'Définissez un objectif d\'épargne' : 'Set a savings goal'}</DialogDescription>
+            <DialogTitle className="text-xl font-bold">{editGoalId ? t.editGoal : t.addGoal}</DialogTitle>
+            <DialogDescription>{locale === 'fr' ? (editGoalId ? 'Modifiez votre objectif d\'épargne' : 'Définissez un objectif d\'épargne') : (editGoalId ? 'Edit your savings goal' : 'Set a savings goal')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -317,7 +338,7 @@ const SavingsPage = () => {
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
-            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleCreate}>{t.save}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleCreateOrEdit}>{t.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
