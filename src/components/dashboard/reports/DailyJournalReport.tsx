@@ -14,7 +14,7 @@ const DailyJournalReport = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<{ date: string; income: number; expenses: number; net: number; cumIncome: number; cumExpenses: number; balance: number }[]>([]);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(1);
