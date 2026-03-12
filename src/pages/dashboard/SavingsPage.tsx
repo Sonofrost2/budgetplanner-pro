@@ -336,7 +336,7 @@ const SavingsPage = () => {
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
-            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleCreate}>{t.save}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleCreateOrEdit}>{t.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
