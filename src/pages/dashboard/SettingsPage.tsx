@@ -94,6 +94,8 @@ const SettingsPage = () => {
           </Button>
         </CardContent>
       </Card>
+
+      <PushNotificationCard locale={locale} />
     </div>
   );
 };
