@@ -111,7 +111,7 @@ const OnboardingPage = () => {
         toast.success(isFr ? 'Paiement confirmé !' : 'Payment confirmed!');
 
         // Save receipt in database
-        const price = formatPrice(selectedPlanData?.currency_prices || {});
+        const price = formatPrice((selectedPlanData?.currency_prices || {}) as Record<string, number>);
         if (user) {
           await supabase.from('payment_receipts').insert({
             user_id: user.id,
