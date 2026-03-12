@@ -247,7 +247,7 @@ const SavingsPage = () => {
         </div>
         <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
           setEditGoalId(null);
-          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
+        setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '' });
           setDialogOpen(true);
         }}>
           <Plus className="w-4 h-4 mr-1" />{t.addGoal}
