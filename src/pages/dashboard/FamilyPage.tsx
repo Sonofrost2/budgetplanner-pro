@@ -30,7 +30,7 @@ const FamilyPage = () => {
   const [pendingForMe, setPendingForMe] = useState<(Tables<'family_invitations'> & { family_groups?: { name: string } })[]>([]);
   const [budgets, setBudgets] = useState<Tables<'budgets'>[]>([]);
   const [sharedBudgets, setSharedBudgets] = useState<Tables<'shared_budgets'>[]>([]);
-  const [memberTransactions, setMemberTransactions] = useState<{ user_id: string; amount: number; type: string; date: string }[]>([]);
+  const [memberTransactions, setMemberTransactions] = useState<{ id: string; user_id: string; amount: number; type: string; date: string; description?: string; categories?: { name: string; icon: string } | null; profiles?: { display_name: string } | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [createOpen, setCreateOpen] = useState(false);
