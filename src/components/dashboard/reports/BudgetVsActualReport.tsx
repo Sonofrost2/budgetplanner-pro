@@ -81,8 +81,8 @@ const BudgetVsActualReport = () => {
                   <TableHead>{t.category}</TableHead>
                   <TableHead className="text-right">{locale === 'fr' ? 'Budget' : 'Budget'}</TableHead>
                   <TableHead className="text-right">{locale === 'fr' ? 'Réel' : 'Actual'}</TableHead>
-                  <TableHead className="text-right">{(t as any).variance || 'Écart'}</TableHead>
-                  <TableHead className="min-w-[120px]">{(t as any).consumptionPct || '% Conso.'}</TableHead>
+                  <TableHead className="text-right">{t.variance}</TableHead>
+                  <TableHead className="min-w-[120px]">{t.consumptionPct}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
