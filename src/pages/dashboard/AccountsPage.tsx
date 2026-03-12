@@ -171,9 +171,14 @@ const AccountsPage = () => {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold font-display">{t.accounts}</h2>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={accountLimitReached}>
-          <Plus className="w-4 h-4 mr-1" />{t.addAccount}
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
+            <ArrowLeftRight className="w-4 h-4 mr-1" />{(t as any).makeTransfer}
+          </Button>
+          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={accountLimitReached}>
+            <Plus className="w-4 h-4 mr-1" />{t.addAccount}
+          </Button>
+        </div>
       </div>
 
       {accounts.length === 0 ? (
