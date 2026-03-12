@@ -582,6 +582,12 @@ export const dashT = {
     savingsEstimatedDate: 'Estimated date',
     savingsTotalContributions: 'Total contributed',
     savingsContributionCount: 'contribution(s)',
+    withdrawSaving: 'Withdraw funds',
+    withdrawAmount: 'Amount to withdraw',
+    savingsWithdrawDesc: 'Withdraw savings to an account',
+    savingsTargetAccount: 'Target account',
+    savingsSourceAccount: 'Source account (to debit)',
+    savingsEvolution: 'Evolution',
   },
 } as const;
 
