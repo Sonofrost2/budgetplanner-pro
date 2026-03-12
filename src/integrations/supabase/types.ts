@@ -465,6 +465,7 @@ export type Database = {
           date: string
           description: string
           id: string
+          linked_transfer_id: string | null
           notes: string | null
           type: string
           updated_at: string
@@ -478,6 +479,7 @@ export type Database = {
           date?: string
           description: string
           id?: string
+          linked_transfer_id?: string | null
           notes?: string | null
           type: string
           updated_at?: string
@@ -491,6 +493,7 @@ export type Database = {
           date?: string
           description?: string
           id?: string
+          linked_transfer_id?: string | null
           notes?: string | null
           type?: string
           updated_at?: string
@@ -509,6 +512,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_linked_transfer_id_fkey"
+            columns: ["linked_transfer_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
