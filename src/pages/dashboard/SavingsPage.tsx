@@ -105,6 +105,8 @@ const SavingsPage = () => {
       const { error } = await supabase.from('savings_goals').insert({
         user_id: user.id, name: form.name.trim(), target_amount: Number(form.target_amount),
         icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
+        monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
+        start_date: form.start_date || null,
       });
       if (error) { toast.error(error.message); return; }
     }
