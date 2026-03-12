@@ -103,7 +103,7 @@ const RecurringPage = () => {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <span className={`text-xl font-extrabold ${r.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>{r.type === 'income' ? '+' : '-'}{fmt(Number(r.amount))}</span>
-                  <Badge variant="outline" className="text-[10px]">{(t as any).nextDate || 'Prochaine'}: {new Date(r.next_date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{t.nextDate}: {new Date(r.next_date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}</Badge>
                 </div>
               </CardContent>
             </Card>
