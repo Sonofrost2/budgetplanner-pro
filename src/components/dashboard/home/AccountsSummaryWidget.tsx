@@ -19,6 +19,7 @@ const typeIcons: Record<string, string> = {
 };
 
 export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSummaryWidgetProps) => {
+  const navigate = useNavigate();
   if (accounts.length === 0) return null;
 
   const grouped: Record<string, { total: number; count: number }> = {};
