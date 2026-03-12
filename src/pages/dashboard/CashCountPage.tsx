@@ -105,7 +105,7 @@ const CashCountPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold font-display">{(t as any).cashCount || 'PV d\'espèces'}</h2>
+        <h2 className="text-2xl font-bold font-display">{t.cashCount}</h2>
         <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={cashAccounts.length === 0}>
           <Plus className="w-4 h-4 mr-1" />{locale === 'fr' ? 'Nouveau comptage' : 'New count'}
         </Button>
