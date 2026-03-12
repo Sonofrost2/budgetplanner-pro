@@ -227,6 +227,18 @@ const DashboardLayout = () => {
           </AnimatePresence>
         </div>
       </main>
+
+      <OfflineBanner />
+
+      <ConfirmDeleteDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+        onConfirm={handleLogout}
+        title={locale === 'fr' ? 'Déconnexion' : 'Log out'}
+        description={locale === 'fr' ? 'Êtes-vous sûr de vouloir vous déconnecter ?' : 'Are you sure you want to log out?'}
+        cancelLabel={t.cancel}
+        confirmLabel={t.logout}
+      />
     </div>
   );
 };
