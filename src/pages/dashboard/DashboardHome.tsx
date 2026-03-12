@@ -199,6 +199,9 @@ const DashboardHome = () => {
         netCashFlow={totalIncome - totalExpenses}
       />
 
+      {/* Accounts Summary */}
+      <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />
+
       {/* Accounts + Budgets + Savings row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <AccountsWidget accounts={accounts} fmt={fmt} t={t} />

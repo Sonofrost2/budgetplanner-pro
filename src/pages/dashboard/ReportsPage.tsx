@@ -191,6 +191,13 @@ const ReportsPage = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="cashflow">
+          <CashFlowReport />
+        </TabsContent>
+
+        <TabsContent value="budgetvsactual">
+          <BudgetVsActualReport />
+        </TabsContent>
       </Tabs>
     </div>
   );

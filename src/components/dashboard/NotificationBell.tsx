@@ -143,6 +143,8 @@ export const NotificationBell = () => {
                 <div key={n.id} className="px-4 py-3 flex items-start gap-3">
                   {n.type === 'budget_exceeded' ? (
                     <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                  ) : n.type === 'savings_behind' ? (
+                    <PiggyBank className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
                   ) : (
                     <CheckCircle2 className="w-4 h-4 text-secondary flex-shrink-0 mt-0.5" />
                   )}
