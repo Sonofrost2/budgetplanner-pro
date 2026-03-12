@@ -40,16 +40,24 @@ const ForecastsPage = () => {
   const generateForecast = async () => {
     if (!user || !rawTxData) return;
     setLoading(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
     try {
       const { data: categories } = await supabase.from('categories').select('id, name, type').eq('user_id', user.id);
       const { data, error } = await supabase.functions.invoke('ai-forecast', {
         body: { transactions: rawTxData, categories: categories || [], locale },
       });
+      clearTimeout(timeout);
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       setForecast(data);
     } catch (e: any) {
-      toast.error(e.message || 'Error generating forecast');
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') {
+        toast.error(locale === 'fr' ? 'La requête a pris trop de temps (45s)' : 'Request timed out (45s)');
+      } else {
+        toast.error(e.message || 'Error generating forecast');
+      }
     } finally {
       setLoading(false);
     }
