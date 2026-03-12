@@ -229,8 +229,9 @@ export const useReportsData = (locale: string) => {
 
       const catMap: Record<string, { name: string; value: number; color: string }> = {};
       (catRes.data || []).forEach(tx => {
-        const name = (tx.categories as any)?.name || 'Other';
-        const color = (tx.categories as any)?.color || '#6C63FF';
+        const cat = tx.categories as { name: string; color: string } | null;
+        const name = cat?.name || 'Other';
+        const color = cat?.color || '#6C63FF';
         if (!catMap[name]) catMap[name] = { name, value: 0, color };
         catMap[name].value += Number(tx.amount);
       });

@@ -68,7 +68,7 @@ const DashboardHome = () => {
   // Category pie data
   const categoryData = useMemo(() => {
     const catMap: Record<string, { name: string; value: number; color: string }> = {};
-    transactions.filter(tx => tx.type === 'expense').forEach((tx: any) => {
+    transactions.filter(tx => tx.type === 'expense').forEach(tx => {
       const name = tx.categories?.name || 'Autre';
       const color = tx.categories?.color || '#6C63FF';
       if (!catMap[name]) catMap[name] = { name, value: 0, color };
