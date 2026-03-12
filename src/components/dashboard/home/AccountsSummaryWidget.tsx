@@ -54,7 +54,7 @@ export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSumm
           </div>
         ))}
         <div className="flex items-center justify-between pt-2.5 mt-1.5 border-t border-glass-border">
-          <span className="text-xs font-bold">{(t as any).savingsTotal || 'Total'}</span>
+          <span className="text-xs font-bold">{t.savingsTotal}</span>
           <span className="text-sm font-extrabold">{fmt(total)}</span>
         </div>
       </div>

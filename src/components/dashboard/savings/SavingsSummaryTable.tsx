@@ -104,7 +104,7 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
           <TableFooter>
             <TableRow>
               <TableCell></TableCell>
-              <TableCell className="font-bold">{(t as any).savingsTotal || 'Total'}</TableCell>
+              <TableCell className="font-bold">{t.savingsTotal}</TableCell>
               <TableCell>
                 <Progress value={Math.min(totalPct, 100)} className="h-2.5 rounded-full [&>div]:bg-primary" />
               </TableCell>

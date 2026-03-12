@@ -330,7 +330,7 @@ const TransactionsPage = () => {
         </h2>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
-            <ArrowLeftRight className="w-4 h-4 mr-1" />{(t as any).makeTransfer}
+            <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
           </Button>
           <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
             <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
