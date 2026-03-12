@@ -31,7 +31,7 @@ const ReportsPage = () => {
   const allTransactions = data?.allTransactions ?? [];
 
   const handleExportCSV = () => {
-    const rows = allTransactions.map(tx => ({ Date: tx.date, Description: tx.description, Type: tx.type, Category: (tx.categories as any)?.name || '', Amount: tx.amount }));
+    const rows = allTransactions.map(tx => ({ Date: tx.date, Description: tx.description, Type: tx.type, Category: (tx.categories as { name: string } | undefined)?.name || '', Amount: tx.amount }));
     if (!exportToCSV(rows, 'transactions')) toast.info(t.noTransactions);
   };
 
