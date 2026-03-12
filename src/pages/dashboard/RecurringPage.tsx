@@ -75,14 +75,14 @@ const RecurringPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold font-display">{(t as any).recurring || 'Charges récurrentes'}</h2>
-          {items.length > 0 && <p className="text-sm text-muted-foreground mt-1">{(t as any).fixedCharges || 'Charges fixes'}: <span className="text-destructive font-semibold">{fmt(totalFixedExpenses)}</span>{totalFixedIncome > 0 && <> · {t.income}: <span className="text-secondary font-semibold">{fmt(totalFixedIncome)}</span></>}</p>}
+          <h2 className="text-2xl font-bold font-display">{t.recurring}</h2>
+          {items.length > 0 && <p className="text-sm text-muted-foreground mt-1">{t.fixedCharges}: <span className="text-destructive font-semibold">{fmt(totalFixedExpenses)}</span>{totalFixedIncome > 0 && <> · {t.income}: <span className="text-secondary font-semibold">{fmt(totalFixedIncome)}</span></>}</p>}
         </div>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{(t as any).addRecurring || 'Ajouter'}</Button>
+        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addRecurring}</Button>
       </div>
 
       {items.length === 0 ? (
-        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><RefreshCw className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-semibold text-muted-foreground mb-2">{locale === 'fr' ? 'Aucune charge récurrente' : 'No recurring transactions'}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{(t as any).addRecurring || 'Ajouter'}</Button></CardContent></Card>
+        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><RefreshCw className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-semibold text-muted-foreground mb-2">{locale === 'fr' ? 'Aucune charge récurrente' : 'No recurring transactions'}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addRecurring}</Button></CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {items.map(r => (
@@ -90,7 +90,7 @@ const RecurringPage = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base font-bold flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: ((r as any).categories?.color || '#6C63FF') + '20' }}>{(r as any).categories?.icon || '📁'}</div>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (r.categories?.color || '#6C63FF') + '20' }}>{r.categories?.icon || '📁'}</div>
                     <div><span>{r.description}</span><p className="text-[11px] font-normal text-muted-foreground">{(freqLabel[locale] || freqLabel.en)[r.frequency || 'monthly'] || r.frequency}</p></div>
                   </CardTitle>
                   <div className="flex items-center gap-1">
@@ -103,7 +103,7 @@ const RecurringPage = () => {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <span className={`text-xl font-extrabold ${r.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>{r.type === 'income' ? '+' : '-'}{fmt(Number(r.amount))}</span>
-                  <Badge variant="outline" className="text-[10px]">{(t as any).nextDate || 'Prochaine'}: {new Date(r.next_date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{t.nextDate}: {new Date(r.next_date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -113,7 +113,7 @@ const RecurringPage = () => {
 
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle className="text-xl font-bold">{editId ? t.edit : ((t as any).addRecurring || 'Ajouter une charge récurrente')}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Configurez une transaction récurrente' : 'Configure a recurring transaction'}</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle className="text-xl font-bold">{editId ? t.edit : t.addRecurring}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Configurez une transaction récurrente' : 'Configure a recurring transaction'}</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.description}</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="rounded-xl h-11" /></div>
             <div className="grid grid-cols-2 gap-4">
@@ -123,10 +123,10 @@ const RecurringPage = () => {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).frequency || 'Fréquence'}</Label>
+              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.frequency}</Label>
                 <Select value={form.frequency} onValueChange={v => setForm(f => ({ ...f, frequency: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="weekly">{t.weekly}</SelectItem><SelectItem value="monthly">{t.monthly}</SelectItem><SelectItem value="yearly">{t.yearly}</SelectItem></SelectContent></Select>
               </div>
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).nextDate || 'Prochaine date'}</Label><Input type="date" value={form.next_date} onChange={e => setForm(f => ({ ...f, next_date: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.nextDate}</Label><Input type="date" value={form.next_date} onChange={e => setForm(f => ({ ...f, next_date: e.target.value }))} className="rounded-xl h-11" /></div>
             </div>
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.category} ({t.optional})</Label>
               <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger><SelectContent>{categories.filter(c => c.type === form.type).map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent></Select>

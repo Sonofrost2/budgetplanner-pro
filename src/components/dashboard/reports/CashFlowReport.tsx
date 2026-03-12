@@ -14,7 +14,7 @@ const CashFlowReport = () => {
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const [year, setYear] = useState(new Date().getFullYear());
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<{ label: string; carry: number; income: number; expenses: number; net: number; endBalance: number }[]>([]);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -25,7 +25,7 @@ const CashFlowReport = () => {
     supabase.from('transactions').select('type, amount, date')
       .eq('user_id', user.id).gte('date', start).lte('date', end)
       .then(({ data: txs }) => {
-        const months: any[] = [];
+        const months: typeof data = [];
         let carry = 0;
         for (let m = 0; m < 12; m++) {
           const monthTxs = (txs || []).filter(tx => {
@@ -57,7 +57,7 @@ const CashFlowReport = () => {
   return (
     <Card className="border-none shadow-[var(--shadow-card)]">
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-base">{(t as any).cashFlow || 'Cash Flow'}</CardTitle>
+        <CardTitle className="text-base">{t.cashFlow}</CardTitle>
         <Select value={String(year)} onValueChange={v => setYear(Number(v))}>
           <SelectTrigger className="w-28 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -71,11 +71,11 @@ const CashFlowReport = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>{locale === 'fr' ? 'Mois' : 'Month'}</TableHead>
-                <TableHead className="text-right">{(t as any).startingBalance || 'Report'}</TableHead>
+                <TableHead className="text-right">{t.startingBalance}</TableHead>
                 <TableHead className="text-right">{t.income}</TableHead>
                 <TableHead className="text-right">{t.expenses}</TableHead>
-                <TableHead className="text-right">{locale === 'fr' ? 'Trésorerie nette' : 'Net Cash Flow'}</TableHead>
-                <TableHead className="text-right">{(t as any).endingBalance || 'Solde fin'}</TableHead>
+                <TableHead className="text-right">{t.netCashFlow}</TableHead>
+                <TableHead className="text-right">{t.endingBalance}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -92,7 +92,7 @@ const CashFlowReport = () => {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell className="font-bold">{(t as any).savingsTotal || 'Total'}</TableCell>
+                <TableCell className="font-bold">{t.savingsTotal}</TableCell>
                 <TableCell></TableCell>
                 <TableCell className="text-right font-bold text-secondary">+{fmt(totalIncome)}</TableCell>
                 <TableCell className="text-right font-bold text-destructive">-{fmt(totalExpenses)}</TableCell>

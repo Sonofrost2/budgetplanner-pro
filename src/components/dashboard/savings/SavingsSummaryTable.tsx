@@ -3,15 +3,24 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
+import type { SavingsGoal } from '@/hooks/useDashboardData';
+
+interface SavingsContribution {
+  id: string;
+  amount: number;
+  date: string;
+  type: string;
+}
+
 interface SavingsSummaryTableProps {
-  goals: any[];
-  contributions: Record<string, any[]>;
+  goals: SavingsGoal[];
+  contributions: Record<string, SavingsContribution[]>;
   fmt: (n: number) => string;
   t: DashTranslations;
   locale: string;
 }
 
-const getStatus = (goal: any): 'completed' | 'late' | 'inProgress' => {
+const getStatus = (goal: SavingsGoal): 'completed' | 'late' | 'inProgress' => {
   if (Number(goal.current_amount) >= Number(goal.target_amount)) return 'completed';
   if (goal.deadline) {
     const now = new Date();
@@ -41,15 +50,15 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
   const totalPct = totalTarget > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0;
 
   const statusConfig = {
-    completed: { label: (t as any).savingsCompleted || 'Atteint', variant: 'default' as const, className: 'bg-secondary text-secondary-foreground' },
-    late: { label: (t as any).savingsLate || 'En retard', variant: 'destructive' as const, className: '' },
-    inProgress: { label: (t as any).savingsInProgress || 'En cours', variant: 'default' as const, className: 'bg-primary/15 text-primary border-primary/20' },
+    completed: { label: t.savingsCompleted, variant: 'default' as const, className: 'bg-secondary text-secondary-foreground' },
+    late: { label: t.savingsLate, variant: 'destructive' as const, className: '' },
+    inProgress: { label: t.savingsInProgress, variant: 'default' as const, className: 'bg-primary/15 text-primary border-primary/20' },
   };
 
   return (
     <div className="rounded-2xl border border-border/50 shadow-[var(--shadow-card)] bg-card overflow-hidden">
       <div className="px-5 py-4 border-b border-border/50">
-        <h3 className="text-base font-bold">{(t as any).savingsSummary || 'Récapitulatif'}</h3>
+        <h3 className="text-base font-bold">{t.savingsSummary}</h3>
       </div>
       <div className="overflow-x-auto">
         <Table>
@@ -60,8 +69,8 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
               <TableHead className="min-w-[140px]">{t.progress}</TableHead>
               <TableHead className="text-right">{t.amount}</TableHead>
               <TableHead className="text-center">%</TableHead>
-              <TableHead className="text-center">{(t as any).savingsStatus || 'Statut'}</TableHead>
-              <TableHead className="text-right">{(t as any).savingsMonthlyNeeded || 'Mensualité'}</TableHead>
+              <TableHead className="text-center">{t.savingsStatus}</TableHead>
+              <TableHead className="text-right">{t.savingsMonthlyNeeded}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -95,7 +104,7 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
           <TableFooter>
             <TableRow>
               <TableCell></TableCell>
-              <TableCell className="font-bold">{(t as any).savingsTotal || 'Total'}</TableCell>
+              <TableCell className="font-bold">{t.savingsTotal}</TableCell>
               <TableCell>
                 <Progress value={Math.min(totalPct, 100)} className="h-2.5 rounded-full [&>div]:bg-primary" />
               </TableCell>

@@ -212,7 +212,7 @@ export const useReportsData = (locale: string) => {
       if (txRes.error) throw txRes.error;
 
       const allTx = txRes.data || [];
-      const months: any[] = [];
+      const months: { name: string; income: number; expenses: number }[] = [];
       for (let i = 11; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const label = d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
@@ -229,8 +229,9 @@ export const useReportsData = (locale: string) => {
 
       const catMap: Record<string, { name: string; value: number; color: string }> = {};
       (catRes.data || []).forEach(tx => {
-        const name = (tx.categories as any)?.name || 'Other';
-        const color = (tx.categories as any)?.color || '#6C63FF';
+        const cat = tx.categories as { name: string; color: string } | null;
+        const name = cat?.name || 'Other';
+        const color = cat?.color || '#6C63FF';
         if (!catMap[name]) catMap[name] = { name, value: 0, color };
         catMap[name].value += Number(tx.amount);
       });
@@ -351,14 +352,14 @@ export const useChartData = (locale: string) => {
         .eq('user_id', user!.id).gte('date', sixMonthsAgo);
       if (error) throw error;
       return months.map(m => {
-        const monthTxs = (data || []).filter((tx: any) => {
+        const monthTxs = (data || []).filter(tx => {
           const txDate = new Date(tx.date);
           return txDate.getMonth() === m.date.getMonth() && txDate.getFullYear() === m.date.getFullYear();
         });
         return {
           name: m.label,
-          income: monthTxs.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0),
-          expenses: monthTxs.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0),
+          income: monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
+          expenses: monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
         };
       });
     },

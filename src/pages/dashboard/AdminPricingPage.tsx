@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRole } from '@/hooks/useRole';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,8 +20,8 @@ const AdminPricingPage = () => {
   const { isAdmin, loading: roleLoading } = useRole();
   const { locale } = useLanguage();
   const isFr = locale === 'fr';
-  const [plans, setPlans] = useState<any[]>([]);
-  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [plans, setPlans] = useState<Tables<'subscription_plans'>[]>([]);
+  const [editingPlan, setEditingPlan] = useState<Tables<'subscription_plans'> | null>(null);
   const [form, setForm] = useState({ name: '', base_price: '', trial_days: '', features: '', active: true, currency_prices: {} as Record<string, string> });
 
   const fetchPlans = useCallback(async () => {
@@ -99,8 +100,8 @@ const AdminPricingPage = () => {
                 ))}
               </div>
               <div className="mt-3 flex flex-wrap gap-1">
-                {(plan.features || []).map((f: string, i: number) => (
-                  <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">{f}</span>
+                {(Array.isArray(plan.features) ? plan.features : []).map((f: unknown, i: number) => (
+                  <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">{String(f)}</span>
                 ))}
               </div>
               <p className="text-xs text-muted-foreground mt-2">

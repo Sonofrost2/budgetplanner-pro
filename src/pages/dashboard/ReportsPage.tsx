@@ -31,12 +31,12 @@ const ReportsPage = () => {
   const allTransactions = data?.allTransactions ?? [];
 
   const handleExportCSV = () => {
-    const rows = allTransactions.map(tx => ({ Date: tx.date, Description: tx.description, Type: tx.type, Category: (tx.categories as any)?.name || '', Amount: tx.amount }));
+    const rows = allTransactions.map(tx => ({ Date: tx.date, Description: tx.description, Type: tx.type, Category: (tx.categories as { name: string } | undefined)?.name || '', Amount: tx.amount }));
     if (!exportToCSV(rows, 'transactions')) toast.info(t.noTransactions);
   };
 
   const handleExportExcel = () => {
-    const rows = allTransactions.map(tx => ({ Date: tx.date, Description: tx.description, Type: tx.type, Category: (tx.categories as any)?.name || '', Amount: tx.amount }));
+    const rows = allTransactions.map(tx => ({ Date: tx.date, Description: tx.description, Type: tx.type, Category: (tx.categories as { name: string } | undefined)?.name || '', Amount: tx.amount }));
     if (!exportToExcel(rows, 'transactions')) toast.info(t.noTransactions);
   };
 
@@ -57,9 +57,9 @@ const ReportsPage = () => {
         <TabsList className="flex-wrap">
           <TabsTrigger value="monthly">{t.monthlyReport}</TabsTrigger>
           <TabsTrigger value="categories">{t.topExpenses}</TabsTrigger>
-          <TabsTrigger value="cashflow">{(t as any).cashFlow || 'Cash Flow'}</TabsTrigger>
-          <TabsTrigger value="budgetvsactual">{(t as any).budgetVsActual || 'Budget vs Réel'}</TabsTrigger>
-          <TabsTrigger value="journal">{(t as any).dailyJournal || 'Journal'}</TabsTrigger>
+          <TabsTrigger value="cashflow">{t.cashFlow}</TabsTrigger>
+          <TabsTrigger value="budgetvsactual">{t.budgetVsActual}</TabsTrigger>
+          <TabsTrigger value="journal">{t.dailyJournal}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="monthly">

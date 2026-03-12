@@ -50,7 +50,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
     const errs: Record<string, string> = {};
     if (!fromAccountId) errs.from = t.nameRequired;
     if (!toAccountId) errs.to = t.nameRequired;
-    if (fromAccountId === toAccountId) errs.to = (t as any).transferSameAccount || 'Comptes identiques';
+    if (fromAccountId === toAccountId) errs.to = t.transferSameAccount;
     if (!amount || Number(amount) <= 0) errs.amount = t.invalidAmount;
     if (Number(amount) > 999999999) errs.amount = t.amountTooHigh;
     setErrors(errs);
@@ -72,7 +72,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
 
       if (error) throw error;
 
-      toast.success((t as any).transferSuccess || 'Transfert effectué !');
+      toast.success(t.transferSuccess);
       handleOpenChange(false);
       onSuccess();
     } catch (err: any) {
@@ -90,8 +90,8 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">{(t as any).transfer || 'Transfert'}</DialogTitle>
-          <DialogDescription>{(t as any).transferDesc || 'Transférer des fonds entre vos comptes'}</DialogDescription>
+          <DialogTitle className="text-xl font-bold">{t.transfer}</DialogTitle>
+          <DialogDescription>{t.transferDesc}</DialogDescription>
         </DialogHeader>
         <div className="space-y-5 py-2">
           {fromAcc && toAcc && (
@@ -110,7 +110,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
 
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {(t as any).fromAccount || 'Compte source'}
+              {t.fromAccount}
             </Label>
             <AccountCombobox
               accounts={accounts}
@@ -124,7 +124,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
 
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {(t as any).toAccount || 'Compte destination'}
+              {t.toAccount}
             </Label>
             <AccountCombobox
               accounts={accounts}
@@ -151,12 +151,12 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.description} ({(t as any).optional || 'optionnel'})</Label>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.description} ({t.optional})</Label>
             <Input
               value={description}
               onChange={e => setDescription(e.target.value)}
               maxLength={200}
-              placeholder={(t as any).transferDescPlaceholder || 'Ex: Recharge Wave depuis banque'}
+              placeholder={t.transferDescPlaceholder}
               className="rounded-xl h-11"
             />
           </div>
@@ -170,7 +170,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
             onClick={handleTransfer}
             disabled={saving || accounts.length < 2}
           >
-            {saving ? t.saving : (t as any).transfer || 'Transférer'}
+            {saving ? t.saving : t.transfer}
           </Button>
         </DialogFooter>
       </DialogContent>

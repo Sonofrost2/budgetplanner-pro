@@ -15,8 +15,10 @@ interface Contribution {
   account_icon?: string;
 }
 
+import type { SavingsGoal } from '@/hooks/useDashboardData';
+
 interface SavingsGoalCardProps {
-  goal: any;
+  goal: SavingsGoal;
   contributions: Contribution[];
   fmt: (n: number) => string;
   t: DashTranslations;

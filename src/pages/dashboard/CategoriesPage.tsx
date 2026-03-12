@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { useCategories, useAllTransactions, useInvalidate } from '@/hooks/useDashboardData';
+import { useCategories, useAllTransactions, useInvalidate, type Category } from '@/hooks/useDashboardData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,7 +75,7 @@ const CategoriesPage = () => {
   const expenseCategories = categories.filter(c => c.type === 'expense');
   const incomeCategories = categories.filter(c => c.type === 'income');
 
-  const renderGroup = (title: string, cats: any[]) => (
+  const renderGroup = (title: string, cats: Category[]) => (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{title}</h3>
       {cats.length === 0 ? <p className="text-sm text-muted-foreground py-4 text-center">{t.noCategories}</p> : (

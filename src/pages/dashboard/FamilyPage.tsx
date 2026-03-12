@@ -4,6 +4,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,13 +24,13 @@ const FamilyPage = () => {
   const { canUseFamily } = useSubscription();
   const t = dashT[locale];
 
-  const [groups, setGroups] = useState<any[]>([]);
-  const [members, setMembers] = useState<Record<string, any[]>>({});
-  const [invitations, setInvitations] = useState<any[]>([]);
-  const [pendingForMe, setPendingForMe] = useState<any[]>([]);
-  const [budgets, setBudgets] = useState<any[]>([]);
-  const [sharedBudgets, setSharedBudgets] = useState<any[]>([]);
-  const [memberTransactions, setMemberTransactions] = useState<any[]>([]);
+  const [groups, setGroups] = useState<Tables<'family_groups'>[]>([]);
+  const [members, setMembers] = useState<Record<string, (Tables<'family_members'> & { display_name?: string; email?: string })[]>>({});
+  const [invitations, setInvitations] = useState<Tables<'family_invitations'>[]>([]);
+  const [pendingForMe, setPendingForMe] = useState<(Tables<'family_invitations'> & { family_groups?: { name: string } })[]>([]);
+  const [budgets, setBudgets] = useState<Tables<'budgets'>[]>([]);
+  const [sharedBudgets, setSharedBudgets] = useState<Tables<'shared_budgets'>[]>([]);
+  const [memberTransactions, setMemberTransactions] = useState<{ id: string; user_id: string; amount: number; type: string; date: string; description?: string; categories?: { name: string; icon: string } | null; profiles?: { display_name: string } | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -57,7 +58,7 @@ const FamilyPage = () => {
     setBudgets(budRes.data || []);
 
     // Get members for each group
-    const membersMap: Record<string, any[]> = {};
+    const membersMap: typeof members = {};
     for (const g of grps) {
       const { data: rawMembers } = await supabase
         .from('family_members')

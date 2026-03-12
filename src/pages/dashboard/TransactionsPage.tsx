@@ -185,8 +185,8 @@ const TransactionsPage = () => {
       [t.date]: tx.date, [t.description]: tx.description,
       [t.type]: tx.type === 'income' ? t.incomeType : t.expenseType,
       [t.amount]: tx.amount,
-      [t.category]: (tx as any).categories?.name || '-',
-      [t.account]: (tx as any).payment_accounts?.name || '-',
+      [t.category]: tx.categories?.name || '-',
+      [t.account]: tx.payment_accounts?.name || '-',
       [t.notes]: tx.notes || '',
     }));
     const ok = format === 'csv' ? exportToCSV(data, 'transactions-selection') : exportToExcel(data, 'transactions-selection');
@@ -330,7 +330,7 @@ const TransactionsPage = () => {
         </h2>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
-            <ArrowLeftRight className="w-4 h-4 mr-1" />{(t as any).makeTransfer}
+            <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
           </Button>
           <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
             <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
@@ -428,11 +428,11 @@ const TransactionsPage = () => {
                   <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors ${selectedIds.has(tx.id) ? 'bg-primary/5' : ''}`}>
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 flex-shrink-0"><Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => toggleSelect(tx.id)} /></div>
-                      <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center text-lg flex-shrink-0">{(tx as any).categories?.icon || '📁'}</div>
+                      <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center text-lg flex-shrink-0">{tx.categories?.icon || '📁'}</div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate">{tx.description}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          {(tx as any).categories?.name || '-'} · {(tx as any).payment_accounts?.icon} {(tx as any).payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
                     </div>

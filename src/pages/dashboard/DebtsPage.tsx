@@ -77,14 +77,14 @@ const DebtsPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold font-display">{(t as any).debts || 'Dettes'}</h2>
+          <h2 className="text-2xl font-bold font-display">{t.debts}</h2>
           {debts.length > 0 && <p className="text-sm text-muted-foreground mt-1">{fmt(totalPaid)} / {fmt(totalDebt)} {locale === 'fr' ? 'remboursé' : 'repaid'}</p>}
         </div>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{(t as any).addDebt || 'Ajouter'}</Button>
+        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button>
       </div>
 
       {debts.length === 0 ? (
-        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><Landmark className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-semibold text-muted-foreground mb-2">{locale === 'fr' ? 'Aucune dette enregistrée' : 'No debts recorded'}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{(t as any).addDebt || 'Ajouter'}</Button></CardContent></Card>
+        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><Landmark className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-semibold text-muted-foreground mb-2">{locale === 'fr' ? 'Aucune dette enregistrée' : 'No debts recorded'}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button></CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {debts.map(d => {
@@ -109,7 +109,7 @@ const DebtsPage = () => {
                   <div className="flex justify-between items-baseline"><span className="text-2xl font-extrabold">{fmt(paid)}</span><span className="text-sm text-muted-foreground">/ {fmt(total)}</span></div>
                   <Progress value={pct} className={`h-3 rounded-full ${pct >= 100 ? '[&>div]:bg-secondary' : '[&>div]:bg-primary'}`} />
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">{(t as any).remainingDebt || 'Restant'}: <span className="font-semibold text-foreground">{fmt(remaining)}</span></p>
+                    <p className="text-xs text-muted-foreground">{t.remainingDebt}: <span className="font-semibold text-foreground">{fmt(remaining)}</span></p>
                     {remaining > 0 && <Button size="sm" variant="outline" className="h-7 text-xs rounded-lg" onClick={() => { setPayDialog(d.id); setPayAmount(''); }}>{locale === 'fr' ? 'Rembourser' : 'Pay'}</Button>}
                     {remaining <= 0 && <span className="text-xs font-bold text-secondary">✓ {locale === 'fr' ? 'Soldé' : 'Paid off'}</span>}
                   </div>
@@ -123,12 +123,12 @@ const DebtsPage = () => {
 
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle className="text-xl font-bold">{editId ? t.edit : ((t as any).addDebt || 'Ajouter une dette')}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Enregistrez une dette à suivre' : 'Record a debt to track'}</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle className="text-xl font-bold">{editId ? t.edit : t.addDebt}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Enregistrez une dette à suivre' : 'Record a debt to track'}</DialogDescription></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).creditor || 'Créancier'}</Label><Input value={form.creditor_name} onChange={e => setForm(f => ({ ...f, creditor_name: e.target.value }))} className="rounded-xl h-11" /></div>
+            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.creditor}</Label><Input value={form.creditor_name} onChange={e => setForm(f => ({ ...f, creditor_name: e.target.value }))} className="rounded-xl h-11" /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).totalDebt || 'Montant total'}</Label><Input type="number" min="1" value={form.total_amount} onChange={e => setForm(f => ({ ...f, total_amount: e.target.value }))} className="rounded-xl h-11" /></div>
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).paidAmount || 'Déjà payé'}</Label><Input type="number" min="0" value={form.paid_amount} onChange={e => setForm(f => ({ ...f, paid_amount: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.totalDebt}</Label><Input type="number" min="1" value={form.total_amount} onChange={e => setForm(f => ({ ...f, total_amount: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.paidAmount}</Label><Input type="number" min="0" value={form.paid_amount} onChange={e => setForm(f => ({ ...f, paid_amount: e.target.value }))} className="rounded-xl h-11" /></div>
             </div>
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.deadline} ({t.optional})</Label><Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="rounded-xl h-11" /></div>
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.notes} ({t.optional})</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="rounded-xl h-11" /></div>

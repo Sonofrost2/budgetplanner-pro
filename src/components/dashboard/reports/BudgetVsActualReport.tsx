@@ -13,7 +13,7 @@ const BudgetVsActualReport = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<{ name: string; icon: string; color: string; budget: number; actual: number; variance: number; pct: number }[]>([]);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -35,10 +35,11 @@ const BudgetVsActualReport = () => {
         const amount = Number(b.amount);
         const variance = amount - spent;
         const pct = amount > 0 ? Math.round((spent / amount) * 100) : 0;
-        return {
-          name: b.name,
-          icon: (b.categories as any)?.icon || '📁',
-          color: (b.categories as any)?.color || '#6C63FF',
+         const cat = b.categories as { icon?: string; color?: string } | null;
+         return {
+           name: b.name,
+           icon: cat?.icon || '📁',
+           color: cat?.color || '#6C63FF',
           budget: amount,
           actual: spent,
           variance,
@@ -68,7 +69,7 @@ const BudgetVsActualReport = () => {
   return (
     <Card className="border-none shadow-[var(--shadow-card)]">
       <CardHeader>
-        <CardTitle className="text-base">{(t as any).budgetVsActual || 'Budget vs Réel'}</CardTitle>
+        <CardTitle className="text-base">{t.budgetVsActual}</CardTitle>
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
@@ -81,8 +82,8 @@ const BudgetVsActualReport = () => {
                   <TableHead>{t.category}</TableHead>
                   <TableHead className="text-right">{locale === 'fr' ? 'Budget' : 'Budget'}</TableHead>
                   <TableHead className="text-right">{locale === 'fr' ? 'Réel' : 'Actual'}</TableHead>
-                  <TableHead className="text-right">{(t as any).variance || 'Écart'}</TableHead>
-                  <TableHead className="min-w-[120px]">{(t as any).consumptionPct || '% Conso.'}</TableHead>
+                  <TableHead className="text-right">{t.variance}</TableHead>
+                  <TableHead className="min-w-[120px]">{t.consumptionPct}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -107,7 +108,7 @@ const BudgetVsActualReport = () => {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell className="font-bold">{(t as any).savingsTotal || 'Total'}</TableCell>
+                  <TableCell className="font-bold">{t.savingsTotal}</TableCell>
                   <TableCell className="text-right font-bold">{fmt(totalBudget)}</TableCell>
                   <TableCell className="text-right font-bold">{fmt(totalActual)}</TableCell>
                   <TableCell className={`text-right font-bold ${totalBudget - totalActual >= 0 ? 'text-secondary' : 'text-destructive'}`}>

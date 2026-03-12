@@ -14,7 +14,7 @@ const DailyJournalReport = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<{ date: string; income: number; expenses: number; net: number; cumIncome: number; cumExpenses: number; balance: number }[]>([]);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -63,7 +63,7 @@ const DailyJournalReport = () => {
   return (
     <Card className="border-none shadow-[var(--shadow-card)]">
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-4 flex-wrap gap-3">
-        <CardTitle className="text-base">{(t as any).dailyJournal || 'Journal quotidien'}</CardTitle>
+        <CardTitle className="text-base">{t.dailyJournal}</CardTitle>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
             <Label className="text-xs text-muted-foreground">{t.startDate}</Label>
@@ -107,7 +107,7 @@ const DailyJournalReport = () => {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell className="font-bold">{(t as any).savingsTotal || 'Total'}</TableCell>
+                  <TableCell className="font-bold">{t.savingsTotal}</TableCell>
                   <TableCell className="text-right font-bold text-secondary">+{fmt(totalIncome)}</TableCell>
                   <TableCell className="text-right font-bold text-destructive">-{fmt(totalExpenses)}</TableCell>
                   <TableCell className={`text-right font-bold ${totalIncome - totalExpenses >= 0 ? 'text-secondary' : 'text-destructive'}`}>{fmt(totalIncome - totalExpenses)}</TableCell>

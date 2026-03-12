@@ -4,6 +4,17 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
+
+interface SavingsContribution {
+  id: string;
+  amount: number;
+  date: string;
+  type: 'deposit' | 'withdrawal';
+  account_name?: string;
+  account_icon?: string;
+  description?: string;
+}
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,9 +35,9 @@ const SavingsPage = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
-  const [goals, setGoals] = useState<any[]>([]);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [contributions, setContributions] = useState<Record<string, any[]>>({});
+  const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [contributions, setContributions] = useState<Record<string, SavingsContribution[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editGoalId, setEditGoalId] = useState<string | null>(null);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
@@ -342,7 +353,7 @@ const SavingsPage = () => {
                 <Input type="number" min="1" step="0.01" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} className="rounded-xl h-11" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).savingsMonthlyContribution || 'Mensualité'}</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.savingsMonthlyContribution}</Label>
                 <Input type="number" min="0" step="0.01" value={form.monthly_contribution} onChange={e => setForm(f => ({ ...f, monthly_contribution: e.target.value }))} className="rounded-xl h-11" placeholder={locale === 'fr' ? 'Ex: 50 000' : 'E.g. 500'} />
               </div>
             </div>

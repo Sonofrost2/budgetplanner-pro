@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useGeolocatedCurrency } from '@/hooks/useGeolocatedCurrency';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +29,7 @@ const OnboardingPage = () => {
   const { formatPrice } = useGeolocatedCurrency();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<Tables<'subscription_plans'>[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
   const [currency, setCurrency] = useState('EUR');
   const [lang, setLang] = useState(locale);
@@ -70,7 +71,7 @@ const OnboardingPage = () => {
 
   const handlePayment = async () => {
     if (!selectedPlanData) return;
-    const price = formatPrice(selectedPlanData.currency_prices || {});
+    const price = formatPrice((selectedPlanData.currency_prices || {}) as Record<string, number>);
     setPaymentLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('paydunya-checkout', {
@@ -110,7 +111,7 @@ const OnboardingPage = () => {
         toast.success(isFr ? 'Paiement confirmé !' : 'Payment confirmed!');
 
         // Save receipt in database
-        const price = formatPrice(selectedPlanData?.currency_prices || {});
+        const price = formatPrice((selectedPlanData?.currency_prices || {}) as Record<string, number>);
         if (user) {
           await supabase.from('payment_receipts').insert({
             user_id: user.id,
@@ -221,7 +222,7 @@ const OnboardingPage = () => {
               <h2 className="text-xl font-bold font-display">{isFr ? 'Choisissez votre plan' : 'Choose your plan'}</h2>
               <div className="space-y-3">
                 {plans.map(plan => {
-                  const price = formatPrice(plan.currency_prices || {});
+                  const price = formatPrice((plan.currency_prices || {}) as Record<string, number>);
                   const isSelected = selectedPlan === plan.name;
                   return (
                     <button key={plan.id} onClick={() => setSelectedPlan(plan.name)}
@@ -239,8 +240,8 @@ const OnboardingPage = () => {
                         </div>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {(plan.features || []).map((f: string, i: number) => (
-                          <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">{f}</span>
+                        {(Array.isArray(plan.features) ? plan.features : []).map((f: unknown, i: number) => (
+                          <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">{String(f)}</span>
                         ))}
                       </div>
                     </button>
@@ -337,7 +338,7 @@ const OnboardingPage = () => {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-lg">{formatPrice(selectedPlanData.currency_prices || {}).formatted}</p>
+                      <p className="font-bold text-lg">{formatPrice((selectedPlanData.currency_prices || {}) as Record<string, number>).formatted}</p>
                       <p className="text-xs text-muted-foreground">/{isFr ? 'mois' : 'mo'}</p>
                     </div>
                   </div>

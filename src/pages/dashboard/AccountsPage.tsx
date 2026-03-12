@@ -19,7 +19,10 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
 
-const getAccountTypes = (t: any) => [
+import type { DashTranslations } from '@/i18n/dashTranslations';
+import type { Account, Transaction } from '@/hooks/useDashboardData';
+
+const getAccountTypes = (t: DashTranslations) => [
   { value: 'mobile_money', label: `📱 ${t.mobileMoney}`, icon: '📱' },
   { value: 'bank', label: `🏦 ${t.bank}`, icon: '🏦' },
   { value: 'cash', label: `💵 ${t.cash}`, icon: '💵' },
@@ -37,11 +40,11 @@ const AccountsPage = () => {
   const t = dashT[locale];
   const [searchParams, setSearchParams] = useSearchParams();
   const typeFilter = searchParams.get('type') || '';
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<{ account_id: string | null; amount: number; type: string }[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
-  const [updateBalanceDialog, setUpdateBalanceDialog] = useState<any>(null);
+  const [editing, setEditing] = useState<Account | null>(null);
+  const [updateBalanceDialog, setUpdateBalanceDialog] = useState<Account | null>(null);
   const [newRealBalance, setNewRealBalance] = useState('');
   const [form, setForm] = useState({ name: '', type: 'mobile_money', icon: '💳', opening_balance: '0' });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -188,7 +191,7 @@ const AccountsPage = () => {
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
-            <ArrowLeftRight className="w-4 h-4 mr-1" />{(t as any).makeTransfer}
+            <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
           </Button>
           <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={accountLimitReached}>
             <Plus className="w-4 h-4 mr-1" />{t.addAccount}

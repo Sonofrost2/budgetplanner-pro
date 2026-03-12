@@ -4,6 +4,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,8 +31,8 @@ const CashCountPage = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency, currency } = useProfile();
   const t = dashT[locale];
-  const [cashAccounts, setCashAccounts] = useState<any[]>([]);
-  const [counts, setCounts] = useState<any[]>([]);
+  const [cashAccounts, setCashAccounts] = useState<Tables<'payment_accounts'>[]>([]);
+  const [counts, setCounts] = useState<(Tables<'cash_counts'> & { payment_accounts?: { name: string; icon: string } | null })[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [quantities, setQuantities] = useState<Record<number, number>>({});
@@ -104,7 +105,7 @@ const CashCountPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold font-display">{(t as any).cashCount || 'PV d\'espèces'}</h2>
+        <h2 className="text-2xl font-bold font-display">{t.cashCount}</h2>
         <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={cashAccounts.length === 0}>
           <Plus className="w-4 h-4 mr-1" />{locale === 'fr' ? 'Nouveau comptage' : 'New count'}
         </Button>
@@ -130,8 +131,8 @@ const CashCountPage = () => {
                   <TableRow>
                     <TableHead>{t.date}</TableHead>
                     <TableHead>{t.account}</TableHead>
-                    <TableHead className="text-right">{(t as any).counted || 'Compté'}</TableHead>
-                    <TableHead className="text-right">{(t as any).expected || 'Attendu'}</TableHead>
+                    <TableHead className="text-right">{t.counted}</TableHead>
+                    <TableHead className="text-right">{t.expected}</TableHead>
                     <TableHead className="text-right">{t.discrepancy}</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
@@ -140,7 +141,7 @@ const CashCountPage = () => {
                   {counts.map(c => (
                     <TableRow key={c.id}>
                       <TableCell className="text-sm">{new Date(c.counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</TableCell>
-                      <TableCell className="text-sm">{(c.payment_accounts as any)?.icon} {(c.payment_accounts as any)?.name}</TableCell>
+                      <TableCell className="text-sm">{c.payment_accounts?.icon} {c.payment_accounts?.name}</TableCell>
                       <TableCell className="text-right text-sm font-medium">{fmt(Number(c.total_counted))}</TableCell>
                       <TableCell className="text-right text-sm">{fmt(Number(c.expected_balance))}</TableCell>
                       <TableCell className={`text-right text-sm font-bold ${Number(c.discrepancy) === 0 ? 'text-secondary' : 'text-destructive'}`}>
@@ -164,7 +165,7 @@ const CashCountPage = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{(t as any).cashCount || 'PV d\'espèces'}</DialogTitle>
+            <DialogTitle className="text-xl font-bold">{t.cashCount}</DialogTitle>
             <DialogDescription>{locale === 'fr' ? 'Comptez les billets et pièces' : 'Count bills and coins'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -179,7 +180,7 @@ const CashCountPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).denomination || 'Dénominations'}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.denomination}</Label>
               <div className="grid grid-cols-2 gap-2">
                 {denoms.map(d => (
                   <div key={d} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">

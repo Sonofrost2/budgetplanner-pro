@@ -1,9 +1,18 @@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
+import type { SavingsGoal } from '@/hooks/useDashboardData';
+
+interface SavingsContribution {
+  id: string;
+  amount: number;
+  date: string;
+  type: string;
+}
+
 interface SavingsControlTableProps {
-  goals: any[];
-  contributions: Record<string, any[]>;
+  goals: SavingsGoal[];
+  contributions: Record<string, SavingsContribution[]>;
   fmt: (n: number) => string;
   t: DashTranslations;
   locale: string;
@@ -58,7 +67,7 @@ export const SavingsControlTable = ({ goals, contributions, fmt, t, locale }: Sa
               <TableHead className="text-right">{locale === 'fr' ? 'Prévu/mois' : 'Planned/mo'}</TableHead>
               <TableHead className="text-right">{locale === 'fr' ? 'Versé ce mois' : 'This month'}</TableHead>
               <TableHead className="text-right">{locale === 'fr' ? 'Cumul' : 'Total'}</TableHead>
-              <TableHead className="text-right">{(t as any).variance || 'Écart'}</TableHead>
+              <TableHead className="text-right">{t.variance}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
