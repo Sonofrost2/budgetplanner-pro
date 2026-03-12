@@ -244,10 +244,10 @@ const BudgetsPage = () => {
       )}
 
       {/* Add Budget Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{t.addBudget}</DialogTitle>
+            <DialogTitle className="text-xl font-bold">{editId ? ((t as any).editBudget || 'Modifier le budget') : t.addBudget}</DialogTitle>
             <DialogDescription>{t.createBudgetDesc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
