@@ -35,10 +35,11 @@ const BudgetVsActualReport = () => {
         const amount = Number(b.amount);
         const variance = amount - spent;
         const pct = amount > 0 ? Math.round((spent / amount) * 100) : 0;
-        return {
-          name: b.name,
-          icon: (b.categories as any)?.icon || '📁',
-          color: (b.categories as any)?.color || '#6C63FF',
+         const cat = b.categories as { icon?: string; color?: string } | null;
+         return {
+           name: b.name,
+           icon: cat?.icon || '📁',
+           color: cat?.color || '#6C63FF',
           budget: amount,
           actual: spent,
           variance,
