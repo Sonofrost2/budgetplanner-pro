@@ -211,7 +211,7 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
             <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
               <div>
                 <p className="text-sm font-bold text-foreground">{fmt(scheduleInfo.monthlyNeeded)}<span className="text-xs font-normal text-muted-foreground"> / {locale === 'fr' ? 'mois' : 'mo'}</span></p>
-                <p className="text-xs text-muted-foreground">{scheduleInfo.monthsLeft} {t.savingsMonthsLeft}</p>
+                <p className="text-xs text-muted-foreground">{scheduleInfo.monthsLeft !== null ? `${scheduleInfo.monthsLeft} ${t.savingsMonthsLeft}` : ''}</p>
               </div>
               <span className={`text-xs font-bold ${statusColors[scheduleInfo.status]}`}>
                 {statusLabels[scheduleInfo.status]}

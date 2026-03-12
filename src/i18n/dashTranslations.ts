@@ -649,6 +649,7 @@ export const dashT = {
     savingsCompleted: 'Reached',
     savingsTotal: 'Total',
     savingsMonthlyNeeded: 'Monthly needed',
+    savingsMonthlyContribution: 'Planned monthly',
     savingsReminder: 'Savings reminder',
     savingsReminderBehind: 'Insufficient contribution for',
     savingsNoContribThisMonth: 'No contribution this month for',
