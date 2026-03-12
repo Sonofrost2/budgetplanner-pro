@@ -72,7 +72,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
 
       if (error) throw error;
 
-      toast.success((t as any).transferSuccess || 'Transfert effectué !');
+      toast.success(t.transferSuccess);
       handleOpenChange(false);
       onSuccess();
     } catch (err: any) {
