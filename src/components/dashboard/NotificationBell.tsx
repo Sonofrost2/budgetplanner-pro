@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertTriangle, CheckCircle2, Bell } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Bell, PiggyBank } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Notification {
