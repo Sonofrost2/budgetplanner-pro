@@ -338,7 +338,7 @@ const OnboardingPage = () => {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-lg">{formatPrice(selectedPlanData.currency_prices || {}).formatted}</p>
+                      <p className="font-bold text-lg">{formatPrice((selectedPlanData.currency_prices || {}) as Record<string, number>).formatted}</p>
                       <p className="text-xs text-muted-foreground">/{isFr ? 'mois' : 'mo'}</p>
                     </div>
                   </div>
