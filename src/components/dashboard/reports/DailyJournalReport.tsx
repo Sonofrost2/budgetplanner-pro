@@ -63,7 +63,7 @@ const DailyJournalReport = () => {
   return (
     <Card className="border-none shadow-[var(--shadow-card)]">
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-4 flex-wrap gap-3">
-        <CardTitle className="text-base">{(t as any).dailyJournal || 'Journal quotidien'}</CardTitle>
+        <CardTitle className="text-base">{t.dailyJournal}</CardTitle>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
             <Label className="text-xs text-muted-foreground">{t.startDate}</Label>
