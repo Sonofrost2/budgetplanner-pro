@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
 interface AccountsSummaryWidgetProps {
@@ -18,6 +19,7 @@ const typeIcons: Record<string, string> = {
 };
 
 export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSummaryWidgetProps) => {
+  const navigate = useNavigate();
   if (accounts.length === 0) return null;
 
   const grouped: Record<string, { total: number; count: number }> = {};
@@ -32,7 +34,7 @@ export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSumm
   const labels = typeLabels[locale] || typeLabels.en;
 
   return (
-    <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+    <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl cursor-pointer" onClick={() => navigate('/dashboard/accounts')}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-bold">{(t as any).accountsSummary || 'Synthèse comptes'}</CardTitle>
       </CardHeader>
