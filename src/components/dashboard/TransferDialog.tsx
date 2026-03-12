@@ -124,7 +124,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
 
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {(t as any).toAccount || 'Compte destination'}
+              {t.toAccount}
             </Label>
             <AccountCombobox
               accounts={accounts}
