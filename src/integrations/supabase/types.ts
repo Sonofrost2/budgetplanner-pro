@@ -429,7 +429,9 @@ export type Database = {
           deadline: string | null
           icon: string
           id: string
+          monthly_contribution: number | null
           name: string
+          start_date: string | null
           target_amount: number
           updated_at: string
           user_id: string
@@ -441,7 +443,9 @@ export type Database = {
           deadline?: string | null
           icon?: string
           id?: string
+          monthly_contribution?: number | null
           name: string
+          start_date?: string | null
           target_amount: number
           updated_at?: string
           user_id: string
@@ -453,7 +457,9 @@ export type Database = {
           deadline?: string | null
           icon?: string
           id?: string
+          monthly_contribution?: number | null
           name?: string
+          start_date?: string | null
           target_amount?: number
           updated_at?: string
           user_id?: string

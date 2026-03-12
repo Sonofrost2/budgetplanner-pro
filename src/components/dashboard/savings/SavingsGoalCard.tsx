@@ -50,12 +50,24 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
 
   // Monthly schedule calculation
   const scheduleInfo = (() => {
-    if (!goal.deadline || done) return null;
-    const deadlineDate = new Date(goal.deadline);
-    const now = new Date();
-    const msLeft = deadlineDate.getTime() - now.getTime();
-    const monthsLeft = Math.max(1, Math.ceil(msLeft / (1000 * 60 * 60 * 24 * 30)));
-    const monthlyNeeded = remaining / monthsLeft;
+    // Use explicit monthly_contribution if set
+    const explicitMonthly = Number(goal.monthly_contribution) || 0;
+    if (done) return null;
+    
+    let monthlyNeeded = explicitMonthly;
+    let monthsLeft: number | null = null;
+
+    if (goal.deadline) {
+      const deadlineDate = new Date(goal.deadline);
+      const now = new Date();
+      const msLeft = deadlineDate.getTime() - now.getTime();
+      monthsLeft = Math.max(1, Math.ceil(msLeft / (1000 * 60 * 60 * 24 * 30)));
+      if (monthlyNeeded <= 0) {
+        monthlyNeeded = remaining / monthsLeft;
+      }
+    }
+
+    if (monthlyNeeded <= 0) return null;
 
     let status: 'on_track' | 'behind' | 'ahead' = 'on_track';
     if (monthlyAvg > 0) {
@@ -110,6 +122,10 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
                 )}
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
+                  {goal.start_date
+                    ? new Date(goal.start_date).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short', year: 'numeric' })
+                    : locale === 'fr' ? 'Pas de début' : 'No start'}
+                  {' → '}
                   {goal.deadline
                     ? new Date(goal.deadline).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short', year: 'numeric' })
                     : t.savingsNoDeadline}
@@ -195,7 +211,7 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
             <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
               <div>
                 <p className="text-sm font-bold text-foreground">{fmt(scheduleInfo.monthlyNeeded)}<span className="text-xs font-normal text-muted-foreground"> / {locale === 'fr' ? 'mois' : 'mo'}</span></p>
-                <p className="text-xs text-muted-foreground">{scheduleInfo.monthsLeft} {t.savingsMonthsLeft}</p>
+                <p className="text-xs text-muted-foreground">{scheduleInfo.monthsLeft !== null ? `${scheduleInfo.monthsLeft} ${t.savingsMonthsLeft}` : ''}</p>
               </div>
               <span className={`text-xs font-bold ${statusColors[scheduleInfo.status]}`}>
                 {statusLabels[scheduleInfo.status]}

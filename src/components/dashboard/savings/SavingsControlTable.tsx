@@ -14,12 +14,16 @@ export const SavingsControlTable = ({ goals, contributions, fmt, t, locale }: Sa
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   const rows = goals
-    .filter(g => Number(g.current_amount) < Number(g.target_amount) && g.deadline)
+    .filter(g => Number(g.current_amount) < Number(g.target_amount) && (g.monthly_contribution > 0 || g.deadline))
     .map(g => {
-      const created = new Date(g.created_at);
-      const deadline = new Date(g.deadline);
-      const totalMonths = Math.max(1, (deadline.getFullYear() - created.getFullYear()) * 12 + deadline.getMonth() - created.getMonth());
-      const plannedMonthly = Number(g.target_amount) / totalMonths;
+      // Use explicit monthly_contribution if set, otherwise calculate from deadline
+      let plannedMonthly = Number(g.monthly_contribution) || 0;
+      if (plannedMonthly <= 0 && g.deadline) {
+        const start = g.start_date ? new Date(g.start_date) : new Date(g.created_at);
+        const deadline = new Date(g.deadline);
+        const totalMonths = Math.max(1, (deadline.getFullYear() - start.getFullYear()) * 12 + deadline.getMonth() - start.getMonth());
+        plannedMonthly = Number(g.target_amount) / totalMonths;
+      }
 
       const goalContribs = contributions[g.id] || [];
       const thisMonthContribs = goalContribs.filter(c => c.type === 'deposit' && c.date?.startsWith(currentMonth));

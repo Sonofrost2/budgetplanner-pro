@@ -22,12 +22,14 @@ const getStatus = (goal: any): 'completed' | 'late' | 'inProgress' => {
 };
 
 const getMonthlyNeeded = (goal: any): number | null => {
+  // Use explicit monthly_contribution if set
+  if (Number(goal.monthly_contribution) > 0) return Number(goal.monthly_contribution);
   if (!goal.deadline) return null;
   const remaining = Number(goal.target_amount) - Number(goal.current_amount);
   if (remaining <= 0) return 0;
-  const now = new Date();
+  const start = goal.start_date ? new Date(goal.start_date) : new Date();
   const dl = new Date(goal.deadline);
-  const monthsLeft = Math.max(1, (dl.getFullYear() - now.getFullYear()) * 12 + dl.getMonth() - now.getMonth());
+  const monthsLeft = Math.max(1, (dl.getFullYear() - start.getFullYear()) * 12 + dl.getMonth() - start.getMonth());
   return remaining / monthsLeft;
 };
 

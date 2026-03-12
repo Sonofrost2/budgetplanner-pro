@@ -35,7 +35,7 @@ const SavingsPage = () => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [targetAccountId, setTargetAccountId] = useState('');
-  const [form, setForm] = useState({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
+  const [form, setForm] = useState({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '' });
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -97,12 +97,16 @@ const SavingsPage = () => {
       const { error } = await supabase.from('savings_goals').update({
         name: form.name.trim(), target_amount: Number(form.target_amount),
         icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
+        monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
+        start_date: form.start_date || null,
       }).eq('id', editGoalId);
       if (error) { toast.error(error.message); return; }
     } else {
       const { error } = await supabase.from('savings_goals').insert({
         user_id: user.id, name: form.name.trim(), target_amount: Number(form.target_amount),
         icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
+        monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
+        start_date: form.start_date || null,
       });
       if (error) { toast.error(error.message); return; }
     }
@@ -247,7 +251,7 @@ const SavingsPage = () => {
         </div>
         <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
           setEditGoalId(null);
-          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
+        setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '' });
           setDialogOpen(true);
         }}>
           <Plus className="w-4 h-4 mr-1" />{t.addGoal}
@@ -264,7 +268,7 @@ const SavingsPage = () => {
             <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
             <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
               setEditGoalId(null);
-              setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
+              setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '' });
               setDialogOpen(true);
             }}>
               <Plus className="w-4 h-4 mr-1" />{t.addGoal}
@@ -289,6 +293,8 @@ const SavingsPage = () => {
                   name: g.name, target_amount: String(g.target_amount),
                   icon: g.icon || '🎯', deadline: g.deadline || '',
                   account_id: g.account_id || '',
+                  monthly_contribution: g.monthly_contribution ? String(g.monthly_contribution) : '',
+                  start_date: g.start_date || '',
                 });
                 setDialogOpen(true);
               }}
@@ -336,7 +342,17 @@ const SavingsPage = () => {
                 <Input type="number" min="1" step="0.01" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} className="rounded-xl h-11" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.deadline}</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).savingsMonthlyContribution || 'Mensualité'}</Label>
+                <Input type="number" min="0" step="0.01" value={form.monthly_contribution} onChange={e => setForm(f => ({ ...f, monthly_contribution: e.target.value }))} className="rounded-xl h-11" placeholder={locale === 'fr' ? 'Ex: 50 000' : 'E.g. 500'} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.startDate}</Label>
+                <Input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} className="rounded-xl h-11" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{locale === 'fr' ? 'Date de fin' : 'End date'}</Label>
                 <Input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} className="rounded-xl h-11" />
               </div>
             </div>
