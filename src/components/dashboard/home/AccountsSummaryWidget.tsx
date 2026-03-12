@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
@@ -30,32 +29,33 @@ export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSumm
     grouped[type].count += 1;
   });
 
-  const total = accounts.reduce((s, a) => s + Number(a.real_balance), 0);
+  const total = accounts.reduce((s: number, a: any) => s + Number(a.real_balance), 0);
   const labels = typeLabels[locale] || typeLabels.en;
 
   return (
-    <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-bold">{(t as any).accountsSummary || 'Synthèse comptes'}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
+    <div className="glass rounded-2xl p-5">
+      <h3 className="text-sm font-bold mb-3">{(t as any).accountsSummary || 'Synthèse comptes'}</h3>
+      <div className="space-y-1.5">
         {Object.entries(grouped).map(([type, { total: subtotal, count }]) => (
-          <div key={type} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0 cursor-pointer rounded-lg px-2 hover:bg-muted/50 active:scale-[0.98] transition-all" onClick={() => navigate(`/dashboard/accounts?type=${type}`)}>
+          <div key={type}
+            className="flex items-center justify-between py-2 px-2.5 rounded-xl hover:bg-muted/30 cursor-pointer active:scale-[0.98] transition-all"
+            onClick={() => navigate(`/dashboard/accounts?type=${type}`)}
+          >
             <div className="flex items-center gap-2">
-              <span className="text-lg">{typeIcons[type] || '💳'}</span>
+              <span className="text-base">{typeIcons[type] || '💳'}</span>
               <div>
-                <p className="text-sm font-medium">{labels[type] || type}</p>
-                <p className="text-[11px] text-muted-foreground">{count} {locale === 'fr' ? 'compte(s)' : 'account(s)'}</p>
+                <p className="text-xs font-medium">{labels[type] || type}</p>
+                <p className="text-[10px] text-muted-foreground">{count} {locale === 'fr' ? 'compte(s)' : 'account(s)'}</p>
               </div>
             </div>
-            <span className="text-sm font-bold">{fmt(subtotal)}</span>
+            <span className="text-xs font-bold">{fmt(subtotal)}</span>
           </div>
         ))}
-        <div className="flex items-center justify-between pt-2 border-t border-border">
-          <span className="text-sm font-bold">{(t as any).savingsTotal || 'Total'}</span>
-          <span className="text-base font-extrabold">{fmt(total)}</span>
+        <div className="flex items-center justify-between pt-2.5 mt-1.5 border-t border-glass-border">
+          <span className="text-xs font-bold">{(t as any).savingsTotal || 'Total'}</span>
+          <span className="text-sm font-extrabold">{fmt(total)}</span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

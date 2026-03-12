@@ -14,9 +14,6 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import OnboardingPage from "./pages/OnboardingPage";
-import AboutPage from "./pages/AboutPage";
-import BlogPage from "./pages/BlogPage";
-import ContactPage from "./pages/ContactPage";
 import LegalPage from "./pages/LegalPage";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
@@ -32,17 +29,14 @@ import AdminPricingPage from "./pages/dashboard/AdminPricingPage";
 import CategoriesPage from "./pages/dashboard/CategoriesPage";
 import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import FamilyPage from "./pages/dashboard/FamilyPage";
-import GuidePage from "./pages/dashboard/GuidePage";
 import DebtsPage from "./pages/dashboard/DebtsPage";
 import RecurringPage from "./pages/dashboard/RecurringPage";
-import CashCountPage from "./pages/dashboard/CashCountPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const AnimatedRoutes = () => {
   const location = useLocation();
-  // Use top-level path segment as key so dashboard sub-routes don't re-animate the shell
   const routeKey = location.pathname.startsWith('/dashboard') ? '/dashboard' : location.pathname;
 
   return (
@@ -54,9 +48,6 @@ const AnimatedRoutes = () => {
         <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
         <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
         <Route path="/onboarding" element={<PageTransition><OnboardingPage /></PageTransition>} />
-        <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
-        <Route path="/blog" element={<PageTransition><BlogPage /></PageTransition>} />
-        <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
         <Route path="/legal/:slug" element={<PageTransition><LegalPage /></PageTransition>} />
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
@@ -71,11 +62,9 @@ const AnimatedRoutes = () => {
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="receipts" element={<ReceiptsPage />} />
           <Route path="family" element={<FamilyPage />} />
-          <Route path="guide" element={<GuidePage />} />
           <Route path="admin/pricing" element={<AdminPricingPage />} />
           <Route path="debts" element={<DebtsPage />} />
           <Route path="recurring" element={<RecurringPage />} />
-          <Route path="cash-count" element={<CashCountPage />} />
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>

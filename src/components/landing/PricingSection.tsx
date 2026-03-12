@@ -42,16 +42,16 @@ const PricingSection = () => {
 
   if (loading || geoLoading) {
     return (
-      <section id="pricing" className="py-28">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+      <section id="pricing" className="py-24">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-14">
             <Skeleton className="h-10 w-64 mx-auto" />
-            <Skeleton className="h-5 w-96 mx-auto mt-4" />
+            <Skeleton className="h-4 w-80 mx-auto mt-4" />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <Skeleton className="h-[500px] rounded-2xl" />
-            <Skeleton className="h-[500px] rounded-2xl" />
-            <Skeleton className="h-[500px] rounded-2xl" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-[440px] rounded-2xl" />
+            <Skeleton className="h-[440px] rounded-2xl" />
+            <Skeleton className="h-[440px] rounded-2xl" />
           </div>
         </div>
       </section>
@@ -61,58 +61,42 @@ const PricingSection = () => {
   const getDisplayPrice = (plan: Plan) => {
     if (plan.name === 'free') {
       const isCfa = detectedCurrency === 'XOF' || detectedCurrency === 'XAF';
-      const formatted = isCfa ? '0 CFA' : detectedCurrency === 'EUR' ? '0 €' : detectedCurrency === 'USD' ? '0 $' : detectedCurrency === 'GBP' ? '0 £' : `0 ${detectedCurrency}`;
+      const formatted = isCfa ? '0 CFA' : detectedCurrency === 'EUR' ? '0 €' : detectedCurrency === 'USD' ? '0 $' : `0 ${detectedCurrency}`;
       return { amount: 0, formatted, currency: detectedCurrency };
     }
     const base = formatPrice(plan.currency_prices);
     if (!base || base.amount === 0) return base;
     if (!annual) return base;
-    // Apply 20% discount for annual
     const discounted = Math.round(base.amount * 0.8 * 100) / 100;
     const { currency } = base;
     const isCfa = currency === 'XOF' || currency === 'XAF';
     const formatted = isCfa
       ? `${Math.round(discounted).toLocaleString('fr-FR')} CFA`
-      : `${discounted.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency}`;
+      : `${discounted.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency}`;
     return { amount: discounted, formatted, currency };
   };
 
-  const proPrice = proPlan ? getDisplayPrice(proPlan) : null;
-  const premiumPrice = premiumPlan ? getDisplayPrice(premiumPlan) : null;
-
   const planCards = [
     {
-      plan: freePlan,
-      name: t.pricing.free,
-      icon: Zap,
+      plan: freePlan, name: t.pricing.free, icon: Zap,
       price: freePlan ? getDisplayPrice(freePlan) : { formatted: '0' },
-      desc: t.pricing.freeDesc,
-      cta: t.pricing.ctaFree,
-      featured: false,
+      cta: t.pricing.ctaFree, featured: false,
       features: freePlan?.features || [],
       excluded: t.pricing.excludedFree as readonly string[],
       trial: 0,
     },
     {
-      plan: proPlan,
-      name: 'Pro',
-      icon: Sparkles,
-      price: proPrice,
-      desc: '',
-      cta: t.pricing.ctaPro,
-      featured: true,
+      plan: proPlan, name: 'Pro', icon: Sparkles,
+      price: proPlan ? getDisplayPrice(proPlan) : null,
+      cta: t.pricing.ctaPro, featured: true,
       features: proPlan?.features || [],
       excluded: t.pricing.excludedPro as readonly string[],
       trial: proPlan?.trial_days || 0,
     },
     {
-      plan: premiumPlan,
-      name: 'Premium',
-      icon: Crown,
-      price: premiumPrice,
-      desc: '',
-      cta: t.pricing.ctaPremium,
-      featured: false,
+      plan: premiumPlan, name: 'Premium', icon: Crown,
+      price: premiumPlan ? getDisplayPrice(premiumPlan) : null,
+      cta: t.pricing.ctaPremium, featured: false,
       features: premiumPlan?.features || [],
       excluded: [] as string[],
       trial: premiumPlan?.trial_days || 0,
@@ -120,129 +104,98 @@ const PricingSection = () => {
   ];
 
   return (
-    <section id="pricing" className="py-28 relative">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-muted/20 to-transparent" />
+    <section id="pricing" className="py-24 relative">
+      <div className="absolute inset-0 mesh-bg opacity-30" />
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-14"
-        >
-          <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-accent/10 text-accent mb-4">
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider glass text-accent mb-4">
             {t.pricing.badge}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">{t.pricing.sectionTitle}</h2>
-          <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">{t.pricing.sectionSubtitle}</p>
+          <p className="mt-4 text-base text-muted-foreground max-w-xl mx-auto">{t.pricing.sectionSubtitle}</p>
         </motion.div>
 
-        {/* Annual toggle */}
-        <div className="flex items-center justify-center gap-4 mb-14">
-          <span className={`text-sm font-semibold transition-colors ${!annual ? 'text-foreground' : 'text-muted-foreground'}`}>
-            {t.pricing.monthly}
-          </span>
+        {/* Toggle */}
+        <div className="flex items-center justify-center gap-3 mb-12">
+          <span className={`text-xs font-semibold ${!annual ? 'text-foreground' : 'text-muted-foreground'}`}>{t.pricing.monthly}</span>
           <button
             onClick={() => setAnnual(!annual)}
-            className={`relative w-14 h-7 rounded-full transition-all duration-300 ${annual ? 'bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]' : 'bg-muted-foreground/25'}`}
+            className={`relative w-12 h-6 rounded-full transition-all ${annual ? 'bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.3)]' : 'bg-muted-foreground/20'}`}
           >
-            <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-300 ${annual ? 'translate-x-7' : 'translate-x-0'}`} />
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-primary-foreground shadow transition-transform ${annual ? 'translate-x-6' : 'translate-x-0'}`} />
           </button>
-          <span className={`text-sm font-semibold transition-colors ${annual ? 'text-foreground' : 'text-muted-foreground'}`}>
-            {t.pricing.annual}
-          </span>
+          <span className={`text-xs font-semibold ${annual ? 'text-foreground' : 'text-muted-foreground'}`}>{t.pricing.annual}</span>
           {annual && (
-            <motion.span
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-xs font-bold text-primary-foreground px-3 py-1 rounded-full"
-              style={{ background: 'var(--gradient-primary)' }}
-            >
+            <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+              className="text-[10px] font-bold text-primary-foreground px-2.5 py-0.5 rounded-full" style={{ background: 'var(--gradient-primary)' }}>
               -20%
             </motion.span>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-start">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
           {planCards.map((card, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.1 }}
-              className={`relative rounded-2xl p-px ${card.featured
-                ? 'bg-gradient-to-b from-primary/50 to-primary/10 shadow-[var(--shadow-elevated)]'
-                : ''
-              }`}
+            <motion.div key={idx} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.08 }}
+              className={`relative rounded-2xl ${card.featured ? 'p-px' : ''}`}
+              style={card.featured ? { background: 'var(--gradient-primary)' } : {}}
             >
               {card.featured && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-                  <span className="px-5 py-1.5 rounded-full text-xs font-bold text-primary-foreground shadow-lg" style={{ background: 'var(--gradient-primary)' }}>
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <span className="px-4 py-1 rounded-full text-[10px] font-bold text-primary-foreground shadow-md" style={{ background: 'var(--gradient-primary)' }}>
                     {t.pricing.popular}
                   </span>
                 </div>
               )}
 
-              <div className={`rounded-2xl p-7 h-full bg-card ${card.featured ? '' : 'border border-border/50'}`}>
-                {/* Header */}
-                <div className="flex items-center gap-3 mb-5">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.featured ? 'bg-primary/15' : 'bg-muted'}`}>
-                    <card.icon className={`w-5 h-5 ${card.featured ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div className={`rounded-2xl p-6 h-full ${card.featured ? 'bg-card' : 'glass'}`}>
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${card.featured ? 'bg-primary/15' : 'bg-muted/60'}`}>
+                    <card.icon className={`w-4 h-4 ${card.featured ? 'text-primary' : 'text-muted-foreground'}`} />
                   </div>
-                  <h3 className="text-xl font-bold">{card.name}</h3>
+                  <h3 className="text-lg font-bold">{card.name}</h3>
                 </div>
 
-                {/* Price */}
-                <div className="mb-6">
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
-                    <span className="text-3xl sm:text-4xl font-extrabold">{card.price?.formatted ?? '—'}</span>
+                <div className="mb-5">
+                  <div className="flex flex-wrap items-baseline gap-x-1.5">
+                    <span className="text-3xl font-extrabold">{card.price?.formatted ?? '—'}</span>
                     {card.plan?.name !== 'free' && (
-                      <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
-                        {annual ? t.pricing.perMonthAnnual : t.pricing.perMonth}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{annual ? t.pricing.perMonthAnnual : t.pricing.perMonth}</span>
                     )}
                   </div>
-                  {annual && card.plan && card.plan.name !== 'free' && (
-                    <p className="mt-1 text-xs text-muted-foreground line-through">
-                      {formatPrice(card.plan.currency_prices)?.formatted} {t.pricing.perMonth}
-                    </p>
-                  )}
                   {card.trial > 0 && (
-                    <p className="mt-2 text-xs font-semibold text-primary bg-primary/10 inline-block px-3 py-1 rounded-full">
+                    <p className="mt-2 text-[10px] font-semibold text-primary bg-primary/10 inline-block px-2.5 py-0.5 rounded-full">
                       {card.trial} {t.pricing.trialDays}
                     </p>
                   )}
                 </div>
 
-                {/* Features */}
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-2.5 mb-6">
                   {card.features.map((f, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm">
-                      <div className="w-5 h-5 rounded-full bg-secondary/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check className="w-3 h-3 text-secondary" />
+                    <li key={i} className="flex items-start gap-2.5 text-xs">
+                      <div className="w-4 h-4 rounded-full bg-secondary/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="w-2.5 h-2.5 text-secondary" />
                       </div>
                       <span>{f}</span>
                     </li>
                   ))}
                   {card.excluded.map((f, i) => (
-                    <li key={`ex-${i}`} className="flex items-start gap-3 text-sm text-muted-foreground/50">
-                      <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <X className="w-3 h-3 text-muted-foreground/40" />
+                    <li key={`ex-${i}`} className="flex items-start gap-2.5 text-xs text-muted-foreground/40">
+                      <div className="w-4 h-4 rounded-full bg-muted/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <X className="w-2.5 h-2.5" />
                       </div>
                       <span className="line-through">{f}</span>
                     </li>
                   ))}
                 </ul>
 
-                {/* CTA */}
                 <Link to="/signup" className="block">
                   {card.featured ? (
-                    <Button className="w-full h-11 text-primary-foreground font-semibold rounded-xl shadow-md hover:shadow-lg transition-shadow" style={{ background: 'var(--gradient-primary)' }}>
+                    <Button className="w-full h-10 text-primary-foreground text-xs font-semibold rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-[1.02]" style={{ background: 'var(--gradient-primary)' }}>
                       {card.cta}
                     </Button>
                   ) : (
-                    <Button variant="outline" className="w-full h-11 font-semibold rounded-xl">
+                    <Button variant="outline" className="w-full h-10 text-xs font-semibold rounded-xl glass border-glass-border hover:bg-glass-hover">
                       {card.cta}
                     </Button>
                   )}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -8,8 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { dashT } from '@/i18n/dashTranslations';
 import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
-  Settings, LogOut, Globe, Menu, X, Sun, Moon, CreditCard, Shield,
-  Tag, Receipt, Search, Crown, Users, HelpCircle, Landmark, RefreshCw, Coins
+  Settings, LogOut, Menu, X, Sun, Moon, CreditCard, Shield,
+  Tag, Receipt, Search, Crown, Users, Landmark, RefreshCw, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,10 +61,8 @@ const DashboardLayout = () => {
     navigate('/');
   };
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+K or Cmd+K: focus global search
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         const searchInput = document.querySelector<HTMLInputElement>('[data-global-search]');
@@ -84,146 +82,164 @@ const DashboardLayout = () => {
   };
 
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background">
+    return <div className="min-h-screen flex items-center justify-center mesh-bg">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center animate-pulse" style={{ background: 'var(--gradient-primary)' }}>
-          <Wallet className="w-5 h-5 text-primary-foreground" />
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center animate-pulse" style={{ background: 'var(--gradient-primary)' }}>
+          <Wallet className="w-6 h-6 text-primary-foreground" />
         </div>
-        <span className="text-sm text-muted-foreground">Chargement...</span>
+        <span className="text-sm text-muted-foreground font-medium">Chargement...</span>
       </div>
     </div>;
   }
 
   if (!user) return null;
 
-  const mainNav = [
-    { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
-    { key: 'transactions', icon: ArrowUpDown, path: '/dashboard/transactions' },
-    { key: 'accounts', icon: CreditCard, path: '/dashboard/accounts' },
-    { key: 'categories', icon: Tag, path: '/dashboard/categories' },
-    { key: 'budgets', icon: PieChart, path: '/dashboard/budgets' },
-    { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
-    { key: 'savings', icon: Target, path: '/dashboard/savings' },
-    { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
-    { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },
-    { key: 'reports', icon: FileText, path: '/dashboard/reports' },
-    { key: 'family', icon: Users, path: '/dashboard/family' },
-  ];
-
-  const secondaryNav = [
-    { key: 'cashCount', icon: Coins, path: '/dashboard/cash-count' },
-    { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
-    { key: 'settings', icon: Settings, path: '/dashboard/settings' },
-    { key: 'payment', icon: Crown, path: '/dashboard/payment' },
-    { key: 'guide', icon: HelpCircle, path: '/dashboard/guide' },
-    ...(isAdmin ? [{ key: 'adminPricing', icon: Shield, path: '/dashboard/admin/pricing' }] : []),
+  const navGroups = [
+    {
+      label: locale === 'fr' ? 'Principal' : 'Main',
+      items: [
+        { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
+        { key: 'transactions', icon: ArrowUpDown, path: '/dashboard/transactions' },
+        { key: 'accounts', icon: CreditCard, path: '/dashboard/accounts' },
+        { key: 'budgets', icon: PieChart, path: '/dashboard/budgets' },
+      ],
+    },
+    {
+      label: locale === 'fr' ? 'Gestion' : 'Management',
+      items: [
+        { key: 'savings', icon: Target, path: '/dashboard/savings' },
+        { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
+        { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },
+        { key: 'categories', icon: Tag, path: '/dashboard/categories' },
+      ],
+    },
+    {
+      label: locale === 'fr' ? 'Analyse' : 'Analytics',
+      items: [
+        { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
+        { key: 'reports', icon: FileText, path: '/dashboard/reports' },
+        { key: 'family', icon: Users, path: '/dashboard/family' },
+      ],
+    },
+    {
+      label: locale === 'fr' ? 'Paramètres' : 'Settings',
+      items: [
+        { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
+        { key: 'payment', icon: Crown, path: '/dashboard/payment' },
+        { key: 'settings', icon: Settings, path: '/dashboard/settings' },
+        ...(isAdmin ? [{ key: 'adminPricing', icon: Shield, path: '/dashboard/admin/pricing' }] : []),
+      ],
+    },
   ];
 
   const renderNavItem = (item: { key: string; icon: any; path: string }) => {
-    const active = location.pathname === item.path;
+    const active = location.pathname === item.path || (item.path === '/dashboard' && location.pathname === '/dashboard');
+    const isExactDashboard = item.key === 'dashboard';
+    const isActive = isExactDashboard ? location.pathname === '/dashboard' : location.pathname === item.path;
+
     return (
       <Link key={item.key} to={item.path} onClick={() => setSidebarOpen(false)}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-          active
-            ? 'bg-primary/10 text-primary shadow-sm'
-            : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+        className={`group flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200 ${
+          isActive
+            ? 'glass text-primary shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
         }`}>
-        <item.icon className="w-[18px] h-[18px]" />
+        <item.icon className={`w-[16px] h-[16px] transition-colors ${isActive ? 'text-primary' : 'group-hover:text-foreground'}`} />
         <span>{t[item.key as keyof typeof t] as string}</span>
-        {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
+        {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: 'var(--gradient-primary)' }} />}
       </Link>
     );
   };
 
   const planColor = userPlan === 'premium' ? 'bg-accent/15 text-accent border-accent/20' :
     userPlan === 'pro' ? 'bg-primary/15 text-primary border-primary/20' :
-    'bg-muted text-muted-foreground border-border';
+    'bg-muted/60 text-muted-foreground border-border';
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen mesh-bg flex">
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-card border-r border-border/50 transform transition-transform lg:translate-x-0 lg:static lg:z-auto flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[240px] glass-strong transform transition-transform lg:translate-x-0 lg:static lg:z-auto flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo */}
-        <div className="flex items-center justify-between p-5 border-b border-border/50">
+        <div className="flex items-center justify-between p-4 border-b border-glass-border">
           <Link to="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md" style={{ background: 'var(--gradient-primary)' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md" style={{ background: 'var(--gradient-primary)' }}>
               <Wallet className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-extrabold font-display text-base">Budget Planner</span>
+            <span className="font-bold font-display text-sm tracking-tight">Budget Planner</span>
           </Link>
-          <Button variant="ghost" size="icon" className="lg:hidden rounded-xl" onClick={() => setSidebarOpen(false)}>
-            <X className="w-4 h-4" />
+          <Button variant="ghost" size="icon" className="lg:hidden rounded-xl h-7 w-7" onClick={() => setSidebarOpen(false)}>
+            <X className="w-3.5 h-3.5" />
           </Button>
         </div>
 
-        {/* Main nav */}
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Menu</p>
-          {mainNav.map(renderNavItem)}
-          
-          <div className="my-3 h-px bg-border/50" />
-          
-          <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Plus</p>
-          {secondaryNav.map(renderNavItem)}
+        {/* Nav groups */}
+        <nav className="flex-1 p-2.5 space-y-4 overflow-y-auto">
+          {navGroups.map((group) => (
+            <div key={group.label}>
+              <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">{group.label}</p>
+              <div className="space-y-0.5">
+                {group.items.map(renderNavItem)}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom */}
-        <div className="p-3 border-t border-border/50 space-y-1">
-          <div className="flex items-center gap-2.5 px-3 py-2.5">
-            <Crown className="w-4 h-4 text-accent" />
-            <Badge variant="outline" className={`text-[10px] font-bold uppercase ${planColor}`}>
+        <div className="p-2.5 border-t border-glass-border space-y-1">
+          <div className="flex items-center gap-2 px-3 py-1.5">
+            <Badge variant="outline" className={`text-[9px] font-bold uppercase ${planColor}`}>
               {userPlan || t.freePlan}
             </Badge>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="flex-1 justify-start gap-2 text-muted-foreground rounded-xl h-9" onClick={toggleTheme}>
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-              <span className="text-xs">{theme === 'light' ? 'Sombre' : 'Clair'}</span>
+          <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="sm" className="flex-1 justify-start gap-2 text-muted-foreground rounded-xl h-8 text-xs" onClick={toggleTheme}>
+              {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+              <span>{theme === 'light' ? 'Sombre' : 'Clair'}</span>
             </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground rounded-xl h-9 w-9" onClick={toggleLocale}>
-              <Globe className="w-4 h-4" />
+            <Button variant="ghost" size="icon" className="text-muted-foreground rounded-xl h-8 w-8" onClick={toggleLocale}>
+              <Globe className="w-3.5 h-3.5" />
             </Button>
           </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive/80 hover:text-destructive hover:bg-destructive/5 rounded-xl h-9" onClick={() => setLogoutDialogOpen(true)}>
-            <LogOut className="w-4 h-4" />
-            <span className="text-xs">{t.logout}</span>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive/70 hover:text-destructive hover:bg-destructive/5 rounded-xl h-8 text-xs" onClick={() => setLogoutDialogOpen(true)}>
+            <LogOut className="w-3.5 h-3.5" />
+            <span>{t.logout}</span>
           </Button>
         </div>
       </aside>
 
-      {sidebarOpen && <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && <div className="fixed inset-0 bg-foreground/10 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       {/* Main */}
       <main className="flex-1 min-w-0">
-        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 lg:px-8 h-16 flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="lg:hidden rounded-xl" onClick={() => setSidebarOpen(true)}>
-            <Menu className="w-5 h-5" />
+        <header className="sticky top-0 z-30 glass border-b border-glass-border px-4 lg:px-6 h-14 flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="lg:hidden rounded-xl h-8 w-8" onClick={() => setSidebarOpen(true)}>
+            <Menu className="w-4 h-4" />
           </Button>
-          <h1 className="text-lg font-bold font-display">
+          <h1 className="text-sm font-semibold font-display truncate">
             {t.welcome}, {profile?.display_name?.split(' ')[0] || 'User'} 👋
           </h1>
           <div className="flex-1" />
           <form onSubmit={handleGlobalSearch} className="hidden sm:flex relative max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
               data-global-search
               value={globalSearch}
               onChange={e => setGlobalSearch(e.target.value)}
-              placeholder={`${t.searchGlobal} (Ctrl+K)`}
-              className="pl-10 h-9 w-56 rounded-xl border-border/50 bg-muted/50 focus:bg-background"
+              placeholder={`${t.searchGlobal} (⌘K)`}
+              className="pl-9 h-8 w-52 rounded-xl border-glass-border bg-glass text-xs focus:bg-background"
             />
           </form>
           <NotificationBell />
         </header>
 
-        <div className="p-4 lg:p-8">
+        <div className="p-4 lg:p-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15 }}
             >
               <Outlet />
             </motion.div>
