@@ -267,6 +267,15 @@ const SavingsPage = () => {
               locale={locale}
               onAddSaving={() => { setAddAmountDialog(g.id); setAddAmount(''); setSourceAccountId(''); }}
               onWithdraw={() => { setWithdrawDialog(g.id); setWithdrawAmount(''); setTargetAccountId(''); }}
+              onEdit={() => {
+                setEditGoalId(g.id);
+                setForm({
+                  name: g.name, target_amount: String(g.target_amount),
+                  icon: g.icon || '🎯', deadline: g.deadline || '',
+                  account_id: g.account_id || '',
+                });
+                setDialogOpen(true);
+              }}
               onDelete={() => setDeleteId(g.id)}
             />
           ))}
