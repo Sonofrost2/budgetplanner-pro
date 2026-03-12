@@ -50,7 +50,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
     const errs: Record<string, string> = {};
     if (!fromAccountId) errs.from = t.nameRequired;
     if (!toAccountId) errs.to = t.nameRequired;
-    if (fromAccountId === toAccountId) errs.to = (t as any).transferSameAccount || 'Comptes identiques';
+    if (fromAccountId === toAccountId) errs.to = t.transferSameAccount;
     if (!amount || Number(amount) <= 0) errs.amount = t.invalidAmount;
     if (Number(amount) > 999999999) errs.amount = t.amountTooHigh;
     setErrors(errs);
