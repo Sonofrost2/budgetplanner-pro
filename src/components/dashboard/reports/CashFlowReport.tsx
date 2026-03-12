@@ -25,7 +25,7 @@ const CashFlowReport = () => {
     supabase.from('transactions').select('type, amount, date')
       .eq('user_id', user.id).gte('date', start).lte('date', end)
       .then(({ data: txs }) => {
-        const months: any[] = [];
+        const months: typeof data = [];
         let carry = 0;
         for (let m = 0; m < 12; m++) {
           const monthTxs = (txs || []).filter(tx => {
