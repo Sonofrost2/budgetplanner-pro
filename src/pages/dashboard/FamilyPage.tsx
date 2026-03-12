@@ -23,13 +23,13 @@ const FamilyPage = () => {
   const { canUseFamily } = useSubscription();
   const t = dashT[locale];
 
-  const [groups, setGroups] = useState<any[]>([]);
-  const [members, setMembers] = useState<Record<string, any[]>>({});
-  const [invitations, setInvitations] = useState<any[]>([]);
-  const [pendingForMe, setPendingForMe] = useState<any[]>([]);
-  const [budgets, setBudgets] = useState<any[]>([]);
-  const [sharedBudgets, setSharedBudgets] = useState<any[]>([]);
-  const [memberTransactions, setMemberTransactions] = useState<any[]>([]);
+  const [groups, setGroups] = useState<Tables<'family_groups'>[]>([]);
+  const [members, setMembers] = useState<Record<string, (Tables<'family_members'> & { display_name?: string; email?: string })[]>>({});
+  const [invitations, setInvitations] = useState<Tables<'family_invitations'>[]>([]);
+  const [pendingForMe, setPendingForMe] = useState<(Tables<'family_invitations'> & { family_groups?: { name: string } })[]>([]);
+  const [budgets, setBudgets] = useState<Tables<'budgets'>[]>([]);
+  const [sharedBudgets, setSharedBudgets] = useState<Tables<'shared_budgets'>[]>([]);
+  const [memberTransactions, setMemberTransactions] = useState<{ user_id: string; amount: number; type: string; date: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [createOpen, setCreateOpen] = useState(false);
