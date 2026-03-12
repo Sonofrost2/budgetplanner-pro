@@ -181,7 +181,7 @@ const DashboardLayout = () => {
               <Globe className="w-4 h-4" />
             </Button>
           </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive/80 hover:text-destructive hover:bg-destructive/5 rounded-xl h-9" onClick={handleLogout}>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive/80 hover:text-destructive hover:bg-destructive/5 rounded-xl h-9" onClick={() => setLogoutDialogOpen(true)}>
             <LogOut className="w-4 h-4" />
             <span className="text-xs">{t.logout}</span>
           </Button>
