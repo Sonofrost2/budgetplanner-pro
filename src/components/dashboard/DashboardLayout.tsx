@@ -9,7 +9,7 @@ import { dashT } from '@/i18n/dashTranslations';
 import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
   Settings, LogOut, Globe, Menu, X, Sun, Moon, CreditCard, Shield,
-  Tag, Receipt, Search, Crown, Users, HelpCircle
+  Tag, Receipt, Search, Crown, Users, HelpCircle, Landmark, RefreshCw, Coins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
