@@ -212,7 +212,7 @@ export const useReportsData = (locale: string) => {
       if (txRes.error) throw txRes.error;
 
       const allTx = txRes.data || [];
-      const months: any[] = [];
+      const months: { name: string; income: number; expenses: number }[] = [];
       for (let i = 11; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const label = d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
