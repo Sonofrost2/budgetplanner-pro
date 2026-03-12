@@ -223,7 +223,7 @@ const BudgetsPage = () => {
                     <span className="text-2xl font-extrabold">{fmt(spent)}</span>
                     <span className="text-sm text-muted-foreground">/ {fmt(amount)}</span>
                   </div>
-                  <Progress value={pct} className={`h-3 rounded-full ${over ? '[&>div]:bg-destructive' : '[&>div]:bg-secondary'}`} />
+                  <Progress value={pct} className={`h-3 rounded-full ${over ? '[&>div]:bg-destructive' : pct >= (b.alert_threshold ?? 80) ? '[&>div]:bg-accent' : '[&>div]:bg-secondary'}`} />
                   {over ? (
                     <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/5 border border-destructive/10">
                       <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
