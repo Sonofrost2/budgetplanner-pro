@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 
 interface Notification {
   id: string;
-  type: 'budget_exceeded' | 'savings_reached';
+  type: 'budget_exceeded' | 'savings_reached' | 'savings_behind';
   title: string;
   message: string;
 }
