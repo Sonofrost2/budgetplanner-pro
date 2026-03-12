@@ -11,11 +11,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox } from 'lucide-react';
+import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { TransferDialog } from '@/components/dashboard/TransferDialog';
 
 const getAccountTypes = (t: any) => [
   { value: 'mobile_money', label: `📱 ${t.mobileMoney}`, icon: '📱' },
@@ -44,6 +45,7 @@ const AccountsPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -169,9 +171,14 @@ const AccountsPage = () => {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold font-display">{t.accounts}</h2>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={accountLimitReached}>
-          <Plus className="w-4 h-4 mr-1" />{t.addAccount}
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
+            <ArrowLeftRight className="w-4 h-4 mr-1" />{(t as any).makeTransfer}
+          </Button>
+          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={accountLimitReached}>
+            <Plus className="w-4 h-4 mr-1" />{t.addAccount}
+          </Button>
+        </div>
       </div>
 
       {accounts.length === 0 ? (
@@ -372,6 +379,17 @@ const AccountsPage = () => {
         cancelLabel={t.cancel}
         confirmLabel={t.delete}
       />
+
+      {user && (
+        <TransferDialog
+          open={transferOpen}
+          onOpenChange={setTransferOpen}
+          accounts={accounts}
+          userId={user.id}
+          t={t}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 };

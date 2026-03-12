@@ -1,0 +1,1 @@
+ALTER TABLE public.transactions ADD COLUMN linked_transfer_id uuid REFERENCES public.transactions(id) ON DELETE SET NULL DEFAULT NULL;

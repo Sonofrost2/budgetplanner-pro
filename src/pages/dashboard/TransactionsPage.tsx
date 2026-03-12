@@ -13,13 +13,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import { useSearchParams } from 'react-router-dom';
 import { exportToCSV, exportToExcel } from '@/lib/export';
+import { TransferDialog } from '@/components/dashboard/TransferDialog';
 
 const PAGE_SIZE = 20;
 
@@ -57,6 +58,7 @@ const TransactionsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -344,9 +346,14 @@ const TransactionsPage = () => {
         <h2 className="text-2xl font-bold font-display">{t.allTransactions}
           {!isPremium && <span className="text-sm font-normal text-muted-foreground ml-2">({thisMonthCount}/{limits.transactionsPerMonth})</span>}
         </h2>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
-          <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
+            <ArrowLeftRight className="w-4 h-4 mr-1" />{(t as any).makeTransfer}
+          </Button>
+          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
+            <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -626,6 +633,17 @@ const TransactionsPage = () => {
       {/* Bulk delete confirm */}
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete}
         title={t.deleteSelection} description={t.bulkDeleteConfirm(selectedIds.size)} cancelLabel={t.cancel} confirmLabel={t.delete} />
+
+      {user && (
+        <TransferDialog
+          open={transferOpen}
+          onOpenChange={setTransferOpen}
+          accounts={accounts}
+          userId={user.id}
+          t={t}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 };
