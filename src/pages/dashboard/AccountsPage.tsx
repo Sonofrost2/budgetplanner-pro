@@ -19,7 +19,10 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
 
-const getAccountTypes = (t: any) => [
+import type { DashTranslations } from '@/i18n/dashTranslations';
+import type { Account, Transaction } from '@/hooks/useDashboardData';
+
+const getAccountTypes = (t: DashTranslations) => [
   { value: 'mobile_money', label: `📱 ${t.mobileMoney}`, icon: '📱' },
   { value: 'bank', label: `🏦 ${t.bank}`, icon: '🏦' },
   { value: 'cash', label: `💵 ${t.cash}`, icon: '💵' },
