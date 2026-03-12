@@ -193,7 +193,11 @@ const DashboardHome = () => {
       </div>
 
       {/* Stats */}
-      <StatsCards balance={totalBalance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t} />
+      <StatsCards
+        balance={totalBalance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t}
+        savingsRate={totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0}
+        netCashFlow={totalIncome - totalExpenses}
+      />
 
       {/* Accounts + Budgets + Savings row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
