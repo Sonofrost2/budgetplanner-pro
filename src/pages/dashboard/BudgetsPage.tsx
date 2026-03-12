@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2, AlertTriangle, PieChart, Inbox, Calendar, Tag } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, PieChart, Inbox, Calendar, Tag, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -28,7 +28,8 @@ const BudgetsPage = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [spending, setSpending] = useState<Record<string, number>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly' });
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly', alert_threshold: '80' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -98,20 +99,37 @@ const BudgetsPage = () => {
       return;
     }
     setErrors({});
-    setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly' });
+    setEditId(null);
+    setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly', alert_threshold: '80' });
+    setDialogOpen(true);
+  };
+
+  const openEdit = (b: any) => {
+    setErrors({});
+    setEditId(b.id);
+    setForm({
+      name: b.name, amount: String(b.amount),
+      category_id: b.category_id || '', period: b.period || 'monthly',
+      alert_threshold: String(b.alert_threshold ?? 80),
+    });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
     if (!user || !validate()) return;
     setSaving(true);
-    const { error } = await supabase.from('budgets').insert({
-      user_id: user.id, name: form.name.trim(), amount: Number(form.amount),
+    const payload = {
+      name: form.name.trim(), amount: Number(form.amount),
       category_id: form.category_id || null, period: form.period,
-    });
+      alert_threshold: Number(form.alert_threshold) || 80,
+    };
+    const { error } = editId
+      ? await supabase.from('budgets').update(payload).eq('id', editId)
+      : await supabase.from('budgets').insert({ ...payload, user_id: user.id });
     if (error) { toast.error(error.message); setSaving(false); return; }
     setSaving(false);
     setDialogOpen(false);
+    setEditId(null);
     fetchData();
     toast.success(t.saved);
   };
@@ -190,9 +208,14 @@ const BudgetsPage = () => {
                         <p className="text-[11px] font-normal text-muted-foreground">{b.categories?.name || '-'} · {periodLabels[b.period] || b.period}</p>
                       </div>
                     </CardTitle>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(b.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(b)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(b.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -200,7 +223,7 @@ const BudgetsPage = () => {
                     <span className="text-2xl font-extrabold">{fmt(spent)}</span>
                     <span className="text-sm text-muted-foreground">/ {fmt(amount)}</span>
                   </div>
-                  <Progress value={pct} className={`h-3 rounded-full ${over ? '[&>div]:bg-destructive' : '[&>div]:bg-secondary'}`} />
+                  <Progress value={pct} className={`h-3 rounded-full ${over ? '[&>div]:bg-destructive' : pct >= (b.alert_threshold ?? 80) ? '[&>div]:bg-accent' : '[&>div]:bg-secondary'}`} />
                   {over ? (
                     <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/5 border border-destructive/10">
                       <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
@@ -221,10 +244,10 @@ const BudgetsPage = () => {
       )}
 
       {/* Add Budget Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{t.addBudget}</DialogTitle>
+            <DialogTitle className="text-xl font-bold">{editId ? ((t as any).editBudget || 'Modifier le budget') : t.addBudget}</DialogTitle>
             <DialogDescription>{t.createBudgetDesc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
@@ -253,6 +276,15 @@ const BudgetsPage = () => {
                   {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Alert threshold */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).alertThreshold || 'Seuil d\'alerte (%)'}</Label>
+              <Input
+                type="number" min="1" max="100" value={form.alert_threshold}
+                onChange={e => setForm(f => ({ ...f, alert_threshold: e.target.value }))}
+                className="rounded-xl h-11 w-24" />
             </div>
 
             {/* Amount + Period row */}

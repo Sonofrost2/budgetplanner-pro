@@ -16,6 +16,7 @@ import { BudgetsWidget } from '@/components/dashboard/home/BudgetsWidget';
 import { ForecastWidget } from '@/components/dashboard/home/ForecastWidget';
 import { ChartsSection } from '@/components/dashboard/home/ChartsSection';
 import { RecentTransactions } from '@/components/dashboard/home/RecentTransactions';
+import { AccountsSummaryWidget } from '@/components/dashboard/home/AccountsSummaryWidget';
 
 type PeriodKey = 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisYear';
 
@@ -192,7 +193,14 @@ const DashboardHome = () => {
       </div>
 
       {/* Stats */}
-      <StatsCards balance={totalBalance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t} />
+      <StatsCards
+        balance={totalBalance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t}
+        savingsRate={totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0}
+        netCashFlow={totalIncome - totalExpenses}
+      />
+
+      {/* Accounts Summary */}
+      <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />
 
       {/* Accounts + Budgets + Savings row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

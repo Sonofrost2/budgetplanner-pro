@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       budgets: {
         Row: {
+          alert_threshold: number | null
           amount: number
           category_id: string | null
           created_at: string
@@ -26,6 +27,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          alert_threshold?: number | null
           amount: number
           category_id?: string | null
           created_at?: string
@@ -36,6 +38,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          alert_threshold?: number | null
           amount?: number
           category_id?: string | null
           created_at?: string

@@ -16,6 +16,7 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 import { SavingsGoalCard } from '@/components/dashboard/savings/SavingsGoalCard';
+import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSummaryTable';
 
 const SavingsPage = () => {
   const { user } = useAuth();
@@ -251,6 +252,8 @@ const SavingsPage = () => {
           <Plus className="w-4 h-4 mr-1" />{t.addGoal}
         </Button>
       </div>
+
+      <SavingsSummaryTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
 
       {goals.length === 0 ? (
         <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">

@@ -3,12 +3,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertTriangle, CheckCircle2, Bell } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Bell, PiggyBank } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Notification {
   id: string;
-  type: 'budget_exceeded' | 'savings_reached';
+  type: 'budget_exceeded' | 'savings_reached' | 'savings_behind';
   title: string;
   message: string;
 }
@@ -67,6 +67,43 @@ export const useBudgetNotifications = () => {
         }
       }
 
+      // Check savings behind schedule
+      const { data: savingsTxs } = await supabase.from('transactions')
+        .select('amount, date, notes')
+        .eq('user_id', user.id).eq('type', 'expense')
+        .like('notes', '🎯 %')
+        .gte('date', monthStart).lte('date', monthEnd);
+
+      for (const goal of savings) {
+        if (Number(goal.current_amount) >= Number(goal.target_amount)) continue;
+        if (!goal.deadline) continue;
+        const dl = new Date(goal.deadline);
+        const nowDate = new Date();
+        if (dl <= nowDate) continue; // already late, handled by status
+        const remaining = Number(goal.target_amount) - Number(goal.current_amount);
+        const monthsLeft = Math.max(1, (dl.getFullYear() - nowDate.getFullYear()) * 12 + dl.getMonth() - nowDate.getMonth());
+        const monthlyNeeded = remaining / monthsLeft;
+
+        const goalContribs = (savingsTxs || []).filter(tx => tx.notes === `🎯 ${goal.name}`);
+        const monthlyActual = goalContribs.reduce((s, tx) => s + Number(tx.amount), 0);
+
+        if (goalContribs.length === 0) {
+          notifs.push({
+            id: `savings-behind-nocontrib-${goal.id}`,
+            type: 'savings_behind',
+            title: (t as any).savingsReminder || 'Rappel épargne',
+            message: `${goal.icon} ${(t as any).savingsNoContribThisMonth || 'Aucun versement ce mois pour'} ${goal.name}`,
+          });
+        } else if (monthlyActual < monthlyNeeded * 0.9) {
+          notifs.push({
+            id: `savings-behind-${goal.id}`,
+            type: 'savings_behind',
+            title: (t as any).savingsReminder || 'Rappel épargne',
+            message: `${goal.icon} ${(t as any).savingsReminderBehind || 'Versement insuffisant pour'} ${goal.name}`,
+          });
+        }
+      }
+
       setNotifications(notifs);
     };
 
@@ -106,6 +143,8 @@ export const NotificationBell = () => {
                 <div key={n.id} className="px-4 py-3 flex items-start gap-3">
                   {n.type === 'budget_exceeded' ? (
                     <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                  ) : n.type === 'savings_behind' ? (
+                    <PiggyBank className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
                   ) : (
                     <CheckCircle2 className="w-4 h-4 text-secondary flex-shrink-0 mt-0.5" />
                   )}
