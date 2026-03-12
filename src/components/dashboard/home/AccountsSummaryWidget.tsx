@@ -36,7 +36,7 @@ export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSumm
 
   return (
     <div className="glass rounded-2xl p-5">
-      <h3 className="text-sm font-bold mb-3">{(t as any).accountsSummary || 'Synthèse comptes'}</h3>
+      <h3 className="text-sm font-bold mb-3">{t.accountsSummary}</h3>
       <div className="space-y-1.5">
         {Object.entries(grouped).map(([type, { total: subtotal, count }]) => (
           <div key={type}
