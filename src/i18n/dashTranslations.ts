@@ -595,6 +595,13 @@ export const dashT = {
     savingsTargetAccount: 'Target account',
     savingsSourceAccount: 'Source account (to debit)',
     savingsEvolution: 'Evolution',
+    editGoal: 'Edit goal',
+    savingsMonthlySchedule: 'Monthly schedule',
+    savingsMonthlyAmount: 'Required monthly contribution',
+    savingsMonthsLeft: 'month(s) left',
+    savingsOnTrack: 'On track',
+    savingsBehind: 'Behind',
+    savingsAhead: 'Ahead',
   },
 } as const;
 
