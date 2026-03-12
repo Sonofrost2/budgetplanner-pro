@@ -24,61 +24,58 @@ const Navbar = () => {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled 
-        ? 'bg-background/90 backdrop-blur-xl border-b border-border shadow-sm' 
+      scrolled
+        ? 'glass border-b border-glass-border shadow-sm'
         : 'bg-transparent border-b border-transparent'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link to={logoTo} className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md" style={{ background: 'var(--gradient-primary)' }}>
-              <Wallet className="w-5 h-5 text-primary-foreground" />
+        <div className="flex items-center justify-between h-14">
+          <Link to={logoTo} className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md" style={{ background: 'var(--gradient-primary)' }}>
+              <Wallet className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="text-xl font-extrabold font-display">Budget Planner</span>
+            <span className="text-lg font-bold font-display">Budget Planner</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">{t.nav.features}</a>
-            <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">{t.nav.pricing}</a>
-            <a href="#testimonials" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">{t.nav.testimonials}</a>
+          <div className="hidden md:flex items-center gap-6">
+            <a href="#features" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">{t.nav.features}</a>
+            <a href="#pricing" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">{t.nav.pricing}</a>
+            <a href="#testimonials" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">{t.nav.testimonials}</a>
           </div>
 
-          <div className="hidden md:flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground rounded-xl">
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+          <div className="hidden md:flex items-center gap-1.5">
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground rounded-xl h-8 w-8">
+              {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
             </Button>
-            <Button variant="ghost" size="icon" onClick={toggleLocale} className="text-muted-foreground rounded-xl">
-              <Globe className="w-4 h-4" />
+            <Button variant="ghost" size="icon" onClick={toggleLocale} className="text-muted-foreground rounded-xl h-8 w-8">
+              <Globe className="w-3.5 h-3.5" />
             </Button>
-            <span className="text-xs font-bold text-muted-foreground uppercase">{locale}</span>
-            <div className="w-px h-6 bg-border mx-1" />
+            <span className="text-[10px] font-bold text-muted-foreground uppercase">{locale}</span>
+            <div className="w-px h-5 bg-border mx-1" />
             {user ? (
               <Link to="/dashboard">
-                <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }}>
-                  {locale === 'fr' ? 'Mon dashboard' : 'My Dashboard'}
+                <Button size="sm" className="text-primary-foreground rounded-xl h-8 text-xs" style={{ background: 'var(--gradient-primary)' }}>
+                  {locale === 'fr' ? 'Dashboard' : 'Dashboard'}
                 </Button>
               </Link>
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="ghost" size="sm" className="rounded-xl">{t.nav.login}</Button>
+                  <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs">{t.nav.login}</Button>
                 </Link>
                 <Link to="/signup">
-                  <Button size="sm" className="text-primary-foreground rounded-xl shadow-md" style={{ background: 'var(--gradient-primary)' }}>{t.nav.signup}</Button>
+                  <Button size="sm" className="text-primary-foreground rounded-xl h-8 text-xs shadow-md" style={{ background: 'var(--gradient-primary)' }}>{t.nav.signup}</Button>
                 </Link>
               </>
             )}
           </div>
 
           <div className="md:hidden flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl">
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl h-8 w-8">
+              {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
             </Button>
-            <Button variant="ghost" size="icon" onClick={toggleLocale} className="rounded-xl">
-              <Globe className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)} className="rounded-xl">
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)} className="rounded-xl h-8 w-8">
+              {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </Button>
           </div>
         </div>
@@ -87,25 +84,25 @@ const Navbar = () => {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-background/95 backdrop-blur-xl border-b border-border overflow-hidden">
-            <div className="px-4 py-5 space-y-3">
-              <a href="#features" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm font-medium text-muted-foreground">{t.nav.features}</a>
-              <a href="#pricing" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm font-medium text-muted-foreground">{t.nav.pricing}</a>
-              <a href="#testimonials" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm font-medium text-muted-foreground">{t.nav.testimonials}</a>
-              <div className="pt-3 flex flex-col gap-2.5">
+            className="md:hidden glass-strong border-b border-glass-border overflow-hidden">
+            <div className="px-4 py-4 space-y-2">
+              <a href="#features" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-muted-foreground">{t.nav.features}</a>
+              <a href="#pricing" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-muted-foreground">{t.nav.pricing}</a>
+              <a href="#testimonials" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-muted-foreground">{t.nav.testimonials}</a>
+              <div className="pt-3 flex flex-col gap-2">
                 {user ? (
                   <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
-                    <Button className="w-full text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }}>
-                      {locale === 'fr' ? 'Mon dashboard' : 'My Dashboard'}
+                    <Button className="w-full text-primary-foreground rounded-xl h-9 text-xs" style={{ background: 'var(--gradient-primary)' }}>
+                      Dashboard
                     </Button>
                   </Link>
                 ) : (
                   <>
                     <Link to="/login" onClick={() => setMobileOpen(false)}>
-                      <Button variant="outline" className="w-full rounded-xl">{t.nav.login}</Button>
+                      <Button variant="outline" className="w-full rounded-xl h-9 text-xs">{t.nav.login}</Button>
                     </Link>
                     <Link to="/signup" onClick={() => setMobileOpen(false)}>
-                      <Button className="w-full text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }}>{t.nav.signup}</Button>
+                      <Button className="w-full text-primary-foreground rounded-xl h-9 text-xs" style={{ background: 'var(--gradient-primary)' }}>{t.nav.signup}</Button>
                     </Link>
                   </>
                 )}

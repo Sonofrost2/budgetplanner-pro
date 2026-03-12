@@ -1,5 +1,4 @@
 import type { DashTranslations } from '@/i18n/dashTranslations';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,60 +14,60 @@ interface ChartsSectionProps {
 
 export const ChartsSection = ({ monthlyData, categoryData, fmt, t }: ChartsSectionProps) => (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-    <Card className="border border-border/50 shadow-[var(--shadow-card)]">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-bold flex items-center gap-2">
+    <div className="glass rounded-2xl overflow-hidden">
+      <div className="p-4 pb-3">
+        <h3 className="text-sm font-bold flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
             <BarChart3 className="w-3.5 h-3.5 text-primary" />
           </div>
           {t.monthlyOverview}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="h-64">
+        </h3>
+      </div>
+      <div className="px-4 pb-4">
+        <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={monthlyData}>
               <defs>
                 <linearGradient id="incG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(170, 65%, 45%)" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="hsl(170, 65%, 45%)" stopOpacity={0} />
+                  <stop offset="5%" stopColor="hsl(165, 70%, 46%)" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="hsl(165, 70%, 46%)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="expG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(250, 70%, 58%)" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="hsl(250, 70%, 58%)" stopOpacity={0} />
+                  <stop offset="5%" stopColor="hsl(250, 85%, 60%)" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="hsl(250, 85%, 60%)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 45%)" axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11 }} stroke="hsl(220, 10%, 45%)" axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 15%, 88%)" vertical={false} opacity={0.4} />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(225, 10%, 45%)" axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10 }} stroke="hsl(225, 10%, 45%)" axisLine={false} tickLine={false} />
               <Tooltip
                 formatter={(v: number) => fmt(v)}
-                contentStyle={{ borderRadius: '12px', border: '1px solid hsl(220, 15%, 90%)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                contentStyle={{ borderRadius: '12px', border: 'none', background: 'hsl(var(--glass))', backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-glass)', fontSize: '11px' }}
               />
-              <Area type="monotone" dataKey="income" stroke="hsl(170, 65%, 45%)" fill="url(#incG)" strokeWidth={2.5} name={t.income} />
-              <Area type="monotone" dataKey="expenses" stroke="hsl(250, 70%, 58%)" fill="url(#expG)" strokeWidth={2.5} name={t.expenses} />
+              <Area type="monotone" dataKey="income" stroke="hsl(165, 70%, 46%)" fill="url(#incG)" strokeWidth={2} name={t.income} />
+              <Area type="monotone" dataKey="expenses" stroke="hsl(250, 85%, 60%)" fill="url(#expG)" strokeWidth={2} name={t.expenses} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
 
-    <Card className="border border-border/50 shadow-[var(--shadow-card)]">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-bold flex items-center gap-2">
+    <div className="glass rounded-2xl overflow-hidden">
+      <div className="p-4 pb-3">
+        <h3 className="text-sm font-bold flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
             <PieChartIcon className="w-3.5 h-3.5 text-accent" />
           </div>
           {t.expenseByCategory}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
+        </h3>
+      </div>
+      <div className="px-4 pb-4">
         {categoryData.length === 0 ? (
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">{t.noTransactions}</p>
+          <div className="h-56 flex items-center justify-center">
+            <p className="text-xs text-muted-foreground">{t.noTransactions}</p>
           </div>
         ) : (
-          <div className="h-64">
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -77,12 +76,12 @@ export const ChartsSection = ({ monthlyData, categoryData, fmt, t }: ChartsSecti
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={85}
-                  innerRadius={50}
+                  outerRadius={75}
+                  innerRadius={45}
                   strokeWidth={2}
-                  stroke="hsl(var(--card))"
+                  stroke="transparent"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={{ strokeWidth: 1 }}
+                  labelLine={{ strokeWidth: 1, stroke: 'hsl(var(--muted-foreground))' }}
                 >
                   {categoryData.map((entry, i) => (
                     <Cell key={i} fill={entry.color} />
@@ -90,13 +89,13 @@ export const ChartsSection = ({ monthlyData, categoryData, fmt, t }: ChartsSecti
                 </Pie>
                 <Tooltip
                   formatter={(v: number) => fmt(v)}
-                  contentStyle={{ borderRadius: '12px', border: '1px solid hsl(220, 15%, 90%)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', background: 'hsl(var(--glass))', backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-glass)', fontSize: '11px' }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   </div>
 );
