@@ -45,6 +45,7 @@ const AccountsPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
