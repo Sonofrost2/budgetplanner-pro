@@ -17,6 +17,7 @@ import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 import { SavingsGoalCard } from '@/components/dashboard/savings/SavingsGoalCard';
 import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSummaryTable';
+import { SavingsControlTable } from '@/components/dashboard/savings/SavingsControlTable';
 
 const SavingsPage = () => {
   const { user } = useAuth();
