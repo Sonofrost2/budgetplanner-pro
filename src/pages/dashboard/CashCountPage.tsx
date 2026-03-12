@@ -30,8 +30,8 @@ const CashCountPage = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency, currency } = useProfile();
   const t = dashT[locale];
-  const [cashAccounts, setCashAccounts] = useState<any[]>([]);
-  const [counts, setCounts] = useState<any[]>([]);
+  const [cashAccounts, setCashAccounts] = useState<Tables<'payment_accounts'>[]>([]);
+  const [counts, setCounts] = useState<(Tables<'cash_counts'> & { payment_accounts?: { name: string; icon: string } | null })[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [quantities, setQuantities] = useState<Record<number, number>>({});

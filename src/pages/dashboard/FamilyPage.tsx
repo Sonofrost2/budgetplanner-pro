@@ -57,7 +57,7 @@ const FamilyPage = () => {
     setBudgets(budRes.data || []);
 
     // Get members for each group
-    const membersMap: Record<string, any[]> = {};
+    const membersMap: typeof members = {};
     for (const g of grps) {
       const { data: rawMembers } = await supabase
         .from('family_members')

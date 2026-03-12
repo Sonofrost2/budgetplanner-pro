@@ -19,8 +19,8 @@ const AdminPricingPage = () => {
   const { isAdmin, loading: roleLoading } = useRole();
   const { locale } = useLanguage();
   const isFr = locale === 'fr';
-  const [plans, setPlans] = useState<any[]>([]);
-  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [plans, setPlans] = useState<Tables<'subscription_plans'>[]>([]);
+  const [editingPlan, setEditingPlan] = useState<Tables<'subscription_plans'> | null>(null);
   const [form, setForm] = useState({ name: '', base_price: '', trial_days: '', features: '', active: true, currency_prices: {} as Record<string, string> });
 
   const fetchPlans = useCallback(async () => {

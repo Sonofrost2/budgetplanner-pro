@@ -28,7 +28,7 @@ const OnboardingPage = () => {
   const { formatPrice } = useGeolocatedCurrency();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<Tables<'subscription_plans'>[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
   const [currency, setCurrency] = useState('EUR');
   const [lang, setLang] = useState(locale);
