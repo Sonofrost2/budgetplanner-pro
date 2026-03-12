@@ -111,6 +111,7 @@ const DashboardLayout = () => {
   ];
 
   const secondaryNav = [
+    { key: 'cashCount', icon: Coins, path: '/dashboard/cash-count' },
     { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
     { key: 'settings', icon: Settings, path: '/dashboard/settings' },
     { key: 'payment', icon: Crown, path: '/dashboard/payment' },
