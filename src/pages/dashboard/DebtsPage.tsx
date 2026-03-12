@@ -109,7 +109,7 @@ const DebtsPage = () => {
                   <div className="flex justify-between items-baseline"><span className="text-2xl font-extrabold">{fmt(paid)}</span><span className="text-sm text-muted-foreground">/ {fmt(total)}</span></div>
                   <Progress value={pct} className={`h-3 rounded-full ${pct >= 100 ? '[&>div]:bg-secondary' : '[&>div]:bg-primary'}`} />
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">{(t as any).remainingDebt || 'Restant'}: <span className="font-semibold text-foreground">{fmt(remaining)}</span></p>
+                    <p className="text-xs text-muted-foreground">{t.remainingDebt}: <span className="font-semibold text-foreground">{fmt(remaining)}</span></p>
                     {remaining > 0 && <Button size="sm" variant="outline" className="h-7 text-xs rounded-lg" onClick={() => { setPayDialog(d.id); setPayAmount(''); }}>{locale === 'fr' ? 'Rembourser' : 'Pay'}</Button>}
                     {remaining <= 0 && <span className="text-xs font-bold text-secondary">✓ {locale === 'fr' ? 'Soldé' : 'Paid off'}</span>}
                   </div>
