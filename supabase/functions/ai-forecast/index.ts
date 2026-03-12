@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,17 +10,43 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // JWT validation
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(authHeader.replace("Bearer ", ""));
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const { transactions, categories, locale } = await req.json();
+
+    // Anonymize transaction descriptions before sending to AI
+    const anonymizedTransactions = (transactions || []).map((tx: any) => ({
+      type: tx.type,
+      amount: tx.amount,
+      date: tx.date,
+      category_id: tx.category_id,
+      category_name: tx.categories?.name || null,
+    }));
 
     const systemPrompt = locale === 'fr'
       ? `Tu es un expert en finances personnelles. Analyse les transactions fournies et génère des prévisions financières détaillées et globales sur 6 mois. Sois précis, pragmatique et adapté au contexte africain/francophone si les montants sont en CFA.`
       : `You are a personal finance expert. Analyze the provided transactions and generate detailed and global financial forecasts for 6 months. Be precise, pragmatic, and adapted to the user's context.`;
 
     const userPrompt = `Here is the user's transaction data (last 6 months):
-${JSON.stringify(transactions, null, 2)}
+${JSON.stringify(anonymizedTransactions, null, 2)}
 
 Categories: ${JSON.stringify(categories)}
 

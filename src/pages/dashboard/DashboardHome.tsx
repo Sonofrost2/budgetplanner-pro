@@ -51,7 +51,6 @@ const DashboardHome = () => {
   const t = dashT[locale];
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<{ name: string; income: number; expenses: number }[]>([]);
   const [categoryData, setCategoryData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -79,16 +78,13 @@ const DashboardHome = () => {
         .order('created_at', { ascending: false }).limit(5),
       supabase.from('budgets').select('*').eq('user_id', user.id)
         .order('created_at', { ascending: false }).limit(5),
-      supabase.from('transactions').select('type, amount, account_id')
-        .eq('user_id', user.id),
-    ]).then(([txRes, catRes, accRes, savRes, budRes, allTxRes]) => {
+    ]).then(([txRes, catRes, accRes, savRes, budRes]) => {
       if (txRes.error) console.error('Transactions fetch error:', txRes.error.message);
       if (accRes.error) console.error('Accounts fetch error:', accRes.error.message);
       if (savRes.error) console.error('Savings fetch error:', savRes.error.message);
       if (budRes.error) console.error('Budgets fetch error:', budRes.error.message);
 
       setTransactions(txRes.data || []);
-      setAllTransactions(allTxRes.data || []);
       setAccounts(accRes.data || []);
       setSavingsGoals(savRes.data || []);
 

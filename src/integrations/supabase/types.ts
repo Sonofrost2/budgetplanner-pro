@@ -561,6 +561,20 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      perform_transfer: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_from_account_id: string
+          p_to_account_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      recalculate_account_balance: {
+        Args: { p_account_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"
