@@ -294,11 +294,11 @@ const SavingsPage = () => {
       )}
 
       {/* Create Goal Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditGoalId(null); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{t.addGoal}</DialogTitle>
-            <DialogDescription>{locale === 'fr' ? 'Définissez un objectif d\'épargne' : 'Set a savings goal'}</DialogDescription>
+            <DialogTitle className="text-xl font-bold">{editGoalId ? t.editGoal : t.addGoal}</DialogTitle>
+            <DialogDescription>{locale === 'fr' ? (editGoalId ? 'Modifiez votre objectif d\'épargne' : 'Définissez un objectif d\'épargne') : (editGoalId ? 'Edit your savings goal' : 'Set a savings goal')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
