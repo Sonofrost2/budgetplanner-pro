@@ -47,7 +47,7 @@ const BudgetsPage = () => {
 
     // Fetch ALL expense transactions (we'll filter per-budget period client-side)
     const { data: txs } = await supabase.from('transactions').select('category_id, amount, date')
-      .eq('user_id', user.id).eq('type', 'expense');
+      .eq('user_id', user.id).eq('type', 'expense').limit(10000);
 
     // Calculate spending per category per budget period
     const budgetsData = budRes.data || [];
