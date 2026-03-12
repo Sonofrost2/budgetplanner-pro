@@ -104,6 +104,8 @@ const DashboardLayout = () => {
     { key: 'budgets', icon: PieChart, path: '/dashboard/budgets' },
     { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
     { key: 'savings', icon: Target, path: '/dashboard/savings' },
+    { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
+    { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },
     { key: 'reports', icon: FileText, path: '/dashboard/reports' },
     { key: 'family', icon: Users, path: '/dashboard/family' },
   ];
