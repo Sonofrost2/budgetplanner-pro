@@ -190,7 +190,7 @@ const AccountsPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {accounts.map(acc => {
-            const theoretical = getTheoreticalBalance(acc.id, Number(acc.opening_balance));
+            const theoretical = getTheoreticalBalance(acc.id);
             const real = Number(acc.real_balance);
             const discrepancy = real - theoretical;
             return (
