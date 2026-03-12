@@ -5,7 +5,8 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { useAllTransactions, useCategories, useAccounts, useInvalidate } from '@/hooks/useDashboardData';
+import { usePaginatedTransactions, useCategories, useAccounts, useInvalidate, type Transaction } from '@/hooks/useDashboardData';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,12 +37,6 @@ const TransactionsPage = () => {
   const [searchParams] = useSearchParams();
   const { invalidate } = useInvalidate();
 
-  // React Query data
-  const { data: transactions = [], isLoading: txLoading } = useAllTransactions();
-  const { data: categories = [], isLoading: catLoading } = useCategories();
-  const { data: accounts = [], isLoading: accLoading } = useAccounts();
-  const loading = txLoading || catLoading || accLoading;
-
   // Local UI state
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -66,10 +61,80 @@ const TransactionsPage = () => {
   const [transferOpen, setTransferOpen] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // Server-side paginated transactions
+  const { data: paginatedResult, isLoading: txLoading, isFetching: txFetching } = usePaginatedTransactions({
+    page,
+    pageSize: PAGE_SIZE,
+    type: filterType !== 'all' ? filterType : undefined,
+    categoryId: filterCategory !== 'all' ? filterCategory : undefined,
+    accountId: filterAccount !== 'all' ? filterAccount : undefined,
+    search: debouncedSearch || undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+    sortField,
+    sortOrder,
+  });
+
+  const transactions = paginatedResult?.data ?? [];
+  const totalCount = paginatedResult?.totalCount ?? 0;
+  const totalPages = paginatedResult?.totalPages ?? 1;
+
+  const { data: categories = [], isLoading: catLoading } = useCategories();
+  const { data: accounts = [], isLoading: accLoading } = useAccounts();
+
+  // Lightweight count query for this month's transactions (limit checking)
+  const monthStart = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  }, []);
+
+  const { data: thisMonthCount = 0 } = useQuery({
+    queryKey: ['tx-month-count', user?.id, monthStart],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .gte('date', monthStart);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+
+  // Lightweight description suggestions query (last 200 unique descriptions)
+  const { data: recentDescriptions = [] } = useQuery({
+    queryKey: ['tx-descriptions', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('description, category_id, account_id, amount')
+        .eq('user_id', user!.id)
+        .order('date', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      // Deduplicate by description
+      const seen = new Set<string>();
+      return (data ?? []).filter(tx => {
+        const key = tx.description.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, 200);
+    },
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+
+  const loading = txLoading || catLoading || accLoading;
+
   const fmt = (n: number) => fmtCurrency(n, locale);
 
   const refreshData = () => {
-    invalidate('all-transactions', 'accounts', 'chart-data', 'transactions');
+    invalidate('paginated-transactions', 'accounts', 'chart-data', 'transactions', 'all-transactions');
+    // Also invalidate month count
+    invalidate('tx-month-count', 'tx-descriptions');
   };
 
   // Debounced search
@@ -86,58 +151,23 @@ const TransactionsPage = () => {
     setSearchQuery(''); setDebouncedSearch(''); setStartDate(''); setEndDate('');
   };
 
-  const filtered = useMemo(() => {
-    let result = transactions.filter(tx => {
-      if (filterType !== 'all' && tx.type !== filterType) return false;
-      if (filterCategory !== 'all' && tx.category_id !== filterCategory) return false;
-      if (filterAccount !== 'all' && tx.account_id !== filterAccount) return false;
-      if (debouncedSearch) {
-        const q = debouncedSearch.toLowerCase();
-        const matchDesc = tx.description?.toLowerCase().includes(q);
-        const matchNotes = tx.notes?.toLowerCase().includes(q);
-        const matchCat = (tx as any).categories?.name?.toLowerCase().includes(q);
-        const matchAcc = (tx as any).payment_accounts?.name?.toLowerCase().includes(q);
-        if (!matchDesc && !matchNotes && !matchCat && !matchAcc) return false;
-      }
-      if (startDate && tx.date < startDate) return false;
-      if (endDate && tx.date > endDate) return false;
-      return true;
-    });
-    result.sort((a, b) => {
-      let cmp = 0;
-      if (sortField === 'date') cmp = a.date.localeCompare(b.date);
-      else if (sortField === 'amount') cmp = Number(a.amount) - Number(b.amount);
-      else if (sortField === 'description') cmp = (a.description || '').localeCompare(b.description || '');
-      return sortOrder === 'asc' ? cmp : -cmp;
-    });
-    return result;
-  }, [transactions, filterType, filterCategory, filterAccount, debouncedSearch, startDate, endDate, sortField, sortOrder]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
+  // Reset page on filter change
   useEffect(() => { setPage(0); }, [filterType, filterCategory, filterAccount, debouncedSearch, startDate, endDate]);
-  useEffect(() => { setSelectedIds(new Set()); }, [filterType, filterCategory, filterAccount, debouncedSearch, startDate, endDate]);
-
-  const thisMonthCount = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    return transactions.filter(tx => tx.date >= start).length;
-  }, [transactions]);
+  useEffect(() => { setSelectedIds(new Set()); }, [filterType, filterCategory, filterAccount, debouncedSearch, startDate, endDate, page]);
 
   const limitReached = !isPremium && thisMonthCount >= limits.transactionsPerMonth;
 
-  const allPageSelected = paginated.length > 0 && paginated.every(tx => selectedIds.has(tx.id));
+  const allPageSelected = transactions.length > 0 && transactions.every(tx => selectedIds.has(tx.id));
   const someSelected = selectedIds.size > 0;
 
   const toggleSelectAll = () => {
     if (allPageSelected) {
       const next = new Set(selectedIds);
-      paginated.forEach(tx => next.delete(tx.id));
+      transactions.forEach(tx => next.delete(tx.id));
       setSelectedIds(next);
     } else {
       const next = new Set(selectedIds);
-      paginated.forEach(tx => next.add(tx.id));
+      transactions.forEach(tx => next.add(tx.id));
       setSelectedIds(next);
     }
   };
@@ -182,6 +212,7 @@ const TransactionsPage = () => {
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
     else { setSortField(field); setSortOrder('desc'); }
+    setPage(0);
   };
 
   const validate = () => {
@@ -271,12 +302,10 @@ const TransactionsPage = () => {
   const descriptionSuggestions = useMemo(() => {
     if (!form.description || form.description.length < 2) return [];
     const q = form.description.toLowerCase();
-    const seen = new Set<string>();
-    return transactions
-      .filter(tx => tx.description.toLowerCase().includes(q) && !seen.has(tx.description.toLowerCase()) && (seen.add(tx.description.toLowerCase()), true))
-      .slice(0, 5)
-      .map(tx => ({ description: tx.description, category_id: tx.category_id, account_id: tx.account_id, amount: tx.amount }));
-  }, [form.description, transactions]);
+    return recentDescriptions
+      .filter(tx => tx.description.toLowerCase().includes(q))
+      .slice(0, 5);
+  }, [form.description, recentDescriptions]);
 
   if (loading) {
     return (
@@ -289,6 +318,7 @@ const TransactionsPage = () => {
   }
 
   const filteredCategories = categories.filter(c => c.type === form.type);
+  const isEmpty = totalCount === 0 && !hasActiveFilters;
 
   return (
     <div className="space-y-6">
@@ -362,12 +392,12 @@ const TransactionsPage = () => {
       )}
 
       {/* Transactions list */}
-      <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden">
+      <Card className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden ${txFetching && !txLoading ? 'opacity-70 transition-opacity' : ''}`}>
         <CardContent className="p-0">
-          {filtered.length === 0 ? (
+          {transactions.length === 0 ? (
             <div className="py-16 text-center">
               <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center"><Inbox className="w-7 h-7 text-muted-foreground/40" /></div>
-              {transactions.length === 0 ? (
+              {isEmpty ? (
                 <>
                   <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noTransactions}</p>
                   <p className="text-sm text-muted-foreground/70 mb-4">{t.addFirstTransaction}</p>
@@ -394,7 +424,7 @@ const TransactionsPage = () => {
                 </button>
               </div>
               <div className="divide-y divide-border/50">
-                {paginated.map(tx => (
+                {transactions.map(tx => (
                   <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors ${selectedIds.has(tx.id) ? 'bg-primary/5' : ''}`}>
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 flex-shrink-0"><Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => toggleSelect(tx.id)} /></div>
@@ -417,7 +447,7 @@ const TransactionsPage = () => {
                 ))}
               </div>
               <div className="flex items-center justify-between px-5 py-3.5 border-t border-border/50 bg-muted/20">
-                <span className="text-xs text-muted-foreground">{filtered.length} {t.results} — {t.page} {page + 1}/{totalPages}</span>
+                <span className="text-xs text-muted-foreground">{totalCount} {t.results} — {t.page} {page + 1}/{totalPages}</span>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="rounded-xl h-8" disabled={page === 0} onClick={() => setPage(p => p - 1)}><ChevronLeft className="w-3.5 h-3.5 mr-1" />{t.previous}</Button>
                   <Button variant="outline" size="sm" className="rounded-xl h-8" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>{t.next}<ChevronRight className="w-3.5 h-3.5 ml-1" /></Button>
