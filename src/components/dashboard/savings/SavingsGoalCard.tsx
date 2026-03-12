@@ -122,6 +122,10 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
                 )}
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
+                  {goal.start_date
+                    ? new Date(goal.start_date).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short', year: 'numeric' })
+                    : locale === 'fr' ? 'Pas de début' : 'No start'}
+                  {' → '}
                   {goal.deadline
                     ? new Date(goal.deadline).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short', year: 'numeric' })
                     : t.savingsNoDeadline}
