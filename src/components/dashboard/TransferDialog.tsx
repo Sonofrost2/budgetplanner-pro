@@ -90,8 +90,8 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">{(t as any).transfer || 'Transfert'}</DialogTitle>
-          <DialogDescription>{(t as any).transferDesc || 'Transférer des fonds entre vos comptes'}</DialogDescription>
+          <DialogTitle className="text-xl font-bold">{t.transfer}</DialogTitle>
+          <DialogDescription>{t.transferDesc}</DialogDescription>
         </DialogHeader>
         <div className="space-y-5 py-2">
           {fromAcc && toAcc && (
