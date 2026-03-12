@@ -289,6 +289,8 @@ const SavingsPage = () => {
                   name: g.name, target_amount: String(g.target_amount),
                   icon: g.icon || '🎯', deadline: g.deadline || '',
                   account_id: g.account_id || '',
+                  monthly_contribution: g.monthly_contribution ? String(g.monthly_contribution) : '',
+                  start_date: g.start_date || '',
                 });
                 setDialogOpen(true);
               }}
