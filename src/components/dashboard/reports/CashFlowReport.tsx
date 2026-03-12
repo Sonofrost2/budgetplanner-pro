@@ -71,11 +71,11 @@ const CashFlowReport = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>{locale === 'fr' ? 'Mois' : 'Month'}</TableHead>
-                <TableHead className="text-right">{(t as any).startingBalance || 'Report'}</TableHead>
+                <TableHead className="text-right">{t.startingBalance}</TableHead>
                 <TableHead className="text-right">{t.income}</TableHead>
                 <TableHead className="text-right">{t.expenses}</TableHead>
-                <TableHead className="text-right">{locale === 'fr' ? 'Trésorerie nette' : 'Net Cash Flow'}</TableHead>
-                <TableHead className="text-right">{(t as any).endingBalance || 'Solde fin'}</TableHead>
+                <TableHead className="text-right">{t.netCashFlow}</TableHead>
+                <TableHead className="text-right">{t.endingBalance}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
