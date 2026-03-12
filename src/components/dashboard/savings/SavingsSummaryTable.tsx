@@ -50,9 +50,9 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
   const totalPct = totalTarget > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0;
 
   const statusConfig = {
-    completed: { label: (t as any).savingsCompleted || 'Atteint', variant: 'default' as const, className: 'bg-secondary text-secondary-foreground' },
-    late: { label: (t as any).savingsLate || 'En retard', variant: 'destructive' as const, className: '' },
-    inProgress: { label: (t as any).savingsInProgress || 'En cours', variant: 'default' as const, className: 'bg-primary/15 text-primary border-primary/20' },
+    completed: { label: t.savingsCompleted, variant: 'default' as const, className: 'bg-secondary text-secondary-foreground' },
+    late: { label: t.savingsLate, variant: 'destructive' as const, className: '' },
+    inProgress: { label: t.savingsInProgress, variant: 'default' as const, className: 'bg-primary/15 text-primary border-primary/20' },
   };
 
   return (
