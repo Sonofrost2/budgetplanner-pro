@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { TransferDialog } from '@/components/dashboard/TransferDialog';
 
 const getAccountTypes = (t: any) => [
   { value: 'mobile_money', label: `📱 ${t.mobileMoney}`, icon: '📱' },
