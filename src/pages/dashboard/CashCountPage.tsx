@@ -141,7 +141,7 @@ const CashCountPage = () => {
                   {counts.map(c => (
                     <TableRow key={c.id}>
                       <TableCell className="text-sm">{new Date(c.counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</TableCell>
-                      <TableCell className="text-sm">{(c.payment_accounts as any)?.icon} {(c.payment_accounts as any)?.name}</TableCell>
+                      <TableCell className="text-sm">{c.payment_accounts?.icon} {c.payment_accounts?.name}</TableCell>
                       <TableCell className="text-right text-sm font-medium">{fmt(Number(c.total_counted))}</TableCell>
                       <TableCell className="text-right text-sm">{fmt(Number(c.expected_balance))}</TableCell>
                       <TableCell className={`text-right text-sm font-bold ${Number(c.discrepancy) === 0 ? 'text-secondary' : 'text-destructive'}`}>

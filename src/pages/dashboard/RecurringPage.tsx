@@ -90,7 +90,7 @@ const RecurringPage = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base font-bold flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: ((r as any).categories?.color || '#6C63FF') + '20' }}>{(r as any).categories?.icon || '📁'}</div>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (r.categories?.color || '#6C63FF') + '20' }}>{r.categories?.icon || '📁'}</div>
                     <div><span>{r.description}</span><p className="text-[11px] font-normal text-muted-foreground">{(freqLabel[locale] || freqLabel.en)[r.frequency || 'monthly'] || r.frequency}</p></div>
                   </CardTitle>
                   <div className="flex items-center gap-1">

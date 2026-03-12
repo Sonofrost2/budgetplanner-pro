@@ -428,11 +428,11 @@ const TransactionsPage = () => {
                   <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors ${selectedIds.has(tx.id) ? 'bg-primary/5' : ''}`}>
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 flex-shrink-0"><Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => toggleSelect(tx.id)} /></div>
-                      <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center text-lg flex-shrink-0">{(tx as any).categories?.icon || '📁'}</div>
+                      <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center text-lg flex-shrink-0">{tx.categories?.icon || '📁'}</div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate">{tx.description}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          {(tx as any).categories?.name || '-'} · {(tx as any).payment_accounts?.icon} {(tx as any).payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
                     </div>

@@ -156,8 +156,8 @@ const BudgetsPage = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-bold flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: ((b as any).categories?.color || '#6C63FF') + '20' }}>{(b as any).categories?.icon || '📁'}</div>
-                      <div><span>{b.name}</span><p className="text-[11px] font-normal text-muted-foreground">{(b as any).categories?.name || '-'} · {periodLabels[b.period] || b.period}</p></div>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (b.categories?.color || '#6C63FF') + '20' }}>{b.categories?.icon || '📁'}</div>
+                      <div><span>{b.name}</span><p className="text-[11px] font-normal text-muted-foreground">{b.categories?.name || '-'} · {periodLabels[b.period] || b.period}</p></div>
                     </CardTitle>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(b)}><Pencil className="w-3.5 h-3.5" /></Button>

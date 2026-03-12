@@ -36,7 +36,7 @@ const ReportsPage = () => {
   };
 
   const handleExportExcel = () => {
-    const rows = allTransactions.map(tx => ({ Date: tx.date, Description: tx.description, Type: tx.type, Category: (tx.categories as any)?.name || '', Amount: tx.amount }));
+    const rows = allTransactions.map(tx => ({ Date: tx.date, Description: tx.description, Type: tx.type, Category: (tx.categories as { name: string } | undefined)?.name || '', Amount: tx.amount }));
     if (!exportToExcel(rows, 'transactions')) toast.info(t.noTransactions);
   };
 
