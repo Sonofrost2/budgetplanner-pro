@@ -662,6 +662,22 @@ export const dashT = {
     netCashFlow: 'Net Cash Flow',
     accountsSummary: 'Accounts summary',
     dailyJournal: 'Daily journal',
+    // LOT 2-3 new keys
+    debts: 'Debts',
+    addDebt: 'Add debt',
+    creditor: 'Creditor',
+    totalDebt: 'Total amount',
+    paidAmount: 'Already paid',
+    remainingDebt: 'Remaining',
+    recurring: 'Recurring',
+    addRecurring: 'Add',
+    frequency: 'Frequency',
+    nextDate: 'Next date',
+    fixedCharges: 'Fixed charges',
+    cashCount: 'Cash Count',
+    denomination: 'Denominations',
+    counted: 'Counted',
+    expected: 'Expected',
   },
 } as const;
 

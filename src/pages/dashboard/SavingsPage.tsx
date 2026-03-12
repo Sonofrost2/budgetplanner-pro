@@ -255,6 +255,7 @@ const SavingsPage = () => {
       </div>
 
       <SavingsSummaryTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
+      <SavingsControlTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
 
       {goals.length === 0 ? (
         <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
