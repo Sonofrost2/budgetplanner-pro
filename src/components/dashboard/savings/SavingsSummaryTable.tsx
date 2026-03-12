@@ -58,7 +58,7 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
   return (
     <div className="rounded-2xl border border-border/50 shadow-[var(--shadow-card)] bg-card overflow-hidden">
       <div className="px-5 py-4 border-b border-border/50">
-        <h3 className="text-base font-bold">{(t as any).savingsSummary || 'Récapitulatif'}</h3>
+        <h3 className="text-base font-bold">{t.savingsSummary}</h3>
       </div>
       <div className="overflow-x-auto">
         <Table>
