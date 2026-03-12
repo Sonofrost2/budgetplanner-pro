@@ -539,6 +539,15 @@ export const dashT = {
     tutorialStep5Desc: 'View your reports and charts to understand your financial habits and make better decisions.',
     goToPage: 'Go to page',
     bulkDeleteConfirm: (n: number) => `Are you sure you want to delete ${n} transaction(s)? This cannot be undone.`,
+    transfer: 'Transfer',
+    transferDesc: 'Transfer funds between your accounts',
+    fromAccount: 'Source account',
+    toAccount: 'Destination account',
+    transferSuccess: 'Transfer completed!',
+    transferSameAccount: 'Accounts must be different',
+    optional: 'optional',
+    transferDescPlaceholder: 'E.g: Top-up Wave from bank',
+    makeTransfer: 'Make a transfer',
   },
 } as const;
 
