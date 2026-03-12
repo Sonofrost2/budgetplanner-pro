@@ -4,18 +4,18 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2, PiggyBank, Minus } from 'lucide-react';
+import { Plus, PiggyBank } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
+import { SavingsGoalCard } from '@/components/dashboard/savings/SavingsGoalCard';
 
 const SavingsPage = () => {
   const { user } = useAuth();
@@ -24,6 +24,7 @@ const SavingsPage = () => {
   const t = dashT[locale];
   const [goals, setGoals] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [contributions, setContributions] = useState<Record<string, any[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
   const [addAmount, setAddAmount] = useState('');
@@ -37,14 +38,47 @@ const SavingsPage = () => {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const [goalsRes, accRes] = await Promise.all([
+    const [goalsRes, accRes, txRes] = await Promise.all([
       supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('payment_accounts').select('*').eq('user_id', user.id),
+      // Fetch all savings-related transactions (they have notes starting with 🎯)
+      supabase.from('transactions').select('id, amount, date, notes, account_id, description, payment_accounts:account_id(name, icon)')
+        .eq('user_id', user.id)
+        .like('notes', '🎯 %')
+        .order('date', { ascending: false })
+        .limit(500),
     ]);
-    setGoals(goalsRes.data || []);
+
+    const goalsData = goalsRes.data || [];
+    setGoals(goalsData);
     setAccounts(accRes.data || []);
+
+    // Group contributions by goal name
+    const contribMap: Record<string, any[]> = {};
+    for (const goal of goalsData) {
+      contribMap[goal.id] = [];
+    }
+    for (const tx of (txRes.data || [])) {
+      // Match transaction to goal by notes pattern "🎯 GoalName"
+      const goalName = tx.notes?.replace('🎯 ', '') || '';
+      const matchedGoal = goalsData.find((g: any) => g.name === goalName);
+      if (matchedGoal) {
+        contribMap[matchedGoal.id] = contribMap[matchedGoal.id] || [];
+        // Only count expense transactions (money going out from source account = contribution)
+        if (tx.description?.startsWith(`${t.savings}:`)) {
+          contribMap[matchedGoal.id].push({
+            id: tx.id,
+            amount: tx.amount,
+            date: tx.date,
+            account_name: (tx.payment_accounts as any)?.name,
+            account_icon: (tx.payment_accounts as any)?.icon,
+          });
+        }
+      }
+    }
+    setContributions(contribMap);
     setLoading(false);
-  }, [user]);
+  }, [user, t.savings]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -70,37 +104,26 @@ const SavingsPage = () => {
       const amountToAdd = Number(addAmount);
       const today = new Date().toISOString().split('T')[0];
 
-      // If a source account is selected, create a real transaction (expense on source)
       if (sourceAccountId) {
         const { error: txError } = await supabase.from('transactions').insert({
-          user_id: user.id,
-          type: 'expense',
-          amount: amountToAdd,
-          description: `${t.savings}: ${goal.name}`,
-          account_id: sourceAccountId,
-          date: today,
-          notes: `🎯 ${goal.name}`,
+          user_id: user.id, type: 'expense', amount: amountToAdd,
+          description: `${t.savings}: ${goal.name}`, account_id: sourceAccountId,
+          date: today, notes: `🎯 ${goal.name}`,
         });
         if (txError) throw txError;
         await recalculateAccountBalance(sourceAccountId);
       }
 
-      // If the goal is linked to a destination account, create income on it
       if (goal.account_id && goal.account_id !== sourceAccountId) {
         const { error: txError } = await supabase.from('transactions').insert({
-          user_id: user.id,
-          type: 'income',
-          amount: amountToAdd,
-          description: `${t.savings}: ${goal.name}`,
-          account_id: goal.account_id,
-          date: today,
-          notes: `🎯 ${goal.name}`,
+          user_id: user.id, type: 'income', amount: amountToAdd,
+          description: `${t.savings}: ${goal.name}`, account_id: goal.account_id,
+          date: today, notes: `🎯 ${goal.name}`,
         });
         if (txError) throw txError;
         await recalculateAccountBalance(goal.account_id);
       }
 
-      // Update savings goal
       const { error } = await supabase.from('savings_goals').update({
         current_amount: Number(goal.current_amount) + amountToAdd,
       }).eq('id', addAmountDialog);
@@ -135,8 +158,8 @@ const SavingsPage = () => {
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-9 w-36" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-80 rounded-2xl" />)}
         </div>
       </div>
     );
@@ -145,7 +168,13 @@ const SavingsPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold font-display">{t.savings}</h2>
+        <div>
+          <h2 className="text-2xl font-bold font-display">{t.savings}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {goals.length} {locale === 'fr' ? 'objectif(s)' : 'goal(s)'}
+            {goals.length > 0 && ` · ${fmt(goals.reduce((s, g) => s + Number(g.current_amount), 0))} ${locale === 'fr' ? 'épargnés' : 'saved'}`}
+          </p>
+        </div>
         <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
           setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
           setDialogOpen(true);
@@ -168,43 +197,19 @@ const SavingsPage = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {goals.map(g => {
-            const pct = Math.min((Number(g.current_amount) / Number(g.target_amount)) * 100, 100);
-            const done = pct >= 100;
-            return (
-              <Card key={g.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${done ? 'ring-2 ring-secondary/30' : ''}`}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
-                      <span className="text-xl">{g.icon}</span>{g.name}
-                    </CardTitle>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setDeleteId(g.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                  {g.payment_accounts && (
-                    <span className="text-xs text-muted-foreground">{g.payment_accounts.icon} {g.payment_accounts.name}</span>
-                  )}
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-bold">{fmt(Number(g.current_amount))}</span>
-                    <span className="text-muted-foreground">{fmt(Number(g.target_amount))}</span>
-                  </div>
-                  <Progress value={pct} className={`h-3 rounded-full ${done ? '[&>div]:bg-secondary' : '[&>div]:bg-primary'}`} />
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">{pct.toFixed(0)}%{g.deadline ? ` · ${new Date(g.deadline).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}` : ''}</span>
-                    {!done && (
-                      <Button variant="outline" size="sm" className="text-xs h-7 rounded-lg" onClick={() => { setAddAmountDialog(g.id); setAddAmount(''); setSourceAccountId(''); }}>
-                        {t.addSaving}
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {goals.map(g => (
+            <SavingsGoalCard
+              key={g.id}
+              goal={g}
+              contributions={contributions[g.id] || []}
+              fmt={fmt}
+              t={t}
+              locale={locale}
+              onAddSaving={() => { setAddAmountDialog(g.id); setAddAmount(''); setSourceAccountId(''); }}
+              onDelete={() => setDeleteId(g.id)}
+            />
+          ))}
         </div>
       )}
 
@@ -232,13 +237,8 @@ const SavingsPage = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.account} ({(t as any).optional || 'optionnel'})</Label>
-              <AccountCombobox
-                accounts={accounts}
-                value={form.account_id}
-                onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
-                placeholder={t.selectAccount}
-              />
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.account} ({t.optional})</Label>
+              <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -258,13 +258,13 @@ const SavingsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Amount Dialog - now with source account */}
+      {/* Add Amount Dialog */}
       <Dialog open={!!addAmountDialog} onOpenChange={() => { setAddAmountDialog(null); setSourceAccountId(''); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{t.addSaving}</DialogTitle>
             <DialogDescription>
-              {locale === 'fr' ? 'Choisissez le compte source pour débiter le montant' : 'Choose the source account to debit the amount'}
+              {locale === 'fr' ? 'Ajoutez un versement à cet objectif' : 'Add a contribution to this goal'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -274,7 +274,7 @@ const SavingsPage = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                {locale === 'fr' ? 'Compte source' : 'Source account'} ({(t as any).optional || 'optionnel'})
+                {locale === 'fr' ? 'Compte source' : 'Source account'} ({t.optional})
               </Label>
               <AccountCombobox
                 accounts={accounts}
