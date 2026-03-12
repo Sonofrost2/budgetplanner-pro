@@ -379,6 +379,17 @@ const AccountsPage = () => {
         cancelLabel={t.cancel}
         confirmLabel={t.delete}
       />
+
+      {user && (
+        <TransferDialog
+          open={transferOpen}
+          onOpenChange={setTransferOpen}
+          accounts={accounts}
+          userId={user.id}
+          t={t}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 };
