@@ -99,7 +99,19 @@ const BudgetsPage = () => {
       return;
     }
     setErrors({});
-    setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly' });
+    setEditId(null);
+    setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly', alert_threshold: '80' });
+    setDialogOpen(true);
+  };
+
+  const openEdit = (b: any) => {
+    setErrors({});
+    setEditId(b.id);
+    setForm({
+      name: b.name, amount: String(b.amount),
+      category_id: b.category_id || '', period: b.period || 'monthly',
+      alert_threshold: String(b.alert_threshold ?? 80),
+    });
     setDialogOpen(true);
   };
 
