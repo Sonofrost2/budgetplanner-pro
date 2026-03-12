@@ -258,6 +258,7 @@ const SavingsPage = () => {
             <PiggyBank className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
             <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+              setEditGoalId(null);
               setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
               setDialogOpen(true);
             }}>
