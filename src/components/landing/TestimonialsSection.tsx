@@ -7,7 +7,7 @@ const TestimonialsSection = () => {
   const colors = ['bg-primary', 'bg-secondary', 'bg-accent'];
 
   return (
-    <section id="testimonials" className="py-24 relative overflow-hidden">
+    <section id="testimonials" aria-label="Témoignages clients" className="py-24 relative overflow-hidden">
       <div className="absolute inset-0 mesh-bg opacity-40" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

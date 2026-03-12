@@ -15,7 +15,7 @@ const FeaturesSection = () => {
   ];
 
   return (
-    <section id="features" className="py-24 relative overflow-hidden">
+    <section id="features" aria-label="Fonctionnalités" className="py-24 relative overflow-hidden">
       <div className="absolute inset-0 mesh-bg opacity-50" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

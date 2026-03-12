@@ -12,7 +12,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
+    <section aria-label="Hero – Budget Planner Pro" className="relative min-h-screen flex items-center pt-16 overflow-hidden">
       {/* Mesh gradient background */}
       <div className="absolute inset-0 mesh-bg" />
 
