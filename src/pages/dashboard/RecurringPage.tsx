@@ -75,10 +75,10 @@ const RecurringPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold font-display">{(t as any).recurring || 'Charges récurrentes'}</h2>
-          {items.length > 0 && <p className="text-sm text-muted-foreground mt-1">{(t as any).fixedCharges || 'Charges fixes'}: <span className="text-destructive font-semibold">{fmt(totalFixedExpenses)}</span>{totalFixedIncome > 0 && <> · {t.income}: <span className="text-secondary font-semibold">{fmt(totalFixedIncome)}</span></>}</p>}
+          <h2 className="text-2xl font-bold font-display">{t.recurring}</h2>
+          {items.length > 0 && <p className="text-sm text-muted-foreground mt-1">{t.fixedCharges}: <span className="text-destructive font-semibold">{fmt(totalFixedExpenses)}</span>{totalFixedIncome > 0 && <> · {t.income}: <span className="text-secondary font-semibold">{fmt(totalFixedIncome)}</span></>}</p>}
         </div>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{(t as any).addRecurring || 'Ajouter'}</Button>
+        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addRecurring}</Button>
       </div>
 
       {items.length === 0 ? (
