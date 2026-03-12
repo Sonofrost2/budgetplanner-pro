@@ -1,0 +1,1 @@
+ALTER TABLE public.budgets ADD COLUMN IF NOT EXISTS alert_threshold integer DEFAULT 80;
