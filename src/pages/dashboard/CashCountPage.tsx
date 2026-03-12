@@ -131,8 +131,8 @@ const CashCountPage = () => {
                   <TableRow>
                     <TableHead>{t.date}</TableHead>
                     <TableHead>{t.account}</TableHead>
-                    <TableHead className="text-right">{(t as any).counted || 'Compté'}</TableHead>
-                    <TableHead className="text-right">{(t as any).expected || 'Attendu'}</TableHead>
+                    <TableHead className="text-right">{t.counted}</TableHead>
+                    <TableHead className="text-right">{t.expected}</TableHead>
                     <TableHead className="text-right">{t.discrepancy}</TableHead>
                     <TableHead></TableHead>
                   </TableRow>

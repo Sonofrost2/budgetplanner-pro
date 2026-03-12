@@ -123,10 +123,10 @@ const RecurringPage = () => {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).frequency || 'Fréquence'}</Label>
+              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.frequency}</Label>
                 <Select value={form.frequency} onValueChange={v => setForm(f => ({ ...f, frequency: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="weekly">{t.weekly}</SelectItem><SelectItem value="monthly">{t.monthly}</SelectItem><SelectItem value="yearly">{t.yearly}</SelectItem></SelectContent></Select>
               </div>
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).nextDate || 'Prochaine date'}</Label><Input type="date" value={form.next_date} onChange={e => setForm(f => ({ ...f, next_date: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.nextDate}</Label><Input type="date" value={form.next_date} onChange={e => setForm(f => ({ ...f, next_date: e.target.value }))} className="rounded-xl h-11" /></div>
             </div>
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.category} ({t.optional})</Label>
               <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger><SelectContent>{categories.filter(c => c.type === form.type).map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent></Select>

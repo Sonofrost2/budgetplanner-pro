@@ -57,9 +57,9 @@ const ReportsPage = () => {
         <TabsList className="flex-wrap">
           <TabsTrigger value="monthly">{t.monthlyReport}</TabsTrigger>
           <TabsTrigger value="categories">{t.topExpenses}</TabsTrigger>
-          <TabsTrigger value="cashflow">{(t as any).cashFlow || 'Cash Flow'}</TabsTrigger>
-          <TabsTrigger value="budgetvsactual">{(t as any).budgetVsActual || 'Budget vs Réel'}</TabsTrigger>
-          <TabsTrigger value="journal">{(t as any).dailyJournal || 'Journal'}</TabsTrigger>
+          <TabsTrigger value="cashflow">{t.cashFlow}</TabsTrigger>
+          <TabsTrigger value="budgetvsactual">{t.budgetVsActual}</TabsTrigger>
+          <TabsTrigger value="journal">{t.dailyJournal}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="monthly">

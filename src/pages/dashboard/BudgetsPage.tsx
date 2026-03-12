@@ -203,7 +203,7 @@ const BudgetsPage = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).alertThreshold || "Seuil d'alerte (%)"}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.alertThreshold}</Label>
               <Input type="number" min="1" max="100" value={form.alert_threshold} onChange={e => setForm(f => ({ ...f, alert_threshold: e.target.value }))} className="rounded-xl h-11 w-24" />
             </div>
             <div className="grid grid-cols-2 gap-4">
