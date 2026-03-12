@@ -16,6 +16,7 @@ import { BudgetsWidget } from '@/components/dashboard/home/BudgetsWidget';
 import { ForecastWidget } from '@/components/dashboard/home/ForecastWidget';
 import { ChartsSection } from '@/components/dashboard/home/ChartsSection';
 import { RecentTransactions } from '@/components/dashboard/home/RecentTransactions';
+import { AccountsSummaryWidget } from '@/components/dashboard/home/AccountsSummaryWidget';
 
 type PeriodKey = 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisYear';
 
