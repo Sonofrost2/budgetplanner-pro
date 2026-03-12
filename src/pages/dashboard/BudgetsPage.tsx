@@ -28,7 +28,8 @@ const BudgetsPage = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [spending, setSpending] = useState<Record<string, number>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly' });
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly', alert_threshold: '80' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
