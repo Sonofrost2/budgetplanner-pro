@@ -4,6 +4,17 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
+
+interface SavingsContribution {
+  id: string;
+  amount: number;
+  date: string;
+  type: string;
+  account_name?: string;
+  account_icon?: string;
+  description?: string;
+}
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -41,7 +41,7 @@ const AccountsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const typeFilter = searchParams.get('type') || '';
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<{ account_id: string | null; amount: number; type: string }[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
   const [updateBalanceDialog, setUpdateBalanceDialog] = useState<Account | null>(null);
