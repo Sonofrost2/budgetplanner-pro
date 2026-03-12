@@ -151,12 +151,12 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.description} ({(t as any).optional || 'optionnel'})</Label>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.description} ({t.optional})</Label>
             <Input
               value={description}
               onChange={e => setDescription(e.target.value)}
               maxLength={200}
-              placeholder={(t as any).transferDescPlaceholder || 'Ex: Recharge Wave depuis banque'}
+              placeholder={t.transferDescPlaceholder}
               className="rounded-xl h-11"
             />
           </div>
