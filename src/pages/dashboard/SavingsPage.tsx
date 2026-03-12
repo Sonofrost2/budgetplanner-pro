@@ -24,9 +24,9 @@ const SavingsPage = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
-  const [goals, setGoals] = useState<any[]>([]);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [contributions, setContributions] = useState<Record<string, any[]>>({});
+  const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [contributions, setContributions] = useState<Record<string, SavingsContribution[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editGoalId, setEditGoalId] = useState<string | null>(null);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);

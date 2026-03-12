@@ -351,14 +351,14 @@ export const useChartData = (locale: string) => {
         .eq('user_id', user!.id).gte('date', sixMonthsAgo);
       if (error) throw error;
       return months.map(m => {
-        const monthTxs = (data || []).filter((tx: any) => {
+        const monthTxs = (data || []).filter(tx => {
           const txDate = new Date(tx.date);
           return txDate.getMonth() === m.date.getMonth() && txDate.getFullYear() === m.date.getFullYear();
         });
         return {
           name: m.label,
-          income: monthTxs.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0),
-          expenses: monthTxs.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0),
+          income: monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
+          expenses: monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
         };
       });
     },

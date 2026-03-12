@@ -29,7 +29,7 @@ export const StatsCards = ({ balance, totalIncome, totalExpenses, fmt, t, saving
       icon: Percent, iconColor: 'text-primary', bg: 'bg-primary/10', delay: 0.15, primary: false,
     }] : []),
     ...(netCashFlow !== undefined ? [{
-      label: (t as any).netCashFlow || 'Trésorerie nette', value: fmt(netCashFlow), compact: fmtCompact(netCashFlow, 'fr'), color: netCashFlow >= 0 ? 'text-secondary' : 'text-destructive',
+      label: t.netCashFlow, value: fmt(netCashFlow), compact: fmtCompact(netCashFlow, 'fr'), color: netCashFlow >= 0 ? 'text-secondary' : 'text-destructive',
       icon: Calculator, iconColor: netCashFlow >= 0 ? 'text-secondary' : 'text-destructive', bg: netCashFlow >= 0 ? 'bg-secondary/10' : 'bg-destructive/10', delay: 0.2, primary: false,
     }] : []),
   ];

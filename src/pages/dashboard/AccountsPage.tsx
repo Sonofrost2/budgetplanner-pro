@@ -40,11 +40,11 @@ const AccountsPage = () => {
   const t = dashT[locale];
   const [searchParams, setSearchParams] = useSearchParams();
   const typeFilter = searchParams.get('type') || '';
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
-  const [updateBalanceDialog, setUpdateBalanceDialog] = useState<any>(null);
+  const [editing, setEditing] = useState<Account | null>(null);
+  const [updateBalanceDialog, setUpdateBalanceDialog] = useState<Account | null>(null);
   const [newRealBalance, setNewRealBalance] = useState('');
   const [form, setForm] = useState({ name: '', type: 'mobile_money', icon: '💳', opening_balance: '0' });
   const [errors, setErrors] = useState<Record<string, string>>({});
