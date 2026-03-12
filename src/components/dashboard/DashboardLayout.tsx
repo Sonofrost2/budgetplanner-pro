@@ -56,9 +56,24 @@ const DashboardLayout = () => {
   }, [user, navigate]);
 
   const handleLogout = async () => {
+    setLogoutDialogOpen(false);
     await signOut();
     navigate('/');
   };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K or Cmd+K: focus global search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>('[data-global-search]');
+        searchInput?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleGlobalSearch = (e: React.FormEvent) => {
     e.preventDefault();

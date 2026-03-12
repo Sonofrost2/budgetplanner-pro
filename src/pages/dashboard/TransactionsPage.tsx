@@ -72,7 +72,7 @@ const TransactionsPage = () => {
   const fetchData = useCallback(async () => {
     if (!user) return;
     const [txRes, catRes, accRes] = await Promise.all([
-      supabase.from('transactions').select('*, categories(name, icon, color), payment_accounts(name, icon)').eq('user_id', user.id).order('date', { ascending: false }),
+      supabase.from('transactions').select('*, categories(name, icon, color), payment_accounts(name, icon)').eq('user_id', user.id).order('date', { ascending: false }).limit(10000),
       supabase.from('categories').select('*').eq('user_id', user.id),
       supabase.from('payment_accounts').select('*').eq('user_id', user.id),
     ]);
