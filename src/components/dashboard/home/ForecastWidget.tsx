@@ -43,7 +43,7 @@ export const ForecastWidget = ({ monthlyData, fmt, t }: ForecastWidgetProps) => 
               <p className="text-sm text-muted-foreground">{t.noData}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-3 cursor-pointer" onClick={() => navigate('/dashboard/forecasts')}>
+            <div className="grid grid-cols-3 gap-3 cursor-pointer active:scale-[0.98] transition-transform" onClick={() => navigate('/dashboard/forecasts')}>
               <div className="rounded-xl bg-secondary/5 border border-secondary/10 p-4 text-center">
                 <TrendingUp className="w-5 h-5 text-secondary mx-auto mb-2" />
                 <p className="text-[11px] text-muted-foreground mb-1">{t.avgIncome}</p>

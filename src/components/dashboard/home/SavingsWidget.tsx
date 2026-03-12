@@ -55,7 +55,7 @@ export const SavingsWidget = ({ goals, fmt, t }: SavingsWidgetProps) => {
               {goals.map(goal => {
                 const pct = goal.target_amount > 0 ? Math.min(100, (goal.current_amount / goal.target_amount) * 100) : 0;
                 return (
-                  <div key={goal.id} className="space-y-2 p-2.5 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => navigate('/dashboard/savings')}>
+                  <div key={goal.id} className="space-y-2 p-2.5 rounded-xl hover:bg-muted/50 active:scale-[0.98] transition-all cursor-pointer" onClick={() => navigate('/dashboard/savings')}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-base">{goal.icon}</span>

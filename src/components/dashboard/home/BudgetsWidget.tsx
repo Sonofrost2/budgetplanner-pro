@@ -54,7 +54,7 @@ export const BudgetsWidget = ({ budgets, fmt, t }: BudgetsWidgetProps) => {
                 const pct = b.amount > 0 ? Math.min(100, (b.spent / b.amount) * 100) : 0;
                 const over = b.spent > b.amount;
                 return (
-                  <div key={b.id} className="space-y-2 p-2.5 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => navigate('/dashboard/budgets')}>
+                  <div key={b.id} className="space-y-2 p-2.5 rounded-xl hover:bg-muted/50 active:scale-[0.98] transition-all cursor-pointer" onClick={() => navigate('/dashboard/budgets')}>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">{b.name}</span>
                       <span className={`text-xs font-bold ${over ? 'text-destructive' : 'text-muted-foreground'}`}>

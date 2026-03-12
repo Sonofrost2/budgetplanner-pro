@@ -40,7 +40,7 @@ export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSumm
       </CardHeader>
       <CardContent className="space-y-2">
         {Object.entries(grouped).map(([type, { total: subtotal, count }]) => (
-          <div key={type} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0 cursor-pointer rounded-lg px-2 hover:bg-muted/50 transition-colors" onClick={() => navigate(`/dashboard/accounts?type=${type}`)}>
+          <div key={type} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0 cursor-pointer rounded-lg px-2 hover:bg-muted/50 active:scale-[0.98] transition-all" onClick={() => navigate(`/dashboard/accounts?type=${type}`)}>
             <div className="flex items-center gap-2">
               <span className="text-lg">{typeIcons[type] || '💳'}</span>
               <div>
