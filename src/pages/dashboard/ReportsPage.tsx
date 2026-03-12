@@ -200,6 +200,10 @@ const ReportsPage = () => {
         <TabsContent value="budgetvsactual">
           <BudgetVsActualReport />
         </TabsContent>
+
+        <TabsContent value="journal">
+          <DailyJournalReport />
+        </TabsContent>
       </Tabs>
     </div>
   );
