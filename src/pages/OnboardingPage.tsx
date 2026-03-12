@@ -222,7 +222,7 @@ const OnboardingPage = () => {
               <h2 className="text-xl font-bold font-display">{isFr ? 'Choisissez votre plan' : 'Choose your plan'}</h2>
               <div className="space-y-3">
                 {plans.map(plan => {
-                  const price = formatPrice(plan.currency_prices || {});
+                  const price = formatPrice((plan.currency_prices || {}) as Record<string, number>);
                   const isSelected = selectedPlan === plan.name;
                   return (
                     <button key={plan.id} onClick={() => setSelectedPlan(plan.name)}
