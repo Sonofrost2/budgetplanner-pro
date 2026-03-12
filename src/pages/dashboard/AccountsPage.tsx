@@ -60,11 +60,11 @@ const AccountsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const getTheoreticalBalance = (accountId: string, openingBalance: number) => {
+  const getTheoreticalBalance = (accountId: string) => {
     const txs = transactions.filter(tx => tx.account_id === accountId);
     const income = txs.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0);
     const expense = txs.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
-    return openingBalance + income - expense;
+    return income - expense;
   };
 
   const accountLimitReached = !isPremium && accounts.length >= limits.accounts;
@@ -190,7 +190,7 @@ const AccountsPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {accounts.map(acc => {
-            const theoretical = getTheoreticalBalance(acc.id, Number(acc.opening_balance));
+            const theoretical = getTheoreticalBalance(acc.id);
             const real = Number(acc.real_balance);
             const discrepancy = real - theoretical;
             return (
