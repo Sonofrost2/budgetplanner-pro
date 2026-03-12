@@ -58,6 +58,7 @@ const TransactionsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
