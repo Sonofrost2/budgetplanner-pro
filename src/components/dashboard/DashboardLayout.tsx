@@ -203,9 +203,10 @@ const DashboardLayout = () => {
           <form onSubmit={handleGlobalSearch} className="hidden sm:flex relative max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
+              data-global-search
               value={globalSearch}
               onChange={e => setGlobalSearch(e.target.value)}
-              placeholder={t.searchGlobal}
+              placeholder={`${t.searchGlobal} (Ctrl+K)`}
               className="pl-10 h-9 w-56 rounded-xl border-border/50 bg-muted/50 focus:bg-background"
             />
           </form>
