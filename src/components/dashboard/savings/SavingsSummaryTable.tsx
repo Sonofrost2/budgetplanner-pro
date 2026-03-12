@@ -69,8 +69,8 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
               <TableHead className="min-w-[140px]">{t.progress}</TableHead>
               <TableHead className="text-right">{t.amount}</TableHead>
               <TableHead className="text-center">%</TableHead>
-              <TableHead className="text-center">{(t as any).savingsStatus || 'Statut'}</TableHead>
-              <TableHead className="text-right">{(t as any).savingsMonthlyNeeded || 'Mensualité'}</TableHead>
+              <TableHead className="text-center">{t.savingsStatus}</TableHead>
+              <TableHead className="text-right">{t.savingsMonthlyNeeded}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
