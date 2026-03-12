@@ -633,6 +633,17 @@ const TransactionsPage = () => {
       {/* Bulk delete confirm */}
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete}
         title={t.deleteSelection} description={t.bulkDeleteConfirm(selectedIds.size)} cancelLabel={t.cancel} confirmLabel={t.delete} />
+
+      {user && (
+        <TransferDialog
+          open={transferOpen}
+          onOpenChange={setTransferOpen}
+          accounts={accounts}
+          userId={user.id}
+          t={t}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 };
