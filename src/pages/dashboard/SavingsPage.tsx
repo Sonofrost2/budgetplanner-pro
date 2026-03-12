@@ -26,6 +26,7 @@ const SavingsPage = () => {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [contributions, setContributions] = useState<Record<string, any[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editGoalId, setEditGoalId] = useState<string | null>(null);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
   const [withdrawDialog, setWithdrawDialog] = useState<string | null>(null);
   const [addAmount, setAddAmount] = useState('');
