@@ -10,7 +10,7 @@ interface SavingsContribution {
   id: string;
   amount: number;
   date: string;
-  type: string;
+  type: 'deposit' | 'withdrawal';
   account_name?: string;
   account_icon?: string;
   description?: string;
