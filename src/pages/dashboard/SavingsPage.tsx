@@ -27,8 +27,11 @@ const SavingsPage = () => {
   const [contributions, setContributions] = useState<Record<string, any[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
+  const [withdrawDialog, setWithdrawDialog] = useState<string | null>(null);
   const [addAmount, setAddAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [sourceAccountId, setSourceAccountId] = useState('');
+  const [targetAccountId, setTargetAccountId] = useState('');
   const [form, setForm] = useState({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -41,8 +44,7 @@ const SavingsPage = () => {
     const [goalsRes, accRes, txRes] = await Promise.all([
       supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('payment_accounts').select('*').eq('user_id', user.id),
-      // Fetch all savings-related transactions (they have notes starting with 🎯)
-      supabase.from('transactions').select('id, amount, date, notes, account_id, description, payment_accounts:account_id(name, icon)')
+      supabase.from('transactions').select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
         .eq('user_id', user.id)
         .like('notes', '🎯 %')
         .order('date', { ascending: false })
@@ -59,17 +61,21 @@ const SavingsPage = () => {
       contribMap[goal.id] = [];
     }
     for (const tx of (txRes.data || [])) {
-      // Match transaction to goal by notes pattern "🎯 GoalName"
       const goalName = tx.notes?.replace('🎯 ', '') || '';
       const matchedGoal = goalsData.find((g: any) => g.name === goalName);
       if (matchedGoal) {
         contribMap[matchedGoal.id] = contribMap[matchedGoal.id] || [];
-        // Only count expense transactions (money going out from source account = contribution)
-        if (tx.description?.startsWith(`${t.savings}:`)) {
+        const desc = tx.description || '';
+        const isSavingsTx = desc.startsWith(`${t.savings}:`);
+        if (isSavingsTx) {
+          // Expense on source = deposit; Income on target after withdraw = withdrawal marker
+          // We identify withdrawals by checking if description contains "Retrait" or "Withdrawal"
+          const isWithdrawal = desc.includes('↩');
           contribMap[matchedGoal.id].push({
             id: tx.id,
             amount: tx.amount,
             date: tx.date,
+            type: isWithdrawal ? 'withdrawal' : 'deposit',
             account_name: (tx.payment_accounts as any)?.name,
             account_icon: (tx.payment_accounts as any)?.icon,
           });
@@ -94,6 +100,7 @@ const SavingsPage = () => {
     toast.success(t.saved);
   };
 
+  // Add contribution = transfer-like: expense on source, income on target (goal account)
   const handleAddAmount = async () => {
     if (!addAmountDialog || Number(addAmount) <= 0 || !user) return;
     const goal = goals.find(g => g.id === addAmountDialog);
@@ -104,30 +111,29 @@ const SavingsPage = () => {
       const amountToAdd = Number(addAmount);
       const today = new Date().toISOString().split('T')[0];
 
+      // Expense on source account (debit)
       if (sourceAccountId) {
-        const { error: txError } = await supabase.from('transactions').insert({
+        await supabase.from('transactions').insert({
           user_id: user.id, type: 'expense', amount: amountToAdd,
           description: `${t.savings}: ${goal.name}`, account_id: sourceAccountId,
           date: today, notes: `🎯 ${goal.name}`,
         });
-        if (txError) throw txError;
         await recalculateAccountBalance(sourceAccountId);
       }
 
-      if (goal.account_id && goal.account_id !== sourceAccountId) {
-        const { error: txError } = await supabase.from('transactions').insert({
+      // Income on target/goal account (credit)
+      if (goal.account_id) {
+        await supabase.from('transactions').insert({
           user_id: user.id, type: 'income', amount: amountToAdd,
           description: `${t.savings}: ${goal.name}`, account_id: goal.account_id,
           date: today, notes: `🎯 ${goal.name}`,
         });
-        if (txError) throw txError;
         await recalculateAccountBalance(goal.account_id);
       }
 
-      const { error } = await supabase.from('savings_goals').update({
+      await supabase.from('savings_goals').update({
         current_amount: Number(goal.current_amount) + amountToAdd,
       }).eq('id', addAmountDialog);
-      if (error) throw error;
 
       setAddAmountDialog(null);
       setAddAmount('');
@@ -135,7 +141,57 @@ const SavingsPage = () => {
       fetchData();
       toast.success(t.saved);
     } catch (err: any) {
-      console.error('Add savings error:', err);
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Withdraw = reverse: expense on goal account, income on target account
+  const handleWithdraw = async () => {
+    if (!withdrawDialog || Number(withdrawAmount) <= 0 || !user) return;
+    const goal = goals.find(g => g.id === withdrawDialog);
+    if (!goal) return;
+    const amount = Number(withdrawAmount);
+    if (amount > Number(goal.current_amount)) {
+      toast.error(locale === 'fr' ? 'Montant supérieur à l\'épargne disponible' : 'Amount exceeds available savings');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Expense on goal account (debit the savings account)
+      if (goal.account_id) {
+        await supabase.from('transactions').insert({
+          user_id: user.id, type: 'expense', amount,
+          description: `${t.savings}: ${goal.name} ↩`, account_id: goal.account_id,
+          date: today, notes: `🎯 ${goal.name}`,
+        });
+        await recalculateAccountBalance(goal.account_id);
+      }
+
+      // Income on target account (credit the destination)
+      if (targetAccountId) {
+        await supabase.from('transactions').insert({
+          user_id: user.id, type: 'income', amount,
+          description: `${t.savings}: ${goal.name} ↩`, account_id: targetAccountId,
+          date: today, notes: `🎯 ${goal.name}`,
+        });
+        await recalculateAccountBalance(targetAccountId);
+      }
+
+      await supabase.from('savings_goals').update({
+        current_amount: Math.max(0, Number(goal.current_amount) - amount),
+      }).eq('id', withdrawDialog);
+
+      setWithdrawDialog(null);
+      setWithdrawAmount('');
+      setTargetAccountId('');
+      fetchData();
+      toast.success(t.saved);
+    } catch (err: any) {
       toast.error(err.message || 'Erreur');
     } finally {
       setSaving(false);
@@ -164,6 +220,8 @@ const SavingsPage = () => {
       </div>
     );
   }
+
+  const currentGoalForWithdraw = goals.find(g => g.id === withdrawDialog);
 
   return (
     <div className="space-y-6">
@@ -207,6 +265,7 @@ const SavingsPage = () => {
               t={t}
               locale={locale}
               onAddSaving={() => { setAddAmountDialog(g.id); setAddAmount(''); setSourceAccountId(''); }}
+              onWithdraw={() => { setWithdrawDialog(g.id); setWithdrawAmount(''); setTargetAccountId(''); }}
               onDelete={() => setDeleteId(g.id)}
             />
           ))}
@@ -237,8 +296,13 @@ const SavingsPage = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.account} ({t.optional})</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {t.savingsTargetAccount} ({t.optional})
+              </Label>
               <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
+              <p className="text-xs text-muted-foreground">
+                {locale === 'fr' ? 'Le compte qui recevra les versements d\'épargne' : 'The account that will receive savings deposits'}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -258,13 +322,13 @@ const SavingsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Amount Dialog */}
+      {/* Add Contribution Dialog */}
       <Dialog open={!!addAmountDialog} onOpenChange={() => { setAddAmountDialog(null); setSourceAccountId(''); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{t.addSaving}</DialogTitle>
             <DialogDescription>
-              {locale === 'fr' ? 'Ajoutez un versement à cet objectif' : 'Add a contribution to this goal'}
+              {locale === 'fr' ? 'Ajoutez un versement à cet objectif. Le compte source sera débité et le compte cible crédité.' : 'Add a contribution. The source account will be debited and the target account credited.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -274,7 +338,7 @@ const SavingsPage = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                {locale === 'fr' ? 'Compte source' : 'Source account'} ({t.optional})
+                {t.savingsSourceAccount} ({t.optional})
               </Label>
               <AccountCombobox
                 accounts={accounts}
@@ -284,14 +348,70 @@ const SavingsPage = () => {
                 excludeId={goals.find(g => g.id === addAmountDialog)?.account_id}
               />
               <p className="text-xs text-muted-foreground">
-                {locale === 'fr' ? 'Si sélectionné, une transaction sera créée automatiquement.' : 'If selected, a transaction will be created automatically.'}
+                {locale === 'fr' ? 'Le compte d\'où sera prélevé le montant' : 'The account from which the amount will be debited'}
               </p>
             </div>
+            {goals.find(g => g.id === addAmountDialog)?.payment_accounts && (
+              <div className="bg-muted/50 rounded-xl p-3 text-sm">
+                <span className="text-muted-foreground">{t.savingsTargetAccount}: </span>
+                <span className="font-medium">
+                  {goals.find(g => g.id === addAmountDialog)?.payment_accounts?.icon}{' '}
+                  {goals.find(g => g.id === addAmountDialog)?.payment_accounts?.name}
+                </span>
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => { setAddAmountDialog(null); setSourceAccountId(''); }} className="rounded-xl">{t.cancel}</Button>
             <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleAddAmount} disabled={saving}>
               {saving ? t.saving : t.save}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw Dialog */}
+      <Dialog open={!!withdrawDialog} onOpenChange={() => { setWithdrawDialog(null); setTargetAccountId(''); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">{t.withdrawSaving}</DialogTitle>
+            <DialogDescription>{t.savingsWithdrawDesc}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-xl p-3 text-sm">
+              <span className="text-muted-foreground">{locale === 'fr' ? 'Disponible' : 'Available'}: </span>
+              <span className="font-bold">{fmt(Number(currentGoalForWithdraw?.current_amount || 0))}</span>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.withdrawAmount}</Label>
+              <Input
+                type="number" min="0.01" step="0.01"
+                max={currentGoalForWithdraw?.current_amount || 0}
+                value={withdrawAmount}
+                onChange={e => setWithdrawAmount(e.target.value)}
+                className="rounded-xl h-11 text-lg font-bold"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {t.savingsTargetAccount} ({t.optional})
+              </Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={targetAccountId}
+                onValueChange={setTargetAccountId}
+                placeholder={locale === 'fr' ? 'Créditer vers...' : 'Credit to...'}
+                excludeId={currentGoalForWithdraw?.account_id}
+              />
+              <p className="text-xs text-muted-foreground">
+                {locale === 'fr' ? 'Le compte qui recevra les fonds retirés' : 'The account that will receive the withdrawn funds'}
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => { setWithdrawDialog(null); setTargetAccountId(''); }} className="rounded-xl">{t.cancel}</Button>
+            <Button variant="destructive" className="rounded-xl" onClick={handleWithdraw} disabled={saving}>
+              {saving ? t.saving : t.withdrawSaving}
             </Button>
           </DialogFooter>
         </DialogContent>

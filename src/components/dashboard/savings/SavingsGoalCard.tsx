@@ -1,14 +1,16 @@
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft } from 'lucide-react';
+import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
 interface Contribution {
   id: string;
   amount: number;
   date: string;
+  type: 'deposit' | 'withdrawal';
   account_name?: string;
   account_icon?: string;
 }
@@ -20,28 +22,45 @@ interface SavingsGoalCardProps {
   t: DashTranslations;
   locale: string;
   onAddSaving: () => void;
+  onWithdraw: () => void;
   onDelete: () => void;
 }
 
-export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onDelete }: SavingsGoalCardProps) => {
+export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onDelete }: SavingsGoalCardProps) => {
   const pct = goal.target_amount > 0 ? Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100) : 0;
   const done = pct >= 100;
   const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.current_amount));
   const dateFmt = locale === 'fr' ? 'fr-FR' : 'en-US';
 
-  // Calculate monthly average and estimated completion
-  const monthlyAvg = contributions.length > 0 ? (() => {
-    const dates = contributions.map(c => new Date(c.date).getTime());
+  const deposits = contributions.filter(c => c.type === 'deposit');
+
+  // Monthly average based on deposits only
+  const monthlyAvg = deposits.length > 0 ? (() => {
+    const dates = deposits.map(c => new Date(c.date).getTime());
     const minDate = Math.min(...dates);
     const maxDate = Math.max(...dates);
     const months = Math.max(1, (maxDate - minDate) / (1000 * 60 * 60 * 24 * 30));
-    const total = contributions.reduce((s, c) => s + c.amount, 0);
+    const total = deposits.reduce((s, c) => s + c.amount, 0);
     return total / months;
   })() : 0;
 
   const estimatedDate = monthlyAvg > 0 && remaining > 0
     ? new Date(Date.now() + (remaining / monthlyAvg) * 30 * 24 * 60 * 60 * 1000)
     : null;
+
+  // Build evolution chart data (cumulative over time)
+  const chartData = (() => {
+    if (contributions.length === 0) return [];
+    const sorted = [...contributions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let cumul = 0;
+    return sorted.map(c => {
+      cumul += c.type === 'deposit' ? c.amount : -c.amount;
+      return {
+        date: new Date(c.date).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short' }),
+        total: Math.max(0, cumul),
+      };
+    });
+  })();
 
   return (
     <Card className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden ${done ? 'ring-2 ring-secondary/30' : ''}`}>
@@ -106,11 +125,11 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
         </div>
 
         {/* Stats row */}
-        {contributions.length > 0 && (
+        {deposits.length > 0 && (
           <div className="grid grid-cols-3 gap-2 pt-1">
             <div className="bg-muted/50 rounded-lg p-2.5 text-center">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.savingsTotalContributions}</p>
-              <p className="text-sm font-bold text-foreground mt-0.5">{fmt(contributions.reduce((s, c) => s + c.amount, 0))}</p>
+              <p className="text-sm font-bold text-foreground mt-0.5">{fmt(deposits.reduce((s, c) => s + c.amount, 0))}</p>
             </div>
             <div className="bg-muted/50 rounded-lg p-2.5 text-center">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.savingsMonthlyAvg}</p>
@@ -122,7 +141,7 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
               </p>
               <p className="text-sm font-bold text-foreground mt-0.5">
                 {done
-                  ? `${contributions.length}`
+                  ? `${deposits.length}`
                   : estimatedDate
                     ? estimatedDate.toLocaleDateString(dateFmt, { month: 'short', year: 'numeric' })
                     : '—'}
@@ -131,6 +150,43 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
           </div>
         )}
       </div>
+
+      {/* ── Section: Evolution Chart ── */}
+      {chartData.length >= 2 && (
+        <>
+          <Separator />
+          <div className="px-5 py-4 space-y-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5" />
+              {t.savingsEvolution}
+            </span>
+            <div className="h-24">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+                  <defs>
+                    <linearGradient id={`grad-${goal.id}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }}
+                    formatter={(value: number) => [fmt(value), locale === 'fr' ? 'Épargné' : 'Saved']}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    fill={`url(#grad-${goal.id})`}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      )}
 
       <Separator />
 
@@ -150,26 +206,33 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
           <p className="text-sm text-muted-foreground/70 text-center py-3">{t.savingsNoContributions}</p>
         ) : (
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
-            {contributions.slice(0, 10).map((c) => (
-              <div key={c.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/40 transition-colors">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <ArrowDownLeft className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {new Date(c.date).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short' })}
-                    </p>
-                    {c.account_name && (
-                      <p className="text-[11px] text-muted-foreground">
-                        {t.savingsContributionFrom} {c.account_icon} {c.account_name}
+            {contributions.slice(0, 10).map((c) => {
+              const isWithdrawal = c.type === 'withdrawal';
+              return (
+                <div key={c.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/40 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${isWithdrawal ? 'bg-destructive/10' : 'bg-primary/10'}`}>
+                      {isWithdrawal
+                        ? <ArrowUpRight className="w-3.5 h-3.5 text-destructive" />
+                        : <ArrowDownLeft className="w-3.5 h-3.5 text-primary" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {new Date(c.date).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short' })}
                       </p>
-                    )}
+                      {c.account_name && (
+                        <p className="text-[11px] text-muted-foreground">
+                          {isWithdrawal ? '→' : t.savingsContributionFrom} {c.account_icon} {c.account_name}
+                        </p>
+                      )}
+                    </div>
                   </div>
+                  <span className={`text-sm font-bold ${isWithdrawal ? 'text-destructive' : 'text-secondary'}`}>
+                    {isWithdrawal ? '-' : '+'}{fmt(c.amount)}
+                  </span>
                 </div>
-                <span className="text-sm font-bold text-secondary">+{fmt(c.amount)}</span>
-              </div>
-            ))}
+              );
+            })}
             {contributions.length > 10 && (
               <p className="text-xs text-center text-muted-foreground pt-1">
                 +{contributions.length - 10} {locale === 'fr' ? 'autres' : 'more'}
@@ -179,22 +242,30 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
         )}
       </div>
 
-      {/* ── Footer: Action ── */}
-      {!done && (
-        <>
-          <Separator />
-          <div className="p-4">
-            <Button
-              onClick={onAddSaving}
-              className="w-full rounded-xl text-primary-foreground"
-              style={{ background: 'var(--gradient-primary)' }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {t.addSaving}
-            </Button>
-          </div>
-        </>
-      )}
+      {/* ── Footer: Actions ── */}
+      <Separator />
+      <div className="p-4 flex gap-2">
+        {!done && (
+          <Button
+            onClick={onAddSaving}
+            className="flex-1 rounded-xl text-primary-foreground"
+            style={{ background: 'var(--gradient-primary)' }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {t.addSaving}
+          </Button>
+        )}
+        {Number(goal.current_amount) > 0 && (
+          <Button
+            onClick={onWithdraw}
+            variant="outline"
+            className="flex-1 rounded-xl"
+          >
+            <ArrowUpRight className="w-4 h-4 mr-2" />
+            {t.withdrawSaving}
+          </Button>
+        )}
+      </div>
     </Card>
   );
 };
