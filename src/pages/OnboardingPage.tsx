@@ -240,8 +240,8 @@ const OnboardingPage = () => {
                         </div>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {(plan.features || []).map((f: string, i: number) => (
-                          <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">{f}</span>
+                        {(Array.isArray(plan.features) ? plan.features : []).map((f: unknown, i: number) => (
+                          <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">{String(f)}</span>
                         ))}
                       </div>
                     </button>
