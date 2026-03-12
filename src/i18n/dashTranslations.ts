@@ -295,6 +295,13 @@ export const dashT = {
     savingsTargetAccount: 'Compte cible',
     savingsSourceAccount: 'Compte source (à débiter)',
     savingsEvolution: 'Évolution',
+    editGoal: 'Modifier l\'objectif',
+    savingsMonthlySchedule: 'Échéancier mensuel',
+    savingsMonthlyAmount: 'Versement mensuel nécessaire',
+    savingsMonthsLeft: 'mois restant(s)',
+    savingsOnTrack: 'En bonne voie',
+    savingsBehind: 'En retard',
+    savingsAhead: 'En avance',
   },
   en: {
     dashboard: 'Dashboard',
