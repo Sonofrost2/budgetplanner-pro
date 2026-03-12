@@ -53,7 +53,7 @@ const AccountsPage = () => {
     if (!user) return;
     const [accRes, txRes] = await Promise.all([
       supabase.from('payment_accounts').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.from('transactions').select('type, amount, account_id').eq('user_id', user.id),
+      supabase.from('transactions').select('type, amount, account_id').eq('user_id', user.id).limit(10000),
     ]);
     setAccounts(accRes.data || []);
     setTransactions(txRes.data || []);

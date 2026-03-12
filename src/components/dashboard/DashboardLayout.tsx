@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
+import { OfflineBanner } from '@/components/dashboard/OfflineBanner';
+import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 
 const DashboardLayout = () => {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -26,6 +28,7 @@ const DashboardLayout = () => {
   const location = useLocation();
   const t = dashT[locale];
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean } | null>(null);
   const [globalSearch, setGlobalSearch] = useState('');
   const [userPlan, setUserPlan] = useState<string | null>(null);
@@ -53,9 +56,24 @@ const DashboardLayout = () => {
   }, [user, navigate]);
 
   const handleLogout = async () => {
+    setLogoutDialogOpen(false);
     await signOut();
     navigate('/');
   };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K or Cmd+K: focus global search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>('[data-global-search]');
+        searchInput?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleGlobalSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +181,7 @@ const DashboardLayout = () => {
               <Globe className="w-4 h-4" />
             </Button>
           </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive/80 hover:text-destructive hover:bg-destructive/5 rounded-xl h-9" onClick={handleLogout}>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive/80 hover:text-destructive hover:bg-destructive/5 rounded-xl h-9" onClick={() => setLogoutDialogOpen(true)}>
             <LogOut className="w-4 h-4" />
             <span className="text-xs">{t.logout}</span>
           </Button>
@@ -185,9 +203,10 @@ const DashboardLayout = () => {
           <form onSubmit={handleGlobalSearch} className="hidden sm:flex relative max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
+              data-global-search
               value={globalSearch}
               onChange={e => setGlobalSearch(e.target.value)}
-              placeholder={t.searchGlobal}
+              placeholder={`${t.searchGlobal} (Ctrl+K)`}
               className="pl-10 h-9 w-56 rounded-xl border-border/50 bg-muted/50 focus:bg-background"
             />
           </form>
@@ -208,6 +227,18 @@ const DashboardLayout = () => {
           </AnimatePresence>
         </div>
       </main>
+
+      <OfflineBanner />
+
+      <ConfirmDeleteDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+        onConfirm={handleLogout}
+        title={locale === 'fr' ? 'Déconnexion' : 'Log out'}
+        description={locale === 'fr' ? 'Êtes-vous sûr de vouloir vous déconnecter ?' : 'Are you sure you want to log out?'}
+        cancelLabel={t.cancel}
+        confirmLabel={t.logout}
+      />
     </div>
   );
 };

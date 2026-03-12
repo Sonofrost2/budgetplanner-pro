@@ -68,7 +68,7 @@ const DashboardHome = () => {
     Promise.all([
       supabase.from('transactions').select('*, categories(name, icon, color)')
         .eq('user_id', user.id).gte('date', start).lte('date', end)
-        .order('date', { ascending: false }),
+        .order('date', { ascending: false }).limit(5000),
       supabase.from('transactions').select('amount, categories(name, color, icon)')
         .eq('user_id', user.id).eq('type', 'expense')
         .gte('date', start).lte('date', end),

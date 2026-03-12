@@ -8,13 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2, PiggyBank, Inbox } from 'lucide-react';
+import { Plus, Trash2, PiggyBank, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
+import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 
 const SavingsPage = () => {
   const { user } = useAuth();
@@ -26,9 +27,11 @@ const SavingsPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
   const [addAmount, setAddAmount] = useState('');
+  const [sourceAccountId, setSourceAccountId] = useState('');
   const [form, setForm] = useState({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -58,17 +61,62 @@ const SavingsPage = () => {
   };
 
   const handleAddAmount = async () => {
-    if (!addAmountDialog || Number(addAmount) <= 0) return;
+    if (!addAmountDialog || Number(addAmount) <= 0 || !user) return;
     const goal = goals.find(g => g.id === addAmountDialog);
     if (!goal) return;
-    const { error } = await supabase.from('savings_goals').update({
-      current_amount: Number(goal.current_amount) + Number(addAmount),
-    }).eq('id', addAmountDialog);
-    if (error) { toast.error(error.message); return; }
-    setAddAmountDialog(null);
-    setAddAmount('');
-    fetchData();
-    toast.success(t.saved);
+
+    setSaving(true);
+    try {
+      const amountToAdd = Number(addAmount);
+      const today = new Date().toISOString().split('T')[0];
+
+      // If a source account is selected, create a real transaction (expense on source)
+      if (sourceAccountId) {
+        const { error: txError } = await supabase.from('transactions').insert({
+          user_id: user.id,
+          type: 'expense',
+          amount: amountToAdd,
+          description: `${t.savings}: ${goal.name}`,
+          account_id: sourceAccountId,
+          date: today,
+          notes: `🎯 ${goal.name}`,
+        });
+        if (txError) throw txError;
+        await recalculateAccountBalance(sourceAccountId);
+      }
+
+      // If the goal is linked to a destination account, create income on it
+      if (goal.account_id && goal.account_id !== sourceAccountId) {
+        const { error: txError } = await supabase.from('transactions').insert({
+          user_id: user.id,
+          type: 'income',
+          amount: amountToAdd,
+          description: `${t.savings}: ${goal.name}`,
+          account_id: goal.account_id,
+          date: today,
+          notes: `🎯 ${goal.name}`,
+        });
+        if (txError) throw txError;
+        await recalculateAccountBalance(goal.account_id);
+      }
+
+      // Update savings goal
+      const { error } = await supabase.from('savings_goals').update({
+        current_amount: Number(goal.current_amount) + amountToAdd,
+      }).eq('id', addAmountDialog);
+      if (error) throw error;
+
+      setAddAmountDialog(null);
+      setAddAmount('');
+      setSourceAccountId('');
+      fetchData();
+      toast.success(t.saved);
+    } catch (err: any) {
+      console.error('Add savings error:', err);
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -98,7 +146,7 @@ const SavingsPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-display">{t.savings}</h2>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
           setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
           setDialogOpen(true);
         }}>
@@ -107,11 +155,11 @@ const SavingsPage = () => {
       </div>
 
       {goals.length === 0 ? (
-        <Card className="border-none shadow-[var(--shadow-card)]">
+        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
           <CardContent className="py-16 text-center">
             <PiggyBank className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
-            <Button size="sm" className="text-primary-foreground mt-2" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+            <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
               setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '' });
               setDialogOpen(true);
             }}>
@@ -125,7 +173,7 @@ const SavingsPage = () => {
             const pct = Math.min((Number(g.current_amount) / Number(g.target_amount)) * 100, 100);
             const done = pct >= 100;
             return (
-              <Card key={g.id} className={`border-none shadow-[var(--shadow-card)] ${done ? 'ring-2 ring-secondary/30' : ''}`}>
+              <Card key={g.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${done ? 'ring-2 ring-secondary/30' : ''}`}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -141,14 +189,14 @@ const SavingsPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span>{fmt(Number(g.current_amount))}</span>
+                    <span className="font-bold">{fmt(Number(g.current_amount))}</span>
                     <span className="text-muted-foreground">{fmt(Number(g.target_amount))}</span>
                   </div>
-                  <Progress value={pct} className={`h-3 ${done ? '[&>div]:bg-secondary' : '[&>div]:bg-primary'}`} />
+                  <Progress value={pct} className={`h-3 rounded-full ${done ? '[&>div]:bg-secondary' : '[&>div]:bg-primary'}`} />
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">{pct.toFixed(0)}%{g.deadline ? ` · ${new Date(g.deadline).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}` : ''}</span>
                     {!done && (
-                      <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setAddAmountDialog(g.id); setAddAmount(''); }}>
+                      <Button variant="outline" size="sm" className="text-xs h-7 rounded-lg" onClick={() => { setAddAmountDialog(g.id); setAddAmount(''); setSourceAccountId(''); }}>
                         {t.addSaving}
                       </Button>
                     )}
@@ -160,62 +208,91 @@ const SavingsPage = () => {
         </div>
       )}
 
+      {/* Create Goal Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{t.addGoal}</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">{t.addGoal}</DialogTitle>
+            <DialogDescription>{locale === 'fr' ? 'Définissez un objectif d\'épargne' : 'Set a savings goal'}</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>{t.goalName}</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} />
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.goalName}</Label>
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} className="rounded-xl h-11" />
             </div>
             <div className="space-y-2">
-              <Label>{t.iconLabel}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.iconLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {icons.map(ic => (
                   <button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))}
-                    className={`text-xl p-1.5 rounded-lg border transition-colors ${form.icon === ic ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'}`}>
+                    className={`text-xl p-1.5 rounded-lg border-2 transition-colors ${form.icon === ic ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'}`}>
                     {ic}
                   </button>
                 ))}
               </div>
             </div>
             <div className="space-y-2">
-              <Label>{t.account}</Label>
-              <Select value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))}>
-                <SelectTrigger><SelectValue placeholder={t.selectAccount} /></SelectTrigger>
-                <SelectContent>
-                  {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.account} ({(t as any).optional || 'optionnel'})</Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={form.account_id}
+                onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
+                placeholder={t.selectAccount}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t.targetAmount}</Label>
-                <Input type="number" min="1" step="0.01" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} />
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.targetAmount}</Label>
+                <Input type="number" min="1" step="0.01" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} className="rounded-xl h-11" />
               </div>
               <div className="space-y-2">
-                <Label>{t.deadline}</Label>
-                <Input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.deadline}</Label>
+                <Input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} className="rounded-xl h-11" />
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t.cancel}</Button>
-            <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={handleCreate}>{t.save}</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleCreate}>{t.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!addAmountDialog} onOpenChange={() => setAddAmountDialog(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{t.addSaving}</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label>{t.amount}</Label>
-            <Input type="number" min="0.01" step="0.01" value={addAmount} onChange={e => setAddAmount(e.target.value)} />
+      {/* Add Amount Dialog - now with source account */}
+      <Dialog open={!!addAmountDialog} onOpenChange={() => { setAddAmountDialog(null); setSourceAccountId(''); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">{t.addSaving}</DialogTitle>
+            <DialogDescription>
+              {locale === 'fr' ? 'Choisissez le compte source pour débiter le montant' : 'Choose the source account to debit the amount'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.amount}</Label>
+              <Input type="number" min="0.01" step="0.01" value={addAmount} onChange={e => setAddAmount(e.target.value)} className="rounded-xl h-11 text-lg font-bold" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {locale === 'fr' ? 'Compte source' : 'Source account'} ({(t as any).optional || 'optionnel'})
+              </Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={sourceAccountId}
+                onValueChange={setSourceAccountId}
+                placeholder={locale === 'fr' ? 'Débiter depuis...' : 'Debit from...'}
+                excludeId={goals.find(g => g.id === addAmountDialog)?.account_id}
+              />
+              <p className="text-xs text-muted-foreground">
+                {locale === 'fr' ? 'Si sélectionné, une transaction sera créée automatiquement.' : 'If selected, a transaction will be created automatically.'}
+              </p>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddAmountDialog(null)}>{t.cancel}</Button>
-            <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={handleAddAmount}>{t.save}</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => { setAddAmountDialog(null); setSourceAccountId(''); }} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleAddAmount} disabled={saving}>
+              {saving ? t.saving : t.save}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

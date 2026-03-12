@@ -72,7 +72,7 @@ const TransactionsPage = () => {
   const fetchData = useCallback(async () => {
     if (!user) return;
     const [txRes, catRes, accRes] = await Promise.all([
-      supabase.from('transactions').select('*, categories(name, icon, color), payment_accounts(name, icon)').eq('user_id', user.id).order('date', { ascending: false }),
+      supabase.from('transactions').select('*, categories(name, icon, color), payment_accounts(name, icon)').eq('user_id', user.id).order('date', { ascending: false }).limit(10000),
       supabase.from('categories').select('*').eq('user_id', user.id),
       supabase.from('payment_accounts').select('*').eq('user_id', user.id),
     ]);
@@ -280,6 +280,8 @@ const TransactionsPage = () => {
   const handleAISuggest = async () => {
     if (!canUseAISuggestions) return;
     setAiSuggesting(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
       const { data, error } = await supabase.functions.invoke('ai-suggest', {
         body: {
@@ -290,6 +292,7 @@ const TransactionsPage = () => {
           locale,
         },
       });
+      clearTimeout(timeout);
       if (error) throw error;
       if (data?.description) setForm(f => ({ ...f, description: data.description }));
       if (data?.category_id) setForm(f => ({ ...f, category_id: data.category_id }));
@@ -297,8 +300,13 @@ const TransactionsPage = () => {
       if (data?.account_id) setForm(f => ({ ...f, account_id: data.account_id }));
       toast.success(t.aiSuggest);
     } catch (e: any) {
-      console.error('AI suggest error:', e);
-      toast.error(e.message || 'AI error');
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') {
+        toast.error(locale === 'fr' ? 'La requête a pris trop de temps' : 'Request timed out');
+      } else {
+        console.error('AI suggest error:', e);
+        toast.error(e.message || 'AI error');
+      }
     } finally {
       setAiSuggesting(false);
     }

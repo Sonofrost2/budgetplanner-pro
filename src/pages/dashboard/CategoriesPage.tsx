@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Tag, Inbox } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Plus, Pencil, Trash2, Tag, Inbox, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -20,18 +21,30 @@ const COLORS = ['#22C55E', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981'
 const CategoriesPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
+  const { limits } = useSubscription();
   const t = dashT[locale];
   const [categories, setCategories] = useState<any[]>([]);
+  const [txCounts, setTxCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', icon: '📁', color: '#6C63FF', type: 'expense' });
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('categories').select('*').eq('user_id', user.id).order('type').order('name');
-    setCategories(data || []);
+    const [catRes, txRes] = await Promise.all([
+      supabase.from('categories').select('*').eq('user_id', user.id).order('type').order('name'),
+      supabase.from('transactions').select('category_id').eq('user_id', user.id),
+    ]);
+    setCategories(catRes.data || []);
+    // Count transactions per category
+    const counts: Record<string, number> = {};
+    (txRes.data || []).forEach(tx => {
+      if (tx.category_id) counts[tx.category_id] = (counts[tx.category_id] || 0) + 1;
+    });
+    setTxCounts(counts);
     setLoading(false);
   }, [user]);
 
@@ -64,10 +77,25 @@ const CategoriesPage = () => {
     toast.success(t.saved);
   };
 
+  const handleDeleteRequest = (id: string) => {
+    const count = txCounts[id] || 0;
+    if (count > 0) {
+      setDeleteWarning(
+        locale === 'fr'
+          ? `Cette catégorie est utilisée par ${count} transaction(s). Les transactions ne seront pas supprimées mais perdront leur catégorie.`
+          : `This category is used by ${count} transaction(s). Transactions won't be deleted but will lose their category.`
+      );
+    } else {
+      setDeleteWarning(null);
+    }
+    setDeleteId(id);
+  };
+
   const handleDelete = async () => {
     if (!deleteId) return;
     await supabase.from('categories').delete().eq('id', deleteId);
     setDeleteId(null);
+    setDeleteWarning(null);
     fetchData();
     toast.success(t.delete + ' ✓');
   };
@@ -83,7 +111,7 @@ const CategoriesPage = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {cats.map(cat => (
-            <Card key={cat.id} className="border-none shadow-[var(--shadow-card)]">
+            <Card key={cat.id} className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
               <CardContent className="flex items-center justify-between py-4 px-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: cat.color + '20' }}>
@@ -93,15 +121,17 @@ const CategoriesPage = () => {
                     <p className="font-medium text-sm">{cat.name}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ background: cat.color }} />
-                      <span className="text-xs text-muted-foreground">{cat.color}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {txCounts[cat.id] ? `${txCounts[cat.id]} tx` : locale === 'fr' ? 'Aucune tx' : 'No tx'}
+                      </span>
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(cat)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => openEdit(cat)}>
                     <Pencil className="w-3.5 h-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(cat.id)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-destructive" onClick={() => handleDeleteRequest(cat.id)}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
@@ -131,17 +161,17 @@ const CategoriesPage = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-display">{t.categories}</h2>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
           <Plus className="w-4 h-4 mr-1" />{t.addCategory}
         </Button>
       </div>
 
       {categories.length === 0 ? (
-        <Card className="border-none shadow-[var(--shadow-card)]">
+        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
           <CardContent className="py-16 text-center">
             <Inbox className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-lg font-medium text-muted-foreground mb-2">{t.noCategories}</p>
-            <Button size="sm" className="text-primary-foreground mt-2" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+            <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" />{t.addCategory}
             </Button>
           </CardContent>
@@ -154,17 +184,20 @@ const CategoriesPage = () => {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editing ? t.edit : t.addCategory}</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addCategory}</DialogTitle>
+            <DialogDescription>{locale === 'fr' ? 'Configurez votre catégorie' : 'Configure your category'}</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>{t.categoryName}</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={50} />
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.categoryName}</Label>
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={50} className="rounded-xl h-11" />
             </div>
             <div className="space-y-2">
-              <Label>{t.type}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.type}</Label>
               <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="expense">{t.expenseType}</SelectItem>
                   <SelectItem value="income">{t.incomeType}</SelectItem>
@@ -172,18 +205,18 @@ const CategoriesPage = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>{t.iconLabel}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.iconLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {ICONS.map(ic => (
                   <button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))}
-                    className={`text-xl p-1.5 rounded-lg border transition-colors ${form.icon === ic ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'}`}>
+                    className={`text-xl p-1.5 rounded-lg border-2 transition-colors ${form.icon === ic ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'}`}>
                     {ic}
                   </button>
                 ))}
               </div>
             </div>
             <div className="space-y-2">
-              <Label>{t.colorLabel}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.colorLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {COLORS.map(c => (
                   <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))}
@@ -194,19 +227,19 @@ const CategoriesPage = () => {
               <Input type="color" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className="w-16 h-8 p-0 border-none" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>{t.cancel}</Button>
-            <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <ConfirmDeleteDialog
         open={!!deleteId}
-        onOpenChange={() => setDeleteId(null)}
+        onOpenChange={() => { setDeleteId(null); setDeleteWarning(null); }}
         onConfirm={handleDelete}
         title={t.confirmDelete}
-        description={t.confirmDeleteMessage}
+        description={deleteWarning || t.confirmDeleteMessage}
         cancelLabel={t.cancel}
         confirmLabel={t.delete}
       />
