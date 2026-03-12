@@ -50,12 +50,24 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
 
   // Monthly schedule calculation
   const scheduleInfo = (() => {
-    if (!goal.deadline || done) return null;
-    const deadlineDate = new Date(goal.deadline);
-    const now = new Date();
-    const msLeft = deadlineDate.getTime() - now.getTime();
-    const monthsLeft = Math.max(1, Math.ceil(msLeft / (1000 * 60 * 60 * 24 * 30)));
-    const monthlyNeeded = remaining / monthsLeft;
+    // Use explicit monthly_contribution if set
+    const explicitMonthly = Number(goal.monthly_contribution) || 0;
+    if (done) return null;
+    
+    let monthlyNeeded = explicitMonthly;
+    let monthsLeft: number | null = null;
+
+    if (goal.deadline) {
+      const deadlineDate = new Date(goal.deadline);
+      const now = new Date();
+      const msLeft = deadlineDate.getTime() - now.getTime();
+      monthsLeft = Math.max(1, Math.ceil(msLeft / (1000 * 60 * 60 * 24 * 30)));
+      if (monthlyNeeded <= 0) {
+        monthlyNeeded = remaining / monthsLeft;
+      }
+    }
+
+    if (monthlyNeeded <= 0) return null;
 
     let status: 'on_track' | 'behind' | 'ahead' = 'on_track';
     if (monthlyAvg > 0) {
