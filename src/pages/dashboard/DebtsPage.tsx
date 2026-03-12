@@ -77,10 +77,10 @@ const DebtsPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold font-display">{(t as any).debts || 'Dettes'}</h2>
+          <h2 className="text-2xl font-bold font-display">{t.debts}</h2>
           {debts.length > 0 && <p className="text-sm text-muted-foreground mt-1">{fmt(totalPaid)} / {fmt(totalDebt)} {locale === 'fr' ? 'remboursé' : 'repaid'}</p>}
         </div>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{(t as any).addDebt || 'Ajouter'}</Button>
+        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button>
       </div>
 
       {debts.length === 0 ? (
