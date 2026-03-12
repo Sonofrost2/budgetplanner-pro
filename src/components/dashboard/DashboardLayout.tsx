@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
+import { OfflineBanner } from '@/components/dashboard/OfflineBanner';
+import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 
 const DashboardLayout = () => {
   const { user, signOut, loading: authLoading } = useAuth();
