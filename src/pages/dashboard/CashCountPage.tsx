@@ -180,7 +180,7 @@ const CashCountPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).denomination || 'Dénominations'}</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.denomination}</Label>
               <div className="grid grid-cols-2 gap-2">
                 {denoms.map(d => (
                   <div key={d} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">

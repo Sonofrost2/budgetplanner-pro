@@ -170,7 +170,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
             onClick={handleTransfer}
             disabled={saving || accounts.length < 2}
           >
-            {saving ? t.saving : (t as any).transfer || 'Transférer'}
+            {saving ? t.saving : t.transfer}
           </Button>
         </DialogFooter>
       </DialogContent>

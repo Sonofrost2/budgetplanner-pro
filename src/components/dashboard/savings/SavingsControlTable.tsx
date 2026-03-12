@@ -67,7 +67,7 @@ export const SavingsControlTable = ({ goals, contributions, fmt, t, locale }: Sa
               <TableHead className="text-right">{locale === 'fr' ? 'Prévu/mois' : 'Planned/mo'}</TableHead>
               <TableHead className="text-right">{locale === 'fr' ? 'Versé ce mois' : 'This month'}</TableHead>
               <TableHead className="text-right">{locale === 'fr' ? 'Cumul' : 'Total'}</TableHead>
-              <TableHead className="text-right">{(t as any).variance || 'Écart'}</TableHead>
+              <TableHead className="text-right">{t.variance}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

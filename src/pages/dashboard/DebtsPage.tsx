@@ -123,12 +123,12 @@ const DebtsPage = () => {
 
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle className="text-xl font-bold">{editId ? t.edit : ((t as any).addDebt || 'Ajouter une dette')}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Enregistrez une dette à suivre' : 'Record a debt to track'}</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle className="text-xl font-bold">{editId ? t.edit : t.addDebt}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Enregistrez une dette à suivre' : 'Record a debt to track'}</DialogDescription></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).creditor || 'Créancier'}</Label><Input value={form.creditor_name} onChange={e => setForm(f => ({ ...f, creditor_name: e.target.value }))} className="rounded-xl h-11" /></div>
+            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.creditor}</Label><Input value={form.creditor_name} onChange={e => setForm(f => ({ ...f, creditor_name: e.target.value }))} className="rounded-xl h-11" /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).totalDebt || 'Montant total'}</Label><Input type="number" min="1" value={form.total_amount} onChange={e => setForm(f => ({ ...f, total_amount: e.target.value }))} className="rounded-xl h-11" /></div>
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{(t as any).paidAmount || 'Déjà payé'}</Label><Input type="number" min="0" value={form.paid_amount} onChange={e => setForm(f => ({ ...f, paid_amount: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.totalDebt}</Label><Input type="number" min="1" value={form.total_amount} onChange={e => setForm(f => ({ ...f, total_amount: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.paidAmount}</Label><Input type="number" min="0" value={form.paid_amount} onChange={e => setForm(f => ({ ...f, paid_amount: e.target.value }))} className="rounded-xl h-11" /></div>
             </div>
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.deadline} ({t.optional})</Label><Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="rounded-xl h-11" /></div>
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.notes} ({t.optional})</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="rounded-xl h-11" /></div>
