@@ -16,6 +16,7 @@ import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import { toast } from 'sonner';
 import CashFlowReport from '@/components/dashboard/reports/CashFlowReport';
 import BudgetVsActualReport from '@/components/dashboard/reports/BudgetVsActualReport';
+import DailyJournalReport from '@/components/dashboard/reports/DailyJournalReport';
 
 const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899'];
 
