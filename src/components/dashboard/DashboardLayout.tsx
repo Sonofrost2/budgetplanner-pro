@@ -9,7 +9,7 @@ import { dashT } from '@/i18n/dashTranslations';
 import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
   Settings, LogOut, Globe, Menu, X, Sun, Moon, CreditCard, Shield,
-  Tag, Receipt, Search, Crown, Users, HelpCircle
+  Tag, Receipt, Search, Crown, Users, HelpCircle, Landmark, RefreshCw, Coins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -104,11 +104,14 @@ const DashboardLayout = () => {
     { key: 'budgets', icon: PieChart, path: '/dashboard/budgets' },
     { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
     { key: 'savings', icon: Target, path: '/dashboard/savings' },
+    { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
+    { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },
     { key: 'reports', icon: FileText, path: '/dashboard/reports' },
     { key: 'family', icon: Users, path: '/dashboard/family' },
   ];
 
   const secondaryNav = [
+    { key: 'cashCount', icon: Coins, path: '/dashboard/cash-count' },
     { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
     { key: 'settings', icon: Settings, path: '/dashboard/settings' },
     { key: 'payment', icon: Crown, path: '/dashboard/payment' },

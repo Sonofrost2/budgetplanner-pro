@@ -16,6 +16,7 @@ import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import { toast } from 'sonner';
 import CashFlowReport from '@/components/dashboard/reports/CashFlowReport';
 import BudgetVsActualReport from '@/components/dashboard/reports/BudgetVsActualReport';
+import DailyJournalReport from '@/components/dashboard/reports/DailyJournalReport';
 
 const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899'];
 
@@ -132,6 +133,7 @@ const ReportsPage = () => {
           <TabsTrigger value="categories">{t.topExpenses}</TabsTrigger>
           <TabsTrigger value="cashflow">{(t as any).cashFlow || 'Cash Flow'}</TabsTrigger>
           <TabsTrigger value="budgetvsactual">{(t as any).budgetVsActual || 'Budget vs Réel'}</TabsTrigger>
+          <TabsTrigger value="journal">{(t as any).dailyJournal || 'Journal'}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="monthly">
@@ -197,6 +199,10 @@ const ReportsPage = () => {
 
         <TabsContent value="budgetvsactual">
           <BudgetVsActualReport />
+        </TabsContent>
+
+        <TabsContent value="journal">
+          <DailyJournalReport />
         </TabsContent>
       </Tabs>
     </div>

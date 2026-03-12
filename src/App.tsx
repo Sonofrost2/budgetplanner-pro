@@ -33,6 +33,9 @@ import CategoriesPage from "./pages/dashboard/CategoriesPage";
 import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import FamilyPage from "./pages/dashboard/FamilyPage";
 import GuidePage from "./pages/dashboard/GuidePage";
+import DebtsPage from "./pages/dashboard/DebtsPage";
+import RecurringPage from "./pages/dashboard/RecurringPage";
+import CashCountPage from "./pages/dashboard/CashCountPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +73,9 @@ const AnimatedRoutes = () => {
           <Route path="family" element={<FamilyPage />} />
           <Route path="guide" element={<GuidePage />} />
           <Route path="admin/pricing" element={<AdminPricingPage />} />
+          <Route path="debts" element={<DebtsPage />} />
+          <Route path="recurring" element={<RecurringPage />} />
+          <Route path="cash-count" element={<CashCountPage />} />
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
