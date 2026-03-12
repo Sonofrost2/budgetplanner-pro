@@ -67,6 +67,43 @@ export const useBudgetNotifications = () => {
         }
       }
 
+      // Check savings behind schedule
+      const { data: savingsTxs } = await supabase.from('transactions')
+        .select('amount, date, notes')
+        .eq('user_id', user.id).eq('type', 'expense')
+        .like('notes', '🎯 %')
+        .gte('date', monthStart).lte('date', monthEnd);
+
+      for (const goal of savings) {
+        if (Number(goal.current_amount) >= Number(goal.target_amount)) continue;
+        if (!goal.deadline) continue;
+        const dl = new Date(goal.deadline);
+        const nowDate = new Date();
+        if (dl <= nowDate) continue; // already late, handled by status
+        const remaining = Number(goal.target_amount) - Number(goal.current_amount);
+        const monthsLeft = Math.max(1, (dl.getFullYear() - nowDate.getFullYear()) * 12 + dl.getMonth() - nowDate.getMonth());
+        const monthlyNeeded = remaining / monthsLeft;
+
+        const goalContribs = (savingsTxs || []).filter(tx => tx.notes === `🎯 ${goal.name}`);
+        const monthlyActual = goalContribs.reduce((s, tx) => s + Number(tx.amount), 0);
+
+        if (goalContribs.length === 0) {
+          notifs.push({
+            id: `savings-behind-nocontrib-${goal.id}`,
+            type: 'savings_behind',
+            title: (t as any).savingsReminder || 'Rappel épargne',
+            message: `${goal.icon} ${(t as any).savingsNoContribThisMonth || 'Aucun versement ce mois pour'} ${goal.name}`,
+          });
+        } else if (monthlyActual < monthlyNeeded * 0.9) {
+          notifs.push({
+            id: `savings-behind-${goal.id}`,
+            type: 'savings_behind',
+            title: (t as any).savingsReminder || 'Rappel épargne',
+            message: `${goal.icon} ${(t as any).savingsReminderBehind || 'Versement insuffisant pour'} ${goal.name}`,
+          });
+        }
+      }
+
       setNotifications(notifs);
     };
 
