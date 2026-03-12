@@ -20,6 +20,7 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import { useSearchParams } from 'react-router-dom';
 import { exportToCSV, exportToExcel } from '@/lib/export';
+import { TransferDialog } from '@/components/dashboard/TransferDialog';
 
 const PAGE_SIZE = 20;
 
