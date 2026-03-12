@@ -185,8 +185,8 @@ const TransactionsPage = () => {
       [t.date]: tx.date, [t.description]: tx.description,
       [t.type]: tx.type === 'income' ? t.incomeType : t.expenseType,
       [t.amount]: tx.amount,
-      [t.category]: (tx as any).categories?.name || '-',
-      [t.account]: (tx as any).payment_accounts?.name || '-',
+      [t.category]: tx.categories?.name || '-',
+      [t.account]: tx.payment_accounts?.name || '-',
       [t.notes]: tx.notes || '',
     }));
     const ok = format === 'csv' ? exportToCSV(data, 'transactions-selection') : exportToExcel(data, 'transactions-selection');
