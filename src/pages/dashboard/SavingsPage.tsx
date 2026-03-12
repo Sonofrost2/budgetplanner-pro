@@ -89,14 +89,23 @@ const SavingsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleCreate = async () => {
+  const handleCreateOrEdit = async () => {
     if (!user || !form.name.trim() || Number(form.target_amount) <= 0) return;
-    const { error } = await supabase.from('savings_goals').insert({
-      user_id: user.id, name: form.name.trim(), target_amount: Number(form.target_amount),
-      icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
-    });
-    if (error) { toast.error(error.message); return; }
+    if (editGoalId) {
+      const { error } = await supabase.from('savings_goals').update({
+        name: form.name.trim(), target_amount: Number(form.target_amount),
+        icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
+      }).eq('id', editGoalId);
+      if (error) { toast.error(error.message); return; }
+    } else {
+      const { error } = await supabase.from('savings_goals').insert({
+        user_id: user.id, name: form.name.trim(), target_amount: Number(form.target_amount),
+        icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
+      });
+      if (error) { toast.error(error.message); return; }
+    }
     setDialogOpen(false);
+    setEditGoalId(null);
     fetchData();
     toast.success(t.saved);
   };
