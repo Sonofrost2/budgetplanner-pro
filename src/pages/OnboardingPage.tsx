@@ -71,7 +71,7 @@ const OnboardingPage = () => {
 
   const handlePayment = async () => {
     if (!selectedPlanData) return;
-    const price = formatPrice(selectedPlanData.currency_prices || {});
+    const price = formatPrice((selectedPlanData.currency_prices || {}) as Record<string, number>);
     setPaymentLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('paydunya-checkout', {
