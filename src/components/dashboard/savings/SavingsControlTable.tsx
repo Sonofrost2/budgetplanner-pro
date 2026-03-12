@@ -1,9 +1,18 @@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
+import type { SavingsGoal } from '@/hooks/useDashboardData';
+
+interface SavingsContribution {
+  id: string;
+  amount: number;
+  date: string;
+  type: string;
+}
+
 interface SavingsControlTableProps {
-  goals: any[];
-  contributions: Record<string, any[]>;
+  goals: SavingsGoal[];
+  contributions: Record<string, SavingsContribution[]>;
   fmt: (n: number) => string;
   t: DashTranslations;
   locale: string;

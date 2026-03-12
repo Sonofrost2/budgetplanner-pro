@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Inbox, ArrowUpDown, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import type { Transaction } from '@/hooks/useDashboardData';
+
 interface RecentTransactionsProps {
-  transactions: any[];
+  transactions: Transaction[];
   fmt: (n: number) => string;
   t: DashTranslations;
   locale: string;

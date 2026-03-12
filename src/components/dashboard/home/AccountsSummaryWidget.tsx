@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
+import type { Account } from '@/hooks/useDashboardData';
+
 interface AccountsSummaryWidgetProps {
-  accounts: any[];
+  accounts: Account[];
   fmt: (n: number) => string;
   t: DashTranslations;
   locale: string;

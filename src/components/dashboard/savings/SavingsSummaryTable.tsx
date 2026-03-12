@@ -3,15 +3,24 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
+import type { SavingsGoal } from '@/hooks/useDashboardData';
+
+interface SavingsContribution {
+  id: string;
+  amount: number;
+  date: string;
+  type: string;
+}
+
 interface SavingsSummaryTableProps {
-  goals: any[];
-  contributions: Record<string, any[]>;
+  goals: SavingsGoal[];
+  contributions: Record<string, SavingsContribution[]>;
   fmt: (n: number) => string;
   t: DashTranslations;
   locale: string;
 }
 
-const getStatus = (goal: any): 'completed' | 'late' | 'inProgress' => {
+const getStatus = (goal: SavingsGoal): 'completed' | 'late' | 'inProgress' => {
   if (Number(goal.current_amount) >= Number(goal.target_amount)) return 'completed';
   if (goal.deadline) {
     const now = new Date();
