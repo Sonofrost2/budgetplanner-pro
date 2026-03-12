@@ -165,7 +165,7 @@ const CashCountPage = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{(t as any).cashCount || 'PV d\'espèces'}</DialogTitle>
+            <DialogTitle className="text-xl font-bold">{t.cashCount}</DialogTitle>
             <DialogDescription>{locale === 'fr' ? 'Comptez les billets et pièces' : 'Count bills and coins'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
