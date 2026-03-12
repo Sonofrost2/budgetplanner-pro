@@ -14,7 +14,7 @@ const CashFlowReport = () => {
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const [year, setYear] = useState(new Date().getFullYear());
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<{ label: string; carry: number; income: number; expenses: number; net: number; endBalance: number }[]>([]);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
