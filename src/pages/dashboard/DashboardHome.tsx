@@ -1,9 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
@@ -17,6 +16,7 @@ import { ForecastWidget } from '@/components/dashboard/home/ForecastWidget';
 import { ChartsSection } from '@/components/dashboard/home/ChartsSection';
 import { RecentTransactions } from '@/components/dashboard/home/RecentTransactions';
 import { AccountsSummaryWidget } from '@/components/dashboard/home/AccountsSummaryWidget';
+import { useAccounts, useTransactionsRange, useBudgets, useSavingsGoals, useChartData } from '@/hooks/useDashboardData';
 
 type PeriodKey = 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisYear';
 
@@ -51,112 +51,44 @@ const DashboardHome = () => {
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const navigate = useNavigate();
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [monthlyData, setMonthlyData] = useState<{ name: string; income: number; expenses: number }[]>([]);
-  const [categoryData, setCategoryData] = useState<{ name: string; value: number; color: string }[]>([]);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [savingsGoals, setSavingsGoals] = useState<any[]>([]);
-  const [budgets, setBudgets] = useState<any[]>([]);
   const [period, setPeriod] = useState<PeriodKey>('thisMonth');
-  const [loading, setLoading] = useState(true);
-
   const fmt = (n: number) => fmtCurrency(n, locale);
 
-  const fetchDashboard = useCallback(() => {
-    if (!user) return;
-    const { start, end } = getDateRange(period);
+  const { start, end } = useMemo(() => getDateRange(period), [period]);
 
-    Promise.all([
-      supabase.from('transactions').select('*, categories(name, icon, color)')
-        .eq('user_id', user.id).gte('date', start).lte('date', end)
-        .order('date', { ascending: false }).limit(5000),
-      supabase.from('transactions').select('amount, categories(name, color, icon)')
-        .eq('user_id', user.id).eq('type', 'expense')
-        .gte('date', start).lte('date', end),
-      supabase.from('payment_accounts').select('*').eq('user_id', user.id)
-        .order('created_at', { ascending: false }),
-      supabase.from('savings_goals').select('*').eq('user_id', user.id)
-        .order('created_at', { ascending: false }).limit(5),
-      supabase.from('budgets').select('*').eq('user_id', user.id)
-        .order('created_at', { ascending: false }).limit(5),
-    ]).then(([txRes, catRes, accRes, savRes, budRes]) => {
-      if (txRes.error) console.error('Transactions fetch error:', txRes.error.message);
-      if (accRes.error) console.error('Accounts fetch error:', accRes.error.message);
-      if (savRes.error) console.error('Savings fetch error:', savRes.error.message);
-      if (budRes.error) console.error('Budgets fetch error:', budRes.error.message);
+  // React-query hooks
+  const { data: accounts = [], isLoading: accLoading } = useAccounts();
+  const { data: transactions = [], isLoading: txLoading } = useTransactionsRange(start, end);
+  const { data: budgetsRaw = [], isLoading: budLoading } = useBudgets();
+  const { data: savingsGoals = [], isLoading: savLoading } = useSavingsGoals();
+  const { data: monthlyData = [], isLoading: chartLoading } = useChartData(locale);
 
-      setTransactions(txRes.data || []);
-      setAccounts(accRes.data || []);
-      setSavingsGoals(savRes.data || []);
+  const loading = accLoading || txLoading || budLoading || savLoading;
 
-      // Category pie data
-      const catMap: Record<string, { name: string; value: number; color: string }> = {};
-      (catRes.data || []).forEach((tx: any) => {
-        const name = tx.categories?.name || 'Autre';
-        const color = tx.categories?.color || '#6C63FF';
-        if (!catMap[name]) catMap[name] = { name, value: 0, color };
-        catMap[name].value += Number(tx.amount);
-      });
-      setCategoryData(Object.values(catMap).sort((a, b) => b.value - a.value));
-
-      // Budgets with spent calculation
-      const budgetsData = budRes.data || [];
-      const allTx = txRes.data || [];
-      const budgetsWithSpent = budgetsData.map((b: any) => {
-        const spent = allTx
-          .filter((tx: any) => tx.type === 'expense' && tx.category_id === b.category_id)
-          .reduce((s: number, tx: any) => s + Number(tx.amount), 0);
-        return { ...b, spent };
-      });
-      setBudgets(budgetsWithSpent);
-      setLoading(false);
-    }).catch(err => {
-      console.error('Dashboard fetch error:', err);
-      setLoading(false);
+  // Category pie data
+  const categoryData = useMemo(() => {
+    const catMap: Record<string, { name: string; value: number; color: string }> = {};
+    transactions.filter(tx => tx.type === 'expense').forEach((tx: any) => {
+      const name = tx.categories?.name || 'Autre';
+      const color = tx.categories?.color || '#6C63FF';
+      if (!catMap[name]) catMap[name] = { name, value: 0, color };
+      catMap[name].value += Number(tx.amount);
     });
+    return Object.values(catMap).sort((a, b) => b.value - a.value);
+  }, [transactions]);
 
-    // Chart: last 6 months
-    const now = new Date();
-    const months: { date: Date; label: string }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({ date: d, label: d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' }) });
-    }
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
-    supabase.from('transactions').select('type, amount, date')
-      .eq('user_id', user.id).gte('date', sixMonthsAgo)
-      .then(({ data, error }) => {
-        if (error) { console.error('Chart fetch error:', error.message); return; }
-        const chartData = months.map(m => {
-          const monthTxs = (data || []).filter((tx: any) => {
-            const txDate = new Date(tx.date);
-            return txDate.getMonth() === m.date.getMonth() && txDate.getFullYear() === m.date.getFullYear();
-          });
-          return {
-            name: m.label,
-            income: monthTxs.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0),
-            expenses: monthTxs.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0),
-          };
-        });
-        setMonthlyData(chartData);
-      });
-  }, [user, locale, period]);
+  // Budgets with spent calculation
+  const budgets = useMemo(() => {
+    return budgetsRaw.map(b => {
+      const spent = transactions
+        .filter(tx => tx.type === 'expense' && tx.category_id === b.category_id)
+        .reduce((s, tx) => s + Number(tx.amount), 0);
+      return { ...b, spent };
+    }).slice(0, 5);
+  }, [budgetsRaw, transactions]);
 
-  // Fetch on mount and period/user changes
-  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
-
-  // Auto-refresh when window regains focus (after navigating to transactions/accounts pages)
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') fetchDashboard();
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [fetchDashboard]);
-
-  // Global balance: sum of all account real_balances
+  // Stats
   const totalBalance = accounts.reduce((s, a) => s + Number(a.real_balance), 0);
-  // Period-filtered stats for display
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
 
@@ -164,8 +96,8 @@ const DashboardHome = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between"><Skeleton className="h-9 w-40" /><Skeleton className="h-9 w-40" /></div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
@@ -206,7 +138,7 @@ const DashboardHome = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <AccountsWidget accounts={accounts} fmt={fmt} t={t} />
         <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />
-        <SavingsWidget goals={savingsGoals} fmt={fmt} t={t} locale={locale} />
+        <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />
       </div>
 
       {/* Forecast widget */}
@@ -216,7 +148,7 @@ const DashboardHome = () => {
       <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} />
 
       {/* Recent Transactions */}
-      <RecentTransactions transactions={transactions} fmt={fmt} t={t} locale={locale} />
+      <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />
     </div>
   );
 };
