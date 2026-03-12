@@ -57,7 +57,7 @@ const CashFlowReport = () => {
   return (
     <Card className="border-none shadow-[var(--shadow-card)]">
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-base">{(t as any).cashFlow || 'Cash Flow'}</CardTitle>
+        <CardTitle className="text-base">{t.cashFlow}</CardTitle>
         <Select value={String(year)} onValueChange={v => setYear(Number(v))}>
           <SelectTrigger className="w-28 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
