@@ -8,7 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Bell } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const SettingsPage = () => {
   const { user } = useAuth();
@@ -91,7 +94,52 @@ const SettingsPage = () => {
           </Button>
         </CardContent>
       </Card>
+
+      <PushNotificationCard locale={locale} />
     </div>
+  );
+};
+
+const PushNotificationCard = ({ locale }: { locale: string }) => {
+  const { subscribed, subscribe, unsubscribe, loading, isSupported, permission } = usePushNotifications();
+
+  if (!isSupported) return null;
+
+  const handleToggle = async (checked: boolean) => {
+    if (checked) {
+      const ok = await subscribe();
+      if (ok) toast.success(locale === 'fr' ? 'Notifications activées' : 'Notifications enabled');
+      else if (permission === 'denied') toast.error(locale === 'fr' ? 'Notifications bloquées par le navigateur' : 'Notifications blocked by browser');
+    } else {
+      await unsubscribe();
+      toast.success(locale === 'fr' ? 'Notifications désactivées' : 'Notifications disabled');
+    }
+  };
+
+  return (
+    <Card className="border-none shadow-[var(--shadow-card)]">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Bell className="w-4 h-4" />
+          {locale === 'fr' ? 'Notifications push' : 'Push notifications'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">
+              {locale === 'fr' ? 'Alertes budget & épargne' : 'Budget & savings alerts'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {locale === 'fr'
+                ? 'Recevez des notifications même quand l\'app est fermée'
+                : 'Get notified even when the app is closed'}
+            </p>
+          </div>
+          <Switch checked={subscribed} onCheckedChange={handleToggle} disabled={loading} />
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
