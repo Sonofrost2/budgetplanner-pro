@@ -27,6 +27,7 @@ export type Profile = Tables<'profiles'>;
 export const queryKeys = {
   accounts: (userId: string) => ['accounts', userId] as const,
   transactions: (userId: string) => ['transactions', userId] as const,
+  allTransactions: (userId: string) => ['all-transactions', userId] as const,
   transactionsRange: (userId: string, start: string, end: string) => ['transactions', userId, start, end] as const,
   categories: (userId: string) => ['categories', userId] as const,
   budgets: (userId: string) => ['budgets', userId] as const,
@@ -35,9 +36,12 @@ export const queryKeys = {
   recurring: (userId: string) => ['recurring', userId] as const,
   profile: (userId: string) => ['profile', userId] as const,
   chartData: (userId: string) => ['chart-data', userId] as const,
+  receipts: (userId: string) => ['receipts', userId] as const,
+  reportsData: (userId: string) => ['reports-data', userId] as const,
+  forecastRawTx: (userId: string) => ['forecast-raw-tx', userId] as const,
 };
 
-// ─── Hooks ───────────────────────────────────────────────────────────────────
+// ─── Read Hooks ──────────────────────────────────────────────────────────────
 
 export const useAccounts = () => {
   const { user } = useAuth();
@@ -45,10 +49,8 @@ export const useAccounts = () => {
     queryKey: queryKeys.accounts(user?.id ?? ''),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('payment_accounts')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false });
+        .from('payment_accounts').select('*')
+        .eq('user_id', user!.id).order('created_at', { ascending: true });
       if (error) throw error;
       return (data ?? []) as Account[];
     },
@@ -63,10 +65,8 @@ export const useCategories = () => {
     queryKey: queryKeys.categories(user?.id ?? ''),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('name');
+        .from('categories').select('*')
+        .eq('user_id', user!.id).order('type').order('name');
       if (error) throw error;
       return (data ?? []) as Category[];
     },
@@ -81,10 +81,8 @@ export const useBudgets = () => {
     queryKey: queryKeys.budgets(user?.id ?? ''),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('budgets')
-        .select('*, categories(name, icon, color)')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false });
+        .from('budgets').select('*, categories(name, icon, color)')
+        .eq('user_id', user!.id).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as Budget[];
     },
@@ -99,10 +97,8 @@ export const useSavingsGoals = () => {
     queryKey: queryKeys.savingsGoals(user?.id ?? ''),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('savings_goals')
-        .select('*, payment_accounts(name, icon, real_balance)')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false });
+        .from('savings_goals').select('*, payment_accounts(name, icon, real_balance)')
+        .eq('user_id', user!.id).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as SavingsGoal[];
     },
@@ -117,10 +113,8 @@ export const useDebts = () => {
     queryKey: queryKeys.debts(user?.id ?? ''),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('debts')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false });
+        .from('debts').select('*')
+        .eq('user_id', user!.id).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as Debt[];
     },
@@ -135,10 +129,8 @@ export const useRecurring = () => {
     queryKey: queryKeys.recurring(user?.id ?? ''),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('recurring_transactions')
-        .select('*, categories(name, icon, color)')
-        .eq('user_id', user!.id)
-        .order('next_date', { ascending: true });
+        .from('recurring_transactions').select('*, categories(name, icon, color)')
+        .eq('user_id', user!.id).order('next_date', { ascending: true });
       if (error) throw error;
       return (data ?? []) as RecurringTransaction[];
     },
@@ -153,12 +145,120 @@ export const useUserProfile = () => {
     queryKey: queryKeys.profile(user?.id ?? ''),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user!.id)
-        .single();
+        .from('profiles').select('*')
+        .eq('user_id', user!.id).maybeSingle();
       if (error) throw error;
-      return data as Profile;
+      return data as Profile | null;
+    },
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+};
+
+// All transactions with relations (for TransactionsPage)
+export const useAllTransactions = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.allTransactions(user?.id ?? ''),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*, categories(name, icon, color), payment_accounts(name, icon)')
+        .eq('user_id', user!.id)
+        .order('date', { ascending: false })
+        .limit(10000);
+      if (error) throw error;
+      return (data ?? []) as Transaction[];
+    },
+    enabled: !!user,
+    staleTime: 15_000,
+  });
+};
+
+// Receipts
+export const useReceipts = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.receipts(user?.id ?? ''),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payment_receipts').select('*')
+        .eq('user_id', user!.id).order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+};
+
+// Reports data
+export const useReportsData = (locale: string) => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.reportsData(user?.id ?? ''),
+    queryFn: async () => {
+      const now = new Date();
+      const twelveAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1).toISOString().split('T')[0];
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+      const [txRes, catRes] = await Promise.all([
+        supabase.from('transactions').select('type, amount, date, description, categories(name)')
+          .eq('user_id', user!.id).gte('date', twelveAgo).order('date', { ascending: false }),
+        supabase.from('transactions').select('amount, categories(name, color)')
+          .eq('user_id', user!.id).eq('type', 'expense').gte('date', monthStart).lte('date', monthEnd),
+      ]);
+      if (txRes.error) throw txRes.error;
+
+      const allTx = txRes.data || [];
+      const months: any[] = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const label = d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
+        const txs = allTx.filter(tx => {
+          const td = new Date(tx.date);
+          return td.getMonth() === d.getMonth() && td.getFullYear() === d.getFullYear();
+        });
+        months.push({
+          name: label,
+          income: txs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
+          expenses: txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
+        });
+      }
+
+      const catMap: Record<string, { name: string; value: number; color: string }> = {};
+      (catRes.data || []).forEach(tx => {
+        const name = (tx.categories as any)?.name || 'Other';
+        const color = (tx.categories as any)?.color || '#6C63FF';
+        if (!catMap[name]) catMap[name] = { name, value: 0, color };
+        catMap[name].value += Number(tx.amount);
+      });
+
+      return {
+        allTransactions: allTx,
+        monthlyData: months,
+        categoryData: Object.values(catMap).sort((a, b) => b.value - a.value),
+      };
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+};
+
+// Forecast raw transactions
+export const useForecastRawTx = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.forecastRawTx(user?.id ?? ''),
+    queryFn: async () => {
+      const now = new Date();
+      const sixAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('transactions').select('type, amount, date, category_id, categories(name)')
+        .eq('user_id', user!.id).gte('date', sixAgo);
+      if (error) throw error;
+      return data ?? [];
     },
     enabled: !!user,
     staleTime: 60_000,
@@ -213,7 +313,7 @@ export const usePaginatedTransactions = (options: {
   });
 };
 
-// Dashboard: transactions for a date range (period-filtered)
+// Dashboard: transactions for a date range
 export const useTransactionsRange = (start: string, end: string) => {
   const { user } = useAuth();
   return useQuery({
@@ -223,10 +323,8 @@ export const useTransactionsRange = (start: string, end: string) => {
         .from('transactions')
         .select('*, categories(name, icon, color)')
         .eq('user_id', user!.id)
-        .gte('date', start)
-        .lte('date', end)
-        .order('date', { ascending: false })
-        .limit(5000);
+        .gte('date', start).lte('date', end)
+        .order('date', { ascending: false }).limit(5000);
       if (error) throw error;
       return (data ?? []) as Transaction[];
     },
@@ -249,10 +347,8 @@ export const useChartData = (locale: string) => {
       }
       const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
       const { data, error } = await supabase
-        .from('transactions')
-        .select('type, amount, date')
-        .eq('user_id', user!.id)
-        .gte('date', sixMonthsAgo);
+        .from('transactions').select('type, amount, date')
+        .eq('user_id', user!.id).gte('date', sixMonthsAgo);
       if (error) throw error;
       return months.map(m => {
         const monthTxs = (data || []).filter((tx: any) => {
@@ -272,19 +368,31 @@ export const useChartData = (locale: string) => {
 };
 
 // ─── Invalidation helper ─────────────────────────────────────────────────────
-export const useInvalidateAll = () => {
+export const useInvalidate = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  return () => {
+
+  const invalidate = (...keys: string[]) => {
     if (!user) return;
-    queryClient.invalidateQueries({ queryKey: ['accounts', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['transactions', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['paginated-transactions', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['categories', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['budgets', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['savings-goals', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['debts', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['recurring', user.id] });
-    queryClient.invalidateQueries({ queryKey: ['chart-data', user.id] });
+    keys.forEach(k => queryClient.invalidateQueries({ queryKey: [k, user.id] }));
   };
+
+  const invalidateAll = () => {
+    if (!user) return;
+    ['accounts', 'transactions', 'all-transactions', 'paginated-transactions',
+     'categories', 'budgets', 'savings-goals', 'debts', 'recurring',
+     'chart-data', 'receipts', 'reports-data', 'forecast-raw-tx'].forEach(k =>
+      queryClient.invalidateQueries({ queryKey: [k, user.id] })
+    );
+    // Also invalidate range-based transaction queries
+    queryClient.invalidateQueries({ predicate: q => q.queryKey[0] === 'transactions' && q.queryKey[1] === user.id });
+  };
+
+  return { invalidate, invalidateAll };
+};
+
+// Legacy alias
+export const useInvalidateAll = () => {
+  const { invalidateAll } = useInvalidate();
+  return invalidateAll;
 };
