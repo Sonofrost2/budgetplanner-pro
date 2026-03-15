@@ -92,11 +92,32 @@ const DashboardLayout = () => {
 
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center mesh-bg">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center animate-pulse" style={{ background: 'var(--gradient-primary)' }}>
-          <Wallet className="w-6 h-6 text-primary-foreground" />
+      <div className="flex flex-col items-center gap-4">
+        <motion.div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+          style={{ background: 'var(--gradient-primary)' }}
+          animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <Wallet className="w-7 h-7 text-primary-foreground" />
+        </motion.div>
+        <div className="flex flex-col items-center gap-2">
+          <motion.span
+            className="text-sm text-muted-foreground font-medium"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            Chargement...
+          </motion.span>
+          <div className="w-32 h-1 rounded-full bg-muted overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: 'var(--gradient-primary)' }}
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
         </div>
-        <span className="text-sm text-muted-foreground font-medium">Chargement...</span>
       </div>
     </div>;
   }
