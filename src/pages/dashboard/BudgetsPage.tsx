@@ -60,8 +60,34 @@ const BudgetsPage = () => {
     [allCategories, form.budget_type]
   );
 
-  const expenseBudgets = useMemo(() => budgets.filter(b => (b as any).budget_type !== 'income'), [budgets]);
-  const incomeBudgets = useMemo(() => budgets.filter(b => (b as any).budget_type === 'income'), [budgets]);
+  const expenseBudgets = useMemo(() => {
+    let result = budgets.filter(b => (b as any).budget_type !== 'income');
+    if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(b => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q)); }
+    if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'amount') cmp = Number(a.amount) - Number(b.amount);
+      else if (sortField === 'spent') cmp = (spending[a.category_id || ''] || 0) - (spending[b.category_id || ''] || 0);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  }, [budgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
+
+  const incomeBudgets = useMemo(() => {
+    let result = budgets.filter(b => (b as any).budget_type === 'income');
+    if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(b => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q)); }
+    if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'amount') cmp = Number(a.amount) - Number(b.amount);
+      else if (sortField === 'spent') cmp = (spending[a.category_id || ''] || 0) - (spending[b.category_id || ''] || 0);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  }, [budgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
+
   const currentBudgets = activeTab === 'expense' ? expenseBudgets : incomeBudgets;
 
   const bulk = useBulkSelection(currentBudgets);
