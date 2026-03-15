@@ -827,6 +827,7 @@ export const dashT = {
     from: 'From',
     to: 'To',
     apply: 'Apply',
+    vsPrevious: 'vs previous period',
   },
 } as const;
 
