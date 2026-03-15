@@ -55,13 +55,42 @@ export const useBudgetNotifications = () => {
     const importedSavingsTxs = importedSavingsTxRes.data || [];
     const notifs: Notification[] = [];
 
-    // Check budgets — exceeded + threshold warning
+    // Check budgets — exceeded + threshold warning + pace-based predictive alert
     for (const budget of budgets) {
       const spent = txs
         .filter(tx => tx.category_id === budget.category_id)
         .reduce((sum, tx) => sum + Number(tx.amount), 0);
       const pct = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
       const threshold = budget.alert_threshold ?? 80;
+
+      // Calculate period range for pace-based prediction
+      const period = budget.period || 'monthly';
+      let periodStart: Date, periodEnd: Date;
+      if (period === 'daily') {
+        periodStart = periodEnd = now;
+      } else if (period === 'weekly') {
+        const day = now.getDay();
+        periodStart = new Date(now); periodStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+        periodEnd = new Date(periodStart); periodEnd.setDate(periodStart.getDate() + 6);
+      } else if (period === 'quarterly') {
+        const q = Math.floor(now.getMonth() / 3);
+        periodStart = new Date(now.getFullYear(), q * 3, 1);
+        periodEnd = new Date(now.getFullYear(), q * 3 + 3, 0);
+      } else if (period === 'semi_annual') {
+        const s = now.getMonth() < 6 ? 0 : 6;
+        periodStart = new Date(now.getFullYear(), s, 1);
+        periodEnd = new Date(now.getFullYear(), s + 6, 0);
+      } else if (period === 'yearly') {
+        periodStart = new Date(now.getFullYear(), 0, 1);
+        periodEnd = new Date(now.getFullYear(), 11, 31);
+      } else {
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      }
+
+      const daysElapsed = Math.max(1, Math.floor((now.getTime() - periodStart.getTime()) / 86400000) + 1);
+      const daysTotal = Math.max(1, Math.floor((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1);
+      const projection = (spent / daysElapsed) * daysTotal;
 
       if (spent > budget.amount) {
         notifs.push({
@@ -78,6 +107,15 @@ export const useBudgetNotifications = () => {
           severity: 'warning',
           title: locale === 'fr' ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`,
           message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${locale === 'fr' ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
+        });
+      } else if (projection > budget.amount && pct >= 50) {
+        // Pace-based predictive alert: pace projects overspend but not yet at threshold
+        notifs.push({
+          id: `budget-pace-${budget.id}`,
+          type: 'budget_warning',
+          severity: 'info',
+          title: locale === 'fr' ? 'Rythme élevé' : 'High pace',
+          message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${locale === 'fr' ? 'projection fin de période' : 'end-of-period projection'} ${Math.round(projection).toLocaleString()} (${Math.round((projection / budget.amount) * 100)}%)`,
         });
       }
     }
