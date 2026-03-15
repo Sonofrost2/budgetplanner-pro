@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -23,6 +23,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb } from 'lucide-react';
+import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -48,6 +49,9 @@ const SavingsPage = () => {
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<'name' | 'current_amount' | 'target_amount'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [contributions, setContributions] = useState<Record<string, SavingsContribution[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -72,6 +76,22 @@ const SavingsPage = () => {
   const [simulating, setSimulating] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
+
+  const filteredGoals = useMemo(() => {
+    let result = [...goals];
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(g => g.name.toLowerCase().includes(q) || (g as any).bank_name?.toLowerCase().includes(q));
+    }
+    result.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'current_amount') cmp = Number(a.current_amount) - Number(b.current_amount);
+      else if (sortField === 'target_amount') cmp = Number(a.target_amount) - Number(b.target_amount);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  }, [goals, searchQuery, sortField, sortOrder]);
 
   const fetchData = useCallback(async () => {
     if (!user) return;

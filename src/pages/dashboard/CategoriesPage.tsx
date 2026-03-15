@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2, Inbox } from 'lucide-react';
+import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -46,6 +47,9 @@ const CategoriesPage = () => {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
   const [bulkModifyForm, setBulkModifyForm] = useState({ type: '' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<'name' | 'txCount'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const bulk = useBulkSelection(categories);
 
@@ -120,8 +124,23 @@ const CategoriesPage = () => {
     if (ok) toast.success(t.saved);
   };
 
-  const expenseCategories = categories.filter(c => c.type === 'expense');
-  const incomeCategories = categories.filter(c => c.type === 'income');
+  const sortAndFilter = (cats: Category[]) => {
+    let result = cats;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(c => c.name.toLowerCase().includes(q));
+    }
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'txCount') cmp = (txCounts[a.id] || 0) - (txCounts[b.id] || 0);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  };
+
+  const expenseCategories = sortAndFilter(categories.filter(c => c.type === 'expense'));
+  const incomeCategories = sortAndFilter(categories.filter(c => c.type === 'income'));
 
   const renderGroup = (title: string, cats: Category[]) => (
     <div className="space-y-3">
@@ -170,6 +189,22 @@ const CategoriesPage = () => {
         <h2 className="text-2xl font-bold font-display">{t.categories}</h2>
         <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addCategory}</Button>
       </div>
+
+      {categories.length > 0 && (
+        <FilterToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={locale === 'fr' ? 'Rechercher une catégorie...' : 'Search categories...'}
+          sortOptions={[
+            { value: 'name', label: locale === 'fr' ? 'Nom' : 'Name' },
+            { value: 'txCount', label: 'Transactions' },
+          ]}
+          sortValue={sortField}
+          onSortChange={v => setSortField(v as any)}
+          sortOrder={sortOrder}
+          onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+        />
+      )}
 
       {bulk.hasSelection && (
         <BulkActionBar

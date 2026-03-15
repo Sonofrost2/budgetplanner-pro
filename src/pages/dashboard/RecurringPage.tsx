@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Plus, RefreshCw, Pencil, Trash2, Sparkles, Check, X, Zap, TrendingDown, TrendingUp, Loader2 } from 'lucide-react';
+import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -53,6 +54,29 @@ const RecurringPage = () => {
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: '', active: true });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('confirmed');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<'description' | 'amount' | 'next_date'>('description');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterType, setFilterType] = useState('');
+  const [filterFreq, setFilterFreq] = useState('');
+
+  const filteredItems = useMemo(() => {
+    let result = [...items];
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(r => r.description.toLowerCase().includes(q) || r.categories?.name?.toLowerCase().includes(q));
+    }
+    if (filterType) result = result.filter(r => r.type === filterType);
+    if (filterFreq) result = result.filter(r => r.frequency === filterFreq);
+    result.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'description') cmp = a.description.localeCompare(b.description);
+      else if (sortField === 'amount') cmp = Number(a.amount) - Number(b.amount);
+      else if (sortField === 'next_date') cmp = a.next_date.localeCompare(b.next_date);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  }, [items, searchQuery, filterType, filterFreq, sortField, sortOrder]);
 
   // AI detection state
   const [aiPatterns, setAiPatterns] = useState<AIPattern[]>([]);
@@ -202,13 +226,7 @@ const RecurringPage = () => {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-xl gap-1.5"
-            onClick={runAiDetection}
-            disabled={aiDetecting}
-          >
+          <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={runAiDetection} disabled={aiDetecting}>
             {aiDetecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {aiDetecting ? t.aiDetecting : t.aiDetect}
           </Button>
@@ -217,6 +235,32 @@ const RecurringPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Search + Sort + Filters */}
+      {items.length > 0 && (
+        <FilterToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
+          sortOptions={[
+            { value: 'description', label: t.description },
+            { value: 'amount', label: t.amount },
+            { value: 'next_date', label: t.nextDate },
+          ]}
+          sortValue={sortField}
+          onSortChange={v => setSortField(v as any)}
+          sortOrder={sortOrder}
+          onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+          filterChips={[
+            { value: 'expense', label: t.expenseType, icon: '📉', count: items.filter(i => i.type === 'expense').length },
+            { value: 'income', label: t.incomeType, icon: '📈', count: items.filter(i => i.type === 'income').length },
+          ]}
+          activeFilter={filterType}
+          onFilterChange={setFilterType}
+          allLabel={locale === 'fr' ? 'Tous' : 'All'}
+          totalCount={items.length}
+        />
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -260,7 +304,7 @@ const RecurringPage = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {items.map(r => (
+              {filteredItems.map(r => (
                 <Card key={r.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${!r.active ? 'opacity-50' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">

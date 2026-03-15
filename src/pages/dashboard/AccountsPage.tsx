@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight } from 'lucide-react';
+import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -57,11 +58,26 @@ const AccountsPage = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const filteredAccounts = useMemo(() => {
-    if (!typeFilter) return accounts;
-    return accounts.filter(a => a.type === typeFilter);
-  }, [accounts, typeFilter]);
+    let result = accounts;
+    if (typeFilter) result = result.filter(a => a.type === typeFilter);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(a => a.name.toLowerCase().includes(q) || a.type.toLowerCase().includes(q));
+    }
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'real_balance') cmp = Number(a.real_balance) - Number(b.real_balance);
+      else if (sortField === 'type') cmp = a.type.localeCompare(b.type);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  }, [accounts, typeFilter, searchQuery, sortField, sortOrder]);
 
   const bulk = useBulkSelection(filteredAccounts);
 
@@ -224,34 +240,35 @@ const AccountsPage = () => {
         </div>
       </div>
 
-      {/* Type filter chips */}
+      {/* Search + Sort + Type filter */}
       {accounts.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSearchParams({})}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${!typeFilter ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/50'}`}
-          >
-            {locale === 'fr' ? 'Tous' : 'All'} ({accounts.length})
-          </button>
-          {[...new Set(accounts.map(a => a.type))].map(type => {
-            const count = accounts.filter(a => a.type === type).length;
+        <FilterToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={locale === 'fr' ? 'Rechercher un compte...' : 'Search accounts...'}
+          sortOptions={[
+            { value: 'name', label: locale === 'fr' ? 'Nom' : 'Name' },
+            { value: 'real_balance', label: locale === 'fr' ? 'Solde' : 'Balance' },
+            { value: 'type', label: t.type },
+          ]}
+          sortValue={sortField}
+          onSortChange={v => setSortField(v as any)}
+          sortOrder={sortOrder}
+          onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+          filterChips={[...new Set(accounts.map(a => a.type))].map(type => {
             const typeLabels: Record<string, Record<string, string>> = {
               fr: { bank: 'Banque', mobile_money: 'Mobile Money', cash: 'Espèces', card: 'Carte', savings: 'Épargne' },
               en: { bank: 'Bank', mobile_money: 'Mobile Money', cash: 'Cash', card: 'Card', savings: 'Savings' },
             };
             const icons: Record<string, string> = { bank: '🏦', mobile_money: '📱', cash: '💵', card: '💳', savings: '🐖' };
             const labels = typeLabels[locale] || typeLabels.en;
-            return (
-              <button
-                key={type}
-                onClick={() => setSearchParams(typeFilter === type ? {} : { type })}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${typeFilter === type ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/50'}`}
-              >
-                {icons[type] || '💳'} {labels[type] || type} ({count})
-              </button>
-            );
+            return { value: type, label: labels[type] || type, icon: icons[type] || '💳', count: accounts.filter(a => a.type === type).length };
           })}
-        </div>
+          activeFilter={typeFilter}
+          onFilterChange={v => setSearchParams(v ? { type: v } : {})}
+          allLabel={locale === 'fr' ? 'Tous' : 'All'}
+          totalCount={accounts.length}
+        />
       )}
 
       {bulk.hasSelection && (

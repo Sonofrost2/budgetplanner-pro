@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search } from 'lucide-react';
+import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -47,6 +48,10 @@ const BudgetsPage = () => {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
   const [bulkModifyForm, setBulkModifyForm] = useState({ period: '', category_id: '' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<'name' | 'amount' | 'spent'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterPeriod, setFilterPeriod] = useState('');
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -54,12 +59,6 @@ const BudgetsPage = () => {
     allCategories.filter(c => c.type === form.budget_type),
     [allCategories, form.budget_type]
   );
-
-  const expenseBudgets = useMemo(() => budgets.filter(b => (b as any).budget_type !== 'income'), [budgets]);
-  const incomeBudgets = useMemo(() => budgets.filter(b => (b as any).budget_type === 'income'), [budgets]);
-  const currentBudgets = activeTab === 'expense' ? expenseBudgets : incomeBudgets;
-
-  const bulk = useBulkSelection(currentBudgets);
 
   const spending = useMemo(() => {
     const now = new Date();
@@ -85,6 +84,38 @@ const BudgetsPage = () => {
     });
     return spendMap;
   }, [budgets, allTx]);
+
+  const expenseBudgets = useMemo(() => {
+    let result = budgets.filter(b => (b as any).budget_type !== 'income');
+    if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(b => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q)); }
+    if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'amount') cmp = Number(a.amount) - Number(b.amount);
+      else if (sortField === 'spent') cmp = (spending[a.category_id || ''] || 0) - (spending[b.category_id || ''] || 0);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  }, [budgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
+
+  const incomeBudgets = useMemo(() => {
+    let result = budgets.filter(b => (b as any).budget_type === 'income');
+    if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(b => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q)); }
+    if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'amount') cmp = Number(a.amount) - Number(b.amount);
+      else if (sortField === 'spent') cmp = (spending[a.category_id || ''] || 0) - (spending[b.category_id || ''] || 0);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  }, [budgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
+
+  const currentBudgets = activeTab === 'expense' ? expenseBudgets : incomeBudgets;
+
+  const bulk = useBulkSelection(currentBudgets);
 
   const refreshData = () => { invalidate('budgets', 'all-transactions'); bulk.clear(); };
 
@@ -301,6 +332,32 @@ const BudgetsPage = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-display">{t.budgets}</h2>
       </div>
+
+      {budgets.length > 0 && (
+        <FilterToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={locale === 'fr' ? 'Rechercher un budget...' : 'Search budgets...'}
+          sortOptions={[
+            { value: 'name', label: locale === 'fr' ? 'Nom' : 'Name' },
+            { value: 'amount', label: t.amount },
+            { value: 'spent', label: locale === 'fr' ? 'Consommé' : 'Spent' },
+          ]}
+          sortValue={sortField}
+          onSortChange={v => setSortField(v as any)}
+          sortOrder={sortOrder}
+          onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+          filterChips={[
+            { value: 'weekly', label: t.weekly, count: budgets.filter(b => b.period === 'weekly').length },
+            { value: 'monthly', label: t.monthly, count: budgets.filter(b => b.period === 'monthly').length },
+            { value: 'yearly', label: t.yearly, count: budgets.filter(b => b.period === 'yearly').length },
+          ].filter(c => c.count > 0)}
+          activeFilter={filterPeriod}
+          onFilterChange={setFilterPeriod}
+          allLabel={locale === 'fr' ? 'Toutes périodes' : 'All periods'}
+          totalCount={budgets.length}
+        />
+      )}
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); bulk.clear(); }}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
