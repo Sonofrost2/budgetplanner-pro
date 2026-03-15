@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PiggyBank, Building2, TrendingUp, Wallet, Lock, Unlock } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { SavingsGoal } from '@/hooks/useDashboardData';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
@@ -174,7 +175,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale }: Sav
         </Card>
       </div>
 
-      {/* Bank breakdown */}
+      {/* Bank breakdown with chart */}
       <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
         <CardContent className="p-5">
           <div className="flex items-center justify-between mb-4">
@@ -193,6 +194,54 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale }: Sav
               </SelectContent>
             </Select>
           </div>
+
+          {/* Pie chart + legend */}
+          {(() => {
+            const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444', '#10B981'];
+            const bankEntries = Object.entries(stats.byBank).sort(([, a], [, b]) => b.totalSaved - a.totalSaved);
+            const chartData = bankEntries.map(([bank, data]) => ({ name: bank, value: data.totalSaved }));
+
+            return (
+              <div className="flex flex-col md:flex-row gap-4 mb-4">
+                <div className="w-full md:w-[200px] h-[200px] shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {chartData.map((_, idx) => (
+                          <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => fmt(value)}
+                        contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-wrap gap-2 items-start content-start flex-1">
+                  {bankEntries.map(([bank, data], idx) => {
+                    const share = stats.totalSaved > 0 ? Math.round((data.totalSaved / stats.totalSaved) * 100) : 0;
+                    return (
+                      <div key={bank} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted/20 border border-border/30 text-xs">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLORS[idx % COLORS.length] }} />
+                        <span className="font-medium">{bank}</span>
+                        <span className="text-muted-foreground">({share}%)</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="space-y-3">
             {Object.entries(stats.byBank)
