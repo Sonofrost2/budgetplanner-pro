@@ -97,10 +97,12 @@ const AccountsPage = () => {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const getTheoreticalBalance = (accountId: string) => {
+    const acc = accounts.find(a => a.id === accountId);
+    const openingBal = Number(acc?.opening_balance || 0);
     const txs = transactions.filter(tx => tx.account_id === accountId);
     const income = txs.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0);
     const expense = txs.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
-    return income - expense;
+    return openingBal + income - expense;
   };
 
   const accountLimitReached = !isPremium && accounts.length >= limits.accounts;
