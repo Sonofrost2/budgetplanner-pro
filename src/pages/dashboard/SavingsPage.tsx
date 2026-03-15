@@ -283,6 +283,7 @@ const SavingsPage = () => {
       setAddAmount('');
       setSourceAccountId('');
       fetchData();
+      invalidateCrossModule();
       toast.success(t.saved);
     } catch (err: any) {
       toast.error(err.message || 'Erreur');
