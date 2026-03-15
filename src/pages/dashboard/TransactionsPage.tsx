@@ -135,7 +135,7 @@ const TransactionsPage = () => {
   const fmt = (n: number) => fmtCurrency(n, locale);
 
   const refreshData = () => {
-    invalidate('paginated-transactions', 'accounts', 'chart-data', 'transactions', 'all-transactions');
+    invalidate('paginated-transactions', 'accounts', 'chart-data', 'transactions', 'all-transactions', 'budget-spending', 'category-tx-counts');
     // Also invalidate month count
     invalidate('tx-month-count', 'tx-descriptions');
   };
