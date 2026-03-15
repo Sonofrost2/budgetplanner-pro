@@ -415,6 +415,9 @@ export const dashT = {
     to: 'Au',
     apply: 'Appliquer',
     vsPrevious: 'vs période précédente',
+    moreDetails: 'Plus de détails',
+    topExpense: 'Plus grosse dépense',
+    topIncome: 'Plus gros revenu',
   },
   en: {
     dashboard: 'Dashboard',
