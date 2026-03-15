@@ -259,6 +259,67 @@ const BudgetsPage = () => {
 
   const periodLabels: Record<string, string> = { daily: t.daily, weekly: t.weekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
 
+  // AI suggestions state
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const handleAiSuggest = async () => {
+    if (!user) return;
+    setAiLoading(true);
+    setAiDialogOpen(true);
+    try {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const startDate = threeMonthsAgo.toISOString().split('T')[0];
+      const endDate = new Date().toISOString().split('T')[0];
+
+      const { data: txs } = await supabase.from('transactions').select('category_id, amount, type')
+        .eq('user_id', user.id).gte('date', startDate).lte('date', endDate);
+
+      const summary: Record<string, { expense: number; income: number; count: number }> = {};
+      for (const tx of txs || []) {
+        if (!tx.category_id) continue;
+        if (!summary[tx.category_id]) summary[tx.category_id] = { expense: 0, income: 0, count: 0 };
+        summary[tx.category_id][tx.type as 'expense' | 'income'] += Number(tx.amount);
+        summary[tx.category_id].count++;
+      }
+
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-budget-suggest', {
+        body: {
+          categories: allCategories.map(c => ({ id: c.id, name: c.name, type: c.type, icon: c.icon })),
+          existingBudgets: budgets.map(b => ({ name: b.name, category_id: b.category_id, amount: b.amount, period: b.period, budget_type: (b as any).budget_type })),
+          transactionSummary: Object.entries(summary).map(([cid, s]) => ({ category_id: cid, ...s })),
+          locale,
+        },
+      });
+
+      if (fnError) throw fnError;
+      setAiSuggestions(fnData?.suggestions || []);
+    } catch (e: any) {
+      toast.error(e.message || 'AI error');
+      setAiSuggestions([]);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const acceptSuggestion = (s: any) => {
+    setAiDialogOpen(false);
+    setErrors({});
+    setEditId(null);
+    setForm({
+      name: s.name,
+      amount: String(s.amount),
+      category_id: s.category_id,
+      period: s.period || 'monthly',
+      alert_threshold: '80',
+      budget_type: s.budget_type || 'expense',
+      control_type: s.budget_type === 'income' ? 'min' : 'max',
+    });
+    setDialogOpen(true);
+  };
+
   const renderBudgetCard = (b: any) => {
     const actual = spending[b.category_id || ''] || 0;
     const amount = Number(b.amount);
@@ -269,6 +330,31 @@ const BudgetsPage = () => {
     const isAlert = isMax ? actual > amount : actual < amount;
     const remaining = isMax ? amount - actual : actual - amount;
     const isSelected = bulk.selectedIds.has(b.id);
+
+    // Period calculations
+    const range = budgetPeriodRanges.find(r => r.id === b.id);
+    const periodStart = range ? new Date(range.start) : new Date();
+    const periodEnd = range ? new Date(range.end) : new Date();
+    const today = new Date();
+    const daysElapsed = Math.max(1, Math.floor((today.getTime() - periodStart.getTime()) / 86400000) + 1);
+    const daysTotal = Math.max(1, Math.floor((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1);
+    const daysLeft = Math.max(0, Math.floor((periodEnd.getTime() - today.getTime()) / 86400000));
+    const dailyPace = actual / daysElapsed;
+    const expectedPace = amount / daysTotal;
+    const projection = (actual / daysElapsed) * daysTotal;
+    const annualized = amount * (PERIOD_MULTIPLIER[b.period] || 12);
+
+    // Pace status
+    const paceRatio = expectedPace > 0 ? dailyPace / expectedPace : 0;
+    let paceLabel = t.paceOnTrack;
+    let paceColor = 'text-secondary';
+    if (isMax) {
+      if (paceRatio > 1.15) { paceLabel = t.paceFast; paceColor = 'text-destructive'; }
+      else if (paceRatio < 0.85) { paceLabel = t.paceSlow; paceColor = 'text-muted-foreground'; }
+    } else {
+      if (paceRatio < 0.85) { paceLabel = t.paceSlow; paceColor = 'text-destructive'; }
+      else if (paceRatio > 1.15) { paceLabel = t.paceOnTrack; paceColor = 'text-secondary'; }
+    }
 
     return (
       <Card key={b.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
@@ -298,11 +384,40 @@ const BudgetsPage = () => {
             <span className="text-sm text-muted-foreground">/ {fmt(amount)}</span>
           </div>
           <Progress value={pct} className={`h-3 rounded-full ${isAlert ? '[&>div]:bg-destructive' : pct >= (b.alert_threshold ?? 80) ? (isMax ? '[&>div]:bg-accent' : '[&>div]:bg-secondary') : (isMax ? '[&>div]:bg-secondary' : '[&>div]:bg-accent')}`} />
+
+          {/* New indicators row */}
+          <div className="grid grid-cols-3 gap-2 text-[11px]">
+            <div className="bg-muted/50 rounded-lg px-2 py-1.5">
+              <p className="text-muted-foreground">{t.annualized}</p>
+              <p className="font-bold">{fmt(annualized)}</p>
+            </div>
+            <div className="bg-muted/50 rounded-lg px-2 py-1.5">
+              <p className="text-muted-foreground">{t.projection}</p>
+              <p className={`font-bold ${isMax && projection > amount ? 'text-destructive' : ''}`}>{fmt(Math.round(projection))}</p>
+            </div>
+            <div className="bg-muted/50 rounded-lg px-2 py-1.5">
+              <p className="text-muted-foreground">{t.paceStatus}</p>
+              <p className={`font-bold ${paceColor}`}>{paceLabel}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+            <span>{daysLeft} {t.daysRemaining}</span>
+            <span>{t.dailyPace}: {fmt(Math.round(dailyPace))} / {fmt(Math.round(expectedPace))}</span>
+          </div>
+
           {isAlert ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/5 border border-destructive/10">
               {isMax ? <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" /> : <TrendingDown className="w-4 h-4 text-destructive flex-shrink-0" />}
               <p className="text-xs font-semibold text-destructive">
                 {isMax ? `${t.overBudget} — ${t.exceeded} ${fmt(actual - amount)}` : `${t.belowTarget} — ${locale === 'fr' ? 'Manque' : 'Missing'} ${fmt(amount - actual)}`}
+              </p>
+            </div>
+          ) : isMax && projection > amount ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent/5 border border-accent/10">
+              <AlertTriangle className="w-4 h-4 text-accent flex-shrink-0" />
+              <p className="text-xs font-semibold text-accent">
+                {t.paceAlert} — {t.paceAlertMsg}
               </p>
             </div>
           ) : (
