@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, CalendarRange } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import { motion } from 'framer-motion';
 import { StatsCards } from '@/components/dashboard/home/StatsCards';
 import { AccountsWidget } from '@/components/dashboard/home/AccountsWidget';
 import { SavingsWidget } from '@/components/dashboard/home/SavingsWidget';
@@ -56,40 +57,42 @@ const getDateRange = (period: PeriodKey) => {
   return { start: start.toISOString().split('T')[0], end: now.toISOString().split('T')[0] };
 };
 
-/** Compute previous period of same duration ending just before the current start */
 const getPreviousRange = (startStr: string, endStr: string) => {
   const s = new Date(startStr);
   const e = new Date(endStr);
   const durationMs = e.getTime() - s.getTime();
-  const prevEnd = new Date(s.getTime() - 86400000); // day before current start
+  const prevEnd = new Date(s.getTime() - 86400000);
   const prevStart = new Date(prevEnd.getTime() - durationMs);
-  return {
-    start: prevStart.toISOString().split('T')[0],
-    end: prevEnd.toISOString().split('T')[0],
-  };
+  return { start: prevStart.toISOString().split('T')[0], end: prevEnd.toISOString().split('T')[0] };
 };
 
-/** Build array of daily totals for sparkline */
 const buildDailyData = (
   transactions: { date: string; type: string; amount: number }[],
-  startStr: string,
-  endStr: string,
-  filterType?: 'income' | 'expense',
+  startStr: string, endStr: string, filterType?: 'income' | 'expense',
 ): number[] => {
   const s = new Date(startStr);
   const e = new Date(endStr);
-  const days: number[] = [];
   const dayMap: Record<string, number> = {};
   transactions.forEach(tx => {
     if (filterType && tx.type !== filterType) return;
     const d = tx.date.split('T')[0];
     dayMap[d] = (dayMap[d] || 0) + Number(tx.amount);
   });
+  const days: number[] = [];
   for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
-    const key = d.toISOString().split('T')[0];
-    days.push(dayMap[key] || 0);
+    days.push(dayMap[d.toISOString().split('T')[0]] || 0);
   }
   return days;
+};
+
+/** Staggered container animation */
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
 const DashboardHome = () => {
@@ -110,7 +113,6 @@ const DashboardHome = () => {
     return getDateRange(period);
   }, [period, appliedCustom]);
 
-  // Previous period range
   const { start: prevStart, end: prevEnd } = useMemo(() => getPreviousRange(start, end), [start, end]);
 
   const periodDays = useMemo(() => {
@@ -119,17 +121,15 @@ const DashboardHome = () => {
     return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
   }, [start, end]);
 
-  // React-query hooks
   const { data: accounts = [], isLoading: accLoading } = useAccounts();
   const { data: transactions = [], isLoading: txLoading } = useTransactionsRange(start, end);
-  const { data: prevTransactions = [], isLoading: prevTxLoading } = useTransactionsRange(prevStart, prevEnd);
+  const { data: prevTransactions = [] } = useTransactionsRange(prevStart, prevEnd);
   const { data: budgetsRaw = [], isLoading: budLoading } = useBudgets();
   const { data: savingsGoals = [], isLoading: savLoading } = useSavingsGoals();
-  const { data: monthlyData = [], isLoading: chartLoading } = useChartData(locale);
+  const { data: monthlyData = [] } = useChartData(locale);
 
   const loading = accLoading || txLoading || budLoading || savLoading;
 
-  // Category pie data
   const categoryData = useMemo(() => {
     const catMap: Record<string, { name: string; value: number; color: string }> = {};
     transactions.filter(tx => tx.type === 'expense').forEach(tx => {
@@ -141,7 +141,6 @@ const DashboardHome = () => {
     return Object.values(catMap).sort((a, b) => b.value - a.value);
   }, [transactions]);
 
-  // Budgets with spent calculation
   const budgets = useMemo(() => {
     return budgetsRaw.map(b => {
       const spent = transactions
@@ -151,49 +150,52 @@ const DashboardHome = () => {
     }).slice(0, 5);
   }, [budgetsRaw, transactions]);
 
-  // Current period stats
+  // Stats
   const totalBalance = accounts.reduce((s, a) => s + Number(a.real_balance), 0);
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const transactionCount = transactions.length;
   const dailyAvgExpense = totalExpenses / periodDays;
 
-  // Previous period stats
+  // Previous period
   const prevIncome = prevTransactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const prevExpenses = prevTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const prevPeriodDays = Math.max(1, Math.round((new Date(prevEnd).getTime() - new Date(prevStart).getTime()) / 86400000) + 1);
   const prevDailyAvg = prevExpenses / prevPeriodDays;
   const prevSavingsRate = prevIncome > 0 ? ((prevIncome - prevExpenses) / prevIncome) * 100 : 0;
 
-  // Sparkline data (daily)
+  // Top expense / income
+  const topExpense = useMemo(() => {
+    const expenses = transactions.filter(t => t.type === 'expense');
+    if (expenses.length === 0) return undefined;
+    const top = expenses.reduce((max, tx) => Number(tx.amount) > Number(max.amount) ? tx : max, expenses[0]);
+    return { description: top.description, amount: Number(top.amount) };
+  }, [transactions]);
+
+  const topIncome = useMemo(() => {
+    const incomes = transactions.filter(t => t.type === 'income');
+    if (incomes.length === 0) return undefined;
+    const top = incomes.reduce((max, tx) => Number(tx.amount) > Number(max.amount) ? tx : max, incomes[0]);
+    return { description: top.description, amount: Number(top.amount) };
+  }, [transactions]);
+
+  // Sparklines
   const dailyIncomeData = useMemo(() => buildDailyData(transactions, start, end, 'income'), [transactions, start, end]);
   const dailyExpenseData = useMemo(() => buildDailyData(transactions, start, end, 'expense'), [transactions, start, end]);
   const dailyBalanceData = useMemo(() => {
-    // Cumulative balance over the period
-    const incomes = buildDailyData(transactions, start, end, 'income');
-    const expenses = buildDailyData(transactions, start, end, 'expense');
+    const inc = buildDailyData(transactions, start, end, 'income');
+    const exp = buildDailyData(transactions, start, end, 'expense');
     let running = 0;
-    return incomes.map((inc, i) => {
-      running += inc - expenses[i];
-      return running;
-    });
+    return inc.map((v, i) => { running += v - exp[i]; return running; });
   }, [transactions, start, end]);
 
   const handlePeriodChange = (v: string) => {
-    if (v === 'custom') {
-      setPeriod('custom');
-      setCustomOpen(true);
-    } else {
-      setPeriod(v as PeriodKey);
-      setAppliedCustom(null);
-    }
+    if (v === 'custom') { setPeriod('custom'); setCustomOpen(true); }
+    else { setPeriod(v as PeriodKey); setAppliedCustom(null); }
   };
 
   const applyCustom = () => {
-    if (customStart && customEnd) {
-      setAppliedCustom({ start: customStart, end: customEnd });
-      setCustomOpen(false);
-    }
+    if (customStart && customEnd) { setAppliedCustom({ start: customStart, end: customEnd }); setCustomOpen(false); }
   };
 
   const periodLabel = useMemo(() => {
@@ -208,23 +210,23 @@ const DashboardHome = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between"><Skeleton className="h-9 w-40" /><Skeleton className="h-9 w-40" /></div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
       {/* Period selector + Add */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <motion.div variants={fadeUp} className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Select value={period} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-44 glass border-glass-border"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="today">{t.today}</SelectItem>
               <SelectItem value="thisWeek">{t.thisWeek}</SelectItem>
@@ -241,9 +243,7 @@ const DashboardHome = () => {
             <span className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-2.5 py-1">{periodLabel}</span>
           )}
           <Popover open={customOpen} onOpenChange={setCustomOpen}>
-            <PopoverTrigger asChild>
-              <span />
-            </PopoverTrigger>
+            <PopoverTrigger asChild><span /></PopoverTrigger>
             <PopoverContent className="w-72 p-4 space-y-3" align="start">
               <div className="space-y-2">
                 <Label className="text-xs">{t.from}</Label>
@@ -253,54 +253,66 @@ const DashboardHome = () => {
                 <Label className="text-xs">{t.to}</Label>
                 <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-8 text-xs" />
               </div>
-              <Button size="sm" className="w-full" onClick={applyCustom} disabled={!customStart || !customEnd}>
-                {t.apply}
-              </Button>
+              <Button size="sm" className="w-full" onClick={applyCustom} disabled={!customStart || !customEnd}>{t.apply}</Button>
             </PopoverContent>
           </Popover>
         </div>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => navigate('/dashboard/transactions')}>
+        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => navigate('/dashboard/transactions')}>
           <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
         </Button>
+      </motion.div>
+
+      {/* Hero Stats (3 cards) + "More details" sheet */}
+      <motion.div variants={fadeUp}>
+        <StatsCards
+          balance={totalBalance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t}
+          savingsRate={totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0}
+          netCashFlow={totalIncome - totalExpenses}
+          transactionCount={transactionCount}
+          dailyAverage={dailyAvgExpense}
+          topExpense={topExpense}
+          topIncome={topIncome}
+          prevIncome={prevIncome}
+          prevExpenses={prevExpenses}
+          prevNetCashFlow={prevIncome - prevExpenses}
+          prevTransactionCount={prevTransactions.length}
+          prevDailyAverage={prevDailyAvg}
+          prevSavingsRate={prevSavingsRate}
+          dailyIncomeData={dailyIncomeData}
+          dailyExpenseData={dailyExpenseData}
+          dailyBalanceData={dailyBalanceData}
+        />
+      </motion.div>
+
+      {/* Two-column layout: Left = Accounts summary + Charts | Right = Widgets */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left column — 2/3 */}
+        <motion.div variants={fadeUp} className="lg:col-span-2 space-y-4">
+          {/* Accounts Summary */}
+          <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />
+
+          {/* Charts */}
+          <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} />
+        </motion.div>
+
+        {/* Right column — 1/3 */}
+        <motion.div variants={fadeUp} className="space-y-4">
+          <AccountsWidget accounts={accounts} fmt={fmt} t={t} />
+          <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />
+          <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />
+        </motion.div>
       </div>
 
-      {/* Stats */}
-      <StatsCards
-        balance={totalBalance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t}
-        savingsRate={totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0}
-        netCashFlow={totalIncome - totalExpenses}
-        transactionCount={transactionCount}
-        dailyAverage={dailyAvgExpense}
-        prevIncome={prevIncome}
-        prevExpenses={prevExpenses}
-        prevNetCashFlow={prevIncome - prevExpenses}
-        prevTransactionCount={prevTransactions.length}
-        prevDailyAverage={prevDailyAvg}
-        prevSavingsRate={prevSavingsRate}
-        dailyIncomeData={dailyIncomeData}
-        dailyExpenseData={dailyExpenseData}
-        dailyBalanceData={dailyBalanceData}
-      />
-
-      {/* Accounts Summary */}
-      <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />
-
-      {/* Accounts + Budgets + Savings row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <AccountsWidget accounts={accounts} fmt={fmt} t={t} />
-        <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />
-        <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />
-      </div>
-
-      {/* Forecast widget */}
-      <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />
-
-      {/* Charts */}
-      <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} />
+      {/* Forecast */}
+      <motion.div variants={fadeUp}>
+        <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />
+      </motion.div>
 
       {/* Recent Transactions */}
-      <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />
-    </div>
+      <motion.div variants={fadeUp}>
+        <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />
+      </motion.div>
+    </motion.div>
   );
 };
 
