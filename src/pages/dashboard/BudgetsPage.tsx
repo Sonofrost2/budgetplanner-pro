@@ -333,6 +333,32 @@ const BudgetsPage = () => {
         <h2 className="text-2xl font-bold font-display">{t.budgets}</h2>
       </div>
 
+      {budgets.length > 0 && (
+        <FilterToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={locale === 'fr' ? 'Rechercher un budget...' : 'Search budgets...'}
+          sortOptions={[
+            { value: 'name', label: locale === 'fr' ? 'Nom' : 'Name' },
+            { value: 'amount', label: t.amount },
+            { value: 'spent', label: locale === 'fr' ? 'Consommé' : 'Spent' },
+          ]}
+          sortValue={sortField}
+          onSortChange={v => setSortField(v as any)}
+          sortOrder={sortOrder}
+          onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+          filterChips={[
+            { value: 'weekly', label: t.weekly, count: budgets.filter(b => b.period === 'weekly').length },
+            { value: 'monthly', label: t.monthly, count: budgets.filter(b => b.period === 'monthly').length },
+            { value: 'yearly', label: t.yearly, count: budgets.filter(b => b.period === 'yearly').length },
+          ].filter(c => c.count > 0)}
+          activeFilter={filterPeriod}
+          onFilterChange={setFilterPeriod}
+          allLabel={locale === 'fr' ? 'Toutes périodes' : 'All periods'}
+          totalCount={budgets.length}
+        />
+      )}
+
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); bulk.clear(); }}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <TabsList className="rounded-xl">

@@ -124,8 +124,23 @@ const CategoriesPage = () => {
     if (ok) toast.success(t.saved);
   };
 
-  const expenseCategories = categories.filter(c => c.type === 'expense');
-  const incomeCategories = categories.filter(c => c.type === 'income');
+  const sortAndFilter = (cats: Category[]) => {
+    let result = cats;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(c => c.name.toLowerCase().includes(q));
+    }
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'txCount') cmp = (txCounts[a.id] || 0) - (txCounts[b.id] || 0);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  };
+
+  const expenseCategories = sortAndFilter(categories.filter(c => c.type === 'expense'));
+  const incomeCategories = sortAndFilter(categories.filter(c => c.type === 'income'));
 
   const renderGroup = (title: string, cats: Category[]) => (
     <div className="space-y-3">
