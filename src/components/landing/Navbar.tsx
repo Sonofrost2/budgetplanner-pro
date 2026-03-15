@@ -23,27 +23,52 @@ const Navbar = () => {
   const logoTo = user ? '/dashboard' : '/';
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled
-        ? 'glass border-b border-glass-border shadow-sm'
-        : 'bg-transparent border-b border-transparent'
-    }`}>
+    <motion.nav
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? 'glass border-b border-glass-border shadow-sm'
+          : 'bg-transparent border-b border-transparent'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           <Link to={logoTo} className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md" style={{ background: 'var(--gradient-primary)' }}>
+            <motion.div
+              initial={{ scale: 0.8, rotate: -10 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ duration: 0.4, type: 'spring', bounce: 0.4, delay: 0.1 }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md"
+              style={{ background: 'var(--gradient-primary)' }}
+            >
               <Wallet className="w-4 h-4 text-primary-foreground" />
-            </div>
+            </motion.div>
             <span className="text-lg font-bold font-display">Budget Planner</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-6">
-            <a href="#features" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">{t.nav.features}</a>
-            <a href="#pricing" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">{t.nav.pricing}</a>
-            <a href="#testimonials" className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">{t.nav.testimonials}</a>
+            {['features', 'pricing', 'testimonials'].map((section, i) => (
+              <motion.a
+                key={section}
+                href={`#${section}`}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + i * 0.06 }}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {section === 'features' ? t.nav.features : section === 'pricing' ? t.nav.pricing : t.nav.testimonials}
+              </motion.a>
+            ))}
           </div>
 
-          <div className="hidden md:flex items-center gap-1.5">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35 }}
+            className="hidden md:flex items-center gap-1.5"
+          >
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground rounded-xl h-8 w-8">
               {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
             </Button>
@@ -55,7 +80,7 @@ const Navbar = () => {
             {user ? (
               <Link to="/dashboard">
                 <Button size="sm" className="text-primary-foreground rounded-xl h-8 text-xs" style={{ background: 'var(--gradient-primary)' }}>
-                  {locale === 'fr' ? 'Dashboard' : 'Dashboard'}
+                  Dashboard
                 </Button>
               </Link>
             ) : (
@@ -68,7 +93,7 @@ const Navbar = () => {
                 </Link>
               </>
             )}
-          </div>
+          </motion.div>
 
           <div className="md:hidden flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl h-8 w-8">
@@ -111,7 +136,7 @@ const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </nav>
+    </motion.nav>
   );
 };
 
