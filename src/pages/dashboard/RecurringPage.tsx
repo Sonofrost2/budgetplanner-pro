@@ -271,7 +271,6 @@ const RecurringPage = () => {
             </button>
             {(['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'] as const)
               .map(f => ({ value: f, label: freqMap[f], count: items.filter(i => i.frequency === f).length }))
-              .filter(c => c.count > 0)
               .map(c => (
                 <button
                   key={c.value}

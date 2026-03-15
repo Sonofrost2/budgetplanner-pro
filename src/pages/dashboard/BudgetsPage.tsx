@@ -489,7 +489,7 @@ const BudgetsPage = () => {
         </Button>
       </div>
 
-      {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} />}
+      {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} fmt={fmt} />}
 
       {budgets.length > 0 && (
         <FilterToolbar
@@ -512,7 +512,7 @@ const BudgetsPage = () => {
             { value: 'quarterly', label: t.quarterly, count: budgets.filter(b => b.period === 'quarterly').length },
             { value: 'semi_annual', label: t.semiAnnual, count: budgets.filter(b => b.period === 'semi_annual').length },
             { value: 'yearly', label: t.yearly, count: budgets.filter(b => b.period === 'yearly').length },
-          ].filter(c => c.count > 0)}
+          ]}
           activeFilter={filterPeriod}
           onFilterChange={setFilterPeriod}
           allLabel={locale === 'fr' ? 'Toutes périodes' : 'All periods'}
