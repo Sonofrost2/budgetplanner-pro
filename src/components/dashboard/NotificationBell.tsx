@@ -33,7 +33,7 @@ export const useBudgetNotifications = () => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
-    const [budgetsRes, txRes, savingsRes, savingsTxRes] = await Promise.all([
+    const [budgetsRes, txRes, savingsRes, savingsTxRes, importedSavingsTxRes] = await Promise.all([
       supabase.from('budgets').select('*, categories(name, icon)').eq('user_id', user.id),
       supabase.from('transactions').select('category_id, amount').eq('user_id', user.id).eq('type', 'expense')
         .gte('date', monthStart).lte('date', monthEnd),
@@ -42,12 +42,17 @@ export const useBudgetNotifications = () => {
         .eq('user_id', user.id).eq('type', 'expense')
         .like('notes', '🎯 %')
         .gte('date', monthStart).lte('date', monthEnd),
+      supabase.from('transactions').select('amount, description, account_id')
+        .eq('user_id', user.id).eq('type', 'income')
+        .ilike('description', '%cotisation epargne%')
+        .gte('date', monthStart).lte('date', monthEnd),
     ]);
 
     const budgets = budgetsRes.data || [];
     const txs = txRes.data || [];
     const savings = savingsRes.data || [];
     const savingsTxs = savingsTxRes.data || [];
+    const importedSavingsTxs = importedSavingsTxRes.data || [];
     const notifs: Notification[] = [];
 
     // Check budgets — exceeded + threshold warning
@@ -106,9 +111,16 @@ export const useBudgetNotifications = () => {
       if (monthlyNeeded <= 0) continue;
 
       const goalContribs = savingsTxs.filter(tx => tx.notes === `🎯 ${goal.name}`);
-      const monthlyActual = goalContribs.reduce((s, tx) => s + Number(tx.amount), 0);
+      const importedContribs = importedSavingsTxs.filter(tx =>
+        (goal.account_id && tx.account_id === goal.account_id) ||
+        tx.description?.toLowerCase().includes(goal.name.toLowerCase().split(' ').slice(0, 2).join(' '))
+      );
+      const monthlyActual = [
+        ...goalContribs.map(tx => Number(tx.amount)),
+        ...importedContribs.map(tx => Number(tx.amount)),
+      ].reduce((s, a) => s + a, 0);
 
-      if (goalContribs.length === 0) {
+      if (monthlyActual === 0) {
         notifs.push({
           id: `savings-nocontrib-${goal.id}`,
           type: 'savings_behind',
@@ -136,6 +148,12 @@ export const useBudgetNotifications = () => {
   }, [user, locale]);
 
   useEffect(() => { checkNotifications(); }, [checkNotifications]);
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(checkNotifications, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [checkNotifications]);
 
   return { notifications, loading, refresh: checkNotifications };
 };

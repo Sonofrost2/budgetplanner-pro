@@ -34,7 +34,7 @@ import AboutPage from "./pages/AboutPage";
 import BlogPage from "./pages/BlogPage";
 import ContactPage from "./pages/ContactPage";
 import GuidePage from "./pages/dashboard/GuidePage";
-import DebtsPage from "./pages/dashboard/DebtsPage";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,7 +72,7 @@ const AnimatedRoutes = () => {
           <Route path="admin/pricing" element={<AdminPricingPage />} />
           <Route path="recurring" element={<RecurringPage />} />
           <Route path="guide" element={<GuidePage />} />
-          <Route path="debts" element={<DebtsPage />} />
+          
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>

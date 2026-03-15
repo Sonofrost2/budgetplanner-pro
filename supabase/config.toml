@@ -23,3 +23,15 @@ verify_jwt = false
 
 [functions.delete-account]
 verify_jwt = false
+
+[functions.check-alerts]
+verify_jwt = false
+
+[functions.push-notify]
+verify_jwt = false
+
+[functions.import-journal]
+verify_jwt = false
+
+[functions.subscription-renew]
+verify_jwt = false
