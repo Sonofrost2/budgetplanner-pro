@@ -39,7 +39,7 @@ const TransactionsPage = () => {
   const { invalidate } = useInvalidate();
 
   // Local UI state
-  const [filterType, setFilterType] = useState<string>('all');
+  const [filterType, setFilterType] = useState<string>(searchParams.get('type') || 'all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterAccount, setFilterAccount] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
