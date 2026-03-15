@@ -457,11 +457,15 @@ export type Database = {
       savings_goals: {
         Row: {
           account_id: string | null
+          bank_name: string | null
           created_at: string
           current_amount: number
           deadline: string | null
           icon: string
           id: string
+          interest_frequency: string | null
+          interest_rate: number | null
+          is_locked: boolean
           monthly_contribution: number | null
           name: string
           start_date: string | null
@@ -471,11 +475,15 @@ export type Database = {
         }
         Insert: {
           account_id?: string | null
+          bank_name?: string | null
           created_at?: string
           current_amount?: number
           deadline?: string | null
           icon?: string
           id?: string
+          interest_frequency?: string | null
+          interest_rate?: number | null
+          is_locked?: boolean
           monthly_contribution?: number | null
           name: string
           start_date?: string | null
@@ -485,11 +493,15 @@ export type Database = {
         }
         Update: {
           account_id?: string | null
+          bank_name?: string | null
           created_at?: string
           current_amount?: number
           deadline?: string | null
           icon?: string
           id?: string
+          interest_frequency?: string | null
+          interest_rate?: number | null
+          is_locked?: boolean
           monthly_contribution?: number | null
           name?: string
           start_date?: string | null
