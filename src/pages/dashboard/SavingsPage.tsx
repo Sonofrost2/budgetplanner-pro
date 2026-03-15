@@ -421,6 +421,7 @@ const SavingsPage = () => {
         </div>
       </div>
 
+      <SavingsGlobalStats goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
       <SavingsSummaryTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
       <SavingsControlTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
 
