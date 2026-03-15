@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useSearchParams } from 'react-router-dom';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
@@ -50,6 +51,8 @@ const TransactionsPage = () => {
   const [editing, setEditing] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
+  const [bulkModifyForm, setBulkModifyForm] = useState({ category_id: '', account_id: '' });
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -206,7 +209,43 @@ const TransactionsPage = () => {
     setSelectedIds(new Set());
     setBulkDeleteOpen(false);
     refreshData();
-    toast.success(`${ids.length} ${t.delete} ✓`);
+    toast.success(t.bulkDeleted(ids.length));
+  };
+
+  const handleBulkModify = async () => {
+    const ids = Array.from(selectedIds);
+    const updates: Record<string, any> = {};
+    if (bulkModifyForm.category_id) updates.category_id = bulkModifyForm.category_id;
+    if (bulkModifyForm.account_id) updates.account_id = bulkModifyForm.account_id;
+    if (Object.keys(updates).length === 0) { toast.error(t.noChange); return; }
+    const { error } = await supabase.from('transactions').update(updates).in('id', ids);
+    if (error) { toast.error(error.message); return; }
+    if (updates.account_id) {
+      const affectedAccounts = new Set<string>();
+      ids.forEach(id => { const tx = transactions.find(t => t.id === id); if (tx?.account_id) affectedAccounts.add(tx.account_id); });
+      affectedAccounts.add(updates.account_id);
+      for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
+    }
+    setBulkModifyOpen(false); setBulkModifyForm({ category_id: '', account_id: '' });
+    setSelectedIds(new Set()); refreshData();
+    toast.success(t.bulkModified(ids.length));
+  };
+
+  const handleBulkDuplicate = async () => {
+    if (!user) return;
+    const selectedTxs = transactions.filter(tx => selectedIds.has(tx.id));
+    const inserts = selectedTxs.map(tx => ({
+      user_id: user.id, description: tx.description, amount: Number(tx.amount),
+      type: tx.type, category_id: tx.category_id, account_id: tx.account_id,
+      date: new Date().toISOString().split('T')[0], notes: tx.notes,
+    }));
+    const { error } = await supabase.from('transactions').insert(inserts);
+    if (error) { toast.error(error.message); return; }
+    const affectedAccounts = new Set<string>();
+    selectedTxs.forEach(tx => { if (tx.account_id) affectedAccounts.add(tx.account_id); });
+    for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
+    setSelectedIds(new Set()); refreshData();
+    toast.success(t.bulkDuplicated(inserts.length));
   };
 
   const toggleSort = (field: SortField) => {
@@ -375,20 +414,16 @@ const TransactionsPage = () => {
         )}
       </div>
 
-      {/* Selection bar */}
       {someSelected && (
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20">
-          <span className="text-sm font-semibold text-primary">{t.selectedCount(selectedIds.size)}</span>
-          <div className="flex-1" />
-          {canExportAdvanced && (
-            <>
-              <Button variant="outline" size="sm" className="rounded-xl" onClick={() => handleExportSelection('csv')}><Download className="w-3.5 h-3.5 mr-1" />{t.exportCSV}</Button>
-              <Button variant="outline" size="sm" className="rounded-xl" onClick={() => handleExportSelection('excel')}><Download className="w-3.5 h-3.5 mr-1" />{t.exportExcel}</Button>
-            </>
-          )}
-          <Button variant="destructive" size="sm" className="rounded-xl" onClick={() => setBulkDeleteOpen(true)}><Trash2 className="w-3.5 h-3.5 mr-1" />{t.deleteSelection}</Button>
-          <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => setSelectedIds(new Set())}><X className="w-3.5 h-3.5" /></Button>
-        </div>
+        <BulkActionBar
+          count={selectedIds.size}
+          onDelete={() => setBulkDeleteOpen(true)}
+          onModify={() => { setBulkModifyForm({ category_id: '', account_id: '' }); setBulkModifyOpen(true); }}
+          onDuplicate={handleBulkDuplicate}
+          onExportCSV={canExportAdvanced ? () => handleExportSelection('csv') : undefined}
+          onExportExcel={canExportAdvanced ? () => handleExportSelection('excel') : undefined}
+          onClear={() => setSelectedIds(new Set())}
+        />
       )}
 
       {/* Transactions list */}
@@ -555,6 +590,36 @@ const TransactionsPage = () => {
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(selectedIds.size)} cancelLabel={t.cancel} confirmLabel={t.delete} />
 
       {user && <TransferDialog open={transferOpen} onOpenChange={setTransferOpen} accounts={accounts} userId={user.id} t={t} onSuccess={refreshData} />}
+
+      {/* Bulk Modify Dialog */}
+      <Dialog open={bulkModifyOpen} onOpenChange={setBulkModifyOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">{t.bulkModify}</DialogTitle>
+            <DialogDescription>{t.selectedCount(selectedIds.size)}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyCategory}</Label>
+              <Select value={bulkModifyForm.category_id} onValueChange={v => setBulkModifyForm(f => ({ ...f, category_id: v }))}>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger>
+                <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyAccount}</Label>
+              <Select value={bulkModifyForm.account_id} onValueChange={v => setBulkModifyForm(f => ({ ...f, account_id: v }))}>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir...' : 'Select...'} /></SelectTrigger>
+                <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setBulkModifyOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleBulkModify}>{t.applyChanges}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

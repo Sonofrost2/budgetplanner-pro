@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight } from 'lucide-react';
@@ -17,6 +18,9 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import BulkActionBar from '@/components/dashboard/BulkActionBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
+import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
@@ -52,11 +56,30 @@ const AccountsPage = () => {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const filteredAccounts = useMemo(() => {
     if (!typeFilter) return accounts;
     return accounts.filter(a => a.type === typeFilter);
   }, [accounts, typeFilter]);
+
+  const bulk = useBulkSelection(filteredAccounts);
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(bulk.selectedIds);
+    const { error } = await supabase.from('payment_accounts').delete().in('id', ids);
+    if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
+    setBulkDeleteOpen(false); bulk.clear(); fetchData();
+    toast.success(t.bulkDeleted(ids.length));
+  };
+
+  const handleBulkExport = (format: 'csv' | 'excel') => {
+    const data = bulk.selectedItems.map(a => ({
+      [t.accountName]: a.name, [t.type]: a.type, [t.openingBalance]: a.opening_balance, [t.realBalance]: a.real_balance,
+    }));
+    const ok = format === 'csv' ? exportToCSV(data, 'accounts') : exportToExcel(data, 'accounts');
+    if (ok) toast.success(t.saved);
+  };
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -229,6 +252,16 @@ const AccountsPage = () => {
         </div>
       )}
 
+      {bulk.hasSelection && (
+        <BulkActionBar
+          count={bulk.count}
+          onDelete={() => setBulkDeleteOpen(true)}
+          onExportCSV={() => handleBulkExport('csv')}
+          onExportExcel={() => handleBulkExport('excel')}
+          onClear={bulk.clear}
+        />
+      )}
+
       {filteredAccounts.length === 0 && accounts.length > 0 ? (
         <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
           <CardContent className="py-12 text-center">
@@ -254,11 +287,13 @@ const AccountsPage = () => {
             const theoretical = getTheoreticalBalance(acc.id);
             const real = Number(acc.real_balance);
             const discrepancy = real - theoretical;
+            const isSelected = bulk.selectedIds.has(acc.id);
             return (
-              <Card key={acc.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${Math.abs(discrepancy) > 0.01 ? 'ring-1 ring-destructive/20' : ''}`}>
+              <Card key={acc.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${Math.abs(discrepancy) > 0.01 ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-bold flex items-center gap-2.5">
+                      <Checkbox checked={isSelected} onCheckedChange={() => bulk.toggle(acc.id)} className="mr-1" />
                       <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center text-xl">
                         {acc.icon}
                       </div>
@@ -444,6 +479,7 @@ const AccountsPage = () => {
           onSuccess={fetchData}
         />
       )}
+      <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(bulk.count)} cancelLabel={t.cancel} confirmLabel={t.delete} />
     </div>
   );
 };
