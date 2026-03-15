@@ -58,6 +58,11 @@ const AccountsPage = () => {
   const [transferOpen, setTransferOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
+  const filteredAccounts = useMemo(() => {
+    if (!typeFilter) return accounts;
+    return accounts.filter(a => a.type === typeFilter);
+  }, [accounts, typeFilter]);
+
   const bulk = useBulkSelection(filteredAccounts);
 
   const handleBulkDelete = async () => {
@@ -75,11 +80,6 @@ const AccountsPage = () => {
     const ok = format === 'csv' ? exportToCSV(data, 'accounts') : exportToExcel(data, 'accounts');
     if (ok) toast.success(t.saved);
   };
-
-  const filteredAccounts = useMemo(() => {
-    if (!typeFilter) return accounts;
-    return accounts.filter(a => a.type === typeFilter);
-  }, [accounts, typeFilter]);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
