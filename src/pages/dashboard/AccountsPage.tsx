@@ -201,7 +201,7 @@ const AccountsPage = () => {
     if (!deleteId) return;
     await supabase.from('payment_accounts').delete().eq('id', deleteId);
     setDeleteId(null);
-    fetchData();
+    refreshAll();
     toast.success(t.delete + ' ✓');
   };
 
