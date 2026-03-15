@@ -556,6 +556,51 @@ const AccountsPage = () => {
           onSuccess={fetchData}
         />
       )}
+
+      {/* Cash Count History Sheet */}
+      <Sheet open={!!historyAccountId} onOpenChange={v => { if (!v) setHistoryAccountId(null); }}>
+        <SheetContent className="sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" />
+              {(t as any).cashCountHistory}
+            </SheetTitle>
+            <SheetDescription>
+              {accounts.find(a => a.id === historyAccountId)?.icon} {accounts.find(a => a.id === historyAccountId)?.name}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            {historyLoading ? (
+              <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}</div>
+            ) : historyData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">{(t as any).noCashCounts}</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t.date}</TableHead>
+                    <TableHead className="text-right">{t.counted}</TableHead>
+                    <TableHead className="text-right">{t.expected}</TableHead>
+                    <TableHead className="text-right">{t.discrepancy}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historyData.map(c => (
+                    <TableRow key={c.id}>
+                      <TableCell className="text-sm">{new Date(c.counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</TableCell>
+                      <TableCell className="text-right text-sm font-medium">{fmt(Number(c.total_counted))}</TableCell>
+                      <TableCell className="text-right text-sm">{fmt(Number(c.expected_balance))}</TableCell>
+                      <TableCell className={`text-right text-sm font-bold ${Number(c.discrepancy) === 0 ? 'text-secondary' : 'text-destructive'}`}>
+                        {Number(c.discrepancy) >= 0 ? '+' : ''}{fmt(Number(c.discrepancy))}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
