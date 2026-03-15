@@ -252,6 +252,16 @@ const AccountsPage = () => {
         </div>
       )}
 
+      {bulk.hasSelection && (
+        <BulkActionBar
+          count={bulk.count}
+          onDelete={() => setBulkDeleteOpen(true)}
+          onExportCSV={() => handleBulkExport('csv')}
+          onExportExcel={() => handleBulkExport('excel')}
+          onClear={bulk.clear}
+        />
+      )}
+
       {filteredAccounts.length === 0 && accounts.length > 0 ? (
         <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
           <CardContent className="py-12 text-center">
