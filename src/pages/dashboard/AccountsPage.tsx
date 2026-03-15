@@ -210,7 +210,7 @@ const AccountsPage = () => {
     const { error } = await supabase.from('payment_accounts').update({ real_balance: Number(newRealBalance) }).eq('id', updateBalanceDialog.id);
     if (error) { toast.error(error.message); return; }
     setUpdateBalanceDialog(null);
-    fetchData();
+    refreshAll();
     toast.success(t.saved);
   };
 
