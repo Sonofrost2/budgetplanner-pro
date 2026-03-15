@@ -120,7 +120,7 @@ export const useBudgetNotifications = () => {
         ...importedContribs.map(tx => Number(tx.amount)),
       ].reduce((s, a) => s + a, 0);
 
-      if (goalContribs.length === 0) {
+      if (monthlyActual === 0) {
         notifs.push({
           id: `savings-nocontrib-${goal.id}`,
           type: 'savings_behind',
