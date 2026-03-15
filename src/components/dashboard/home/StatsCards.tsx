@@ -225,13 +225,13 @@ export const StatsCards = ({
                 className="text-xs text-muted-foreground hover:text-foreground gap-1.5 rounded-full px-4 glass border border-glass-border hover:bg-glass-hover"
               >
                 <Eye className="w-3.5 h-3.5" />
-                {t.moreDetails || 'Plus de détails'}
+                {t.moreDetails}
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${detailsOpen ? 'rotate-180' : ''}`} />
               </Button>
             </SheetTrigger>
             <SheetContent side="bottom" className="rounded-t-3xl max-h-[60vh]">
               <SheetHeader className="pb-2">
-                <SheetTitle className="text-sm font-bold">{t.moreDetails || 'Indicateurs détaillés'}</SheetTitle>
+                <SheetTitle className="text-sm font-bold">{t.moreDetails}</SheetTitle>
               </SheetHeader>
               <div className="space-y-1 overflow-y-auto">
                 {secondaryStats.map((s, i) => (
