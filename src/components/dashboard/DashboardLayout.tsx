@@ -33,6 +33,7 @@ const DashboardLayout = () => {
   const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean } | null>(null);
   const [globalSearch, setGlobalSearch] = useState('');
   const [userPlan, setUserPlan] = useState<string | null>(null);
+  const [pageLoading, setPageLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
