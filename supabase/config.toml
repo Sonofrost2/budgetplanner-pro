@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.ai-suggest]
 verify_jwt = false
+
+[functions.ai-detect-recurring]
+verify_jwt = false
