@@ -549,7 +549,7 @@ const AccountsPage = () => {
           locale={locale}
           fmt={fmt}
           t={t}
-          onSuccess={fetchData}
+          onSuccess={refreshAll}
         />
       )}
 
