@@ -483,7 +483,13 @@ const BudgetsPage = () => {
 
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-display">{t.budgets}</h2>
+        <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={handleAiSuggest} disabled={aiLoading}>
+          {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          {t.aiBudgetSuggest}
+        </Button>
       </div>
+
+      {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} />}
 
       {budgets.length > 0 && (
         <FilterToolbar
