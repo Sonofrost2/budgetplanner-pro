@@ -13,7 +13,9 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins, History } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -60,6 +62,10 @@ const AccountsPage = () => {
   const [transferOpen, setTransferOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [cashCountAccount, setCashCountAccount] = useState<Account | null>(null);
+  const [cashCounts, setCashCounts] = useState<Record<string, { counted_at: string; total_counted: number }>>({});
+  const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -103,12 +109,21 @@ const AccountsPage = () => {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const [accRes, txRes] = await Promise.all([
+    const [accRes, txRes, ccRes] = await Promise.all([
       supabase.from('payment_accounts').select('*').eq('user_id', user.id).order('created_at'),
       supabase.from('transactions').select('type, amount, account_id').eq('user_id', user.id).limit(10000),
+      supabase.from('cash_counts').select('account_id, counted_at, total_counted').eq('user_id', user.id).order('counted_at', { ascending: false }),
     ]);
     setAccounts(accRes.data || []);
     setTransactions(txRes.data || []);
+    // Build map of latest cash count per account
+    const latestMap: Record<string, { counted_at: string; total_counted: number }> = {};
+    (ccRes.data || []).forEach(cc => {
+      if (cc.account_id && !latestMap[cc.account_id]) {
+        latestMap[cc.account_id] = { counted_at: cc.counted_at!, total_counted: Number(cc.total_counted) };
+      }
+    });
+    setCashCounts(latestMap);
     setLoading(false);
   }, [user]);
 
@@ -358,10 +373,29 @@ const AccountsPage = () => {
                     </div>
                   </div>
                   {acc.type === 'cash' ? (
-                    <Button variant="outline" size="sm" className="w-full text-xs rounded-xl gap-1.5" onClick={() => setCashCountAccount(acc)}>
-                      <Coins className="w-3.5 h-3.5" />
-                      {t.cashCount}
-                    </Button>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1 text-xs rounded-xl gap-1.5 border-accent text-accent-foreground hover:bg-accent/10" onClick={() => setCashCountAccount(acc)}>
+                          <Coins className="w-3.5 h-3.5 text-accent" />
+                          {t.cashCount}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-xs rounded-xl gap-1" onClick={async () => {
+                          setHistoryAccountId(acc.id);
+                          setHistoryLoading(true);
+                          const { data } = await supabase.from('cash_counts').select('*').eq('account_id', acc.id).order('counted_at', { ascending: false }).limit(20);
+                          setHistoryData(data || []);
+                          setHistoryLoading(false);
+                        }}>
+                          <History className="w-3.5 h-3.5" />
+                          {(t as any).cashCountHistory}
+                        </Button>
+                      </div>
+                      {cashCounts[acc.id] && (
+                        <p className="text-[10px] text-muted-foreground text-center">
+                          {(t as any).lastCount}: {new Date(cashCounts[acc.id].counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} — {fmt(cashCounts[acc.id].total_counted)}
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <Button variant="outline" size="sm" className="w-full text-xs rounded-xl" onClick={() => { setUpdateBalanceDialog(acc); setNewRealBalance(String(acc.real_balance)); }}>
                       {t.updateRealBalance}
@@ -522,6 +556,51 @@ const AccountsPage = () => {
           onSuccess={fetchData}
         />
       )}
+
+      {/* Cash Count History Sheet */}
+      <Sheet open={!!historyAccountId} onOpenChange={v => { if (!v) setHistoryAccountId(null); }}>
+        <SheetContent className="sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" />
+              {(t as any).cashCountHistory}
+            </SheetTitle>
+            <SheetDescription>
+              {accounts.find(a => a.id === historyAccountId)?.icon} {accounts.find(a => a.id === historyAccountId)?.name}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            {historyLoading ? (
+              <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}</div>
+            ) : historyData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">{(t as any).noCashCounts}</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t.date}</TableHead>
+                    <TableHead className="text-right">{t.counted}</TableHead>
+                    <TableHead className="text-right">{t.expected}</TableHead>
+                    <TableHead className="text-right">{t.discrepancy}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historyData.map(c => (
+                    <TableRow key={c.id}>
+                      <TableCell className="text-sm">{new Date(c.counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</TableCell>
+                      <TableCell className="text-right text-sm font-medium">{fmt(Number(c.total_counted))}</TableCell>
+                      <TableCell className="text-right text-sm">{fmt(Number(c.expected_balance))}</TableCell>
+                      <TableCell className={`text-right text-sm font-bold ${Number(c.discrepancy) === 0 ? 'text-secondary' : 'text-destructive'}`}>
+                        {Number(c.discrepancy) >= 0 ? '+' : ''}{fmt(Number(c.discrepancy))}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
