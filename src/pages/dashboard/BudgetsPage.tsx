@@ -67,10 +67,20 @@ const BudgetsPage = () => {
       const bType = (b as any).budget_type || 'expense';
       const txType = bType === 'income' ? 'income' : 'expense';
       let start: string, end: string;
-      if (b.period === 'weekly') {
+      if (b.period === 'daily') {
+        start = now.toISOString().split('T')[0]; end = start;
+      } else if (b.period === 'weekly') {
         const day = now.getDay();
         const ws = new Date(now); ws.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
         start = ws.toISOString().split('T')[0]; end = now.toISOString().split('T')[0];
+      } else if (b.period === 'quarterly') {
+        const q = Math.floor(now.getMonth() / 3);
+        start = new Date(now.getFullYear(), q * 3, 1).toISOString().split('T')[0];
+        end = new Date(now.getFullYear(), q * 3 + 3, 0).toISOString().split('T')[0];
+      } else if (b.period === 'semi_annual') {
+        const s = now.getMonth() < 6 ? 0 : 6;
+        start = new Date(now.getFullYear(), s, 1).toISOString().split('T')[0];
+        end = new Date(now.getFullYear(), s + 6, 0).toISOString().split('T')[0];
       } else if (b.period === 'yearly') {
         start = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
         end = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
