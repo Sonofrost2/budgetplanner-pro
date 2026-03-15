@@ -1,40 +1,160 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+// Deterministic compound interest calculation
+function computeProjections(
+  currentAmount: number,
+  monthlyContribution: number,
+  annualRate: number,
+  frequency: string,
+  months: number,
+  targetAmount: number,
+): {
+  monthly: { month: number; capital: number; interest_earned: number; total: number }[];
+  interest1y: number;
+  interest3y: number;
+  interest5y: number;
+  estimatedGoalDate: string | null;
+} {
+  // Determine compounding periods per year
+  const freqMap: Record<string, number> = {
+    monthly: 12,
+    quarterly: 4,
+    semi_annual: 2,
+    yearly: 1,
+  };
+  const compPerYear = freqMap[frequency] || 1;
+  const ratePerPeriod = annualRate / 100 / compPerYear;
+
+  const monthly: { month: number; capital: number; interest_earned: number; total: number }[] = [];
+  let balance = currentAmount;
+  let totalInterest = 0;
+  let goalReachedMonth: number | null = null;
+
+  // Helper to calculate for N months
+  const calc = (numMonths: number) => {
+    let bal = currentAmount;
+    let accInt = 0;
+    for (let m = 1; m <= numMonths; m++) {
+      bal += monthlyContribution;
+      // Check if interest compounds this month
+      const monthsPerPeriod = 12 / compPerYear;
+      if (monthsPerPeriod > 0 && m % monthsPerPeriod === 0) {
+        const interest = bal * ratePerPeriod;
+        bal += interest;
+        accInt += interest;
+      }
+    }
+    return { balance: bal, interest: accInt };
+  };
+
+  // Monthly projections for display (12 months)
+  for (let m = 1; m <= months; m++) {
+    balance += monthlyContribution;
+    const monthsPerPeriod = 12 / compPerYear;
+    let monthInterest = 0;
+    if (monthsPerPeriod > 0 && m % Math.round(monthsPerPeriod) === 0) {
+      monthInterest = balance * ratePerPeriod;
+      balance += monthInterest;
+      totalInterest += monthInterest;
+    }
+    // Cap at target if reached
+    if (goalReachedMonth === null && balance >= targetAmount && targetAmount > 0) {
+      goalReachedMonth = m;
+    }
+    monthly.push({
+      month: m,
+      capital: Math.round(balance - totalInterest),
+      interest_earned: Math.round(totalInterest),
+      total: Math.round(balance),
+    });
+  }
+
+  const r1y = calc(12);
+  const r3y = calc(36);
+  const r5y = calc(60);
+
+  // Estimate goal date
+  let estimatedGoalDate: string | null = null;
+  if (targetAmount > 0 && monthlyContribution > 0) {
+    const now = new Date();
+    if (goalReachedMonth !== null) {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() + goalReachedMonth);
+      estimatedGoalDate = d.toISOString().split("T")[0];
+    } else {
+      // Extend calculation beyond 12 months
+      let extBal = balance;
+      let extMonth = months;
+      while (extBal < targetAmount && extMonth < 600) {
+        extMonth++;
+        extBal += monthlyContribution;
+        const monthsPerPeriod = 12 / compPerYear;
+        if (monthsPerPeriod > 0 && extMonth % Math.round(monthsPerPeriod) === 0) {
+          extBal += extBal * ratePerPeriod;
+        }
+      }
+      if (extBal >= targetAmount) {
+        const d = new Date(now);
+        d.setMonth(d.getMonth() + extMonth);
+        estimatedGoalDate = d.toISOString().split("T")[0];
+      }
+    }
+  }
+
+  return {
+    monthly,
+    interest1y: Math.round(r1y.interest),
+    interest3y: Math.round(r3y.interest),
+    interest5y: Math.round(r5y.interest),
+    estimatedGoalDate,
+  };
+}
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { goal_name, current_amount, target_amount, monthly_contribution, interest_rate, interest_frequency, is_locked, bank_name, deadline, locale } = await req.json();
+    const {
+      goal_name, current_amount, target_amount, monthly_contribution,
+      interest_rate, interest_frequency, is_locked, bank_name, deadline, locale,
+    } = await req.json();
 
+    const rate = Number(interest_rate) || 0;
+    const monthly = Number(monthly_contribution) || 0;
+    const current = Number(current_amount) || 0;
+    const target = Number(target_amount) || 0;
+
+    // Deterministic calculation
+    const projections = computeProjections(current, monthly, rate, interest_frequency || "yearly", 12, target);
+
+    // AI for recommendations only
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const lang = locale === "fr" ? "français" : "English";
+    const remaining = Math.max(0, target - current);
+    const monthsToGoal = monthly > 0 ? Math.ceil(remaining / monthly) : null;
 
-    const prompt = `Tu es un conseiller financier expert en épargne. Analyse cette épargne et fais une simulation détaillée.
+    const prompt = `Tu es un conseiller financier expert. Analyse cette épargne et donne des recommandations personnalisées.
 
-Données de l'objectif d'épargne :
+Données :
 - Nom : ${goal_name}
-- Montant actuel : ${current_amount}
-- Objectif : ${target_amount}
-- Cotisation mensuelle prévue : ${monthly_contribution || "Non définie"}
-- Taux d'intérêt : ${interest_rate || 0}%
-- Fréquence de calcul des intérêts : ${interest_frequency || "annuel"}
-- Épargne bloquée : ${is_locked ? "Oui" : "Non"}
+- Capital actuel : ${current} | Objectif : ${target} | Restant : ${remaining}
+- Cotisation mensuelle : ${monthly || "Non définie"}
+- Taux d'intérêt : ${rate}% (fréquence : ${interest_frequency || "annuel"})
+- Bloquée : ${is_locked ? "Oui" : "Non"}
 - Banque : ${bank_name || "Non précisée"}
 - Date limite : ${deadline || "Pas de date limite"}
+- Intérêts estimés 1 an : ${projections.interest1y} | 3 ans : ${projections.interest3y} | 5 ans : ${projections.interest5y}
+- Mois estimés pour atteindre l'objectif : ${monthsToGoal ?? "N/A"}
+- Date estimée : ${projections.estimatedGoalDate || "Inconnue"}
 
-Réponds en ${lang}. Fournis :
-1. Une projection mois par mois sur 12 mois du solde (capital + intérêts composés)
-2. Le revenu total d'intérêts estimé sur 1 an, 3 ans, 5 ans
-3. La date estimée d'atteinte de l'objectif si applicable
-4. Des recommandations pour optimiser cette épargne (ajuster la mensualité, changer de fréquence d'intérêts, etc.)
-5. Une comparaison entre épargne bloquée vs disponible si pertinent`;
+En ${lang}, fournis :
+1. Un résumé court (2-3 phrases) de la situation
+2. 3-4 recommandations concrètes et chiffrées pour optimiser (ajuster mensualité, fréquence intérêts, épargne bloquée vs disponible, etc.)`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -45,73 +165,61 @@ Réponds en ${lang}. Fournis :
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Tu es un conseiller financier expert. Réponds avec des données chiffrées précises et des tableaux quand c'est pertinent." },
+          { role: "system", content: `Expert financier. Réponds en ${lang}. Sois concis et chiffré.` },
           { role: "user", content: prompt },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "savings_simulation",
-              description: "Return a structured savings simulation with projections",
-              parameters: {
-                type: "object",
-                properties: {
-                  monthly_projections: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        month: { type: "number" },
-                        capital: { type: "number" },
-                        interest_earned: { type: "number" },
-                        total: { type: "number" },
-                      },
-                      required: ["month", "capital", "interest_earned", "total"],
-                    },
-                  },
-                  interest_income_1y: { type: "number" },
-                  interest_income_3y: { type: "number" },
-                  interest_income_5y: { type: "number" },
-                  estimated_goal_date: { type: "string" },
-                  recommendations: {
-                    type: "array",
-                    items: { type: "string" },
-                  },
-                  summary: { type: "string" },
-                },
-                required: ["monthly_projections", "interest_income_1y", "interest_income_3y", "interest_income_5y", "recommendations", "summary"],
+        tools: [{
+          type: "function",
+          function: {
+            name: "savings_advice",
+            description: "Return savings recommendations",
+            parameters: {
+              type: "object",
+              properties: {
+                summary: { type: "string", description: "2-3 sentence summary of the savings situation" },
+                recommendations: { type: "array", items: { type: "string" }, description: "3-4 concrete recommendations" },
               },
+              required: ["summary", "recommendations"],
+              additionalProperties: false,
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "savings_simulation" } },
+        }],
+        tool_choice: { type: "function", function: { name: "savings_advice" } },
       }),
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+    let summary = "";
+    let recommendations: string[] = [];
+
+    if (response.ok) {
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (toolCall?.function?.arguments) {
+        try {
+          const parsed = JSON.parse(toolCall.function.arguments);
+          summary = parsed.summary || "";
+          recommendations = parsed.recommendations || [];
+        } catch {
+          console.error("Failed to parse AI response");
+        }
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required" }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI error:", response.status, t);
-      throw new Error("AI gateway error");
+    } else {
+      const errText = await response.text();
+      console.error("AI error:", response.status, errText);
+      summary = locale === "fr"
+        ? `Votre épargne "${goal_name}" progresse. ${monthsToGoal ? `Objectif atteignable en ~${monthsToGoal} mois.` : ""}`
+        : `Your savings "${goal_name}" is progressing. ${monthsToGoal ? `Goal reachable in ~${monthsToGoal} months.` : ""}`;
     }
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
-
-    const simulation = JSON.parse(toolCall.function.arguments);
-
-    return new Response(JSON.stringify(simulation), {
+    return new Response(JSON.stringify({
+      monthly_projections: projections.monthly,
+      interest_income_1y: projections.interest1y,
+      interest_income_3y: projections.interest3y,
+      interest_income_5y: projections.interest5y,
+      estimated_goal_date: projections.estimatedGoalDate,
+      summary,
+      recommendations,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
