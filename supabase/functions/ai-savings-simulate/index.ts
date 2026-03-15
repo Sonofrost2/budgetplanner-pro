@@ -169,7 +169,7 @@ En ${lang}, fournis :
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: `Expert financier. Réponds en ${lang}. Sois concis et chiffré.` },
+          { role: "system", content: `Expert financier. Réponds en ${lang}. Sois concis et chiffré. TOUS les montants doivent être en ${cur}, jamais en EUR ou autre devise.` },
           { role: "user", content: prompt },
         ],
         tools: [{
