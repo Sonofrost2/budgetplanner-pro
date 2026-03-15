@@ -408,6 +408,12 @@ export const dashT = {
     syncSavings: 'Synchroniser les épargnes',
     syncSavingsDesc: 'Détecter les cotisations d\'épargne depuis les transactions importées',
     syncing: 'Synchronisation...',
+    customPeriod: 'Période personnalisée',
+    transactionCount: 'Nb transactions',
+    dailyAverage: 'Moyenne / jour',
+    from: 'Du',
+    to: 'Au',
+    apply: 'Appliquer',
   },
   en: {
     dashboard: 'Dashboard',
@@ -814,6 +820,12 @@ export const dashT = {
     syncSavings: 'Sync savings',
     syncSavingsDesc: 'Detect savings contributions from imported transactions',
     syncing: 'Syncing...',
+    customPeriod: 'Custom period',
+    transactionCount: 'Transactions',
+    dailyAverage: 'Daily average',
+    from: 'From',
+    to: 'To',
+    apply: 'Apply',
   },
 } as const;
 
