@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2 } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +25,11 @@ import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { exportToCSV, exportToExcel } from '@/lib/export';
+import BudgetGlobalStats from '@/components/dashboard/budgets/BudgetGlobalStats';
+
+const PERIOD_MULTIPLIER: Record<string, number> = {
+  daily: 365, weekly: 52, monthly: 12, quarterly: 4, semi_annual: 2, yearly: 1,
+};
 
 const BudgetsPage = () => {
   const { user } = useAuth();
