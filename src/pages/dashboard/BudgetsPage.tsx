@@ -346,7 +346,7 @@ const BudgetsPage = () => {
 
     // Pace status
     const paceRatio = expectedPace > 0 ? dailyPace / expectedPace : 0;
-    let paceLabel = t.paceOnTrack;
+    let paceLabel: string = t.paceOnTrack;
     let paceColor = 'text-secondary';
     if (isMax) {
       if (paceRatio > 1.15) { paceLabel = t.paceFast; paceColor = 'text-destructive'; }
