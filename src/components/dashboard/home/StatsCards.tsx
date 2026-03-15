@@ -206,6 +206,7 @@ export const StatsCards = ({
           icon={TrendingUp} iconColor="text-secondary" bg="bg-secondary/10" color="text-secondary"
           trend={prevIncome !== undefined ? calcTrend(totalIncome, prevIncome) : undefined}
           sparkline={dailyIncomeData} sparklineColor="hsl(165, 70%, 46%)" delay={0.08}
+          onClick={onIncomeClick}
         />
         <HeroCard
           label={t.expenses} value={`-${fmt(totalExpenses)}`}
@@ -213,6 +214,7 @@ export const StatsCards = ({
           trend={prevExpenses !== undefined ? calcTrend(totalExpenses, prevExpenses) : undefined}
           invertTrend
           sparkline={dailyExpenseData} sparklineColor="hsl(0, 84%, 60%)" delay={0.16}
+          onClick={onExpenseClick}
         />
       </div>
 
