@@ -13,7 +13,7 @@ const BudgetVsActualReport = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
-  const [rows, setRows] = useState<{ name: string; icon: string; color: string; budget: number; actual: number; variance: number; pct: number }[]>([]);
+  const [rows, setRows] = useState<{ name: string; icon: string; color: string; budget: number; actual: number; variance: number; pct: number; controlType: string; budgetType: string }[]>([]);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
