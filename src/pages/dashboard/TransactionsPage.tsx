@@ -414,20 +414,16 @@ const TransactionsPage = () => {
         )}
       </div>
 
-      {/* Selection bar */}
       {someSelected && (
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20">
-          <span className="text-sm font-semibold text-primary">{t.selectedCount(selectedIds.size)}</span>
-          <div className="flex-1" />
-          {canExportAdvanced && (
-            <>
-              <Button variant="outline" size="sm" className="rounded-xl" onClick={() => handleExportSelection('csv')}><Download className="w-3.5 h-3.5 mr-1" />{t.exportCSV}</Button>
-              <Button variant="outline" size="sm" className="rounded-xl" onClick={() => handleExportSelection('excel')}><Download className="w-3.5 h-3.5 mr-1" />{t.exportExcel}</Button>
-            </>
-          )}
-          <Button variant="destructive" size="sm" className="rounded-xl" onClick={() => setBulkDeleteOpen(true)}><Trash2 className="w-3.5 h-3.5 mr-1" />{t.deleteSelection}</Button>
-          <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => setSelectedIds(new Set())}><X className="w-3.5 h-3.5" /></Button>
-        </div>
+        <BulkActionBar
+          count={selectedIds.size}
+          onDelete={() => setBulkDeleteOpen(true)}
+          onModify={() => { setBulkModifyForm({ category_id: '', account_id: '' }); setBulkModifyOpen(true); }}
+          onDuplicate={handleBulkDuplicate}
+          onExportCSV={canExportAdvanced ? () => handleExportSelection('csv') : undefined}
+          onExportExcel={canExportAdvanced ? () => handleExportSelection('excel') : undefined}
+          onClear={() => setSelectedIds(new Set())}
+        />
       )}
 
       {/* Transactions list */}
