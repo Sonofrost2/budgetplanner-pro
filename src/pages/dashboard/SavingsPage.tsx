@@ -32,6 +32,7 @@ import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 import { SavingsGoalCard } from '@/components/dashboard/savings/SavingsGoalCard';
 import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSummaryTable';
 import { SavingsControlTable } from '@/components/dashboard/savings/SavingsControlTable';
+import { SavingsGlobalStats } from '@/components/dashboard/savings/SavingsGlobalStats';
 
 interface SimulationResult {
   monthly_projections: { month: number; capital: number; interest_earned: number; total: number }[];
@@ -420,6 +421,7 @@ const SavingsPage = () => {
         </div>
       </div>
 
+      <SavingsGlobalStats goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
       <SavingsSummaryTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
       <SavingsControlTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
 
