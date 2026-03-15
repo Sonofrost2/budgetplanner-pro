@@ -209,7 +209,43 @@ const TransactionsPage = () => {
     setSelectedIds(new Set());
     setBulkDeleteOpen(false);
     refreshData();
-    toast.success(`${ids.length} ${t.delete} ✓`);
+    toast.success(t.bulkDeleted(ids.length));
+  };
+
+  const handleBulkModify = async () => {
+    const ids = Array.from(selectedIds);
+    const updates: Record<string, any> = {};
+    if (bulkModifyForm.category_id) updates.category_id = bulkModifyForm.category_id;
+    if (bulkModifyForm.account_id) updates.account_id = bulkModifyForm.account_id;
+    if (Object.keys(updates).length === 0) { toast.error(t.noChange); return; }
+    const { error } = await supabase.from('transactions').update(updates).in('id', ids);
+    if (error) { toast.error(error.message); return; }
+    if (updates.account_id) {
+      const affectedAccounts = new Set<string>();
+      ids.forEach(id => { const tx = transactions.find(t => t.id === id); if (tx?.account_id) affectedAccounts.add(tx.account_id); });
+      affectedAccounts.add(updates.account_id);
+      for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
+    }
+    setBulkModifyOpen(false); setBulkModifyForm({ category_id: '', account_id: '' });
+    setSelectedIds(new Set()); refreshData();
+    toast.success(t.bulkModified(ids.length));
+  };
+
+  const handleBulkDuplicate = async () => {
+    if (!user) return;
+    const selectedTxs = transactions.filter(tx => selectedIds.has(tx.id));
+    const inserts = selectedTxs.map(tx => ({
+      user_id: user.id, description: tx.description, amount: Number(tx.amount),
+      type: tx.type, category_id: tx.category_id, account_id: tx.account_id,
+      date: new Date().toISOString().split('T')[0], notes: tx.notes,
+    }));
+    const { error } = await supabase.from('transactions').insert(inserts);
+    if (error) { toast.error(error.message); return; }
+    const affectedAccounts = new Set<string>();
+    selectedTxs.forEach(tx => { if (tx.account_id) affectedAccounts.add(tx.account_id); });
+    for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
+    setSelectedIds(new Set()); refreshData();
+    toast.success(t.bulkDuplicated(inserts.length));
   };
 
   const toggleSort = (field: SortField) => {
