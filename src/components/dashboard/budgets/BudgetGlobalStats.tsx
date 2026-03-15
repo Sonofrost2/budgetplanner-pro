@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { useProfile } from '@/hooks/useProfile';
 import { dashT } from '@/i18n/dashTranslations';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, AlertTriangle, PieChart, Calendar } from 'lucide-react';
@@ -18,13 +17,12 @@ const PERIOD_MULTIPLIER: Record<string, number> = {
 interface BudgetGlobalStatsProps {
   budgets: any[];
   spending: Record<string, number>;
+  fmt: (n: number) => string;
 }
 
-const BudgetGlobalStats = ({ budgets, spending }: BudgetGlobalStatsProps) => {
+const BudgetGlobalStats = ({ budgets, spending, fmt }: BudgetGlobalStatsProps) => {
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
-  const fmt = (n: number) => fmtCurrency(n, locale);
 
   const stats = useMemo(() => {
     let totalAnnualized = 0;
