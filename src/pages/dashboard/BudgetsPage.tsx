@@ -13,7 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2, AlertTriangle, PieChart, Inbox, Calendar, Tag, Pencil } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -31,21 +32,31 @@ const BudgetsPage = () => {
   const { data: allCategories = [], isLoading: catLoading } = useCategories();
   const { data: allTx = [], isLoading: txLoading } = useAllTransactions();
   const loading = budLoading || catLoading || txLoading;
-  const categories = allCategories.filter(c => c.type === 'expense');
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly', alert_threshold: '80' });
+  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly', alert_threshold: '80', budget_type: 'expense', control_type: 'max' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('expense');
 
   const fmt = (n: number) => fmtCurrency(n, locale);
+
+  const filteredCategories = useMemo(() => 
+    allCategories.filter(c => c.type === form.budget_type), 
+    [allCategories, form.budget_type]
+  );
+
+  const expenseBudgets = useMemo(() => budgets.filter(b => (b as any).budget_type !== 'income'), [budgets]);
+  const incomeBudgets = useMemo(() => budgets.filter(b => (b as any).budget_type === 'income'), [budgets]);
 
   const spending = useMemo(() => {
     const now = new Date();
     const spendMap: Record<string, number> = {};
     budgets.forEach(b => {
+      const bType = (b as any).budget_type || 'expense';
+      const txType = bType === 'income' ? 'income' : 'expense';
       let start: string, end: string;
       if (b.period === 'weekly') {
         const day = now.getDay();
@@ -58,9 +69,9 @@ const BudgetsPage = () => {
         start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
         end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
       }
-      const spent = allTx.filter(tx => tx.type === 'expense' && tx.category_id === b.category_id && tx.date >= start && tx.date <= end)
+      const actual = allTx.filter(tx => tx.type === txType && tx.category_id === b.category_id && tx.date >= start && tx.date <= end)
         .reduce((s, tx) => s + Number(tx.amount), 0);
-      if (b.category_id) spendMap[b.category_id] = spent;
+      if (b.category_id) spendMap[b.category_id] = actual;
     });
     return spendMap;
   }, [budgets, allTx]);
@@ -79,23 +90,24 @@ const BudgetsPage = () => {
     return Object.keys(errs).length === 0;
   };
 
-  const openNew = () => {
+  const openNew = (budgetType: string = 'expense') => {
     if (budgetLimitReached) { toast.error(t.limitBudgetsToast(limits.budgets)); return; }
+    const cats = allCategories.filter(c => c.type === budgetType);
     setErrors({}); setEditId(null);
-    setForm({ name: '', amount: '', category_id: categories[0]?.id || '', period: 'monthly', alert_threshold: '80' });
+    setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max' });
     setDialogOpen(true);
   };
 
   const openEdit = (b: any) => {
     setErrors({}); setEditId(b.id);
-    setForm({ name: b.name, amount: String(b.amount), category_id: b.category_id || '', period: b.period || 'monthly', alert_threshold: String(b.alert_threshold ?? 80) });
+    setForm({ name: b.name, amount: String(b.amount), category_id: b.category_id || '', period: b.period || 'monthly', alert_threshold: String(b.alert_threshold ?? 80), budget_type: b.budget_type || 'expense', control_type: b.control_type || 'max' });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
     if (!user || !validate()) return;
     setSaving(true);
-    const payload = { name: form.name.trim(), amount: Number(form.amount), category_id: form.category_id || null, period: form.period, alert_threshold: Number(form.alert_threshold) || 80 };
+    const payload = { name: form.name.trim(), amount: Number(form.amount), category_id: form.category_id || null, period: form.period, alert_threshold: Number(form.alert_threshold) || 80, budget_type: form.budget_type, control_type: form.control_type };
     const { error } = editId
       ? await supabase.from('budgets').update(payload).eq('id', editId)
       : await supabase.from('budgets').insert({ ...payload, user_id: user.id });
@@ -123,71 +135,126 @@ const BudgetsPage = () => {
 
   const periodLabels: Record<string, string> = { weekly: t.weekly, monthly: t.monthly, yearly: t.yearly };
 
+  const renderBudgetCard = (b: any) => {
+    const actual = spending[b.category_id || ''] || 0;
+    const amount = Number(b.amount);
+    const pct = amount > 0 ? Math.min((actual / amount) * 100, 100) : 0;
+    const controlType = b.control_type || 'max';
+    const isIncome = b.budget_type === 'income';
+
+    // For max (expense): over = actual > amount (bad)
+    // For min (income/expense): under = actual < amount (bad), over = good
+    const isMax = controlType === 'max';
+    const isAlert = isMax ? actual > amount : actual < amount;
+    const isGood = isMax ? actual <= amount : actual >= amount;
+    const remaining = isMax ? amount - actual : actual - amount;
+
+    return (
+      <Card key={b.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${isAlert ? 'ring-1 ring-destructive/20' : ''}`}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-bold flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (b.categories?.color || '#6C63FF') + '20' }}>{b.categories?.icon || '📁'}</div>
+              <div>
+                <span>{b.name}</span>
+                <p className="text-[11px] font-normal text-muted-foreground">
+                  {b.categories?.name || '-'} · {periodLabels[b.period] || b.period}
+                  {isIncome && <span className="ml-1 text-secondary">↗</span>}
+                  {' · '}{isMax ? (locale === 'fr' ? 'Plafond' : 'Cap') : (locale === 'fr' ? 'Objectif' : 'Target')}
+                </p>
+              </div>
+            </CardTitle>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(b)}><Pencil className="w-3.5 h-3.5" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(b.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex justify-between items-baseline">
+            <span className="text-2xl font-extrabold">{fmt(actual)}</span>
+            <span className="text-sm text-muted-foreground">/ {fmt(amount)}</span>
+          </div>
+          <Progress value={pct} className={`h-3 rounded-full ${isAlert ? '[&>div]:bg-destructive' : pct >= (b.alert_threshold ?? 80) ? (isMax ? '[&>div]:bg-accent' : '[&>div]:bg-secondary') : (isMax ? '[&>div]:bg-secondary' : '[&>div]:bg-accent')}`} />
+          {isAlert ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/5 border border-destructive/10">
+              {isMax ? <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" /> : <TrendingDown className="w-4 h-4 text-destructive flex-shrink-0" />}
+              <p className="text-xs font-semibold text-destructive">
+                {isMax ? `${t.overBudget} — ${t.exceeded} ${fmt(actual - amount)}` : `${t.belowTarget} — ${locale === 'fr' ? 'Manque' : 'Missing'} ${fmt(amount - actual)}`}
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs font-medium text-secondary px-1 flex items-center gap-1">
+              {isMax ? (
+                <>✓ {t.onTrack} — {t.remaining}: {fmt(remaining)}</>
+              ) : (
+                <><CheckCircle className="w-3.5 h-3.5" /> {t.targetReached} {remaining > 0 ? `— +${fmt(remaining)}` : ''}</>
+              )}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderEmptyState = (budgetType: string) => (
+    <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+      <CardContent className="py-16 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
+          {budgetType === 'income' ? <TrendingUp className="w-7 h-7 text-muted-foreground/40" /> : <PieChart className="w-7 h-7 text-muted-foreground/40" />}
+        </div>
+        <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noBudgets}</p>
+        <p className="text-sm text-muted-foreground/70 mb-4">{budgetType === 'income' ? t.createBudgetDescIncome : t.createBudgetDesc}</p>
+        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => openNew(budgetType)}><Plus className="w-4 h-4 mr-1" />{t.addBudget}</Button>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-6">
       {budgetLimitReached && <UpgradeBanner message={t.limitBudgetsReached(limits.budgets)} />}
 
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-display">{t.budgets}</h2>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={budgetLimitReached}>
-          <Plus className="w-4 h-4 mr-1" />{t.addBudget}
-        </Button>
       </div>
 
-      {budgets.length === 0 ? (
-        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
-          <CardContent className="py-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center"><PieChart className="w-7 h-7 text-muted-foreground/40" /></div>
-            <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noBudgets}</p>
-            <p className="text-sm text-muted-foreground/70 mb-4">{t.createBudgetDesc}</p>
-            <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addBudget}</Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {budgets.map(b => {
-            const spent = spending[b.category_id || ''] || 0;
-            const amount = Number(b.amount);
-            const pct = amount > 0 ? Math.min((spent / amount) * 100, 100) : 0;
-            const over = spent > amount;
-            const remaining = amount - spent;
-            return (
-              <Card key={b.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${over ? 'ring-1 ring-destructive/20' : ''}`}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-bold flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (b.categories?.color || '#6C63FF') + '20' }}>{b.categories?.icon || '📁'}</div>
-                      <div><span>{b.name}</span><p className="text-[11px] font-normal text-muted-foreground">{b.categories?.name || '-'} · {periodLabels[b.period] || b.period}</p></div>
-                    </CardTitle>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(b)}><Pencil className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(b.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-baseline"><span className="text-2xl font-extrabold">{fmt(spent)}</span><span className="text-sm text-muted-foreground">/ {fmt(amount)}</span></div>
-                  <Progress value={pct} className={`h-3 rounded-full ${over ? '[&>div]:bg-destructive' : pct >= (b.alert_threshold ?? 80) ? '[&>div]:bg-accent' : '[&>div]:bg-secondary'}`} />
-                  {over ? (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/5 border border-destructive/10">
-                      <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
-                      <p className="text-xs font-semibold text-destructive">{t.overBudget} — {t.exceeded} {fmt(spent - amount)}</p>
-                    </div>
-                  ) : (
-                    <p className="text-xs font-medium text-secondary px-1">✓ {t.onTrack} — {t.remaining}: {fmt(remaining)}</p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <TabsList className="rounded-xl">
+            <TabsTrigger value="expense" className="rounded-lg gap-1.5">
+              <TrendingDown className="w-3.5 h-3.5" />{t.expenseBudgets}
+            </TabsTrigger>
+            <TabsTrigger value="income" className="rounded-lg gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5" />{t.incomeBudgets}
+            </TabsTrigger>
+          </TabsList>
+          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => openNew(activeTab)} disabled={budgetLimitReached}>
+            <Plus className="w-4 h-4 mr-1" />{t.addBudget}
+          </Button>
         </div>
-      )}
+
+        <TabsContent value="expense" className="mt-4">
+          {expenseBudgets.length === 0 ? renderEmptyState('expense') : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {expenseBudgets.map(renderBudgetCard)}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="income" className="mt-4">
+          {incomeBudgets.length === 0 ? renderEmptyState('income') : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {incomeBudgets.map(renderBudgetCard)}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{editId ? t.editBudget : t.addBudget}</DialogTitle>
-            <DialogDescription>{t.createBudgetDesc}</DialogDescription>
+            <DialogDescription>{form.budget_type === 'income' ? t.createBudgetDescIncome : t.createBudgetDesc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
             <div className="space-y-2">
@@ -195,20 +262,53 @@ const BudgetsPage = () => {
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} placeholder={t.budgetPlaceholder} className={`rounded-xl h-11 ${errors.name ? 'border-destructive' : ''}`} />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
+
+            {!editId && (
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.budgetType}</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['expense', 'income'].map(bt => (
+                    <button key={bt} type="button" onClick={() => {
+                      const cats = allCategories.filter(c => c.type === bt);
+                      setForm(f => ({ ...f, budget_type: bt, category_id: cats[0]?.id || '', control_type: bt === 'income' ? 'min' : 'max' }));
+                    }}
+                      className={`px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all flex items-center gap-2 justify-center ${form.budget_type === bt ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}>
+                      {bt === 'expense' ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
+                      {bt === 'expense' ? t.budgetTypeExpense : t.budgetTypeIncome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.controlType}</Label>
+              <div className="grid grid-cols-1 gap-1.5">
+                {['max', 'min'].map(ct => (
+                  <button key={ct} type="button" onClick={() => setForm(f => ({ ...f, control_type: ct }))}
+                    className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all text-left ${form.control_type === ct ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}>
+                    {ct === 'max' ? t.controlTypeMax : t.controlTypeMin}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
               <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
                 <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger>
-                <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
+                <SelectContent>{filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.alertThreshold}</Label>
               <Input type="number" min="1" max="100" value={form.alert_threshold} onChange={e => setForm(f => ({ ...f, alert_threshold: e.target.value }))} className="rounded-xl h-11 w-24" />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.budgetAmount}</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{form.control_type === 'min' ? t.target : t.budgetAmount}</Label>
                 <Input type="number" min="1" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0" className={`rounded-xl h-11 text-lg font-bold ${errors.amount ? 'border-destructive' : ''}`} />
                 {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
               </div>
