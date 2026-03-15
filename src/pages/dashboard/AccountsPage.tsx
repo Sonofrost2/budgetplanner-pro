@@ -28,6 +28,7 @@ import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import CashCountDialog from '@/components/dashboard/CashCountDialog';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { useInvalidate } from '@/hooks/useDashboardData';
 import type { Account, Transaction } from '@/hooks/useDashboardData';
 
 const getAccountTypes = (t: DashTranslations) => [
