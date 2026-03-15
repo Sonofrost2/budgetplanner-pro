@@ -92,9 +92,9 @@ const HeroCard = ({ label, value, icon: Icon, iconColor, bg, color, trend, inver
   trend?: number; invertTrend?: boolean; sparkline?: number[]; sparklineColor: string; delay: number;
 }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+  initial={{ opacity: 0, y: 20, scale: 0.95 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ delay, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+    transition={{ delay, duration: 0.4, ease: 'easeOut' }}
     className="glass rounded-2xl p-4 hover:bg-glass-hover transition-all duration-300 cursor-default group"
   >
     <div className="flex items-start justify-between mb-3">
