@@ -116,7 +116,25 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
             </div>
             <div>
               <h3 className="text-base font-bold text-foreground">{goal.name}</h3>
-              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                {(goal as any).is_locked && (
+                  <span className="flex items-center gap-1 text-destructive font-medium">
+                    <Lock className="w-3 h-3" />
+                    {t.savingsLocked}
+                  </span>
+                )}
+                {!(goal as any).is_locked && Number(goal.current_amount) > 0 && (
+                  <span className="flex items-center gap-1 text-secondary font-medium">
+                    <Unlock className="w-3 h-3" />
+                    {t.savingsAvailable}
+                  </span>
+                )}
+                {(goal as any).bank_name && (
+                  <span className="flex items-center gap-1">
+                    <Landmark className="w-3 h-3" />
+                    {(goal as any).bank_name}
+                  </span>
+                )}
                 {goal.payment_accounts && (
                   <span className="flex items-center gap-1">
                     <Wallet className="w-3 h-3" />
@@ -133,6 +151,12 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
                     ? new Date(goal.deadline).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short', year: 'numeric' })
                     : t.savingsNoDeadline}
                 </span>
+                {Number((goal as any).interest_rate) > 0 && (
+                  <span className="flex items-center gap-1 text-primary font-medium">
+                    <TrendingUp className="w-3 h-3" />
+                    {(goal as any).interest_rate}% / {(goal as any).interest_frequency === 'monthly' ? (locale === 'fr' ? 'mois' : 'mo') : (goal as any).interest_frequency === 'quarterly' ? (locale === 'fr' ? 'trim.' : 'qtr') : (goal as any).interest_frequency === 'semi_annual' ? (locale === 'fr' ? 'sem.' : 'semi') : (locale === 'fr' ? 'an' : 'yr')}
+                  </span>
+                )}
               </div>
             </div>
           </div>
