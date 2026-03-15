@@ -1,5 +1,6 @@
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { BarChart3, PieChart as PieChartIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -14,7 +15,12 @@ interface ChartsSectionProps {
 
 export const ChartsSection = ({ monthlyData, categoryData, fmt, t }: ChartsSectionProps) => (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-    <div className="glass rounded-2xl overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.2, duration: 0.4 }}
+      className="glass rounded-2xl overflow-hidden"
+    >
       <div className="p-4 pb-3">
         <h3 className="text-sm font-bold flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -43,16 +49,23 @@ export const ChartsSection = ({ monthlyData, categoryData, fmt, t }: ChartsSecti
               <Tooltip
                 formatter={(v: number) => fmt(v)}
                 contentStyle={{ borderRadius: '12px', border: 'none', background: 'hsl(var(--glass))', backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-glass)', fontSize: '11px' }}
+                animationDuration={300}
+                animationEasing="ease-out"
               />
-              <Area type="monotone" dataKey="income" stroke="hsl(165, 70%, 46%)" fill="url(#incG)" strokeWidth={2} name={t.income} />
-              <Area type="monotone" dataKey="expenses" stroke="hsl(250, 85%, 60%)" fill="url(#expG)" strokeWidth={2} name={t.expenses} />
+              <Area type="monotone" dataKey="income" stroke="hsl(165, 70%, 46%)" fill="url(#incG)" strokeWidth={2} name={t.income} animationDuration={1200} />
+              <Area type="monotone" dataKey="expenses" stroke="hsl(250, 85%, 60%)" fill="url(#expG)" strokeWidth={2} name={t.expenses} animationDuration={1200} animationBegin={200} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
-    </div>
+    </motion.div>
 
-    <div className="glass rounded-2xl overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.3, duration: 0.4 }}
+      className="glass rounded-2xl overflow-hidden"
+    >
       <div className="p-4 pb-3">
         <h3 className="text-sm font-bold flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
@@ -63,9 +76,13 @@ export const ChartsSection = ({ monthlyData, categoryData, fmt, t }: ChartsSecti
       </div>
       <div className="px-4 pb-4">
         {categoryData.length === 0 ? (
-          <div className="h-56 flex items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="h-56 flex items-center justify-center"
+          >
             <p className="text-xs text-muted-foreground">{t.noTransactions}</p>
-          </div>
+          </motion.div>
         ) : (
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
@@ -82,6 +99,9 @@ export const ChartsSection = ({ monthlyData, categoryData, fmt, t }: ChartsSecti
                   stroke="transparent"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   labelLine={{ strokeWidth: 1, stroke: 'hsl(var(--muted-foreground))' }}
+                  animationDuration={1000}
+                  animationBegin={300}
+                  animationEasing="ease-out"
                 >
                   {categoryData.map((entry, i) => (
                     <Cell key={i} fill={entry.color} />
@@ -90,12 +110,13 @@ export const ChartsSection = ({ monthlyData, categoryData, fmt, t }: ChartsSecti
                 <Tooltip
                   formatter={(v: number) => fmt(v)}
                   contentStyle={{ borderRadius: '12px', border: 'none', background: 'hsl(var(--glass))', backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-glass)', fontSize: '11px' }}
+                  animationDuration={200}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   </div>
 );

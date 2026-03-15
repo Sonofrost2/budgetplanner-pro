@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TopLoadingBar } from '@/components/ui/top-loading-bar';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
 import { OfflineBanner } from '@/components/dashboard/OfflineBanner';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -32,6 +33,7 @@ const DashboardLayout = () => {
   const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean } | null>(null);
   const [globalSearch, setGlobalSearch] = useState('');
   const [userPlan, setUserPlan] = useState<string | null>(null);
+  const [pageLoading, setPageLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
@@ -61,6 +63,13 @@ const DashboardLayout = () => {
     navigate('/');
   };
 
+  // Show loading bar on route change
+  useEffect(() => {
+    setPageLoading(true);
+    const timer = setTimeout(() => setPageLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -83,11 +92,32 @@ const DashboardLayout = () => {
 
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center mesh-bg">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center animate-pulse" style={{ background: 'var(--gradient-primary)' }}>
-          <Wallet className="w-6 h-6 text-primary-foreground" />
+      <div className="flex flex-col items-center gap-4">
+        <motion.div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+          style={{ background: 'var(--gradient-primary)' }}
+          animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <Wallet className="w-7 h-7 text-primary-foreground" />
+        </motion.div>
+        <div className="flex flex-col items-center gap-2">
+          <motion.span
+            className="text-sm text-muted-foreground font-medium"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            Chargement...
+          </motion.span>
+          <div className="w-32 h-1 rounded-full bg-muted overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: 'var(--gradient-primary)' }}
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
         </div>
-        <span className="text-sm text-muted-foreground font-medium">Chargement...</span>
       </div>
     </div>;
   }
@@ -156,6 +186,7 @@ const DashboardLayout = () => {
 
   return (
     <div className="min-h-screen mesh-bg flex">
+      <TopLoadingBar loading={pageLoading} />
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-[240px] glass-strong transform transition-transform lg:translate-x-0 lg:static lg:z-auto flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo */}

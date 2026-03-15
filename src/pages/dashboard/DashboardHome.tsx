@@ -208,13 +208,41 @@ const DashboardHome = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between"><Skeleton className="h-9 w-40" /><Skeleton className="h-9 w-40" /></div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+      <div className="space-y-6 animate-fade-in-up">
+        {/* Period bar skeleton */}
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-9 w-44 rounded-xl" />
+          <Skeleton className="h-9 w-36 rounded-xl" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
+        {/* Hero cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-2xl glass p-4 space-y-3" style={{ animationDelay: `${i * 100}ms` }}>
+              <div className="flex justify-between">
+                <Skeleton className="h-10 w-10 rounded-xl" />
+                <Skeleton className="h-5 w-12 rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-6 w-32 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Widgets skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 space-y-4">
+            <Skeleton className="h-48 rounded-2xl" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Skeleton className="h-64 rounded-2xl" />
+              <Skeleton className="h-64 rounded-2xl" />
+            </div>
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-40 rounded-2xl" style={{ animationDelay: `${(i + 3) * 100}ms` }} />
+            ))}
+          </div>
         </div>
       </div>
     );
