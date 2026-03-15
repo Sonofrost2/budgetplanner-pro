@@ -87,15 +87,19 @@ const TrendBadge = ({ trend, invertColor }: { trend?: number; invertColor?: bool
 };
 
 /** Hero stat card — larger, more prominent */
-const HeroCard = ({ label, value, icon: Icon, iconColor, bg, color, trend, invertTrend, sparkline, sparklineColor, delay }: {
+const HeroCard = ({ label, value, icon: Icon, iconColor, bg, color, trend, invertTrend, sparkline, sparklineColor, delay, onClick }: {
   label: string; value: string; icon: typeof Wallet; iconColor: string; bg: string; color: string;
   trend?: number; invertTrend?: boolean; sparkline?: number[]; sparklineColor: string; delay: number;
+  onClick?: () => void;
 }) => (
   <motion.div
-  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+    initial={{ opacity: 0, y: 20, scale: 0.95 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
     transition={{ delay, duration: 0.4, ease: 'easeOut' }}
-    className="glass rounded-2xl p-4 hover:bg-glass-hover transition-all duration-300 cursor-default group"
+    whileHover={{ scale: 1.02 }}
+    whileTap={onClick ? { scale: 0.97 } : undefined}
+    onClick={onClick}
+    className={`glass rounded-2xl p-4 hover:bg-glass-hover transition-all duration-300 group ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
   >
     <div className="flex items-start justify-between mb-3">
       <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
