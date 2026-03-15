@@ -172,13 +172,13 @@ export const StatsCards = ({
       trend: prevDailyAverage !== undefined ? calcTrend(dailyAverage, prevDailyAverage) : undefined,
     }] : []),
     ...(topExpense ? [{
-      label: t.topExpense || 'Plus grosse dépense',
+      label: t.topExpense,
       value: `${fmt(topExpense.amount)}`,
       color: 'text-destructive', icon: TrendingDown, iconColor: 'text-destructive', bg: 'bg-destructive/10',
       tooltip: topExpense.description,
     }] : []),
     ...(topIncome ? [{
-      label: t.topIncome || 'Plus gros revenu',
+      label: t.topIncome,
       value: `${fmt(topIncome.amount)}`,
       color: 'text-secondary', icon: TrendingUp, iconColor: 'text-secondary', bg: 'bg-secondary/10',
       tooltip: topIncome.description,
