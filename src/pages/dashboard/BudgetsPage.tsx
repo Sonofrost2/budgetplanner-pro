@@ -262,10 +262,8 @@ const BudgetsPage = () => {
 
   const periodLabels: Record<string, string> = { daily: t.daily, weekly: t.weekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
 
-  // AI suggestions state
-  const [aiDialogOpen, setAiDialogOpen] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
-  const [aiLoading, setAiLoading] = useState(false);
+
+
 
   const handleAiSuggest = async () => {
     if (!user) return;
