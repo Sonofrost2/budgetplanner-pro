@@ -473,6 +473,7 @@ const SavingsPage = () => {
                   interest_frequency: (g as any).interest_frequency || 'yearly',
                   bank_name: (g as any).bank_name || '',
                 });
+                setCustomBankMode(false);
                 setDialogOpen(true);
               }}
               onDelete={() => setDeleteId(g.id)}
