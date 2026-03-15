@@ -94,7 +94,7 @@ const AccountsPage = () => {
     const ids = Array.from(bulk.selectedIds);
     const { error } = await supabase.from('payment_accounts').delete().in('id', ids);
     if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
-    setBulkDeleteOpen(false); bulk.clear(); fetchData();
+    setBulkDeleteOpen(false); bulk.clear(); refreshAll();
     toast.success(t.bulkDeleted(ids.length));
   };
 
