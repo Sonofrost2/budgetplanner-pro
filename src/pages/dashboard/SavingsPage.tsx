@@ -77,6 +77,22 @@ const SavingsPage = () => {
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
+  const filteredGoals = useMemo(() => {
+    let result = [...goals];
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(g => g.name.toLowerCase().includes(q) || (g as any).bank_name?.toLowerCase().includes(q));
+    }
+    result.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'current_amount') cmp = Number(a.current_amount) - Number(b.current_amount);
+      else if (sortField === 'target_amount') cmp = Number(a.target_amount) - Number(b.target_amount);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  }, [goals, searchQuery, sortField, sortOrder]);
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     const [goalsRes, accRes, txRes] = await Promise.all([
