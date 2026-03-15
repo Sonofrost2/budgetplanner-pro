@@ -23,6 +23,7 @@ import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
+import CashCountDialog from '@/components/dashboard/CashCountDialog';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import type { Account, Transaction } from '@/hooks/useDashboardData';
