@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Coins } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
@@ -47,7 +48,7 @@ const CashCountDialog = ({ open, onOpenChange, account, userId, currency, locale
     if (!account) return;
     setSaving(true);
 
-    // Save the cash count record
+    // 1. Save the cash count record
     const { error: countError } = await supabase.from('cash_counts').insert({
       user_id: userId,
       account_id: account.id,
@@ -64,24 +65,45 @@ const CashCountDialog = ({ open, onOpenChange, account, userId, currency, locale
       return;
     }
 
-    // Update the account's real_balance to the counted total
-    const { error: updateError } = await supabase
-      .from('payment_accounts')
-      .update({ real_balance: totalCounted })
-      .eq('id', account.id);
+    // 2. If discrepancy ≠ 0, insert an adjustment transaction so recalculate stays consistent
+    if (Math.abs(discrepancy) > 0.001) {
+      const adjustmentType = discrepancy > 0 ? 'income' : 'expense';
+      const adjustmentAmount = Math.abs(discrepancy);
+      const desc = (t as any).cashCountAdjustment || 'Cash count adjustment';
 
-    if (updateError) {
-      toast.error(updateError.message);
-      setSaving(false);
-      return;
+      const { error: txError } = await supabase.from('transactions').insert({
+        user_id: userId,
+        type: adjustmentType,
+        amount: adjustmentAmount,
+        description: `${desc} – ${account.icon} ${account.name}`,
+        account_id: account.id,
+        date: new Date().toISOString().split('T')[0],
+        notes: `PV: ${fmt(totalCounted)} (${locale === 'fr' ? 'attendu' : 'expected'}: ${fmt(expected)})`,
+      });
+
+      if (txError) {
+        toast.error(txError.message);
+        setSaving(false);
+        return;
+      }
     }
+
+    // 3. Recalculate balance via server function (uses opening_balance + transactions)
+    await recalculateAccountBalance(account.id);
 
     setSaving(false);
     onOpenChange(false);
     setQuantities({});
     setNotes('');
     onSuccess();
-    toast.success(t.saved);
+
+    // Explicit toast with old → new balance
+    const balanceUpdatedFn = (t as any).balanceUpdatedFromTo;
+    if (balanceUpdatedFn) {
+      toast.success(balanceUpdatedFn(expected, totalCounted, fmt));
+    } else {
+      toast.success(t.saved);
+    }
   };
 
   const handleOpenChange = (v: boolean) => {
