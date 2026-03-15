@@ -193,7 +193,7 @@ const AccountsPage = () => {
     }
     setSaving(false);
     setDialogOpen(false);
-    fetchData();
+    refreshAll();
     toast.success(t.saved);
   };
 
