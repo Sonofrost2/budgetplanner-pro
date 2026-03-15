@@ -240,34 +240,35 @@ const AccountsPage = () => {
         </div>
       </div>
 
-      {/* Type filter chips */}
+      {/* Search + Sort + Type filter */}
       {accounts.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSearchParams({})}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${!typeFilter ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/50'}`}
-          >
-            {locale === 'fr' ? 'Tous' : 'All'} ({accounts.length})
-          </button>
-          {[...new Set(accounts.map(a => a.type))].map(type => {
-            const count = accounts.filter(a => a.type === type).length;
+        <FilterToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={locale === 'fr' ? 'Rechercher un compte...' : 'Search accounts...'}
+          sortOptions={[
+            { value: 'name', label: locale === 'fr' ? 'Nom' : 'Name' },
+            { value: 'real_balance', label: locale === 'fr' ? 'Solde' : 'Balance' },
+            { value: 'type', label: t.type },
+          ]}
+          sortValue={sortField}
+          onSortChange={v => setSortField(v as any)}
+          sortOrder={sortOrder}
+          onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+          filterChips={[...new Set(accounts.map(a => a.type))].map(type => {
             const typeLabels: Record<string, Record<string, string>> = {
               fr: { bank: 'Banque', mobile_money: 'Mobile Money', cash: 'Espèces', card: 'Carte', savings: 'Épargne' },
               en: { bank: 'Bank', mobile_money: 'Mobile Money', cash: 'Cash', card: 'Card', savings: 'Savings' },
             };
             const icons: Record<string, string> = { bank: '🏦', mobile_money: '📱', cash: '💵', card: '💳', savings: '🐖' };
             const labels = typeLabels[locale] || typeLabels.en;
-            return (
-              <button
-                key={type}
-                onClick={() => setSearchParams(typeFilter === type ? {} : { type })}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${typeFilter === type ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/50'}`}
-              >
-                {icons[type] || '💳'} {labels[type] || type} ({count})
-              </button>
-            );
+            return { value: type, label: labels[type] || type, icon: icons[type] || '💳', count: accounts.filter(a => a.type === type).length };
           })}
-        </div>
+          activeFilter={typeFilter}
+          onFilterChange={v => setSearchParams(v ? { type: v } : {})}
+          allLabel={locale === 'fr' ? 'Tous' : 'All'}
+          totalCount={accounts.length}
+        />
       )}
 
       {bulk.hasSelection && (
