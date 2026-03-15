@@ -544,7 +544,42 @@ const SavingsPage = () => {
             {/* Bank */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bankName} ({t.optional})</Label>
-              <Input value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} className="rounded-xl h-11" placeholder={t.bankNamePlaceholder} />
+              {(() => {
+                const bankOptions = [
+                  'SGCI', 'BICICI', 'CORIS BANK', 'BOA', 'NSIA Banque', 'SIB', 'BDU',
+                  'Ecobank', 'UBA', 'SCB', 'BACI', 'Orange Bank', 'MTN MoMo', 'Wave',
+                  'Bridge Bank', 'Banque Atlantique', 'BGFI Bank', 'Standard Chartered',
+                  'Orabank', 'Access Bank', 'BNI', 'BIAO-CI',
+                ];
+                const existingBanks = goals.map(g => (g as any).bank_name).filter(Boolean);
+                const allBanks = [...new Set([...bankOptions, ...existingBanks])].sort();
+                const isCustom = form.bank_name && !allBanks.includes(form.bank_name);
+                return (
+                  <Select value={isCustom ? '__custom__' : (form.bank_name || '__none__')} onValueChange={v => {
+                    if (v === '__custom__') {
+                      setForm(f => ({ ...f, bank_name: '' }));
+                    } else if (v === '__none__') {
+                      setForm(f => ({ ...f, bank_name: '' }));
+                    } else {
+                      setForm(f => ({ ...f, bank_name: v }));
+                    }
+                  }}>
+                    <SelectTrigger className="rounded-xl h-11">
+                      <SelectValue placeholder={t.bankNamePlaceholder} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">{locale === 'fr' ? '— Aucune —' : '— None —'}</SelectItem>
+                      {allBanks.map(bank => (
+                        <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                      ))}
+                      <SelectItem value="__custom__">{locale === 'fr' ? '✏️ Autre...' : '✏️ Other...'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
+              {(form.bank_name === '' && goals.length >= 0) || (!['SGCI', 'BICICI', 'CORIS BANK', 'BOA', 'NSIA Banque', 'SIB', 'BDU', 'Ecobank', 'UBA', 'SCB', 'BACI', 'Orange Bank', 'MTN MoMo', 'Wave', 'Bridge Bank', 'Banque Atlantique', 'BGFI Bank', 'Standard Chartered', 'Orabank', 'Access Bank', 'BNI', 'BIAO-CI', ...goals.map(g => (g as any).bank_name).filter(Boolean)].includes(form.bank_name) && form.bank_name !== '') ? (
+                <Input value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} className="rounded-xl h-11 mt-2" placeholder={t.bankNamePlaceholder} />
+              ) : null}
             </div>
 
             {/* Interest rate & frequency */}
