@@ -373,10 +373,29 @@ const AccountsPage = () => {
                     </div>
                   </div>
                   {acc.type === 'cash' ? (
-                    <Button variant="outline" size="sm" className="w-full text-xs rounded-xl gap-1.5" onClick={() => setCashCountAccount(acc)}>
-                      <Coins className="w-3.5 h-3.5" />
-                      {t.cashCount}
-                    </Button>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1 text-xs rounded-xl gap-1.5 border-accent text-accent-foreground hover:bg-accent/10" onClick={() => setCashCountAccount(acc)}>
+                          <Coins className="w-3.5 h-3.5 text-accent" />
+                          {t.cashCount}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-xs rounded-xl gap-1" onClick={async () => {
+                          setHistoryAccountId(acc.id);
+                          setHistoryLoading(true);
+                          const { data } = await supabase.from('cash_counts').select('*').eq('account_id', acc.id).order('counted_at', { ascending: false }).limit(20);
+                          setHistoryData(data || []);
+                          setHistoryLoading(false);
+                        }}>
+                          <History className="w-3.5 h-3.5" />
+                          {(t as any).cashCountHistory}
+                        </Button>
+                      </div>
+                      {cashCounts[acc.id] && (
+                        <p className="text-[10px] text-muted-foreground text-center">
+                          {(t as any).lastCount}: {new Date(cashCounts[acc.id].counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} — {fmt(cashCounts[acc.id].total_counted)}
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <Button variant="outline" size="sm" className="w-full text-xs rounded-xl" onClick={() => { setUpdateBalanceDialog(acc); setNewRealBalance(String(acc.real_balance)); }}>
                       {t.updateRealBalance}
