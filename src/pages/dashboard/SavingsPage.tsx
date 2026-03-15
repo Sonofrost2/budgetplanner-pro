@@ -47,7 +47,7 @@ interface SimulationResult {
 const SavingsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
+  const { fmt: fmtCurrency, currency } = useProfile();
   const t = dashT[locale];
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -366,6 +366,7 @@ const SavingsPage = () => {
           bank_name: (goal as any).bank_name || null,
           deadline: goal.deadline,
           locale,
+          currency,
         },
       });
       if (error) throw error;

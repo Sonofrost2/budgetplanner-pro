@@ -119,8 +119,9 @@ Deno.serve(async (req) => {
   try {
     const {
       goal_name, current_amount, target_amount, monthly_contribution,
-      interest_rate, interest_frequency, is_locked, bank_name, deadline, locale,
+      interest_rate, interest_frequency, is_locked, bank_name, deadline, locale, currency,
     } = await req.json();
+    const cur = currency || "XOF";
 
     const rate = Number(interest_rate) || 0;
     const monthly = Number(monthly_contribution) || 0;
@@ -142,15 +143,18 @@ Deno.serve(async (req) => {
 
 Données :
 - Nom : ${goal_name}
-- Capital actuel : ${current} | Objectif : ${target} | Restant : ${remaining}
-- Cotisation mensuelle : ${monthly || "Non définie"}
+- Devise : ${cur}
+- Capital actuel : ${current} ${cur} | Objectif : ${target} ${cur} | Restant : ${remaining} ${cur}
+- Cotisation mensuelle : ${monthly ? monthly + " " + cur : "Non définie"}
 - Taux d'intérêt : ${rate}% (fréquence : ${interest_frequency || "annuel"})
 - Bloquée : ${is_locked ? "Oui" : "Non"}
 - Banque : ${bank_name || "Non précisée"}
 - Date limite : ${deadline || "Pas de date limite"}
-- Intérêts estimés 1 an : ${projections.interest1y} | 3 ans : ${projections.interest3y} | 5 ans : ${projections.interest5y}
+- Intérêts estimés 1 an : ${projections.interest1y} ${cur} | 3 ans : ${projections.interest3y} ${cur} | 5 ans : ${projections.interest5y} ${cur}
 - Mois estimés pour atteindre l'objectif : ${monthsToGoal ?? "N/A"}
 - Date estimée : ${projections.estimatedGoalDate || "Inconnue"}
+
+IMPORTANT : Tous les montants sont en ${cur}. Utilise TOUJOURS ${cur} comme devise dans tes réponses, jamais EUR ou autre devise.
 
 En ${lang}, fournis :
 1. Un résumé court (2-3 phrases) de la situation
@@ -165,7 +169,7 @@ En ${lang}, fournis :
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: `Expert financier. Réponds en ${lang}. Sois concis et chiffré.` },
+          { role: "system", content: `Expert financier. Réponds en ${lang}. Sois concis et chiffré. TOUS les montants doivent être en ${cur}, jamais en EUR ou autre devise.` },
           { role: "user", content: prompt },
         ],
         tools: [{
