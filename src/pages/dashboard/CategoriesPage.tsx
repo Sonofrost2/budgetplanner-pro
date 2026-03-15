@@ -67,7 +67,7 @@ const CategoriesPage = () => {
 
   const bulk = useBulkSelection(categories);
 
-  const refreshData = () => { invalidate('categories', 'all-transactions', 'budgets'); bulk.clear(); };
+  const refreshData = () => { invalidate('categories', 'category-tx-counts', 'budgets'); bulk.clear(); };
 
   const openNew = () => { setEditing(null); setForm({ name: '', icon: '📁', color: '#6C63FF', type: 'expense' }); setDialogOpen(true); };
   const openEdit = (cat: any) => { setEditing(cat); setForm({ name: cat.name, icon: cat.icon, color: cat.color, type: cat.type }); setDialogOpen(true); };
