@@ -357,9 +357,16 @@ const AccountsPage = () => {
                       </p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full text-xs rounded-xl" onClick={() => { setUpdateBalanceDialog(acc); setNewRealBalance(String(acc.real_balance)); }}>
-                    {t.updateRealBalance}
-                  </Button>
+                  {acc.type === 'cash' ? (
+                    <Button variant="outline" size="sm" className="w-full text-xs rounded-xl gap-1.5" onClick={() => setCashCountAccount(acc)}>
+                      <Coins className="w-3.5 h-3.5" />
+                      {t.cashCount}
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="w-full text-xs rounded-xl" onClick={() => { setUpdateBalanceDialog(acc); setNewRealBalance(String(acc.real_balance)); }}>
+                      {t.updateRealBalance}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
