@@ -79,6 +79,12 @@ const SavingsPage = () => {
   const [customBankMode, setCustomBankMode] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
+  const { invalidate } = useInvalidate();
+
+  // Invalidate react-query caches that depend on transactions/accounts
+  const invalidateCrossModule = () => {
+    invalidate('accounts', 'transactions', 'paginated-transactions', 'chart-data', 'all-transactions', 'savings-goals', 'budget-spending');
+  };
 
   const filteredGoals = useMemo(() => {
     let result = [...goals];
