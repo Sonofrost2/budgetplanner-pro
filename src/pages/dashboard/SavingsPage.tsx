@@ -366,6 +366,7 @@ const SavingsPage = () => {
           bank_name: (goal as any).bank_name || null,
           deadline: goal.deadline,
           locale,
+          currency,
         },
       });
       if (error) throw error;

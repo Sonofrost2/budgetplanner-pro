@@ -119,8 +119,9 @@ Deno.serve(async (req) => {
   try {
     const {
       goal_name, current_amount, target_amount, monthly_contribution,
-      interest_rate, interest_frequency, is_locked, bank_name, deadline, locale,
+      interest_rate, interest_frequency, is_locked, bank_name, deadline, locale, currency,
     } = await req.json();
+    const cur = currency || "XOF";
 
     const rate = Number(interest_rate) || 0;
     const monthly = Number(monthly_contribution) || 0;
