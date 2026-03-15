@@ -35,8 +35,7 @@ const BudgetsPage = () => {
 
   const { data: budgets = [], isLoading: budLoading } = useBudgets();
   const { data: allCategories = [], isLoading: catLoading } = useCategories();
-  const { data: allTx = [], isLoading: txLoading } = useAllTransactions();
-  const loading = budLoading || catLoading || txLoading;
+  const loading = budLoading || catLoading;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
