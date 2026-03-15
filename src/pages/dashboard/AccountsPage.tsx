@@ -109,13 +109,13 @@ const AccountsPage = () => {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const [accRes, txRes, ccRes] = await Promise.all([
+    const [accRes, ccRes] = await Promise.all([
       supabase.from('payment_accounts').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.from('transactions').select('type, amount, account_id').eq('user_id', user.id).limit(10000),
       supabase.from('cash_counts').select('account_id, counted_at, total_counted').eq('user_id', user.id).order('counted_at', { ascending: false }),
     ]);
-    setAccounts(accRes.data || []);
-    setTransactions(txRes.data || []);
+    const accs = accRes.data || [];
+    setAccounts(accs);
+    setTransactions([]); // No longer needed for theoretical balance - use real_balance directly
     // Build map of latest cash count per account
     const latestMap: Record<string, { counted_at: string; total_counted: number }> = {};
     (ccRes.data || []).forEach(cc => {
@@ -129,13 +129,10 @@ const AccountsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Theoretical balance = real_balance (which is calculated server-side via recalculate_account_balance)
   const getTheoreticalBalance = (accountId: string) => {
     const acc = accounts.find(a => a.id === accountId);
-    const openingBal = Number(acc?.opening_balance || 0);
-    const txs = transactions.filter(tx => tx.account_id === accountId);
-    const income = txs.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0);
-    const expense = txs.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
-    return openingBal + income - expense;
+    return Number(acc?.real_balance || 0);
   };
 
   const accountLimitReached = !isPremium && accounts.length >= limits.accounts;
@@ -183,17 +180,8 @@ const AccountsPage = () => {
     } else {
       const { data: newAcc, error } = await supabase.from('payment_accounts').insert(payload).select('id').single();
       if (error) { toast.error(error.message); setSaving(false); return; }
-      // Inject opening balance as an income transaction for consistency
-      if (openingBal > 0 && newAcc) {
-        await supabase.from('transactions').insert({
-          user_id: user.id,
-          type: 'income',
-          amount: openingBal,
-          description: `${t.openingBalance} – ${form.name.trim()}`,
-          account_id: newAcc.id,
-          date: new Date().toISOString().split('T')[0],
-        });
-      }
+      // opening_balance is already used by recalculate_account_balance (opening_balance + income - expense)
+      // so we do NOT insert a transaction — that would double-count it
     }
     setSaving(false);
     setDialogOpen(false);

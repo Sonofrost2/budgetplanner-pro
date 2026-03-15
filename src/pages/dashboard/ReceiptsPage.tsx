@@ -3,8 +3,30 @@ import { dashT } from '@/i18n/dashTranslations';
 import { useReceipts } from '@/hooks/useDashboardData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Receipt, Inbox } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Receipt, Inbox, Printer } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const printReceipt = (receipt: any, locale: string) => {
+  const dateStr = new Date(receipt.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const amountStr = Number(receipt.amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: receipt.currency });
+  const w = window.open('', '_blank', 'width=400,height=500');
+  if (!w) return;
+  w.document.write(`<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:system-ui;padding:2rem;max-width:350px;margin:auto}h1{font-size:1.2rem;text-align:center}table{width:100%;border-collapse:collapse;margin:1rem 0}td{padding:.4rem 0;border-bottom:1px solid #eee}td:last-child{text-align:right;font-weight:600}.footer{text-align:center;font-size:.75rem;color:#888;margin-top:2rem}</style></head><body>
+    <h1>Budget Planner</h1>
+    <p style="text-align:center;color:#666;font-size:.85rem">${locale === 'fr' ? 'Reçu de paiement' : 'Payment Receipt'}</p>
+    <table>
+      <tr><td>${locale === 'fr' ? 'Plan' : 'Plan'}</td><td>${receipt.plan_name}</td></tr>
+      <tr><td>${locale === 'fr' ? 'Montant' : 'Amount'}</td><td>${amountStr}</td></tr>
+      <tr><td>Date</td><td>${dateStr}</td></tr>
+      <tr><td>${locale === 'fr' ? 'Statut' : 'Status'}</td><td>${receipt.status}</td></tr>
+      ${receipt.payment_token ? `<tr><td>Ref</td><td style="font-size:.75rem">${receipt.payment_token}</td></tr>` : ''}
+    </table>
+    <p class="footer">© ${new Date().getFullYear()} Budget Planner</p>
+  </body></html>`);
+  w.document.close();
+  w.print();
+};
 
 const ReceiptsPage = () => {
   const { locale } = useLanguage();
@@ -31,6 +53,9 @@ const ReceiptsPage = () => {
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold">{Number(r.amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: r.currency })}</span>
                     <Badge variant={r.status === 'confirmed' ? 'default' : 'secondary'} className="text-xs">{r.status}</Badge>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => printReceipt(r, locale)}>
+                      <Printer className="w-3.5 h-3.5" />
+                    </Button>
                   </div>
                 </div>
               ))}

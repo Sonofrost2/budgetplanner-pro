@@ -737,6 +737,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_budget_spending: {
+        Args: {
+          p_category_id: string
+          p_end_date: string
+          p_start_date: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: number
+      }
+      get_family_member_profiles: {
+        Args: { p_group_id: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          user_id: string
+        }[]
+      }
+      get_family_transactions: {
+        Args: { p_group_id: string; p_limit?: number }
+        Returns: {
+          amount: number
+          category_icon: string
+          category_name: string
+          date: string
+          description: string
+          display_name: string
+          id: string
+          type: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

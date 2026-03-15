@@ -57,7 +57,7 @@ const FamilyPage = () => {
     setGroups(grps);
     setBudgets(budRes.data || []);
 
-    // Get members for each group
+    // Get members for each group using security definer function
     const membersMap: typeof members = {};
     for (const g of grps) {
       const { data: rawMembers } = await supabase
@@ -65,15 +65,10 @@ const FamilyPage = () => {
         .select('*')
         .eq('group_id', g.id);
       
-      // Fetch profiles separately since there's no direct FK
+      // Use RPC to get profiles (bypasses RLS)
       const membersList = rawMembers || [];
       if (membersList.length > 0) {
-        const userIds = membersList.map((m: any) => m.user_id);
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, avatar_url')
-          .in('user_id', userIds);
-        
+        const { data: profiles } = await supabase.rpc('get_family_member_profiles', { p_group_id: g.id });
         const profileMap: Record<string, any> = {};
         (profiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
         membersMap[g.id] = membersList.map((m: any) => ({
@@ -90,7 +85,6 @@ const FamilyPage = () => {
     setInvitations((invRes.data || []).filter((i: any) => i.invited_by === user.id));
 
     // Pending invitations for me
-    const { data: userProfile } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
     const userEmail = user.email;
     setPendingForMe((invRes.data || []).filter((i: any) => i.invited_email === userEmail));
 
@@ -98,28 +92,23 @@ const FamilyPage = () => {
     const sharedRes = await supabase.from('shared_budgets').select('*, budgets(name, amount, period, category_id)');
     setSharedBudgets(sharedRes.data || []);
 
-    // If a group is selected, get member transactions
+    // If a group is selected, get member transactions using RPC
     if (selectedGroup) {
-      const memberIds = (membersMap[selectedGroup] || []).map((m: any) => m.user_id);
-      if (memberIds.length > 0) {
-        const { data: txs } = await supabase
-          .from('transactions')
-          .select('*, categories(name, icon)')
-          .in('user_id', memberIds)
-          .order('date', { ascending: false })
-          .limit(50);
-        
-        // Fetch profiles for transaction users
-        const txUserIds = [...new Set((txs || []).map((tx: any) => tx.user_id))];
-        const { data: txProfiles } = await supabase.from('profiles').select('user_id, display_name').in('user_id', txUserIds);
-        const profileMap: Record<string, any> = {};
-        (txProfiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
-        
-        setMemberTransactions((txs || []).map((tx: any) => ({
-          ...tx,
-          profiles: profileMap[tx.user_id] || null,
-        })));
-      }
+      const { data: txs } = await supabase.rpc('get_family_transactions', {
+        p_group_id: selectedGroup,
+        p_limit: 50,
+      });
+      
+      setMemberTransactions((txs || []).map((tx: any) => ({
+        id: tx.id,
+        user_id: tx.user_id,
+        amount: tx.amount,
+        type: tx.type,
+        date: tx.date,
+        description: tx.description,
+        categories: tx.category_name ? { name: tx.category_name, icon: tx.category_icon } : null,
+        profiles: tx.display_name ? { display_name: tx.display_name } : null,
+      })));
     }
 
     setLoading(false);

@@ -97,14 +97,28 @@ const SettingsPage = () => {
       ]);
 
       const transactions = (txRes.data || []).map(tx => ({
-        Date: tx.date,
-        Description: tx.description,
-        Type: tx.type,
-        Montant: tx.amount,
-        Notes: tx.notes || '',
+        Date: tx.date, Description: tx.description, Type: tx.type, Montant: tx.amount, Notes: tx.notes || '',
+      }));
+      const comptes = (accRes.data || []).map(a => ({
+        Nom: a.name, Type: a.type, 'Solde initial': a.opening_balance, 'Solde réel': a.real_balance,
+      }));
+      const budgets = (budRes.data || []).map(b => ({
+        Nom: b.name, Montant: b.amount, Période: b.period,
+      }));
+      const epargne = (savRes.data || []).map(s => ({
+        Nom: s.name, Cible: s.target_amount, Actuel: s.current_amount, Échéance: s.deadline || '',
+      }));
+      const dettes = (debtRes.data || []).map(d => ({
+        Créancier: d.creditor_name, Total: d.total_amount, Payé: d.paid_amount, Échéance: d.due_date || '',
       }));
 
-      exportToCSV(transactions, `budget-planner-export-${new Date().toISOString().split('T')[0]}`);
+      const dateStr = new Date().toISOString().split('T')[0];
+      if (transactions.length) exportToCSV(transactions, `transactions-${dateStr}`);
+      if (comptes.length) exportToCSV(comptes, `comptes-${dateStr}`);
+      if (budgets.length) exportToCSV(budgets, `budgets-${dateStr}`);
+      if (epargne.length) exportToCSV(epargne, `epargne-${dateStr}`);
+      if (dettes.length) exportToCSV(dettes, `dettes-${dateStr}`);
+
       toast.success(locale === 'fr' ? 'Données exportées !' : 'Data exported!');
     } catch (err: any) {
       toast.error(err.message || 'Export error');
@@ -115,14 +129,14 @@ const SettingsPage = () => {
 
   const handleDeleteAccount = async () => {
     if (!user) return;
-    // Delete all user data then sign out
-    const tables = ['transactions', 'budgets', 'savings_goals', 'debts', 'recurring_transactions', 'cash_counts', 'payment_accounts', 'categories', 'push_subscriptions'] as const;
-    for (const table of tables) {
-      await supabase.from(table).delete().eq('user_id', user.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-account');
+      if (error) throw error;
+      toast.success(locale === 'fr' ? 'Compte supprimé' : 'Account deleted');
+      await signOut();
+    } catch (err: any) {
+      toast.error(err.message || 'Error');
     }
-    await supabase.from('profiles').delete().eq('user_id', user.id);
-    await signOut();
-    toast.success(locale === 'fr' ? 'Compte supprimé' : 'Account deleted');
   };
 
   return (
