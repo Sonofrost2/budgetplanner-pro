@@ -3,12 +3,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertTriangle, CheckCircle2, Bell, PiggyBank, X, TrendingDown, Info } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Bell, PiggyBank, X, TrendingDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 
 interface Notification {
   id: string;
@@ -17,6 +16,29 @@ interface Notification {
   message: string;
   severity: 'critical' | 'warning' | 'success' | 'info';
 }
+
+const DISMISSED_KEY = 'notif_dismissed';
+
+const getDismissedIds = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    // Expire after 24h
+    if (parsed.exp && Date.now() > parsed.exp) {
+      localStorage.removeItem(DISMISSED_KEY);
+      return new Set();
+    }
+    return new Set(parsed.ids || []);
+  } catch { return new Set(); }
+};
+
+const saveDismissedIds = (ids: Set<string>) => {
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify({
+    ids: [...ids],
+    exp: Date.now() + 24 * 60 * 60 * 1000,
+  }));
+};
 
 export const useBudgetNotifications = () => {
   const { user } = useAuth();
@@ -55,7 +77,6 @@ export const useBudgetNotifications = () => {
     const importedSavingsTxs = importedSavingsTxRes.data || [];
     const notifs: Notification[] = [];
 
-    // Check budgets — exceeded + threshold warning + pace-based predictive alert
     for (const budget of budgets) {
       const spent = txs
         .filter(tx => tx.category_id === budget.category_id)
@@ -63,7 +84,6 @@ export const useBudgetNotifications = () => {
       const pct = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
       const threshold = budget.alert_threshold ?? 80;
 
-      // Calculate period range for pace-based prediction
       const period = budget.period || 'monthly';
       let periodStart: Date, periodEnd: Date;
       if (period === 'daily') {
@@ -109,18 +129,16 @@ export const useBudgetNotifications = () => {
           message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${locale === 'fr' ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
         });
       } else if (projection > budget.amount && pct >= 50) {
-        // Pace-based predictive alert: pace projects overspend but not yet at threshold
         notifs.push({
           id: `budget-pace-${budget.id}`,
           type: 'budget_warning',
           severity: 'info',
           title: locale === 'fr' ? 'Rythme élevé' : 'High pace',
-          message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${locale === 'fr' ? 'projection fin de période' : 'end-of-period projection'} ${Math.round(projection).toLocaleString()} (${Math.round((projection / budget.amount) * 100)}%)`,
+          message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${locale === 'fr' ? 'projection' : 'projection'} ${Math.round(projection).toLocaleString()} (${Math.round((projection / budget.amount) * 100)}%)`,
         });
       }
     }
 
-    // Check savings goals reached
     for (const goal of savings) {
       if (Number(goal.current_amount) >= Number(goal.target_amount)) {
         notifs.push({
@@ -133,11 +151,8 @@ export const useBudgetNotifications = () => {
       }
     }
 
-    // Check savings behind schedule
     for (const goal of savings) {
       if (Number(goal.current_amount) >= Number(goal.target_amount)) continue;
-
-      // Determine monthly needed: explicit or calculated
       let monthlyNeeded = Number(goal.monthly_contribution) || 0;
       if (monthlyNeeded <= 0 && goal.deadline) {
         const dl = new Date(goal.deadline);
@@ -177,7 +192,6 @@ export const useBudgetNotifications = () => {
       }
     }
 
-    // Sort: critical first, then warning, then info, then success
     const order = { critical: 0, warning: 1, info: 2, success: 3 };
     notifs.sort((a, b) => order[a.severity] - order[b.severity]);
 
@@ -187,7 +201,6 @@ export const useBudgetNotifications = () => {
 
   useEffect(() => { checkNotifications(); }, [checkNotifications]);
 
-  // Auto-refresh every 5 minutes
   useEffect(() => {
     const interval = setInterval(checkNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
@@ -196,34 +209,40 @@ export const useBudgetNotifications = () => {
   return { notifications, loading, refresh: checkNotifications };
 };
 
-const iconMap = {
+const iconMap: Record<Notification['type'], React.ReactNode> = {
   budget_exceeded: <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />,
   budget_warning: <TrendingDown className="w-4 h-4 text-amber-500 flex-shrink-0" />,
   savings_behind: <PiggyBank className="w-4 h-4 text-amber-500 flex-shrink-0" />,
   savings_reached: <CheckCircle2 className="w-4 h-4 text-secondary flex-shrink-0" />,
 };
 
-const severityDot = {
-  critical: 'bg-destructive',
-  warning: 'bg-amber-500',
-  info: 'bg-primary',
-  success: 'bg-secondary',
+const severityStyles: Record<Notification['severity'], string> = {
+  critical: 'border-l-destructive bg-destructive/5',
+  warning: 'border-l-amber-500 bg-amber-500/5',
+  info: 'border-l-primary bg-primary/5',
+  success: 'border-l-secondary bg-secondary/5',
 };
 
 export const NotificationBell = () => {
   const { notifications, refresh } = useBudgetNotifications();
   const { locale } = useLanguage();
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(() => getDismissedIds());
 
   const visible = notifications.filter(n => !dismissed.has(n.id));
   const criticalCount = visible.filter(n => n.severity === 'critical' || n.severity === 'warning').length;
 
   const handleDismiss = (id: string) => {
-    setDismissed(prev => new Set([...prev, id]));
+    setDismissed(prev => {
+      const next = new Set([...prev, id]);
+      saveDismissedIds(next);
+      return next;
+    });
   };
 
   const handleDismissAll = () => {
-    setDismissed(new Set(notifications.map(n => n.id)));
+    const next = new Set(notifications.map(n => n.id));
+    saveDismissedIds(next);
+    setDismissed(next);
   };
 
   return (
@@ -238,7 +257,7 @@ export const NotificationBell = () => {
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0" align="end" sideOffset={8}>
+      <PopoverContent className="w-[calc(100vw-2rem)] max-w-sm p-0" align="end" sideOffset={8}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
@@ -263,23 +282,24 @@ export const NotificationBell = () => {
             </p>
           </div>
         ) : (
-          <ScrollArea className="max-h-80">
-            <div className="divide-y divide-border">
+          <ScrollArea className="max-h-[60vh]">
+            <div className="p-2 space-y-1.5">
               {visible.map(n => (
-                <div key={n.id} className="px-4 py-3 flex items-start gap-3 hover:bg-muted/40 transition-colors group">
-                  <div className="mt-0.5 relative">
-                    {iconMap[n.type]}
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ${severityDot[n.severity]}`} />
-                  </div>
+                <div
+                  key={n.id}
+                  className={`relative px-3 py-2.5 rounded-lg border-l-[3px] flex items-start gap-2.5 transition-colors ${severityStyles[n.severity]}`}
+                >
+                  <div className="mt-0.5 flex-shrink-0">{iconMap[n.type]}</div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold leading-tight">{n.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{n.message}</p>
+                    <p className="text-xs font-semibold leading-tight">{n.title}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{n.message}</p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDismiss(n.id); }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
+                    className="flex-shrink-0 p-1 rounded-md hover:bg-muted/80 transition-colors"
+                    aria-label="Dismiss"
                   >
-                    <X className="w-3 h-3 text-muted-foreground" />
+                    <X className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
                 </div>
               ))}
