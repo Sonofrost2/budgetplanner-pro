@@ -489,7 +489,7 @@ const BudgetsPage = () => {
         </Button>
       </div>
 
-      {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} />}
+      {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} fmt={fmt} />}
 
       {budgets.length > 0 && (
         <FilterToolbar
