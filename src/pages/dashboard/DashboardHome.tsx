@@ -56,6 +56,42 @@ const getDateRange = (period: PeriodKey) => {
   return { start: start.toISOString().split('T')[0], end: now.toISOString().split('T')[0] };
 };
 
+/** Compute previous period of same duration ending just before the current start */
+const getPreviousRange = (startStr: string, endStr: string) => {
+  const s = new Date(startStr);
+  const e = new Date(endStr);
+  const durationMs = e.getTime() - s.getTime();
+  const prevEnd = new Date(s.getTime() - 86400000); // day before current start
+  const prevStart = new Date(prevEnd.getTime() - durationMs);
+  return {
+    start: prevStart.toISOString().split('T')[0],
+    end: prevEnd.toISOString().split('T')[0],
+  };
+};
+
+/** Build array of daily totals for sparkline */
+const buildDailyData = (
+  transactions: { date: string; type: string; amount: number }[],
+  startStr: string,
+  endStr: string,
+  filterType?: 'income' | 'expense',
+): number[] => {
+  const s = new Date(startStr);
+  const e = new Date(endStr);
+  const days: number[] = [];
+  const dayMap: Record<string, number> = {};
+  transactions.forEach(tx => {
+    if (filterType && tx.type !== filterType) return;
+    const d = tx.date.split('T')[0];
+    dayMap[d] = (dayMap[d] || 0) + Number(tx.amount);
+  });
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    const key = d.toISOString().split('T')[0];
+    days.push(dayMap[key] || 0);
+  }
+  return days;
+};
+
 const DashboardHome = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
@@ -74,7 +110,9 @@ const DashboardHome = () => {
     return getDateRange(period);
   }, [period, appliedCustom]);
 
-  // Number of days in selected period (min 1)
+  // Previous period range
+  const { start: prevStart, end: prevEnd } = useMemo(() => getPreviousRange(start, end), [start, end]);
+
   const periodDays = useMemo(() => {
     const s = new Date(start);
     const e = new Date(end);
@@ -84,6 +122,7 @@ const DashboardHome = () => {
   // React-query hooks
   const { data: accounts = [], isLoading: accLoading } = useAccounts();
   const { data: transactions = [], isLoading: txLoading } = useTransactionsRange(start, end);
+  const { data: prevTransactions = [], isLoading: prevTxLoading } = useTransactionsRange(prevStart, prevEnd);
   const { data: budgetsRaw = [], isLoading: budLoading } = useBudgets();
   const { data: savingsGoals = [], isLoading: savLoading } = useSavingsGoals();
   const { data: monthlyData = [], isLoading: chartLoading } = useChartData(locale);
@@ -112,12 +151,33 @@ const DashboardHome = () => {
     }).slice(0, 5);
   }, [budgetsRaw, transactions]);
 
-  // Stats
+  // Current period stats
   const totalBalance = accounts.reduce((s, a) => s + Number(a.real_balance), 0);
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const transactionCount = transactions.length;
   const dailyAvgExpense = totalExpenses / periodDays;
+
+  // Previous period stats
+  const prevIncome = prevTransactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+  const prevExpenses = prevTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+  const prevPeriodDays = Math.max(1, Math.round((new Date(prevEnd).getTime() - new Date(prevStart).getTime()) / 86400000) + 1);
+  const prevDailyAvg = prevExpenses / prevPeriodDays;
+  const prevSavingsRate = prevIncome > 0 ? ((prevIncome - prevExpenses) / prevIncome) * 100 : 0;
+
+  // Sparkline data (daily)
+  const dailyIncomeData = useMemo(() => buildDailyData(transactions, start, end, 'income'), [transactions, start, end]);
+  const dailyExpenseData = useMemo(() => buildDailyData(transactions, start, end, 'expense'), [transactions, start, end]);
+  const dailyBalanceData = useMemo(() => {
+    // Cumulative balance over the period
+    const incomes = buildDailyData(transactions, start, end, 'income');
+    const expenses = buildDailyData(transactions, start, end, 'expense');
+    let running = 0;
+    return incomes.map((inc, i) => {
+      running += inc - expenses[i];
+      return running;
+    });
+  }, [transactions, start, end]);
 
   const handlePeriodChange = (v: string) => {
     if (v === 'custom') {
@@ -136,7 +196,6 @@ const DashboardHome = () => {
     }
   };
 
-  // Period label for display
   const periodLabel = useMemo(() => {
     if (period === 'custom' && appliedCustom) {
       const fmtDate = (d: string) => new Date(d).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
@@ -150,7 +209,7 @@ const DashboardHome = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between"><Skeleton className="h-9 w-40" /><Skeleton className="h-9 w-40" /></div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+          {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
@@ -212,6 +271,15 @@ const DashboardHome = () => {
         netCashFlow={totalIncome - totalExpenses}
         transactionCount={transactionCount}
         dailyAverage={dailyAvgExpense}
+        prevIncome={prevIncome}
+        prevExpenses={prevExpenses}
+        prevNetCashFlow={prevIncome - prevExpenses}
+        prevTransactionCount={prevTransactions.length}
+        prevDailyAverage={prevDailyAvg}
+        prevSavingsRate={prevSavingsRate}
+        dailyIncomeData={dailyIncomeData}
+        dailyExpenseData={dailyExpenseData}
+        dailyBalanceData={dailyBalanceData}
       />
 
       {/* Accounts Summary */}

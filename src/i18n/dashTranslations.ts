@@ -414,6 +414,7 @@ export const dashT = {
     from: 'Du',
     to: 'Au',
     apply: 'Appliquer',
+    vsPrevious: 'vs période précédente',
   },
   en: {
     dashboard: 'Dashboard',
@@ -826,6 +827,7 @@ export const dashT = {
     from: 'From',
     to: 'To',
     apply: 'Apply',
+    vsPrevious: 'vs previous period',
   },
 } as const;
 
