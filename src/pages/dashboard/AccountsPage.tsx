@@ -66,6 +66,7 @@ const AccountsPage = () => {
   const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
