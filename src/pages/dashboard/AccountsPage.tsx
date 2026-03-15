@@ -287,11 +287,13 @@ const AccountsPage = () => {
             const theoretical = getTheoreticalBalance(acc.id);
             const real = Number(acc.real_balance);
             const discrepancy = real - theoretical;
+            const isSelected = bulk.selectedIds.has(acc.id);
             return (
-              <Card key={acc.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${Math.abs(discrepancy) > 0.01 ? 'ring-1 ring-destructive/20' : ''}`}>
+              <Card key={acc.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${Math.abs(discrepancy) > 0.01 ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-bold flex items-center gap-2.5">
+                      <Checkbox checked={isSelected} onCheckedChange={() => bulk.toggle(acc.id)} className="mr-1" />
                       <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center text-xl">
                         {acc.icon}
                       </div>
