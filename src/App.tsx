@@ -29,7 +29,6 @@ import AdminPricingPage from "./pages/dashboard/AdminPricingPage";
 import CategoriesPage from "./pages/dashboard/CategoriesPage";
 import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import FamilyPage from "./pages/dashboard/FamilyPage";
-import DebtsPage from "./pages/dashboard/DebtsPage";
 import RecurringPage from "./pages/dashboard/RecurringPage";
 import NotFound from "./pages/NotFound";
 
