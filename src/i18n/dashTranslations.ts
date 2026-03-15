@@ -820,6 +820,12 @@ export const dashT = {
     syncSavings: 'Sync savings',
     syncSavingsDesc: 'Detect savings contributions from imported transactions',
     syncing: 'Syncing...',
+    customPeriod: 'Custom period',
+    transactionCount: 'Transactions',
+    dailyAverage: 'Daily average',
+    from: 'From',
+    to: 'To',
+    apply: 'Apply',
   },
 } as const;
 
