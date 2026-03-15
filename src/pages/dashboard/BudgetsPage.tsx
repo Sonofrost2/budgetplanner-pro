@@ -57,6 +57,9 @@ const BudgetsPage = () => {
   const [sortField, setSortField] = useState<'name' | 'amount' | 'spent'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterPeriod, setFilterPeriod] = useState('');
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
