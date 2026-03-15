@@ -1,0 +1,1 @@
+DELETE FROM categories WHERE type = 'expense' AND user_id = '2bcc2034-fc1b-4d99-be21-f3362388fb35' AND id IN ('f2f375e3-f710-4c75-ad41-b873a2fbfcac','46ca4d97-46f1-44a4-ab52-3ed519ebea47','27a1fb1b-db29-4cb4-b971-44fbf7a80517','51c4d469-634e-4c0c-b733-f5ad5accbc35','fa23dd2c-66b1-401e-ba69-83dfaa594615');
