@@ -508,6 +508,20 @@ const AccountsPage = () => {
         />
       )}
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(bulk.count)} cancelLabel={t.cancel} confirmLabel={t.delete} />
+
+      {user && (
+        <CashCountDialog
+          open={!!cashCountAccount}
+          onOpenChange={v => { if (!v) setCashCountAccount(null); }}
+          account={cashCountAccount}
+          userId={user.id}
+          currency={currency}
+          locale={locale}
+          fmt={fmt}
+          t={t}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 };
