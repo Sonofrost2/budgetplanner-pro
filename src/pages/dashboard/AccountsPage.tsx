@@ -183,17 +183,8 @@ const AccountsPage = () => {
     } else {
       const { data: newAcc, error } = await supabase.from('payment_accounts').insert(payload).select('id').single();
       if (error) { toast.error(error.message); setSaving(false); return; }
-      // Inject opening balance as an income transaction for consistency
-      if (openingBal > 0 && newAcc) {
-        await supabase.from('transactions').insert({
-          user_id: user.id,
-          type: 'income',
-          amount: openingBal,
-          description: `${t.openingBalance} – ${form.name.trim()}`,
-          account_id: newAcc.id,
-          date: new Date().toISOString().split('T')[0],
-        });
-      }
+      // opening_balance is already used by recalculate_account_balance (opening_balance + income - expense)
+      // so we do NOT insert a transaction — that would double-count it
     }
     setSaving(false);
     setDialogOpen(false);
