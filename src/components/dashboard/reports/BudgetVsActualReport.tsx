@@ -13,7 +13,7 @@ const BudgetVsActualReport = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
-  const [rows, setRows] = useState<{ name: string; icon: string; color: string; budget: number; actual: number; variance: number; pct: number }[]>([]);
+  const [rows, setRows] = useState<{ name: string; icon: string; color: string; budget: number; actual: number; variance: number; pct: number; controlType: string; budgetType: string }[]>([]);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -25,25 +25,30 @@ const BudgetVsActualReport = () => {
 
     Promise.all([
       supabase.from('budgets').select('*, categories(name, icon, color)').eq('user_id', user.id),
-      supabase.from('transactions').select('category_id, amount').eq('user_id', user.id).eq('type', 'expense')
+      supabase.from('transactions').select('category_id, amount, type').eq('user_id', user.id)
         .gte('date', monthStart).lte('date', monthEnd),
     ]).then(([budRes, txRes]) => {
       const budgets = budRes.data || [];
       const txs = txRes.data || [];
       const result = budgets.map(b => {
-        const spent = txs.filter(tx => tx.category_id === b.category_id).reduce((s, tx) => s + Number(tx.amount), 0);
+        const bType = (b as any).budget_type || 'expense';
+        const controlType = (b as any).control_type || 'max';
+        const txType = bType === 'income' ? 'income' : 'expense';
+        const actual = txs.filter(tx => tx.type === txType && tx.category_id === b.category_id).reduce((s, tx) => s + Number(tx.amount), 0);
         const amount = Number(b.amount);
-        const variance = amount - spent;
-        const pct = amount > 0 ? Math.round((spent / amount) * 100) : 0;
-         const cat = b.categories as { icon?: string; color?: string } | null;
-         return {
-           name: b.name,
-           icon: cat?.icon || '📁',
-           color: cat?.color || '#6C63FF',
+        const variance = controlType === 'max' ? amount - actual : actual - amount;
+        const pct = amount > 0 ? Math.round((actual / amount) * 100) : 0;
+        const cat = b.categories as { icon?: string; color?: string } | null;
+        return {
+          name: b.name,
+          icon: cat?.icon || '📁',
+          color: cat?.color || '#6C63FF',
           budget: amount,
-          actual: spent,
+          actual,
           variance,
           pct,
+          controlType,
+          budgetType: bType,
         };
       });
       setRows(result);
