@@ -1,0 +1,238 @@
+import { useMemo, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PiggyBank, Building2, TrendingUp, Wallet, Lock, Unlock } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import type { SavingsGoal } from '@/hooks/useDashboardData';
+import type { DashTranslations } from '@/i18n/dashTranslations';
+
+interface SavingsContribution {
+  id: string;
+  amount: number;
+  date: string;
+  type: string;
+}
+
+interface SavingsGlobalStatsProps {
+  goals: SavingsGoal[];
+  contributions: Record<string, SavingsContribution[]>;
+  fmt: (n: number) => string;
+  t: DashTranslations;
+  locale: string;
+}
+
+type PeriodKey = 'monthly' | 'quarterly' | 'semi_annual' | 'yearly' | 'all';
+
+const getDateRangeForPeriod = (period: PeriodKey): { start: Date; end: Date } => {
+  const now = new Date();
+  const end = new Date(now);
+  let start: Date;
+
+  switch (period) {
+    case 'monthly':
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+    case 'quarterly': {
+      const q = Math.floor(now.getMonth() / 3);
+      start = new Date(now.getFullYear(), q * 3, 1);
+      break;
+    }
+    case 'semi_annual': {
+      const s = now.getMonth() < 6 ? 0 : 6;
+      start = new Date(now.getFullYear(), s, 1);
+      break;
+    }
+    case 'yearly':
+      start = new Date(now.getFullYear(), 0, 1);
+      break;
+    default:
+      start = new Date(2000, 0, 1);
+  }
+
+  return { start, end };
+};
+
+export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale }: SavingsGlobalStatsProps) => {
+  const [period, setPeriod] = useState<PeriodKey>('monthly');
+
+  const stats = useMemo(() => {
+    const { start, end } = getDateRangeForPeriod(period);
+
+    // Per-goal contributions in period
+    const goalContribsInPeriod: Record<string, number> = {};
+    let totalContribsInPeriod = 0;
+
+    for (const goal of goals) {
+      const contribs = contributions[goal.id] || [];
+      const periodContribs = contribs
+        .filter(c => {
+          const d = new Date(c.date);
+          return d >= start && d <= end && c.type === 'deposit';
+        })
+        .reduce((sum, c) => sum + Number(c.amount), 0);
+      goalContribsInPeriod[goal.id] = periodContribs;
+      totalContribsInPeriod += periodContribs;
+    }
+
+    // Global totals
+    const totalSaved = goals.reduce((s, g) => s + Number(g.current_amount), 0);
+    const totalTarget = goals.reduce((s, g) => s + Number(g.target_amount), 0);
+    const totalMonthlyPlanned = goals.reduce((s, g) => s + Number(g.monthly_contribution || 0), 0);
+    const lockedAmount = goals.filter(g => (g as any).is_locked).reduce((s, g) => s + Number(g.current_amount), 0);
+    const availableAmount = totalSaved - lockedAmount;
+
+    // Group by bank
+    const byBank: Record<string, { goals: SavingsGoal[]; totalSaved: number; totalTarget: number; monthlyPlanned: number; contribsInPeriod: number }> = {};
+    for (const goal of goals) {
+      const bank = (goal as any).bank_name || (locale === 'fr' ? 'Non précisé' : 'Unspecified');
+      if (!byBank[bank]) byBank[bank] = { goals: [], totalSaved: 0, totalTarget: 0, monthlyPlanned: 0, contribsInPeriod: 0 };
+      byBank[bank].goals.push(goal);
+      byBank[bank].totalSaved += Number(goal.current_amount);
+      byBank[bank].totalTarget += Number(goal.target_amount);
+      byBank[bank].monthlyPlanned += Number(goal.monthly_contribution || 0);
+      byBank[bank].contribsInPeriod += goalContribsInPeriod[goal.id] || 0;
+    }
+
+    return { totalSaved, totalTarget, totalMonthlyPlanned, totalContribsInPeriod, lockedAmount, availableAmount, byBank };
+  }, [goals, contributions, period, locale]);
+
+  if (goals.length === 0) return null;
+
+  const periodLabels: Record<PeriodKey, string> = {
+    monthly: locale === 'fr' ? 'Ce mois' : 'This month',
+    quarterly: locale === 'fr' ? 'Ce trimestre' : 'This quarter',
+    semi_annual: locale === 'fr' ? 'Ce semestre' : 'This semester',
+    yearly: locale === 'fr' ? 'Cette année' : 'This year',
+    all: locale === 'fr' ? 'Depuis le début' : 'All time',
+  };
+
+  const globalPct = stats.totalTarget > 0 ? Math.round((stats.totalSaved / stats.totalTarget) * 100) : 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Top stats row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <PiggyBank className="w-4 h-4" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider">
+                {locale === 'fr' ? 'Épargne totale' : 'Total saved'}
+              </span>
+            </div>
+            <p className="text-xl font-bold font-display">{fmt(stats.totalSaved)}</p>
+            <div className="mt-2">
+              <Progress value={Math.min(globalPct, 100)} className="h-1.5 rounded-full [&>div]:bg-primary" />
+              <p className="text-[10px] text-muted-foreground mt-1">{globalPct}% {locale === 'fr' ? 'de' : 'of'} {fmt(stats.totalTarget)}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <TrendingUp className="w-4 h-4" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider">
+                {locale === 'fr' ? 'Mensualité prévue' : 'Monthly planned'}
+              </span>
+            </div>
+            <p className="text-xl font-bold font-display">{fmt(stats.totalMonthlyPlanned)}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {goals.filter(g => Number(g.monthly_contribution || 0) > 0).length} {locale === 'fr' ? 'objectif(s) actif(s)' : 'active goal(s)'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <Unlock className="w-4 h-4 text-secondary" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider">
+                {locale === 'fr' ? 'Disponible' : 'Available'}
+              </span>
+            </div>
+            <p className="text-xl font-bold font-display text-secondary">{fmt(stats.availableAmount)}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {goals.filter(g => !(g as any).is_locked).length} {locale === 'fr' ? 'compte(s)' : 'account(s)'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <Lock className="w-4 h-4 text-destructive" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider">
+                {locale === 'fr' ? 'Bloqué' : 'Locked'}
+              </span>
+            </div>
+            <p className="text-xl font-bold font-display">{fmt(stats.lockedAmount)}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {goals.filter(g => (g as any).is_locked).length} {locale === 'fr' ? 'compte(s)' : 'account(s)'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bank breakdown */}
+      <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-muted-foreground" />
+              {locale === 'fr' ? 'Répartition par banque' : 'Breakdown by bank'}
+            </h3>
+            <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
+              <SelectTrigger className="w-[160px] h-8 rounded-xl text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(periodLabels).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-3">
+            {Object.entries(stats.byBank)
+              .sort(([, a], [, b]) => b.totalSaved - a.totalSaved)
+              .map(([bank, data]) => {
+                const pct = data.totalTarget > 0 ? Math.round((data.totalSaved / data.totalTarget) * 100) : 0;
+                const shareOfTotal = stats.totalSaved > 0 ? Math.round((data.totalSaved / stats.totalSaved) * 100) : 0;
+                return (
+                  <div key={bank} className="p-3 rounded-xl border border-border/30 bg-muted/10 hover:bg-muted/20 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🏦</span>
+                        <div>
+                          <p className="text-sm font-bold">{bank}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {data.goals.length} {locale === 'fr' ? 'objectif(s)' : 'goal(s)'} · {shareOfTotal}% {locale === 'fr' ? 'du total' : 'of total'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold">{fmt(data.totalSaved)}</p>
+                        <p className="text-[10px] text-muted-foreground">{locale === 'fr' ? 'sur' : 'of'} {fmt(data.totalTarget)}</p>
+                      </div>
+                    </div>
+                    <Progress value={Math.min(pct, 100)} className="h-1.5 rounded-full [&>div]:bg-primary mb-2" />
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>
+                        <Wallet className="w-3 h-3 inline mr-1" />
+                        {locale === 'fr' ? 'Mensualité prévue' : 'Monthly planned'}: <span className="font-semibold text-foreground">{fmt(data.monthlyPlanned)}</span>
+                      </span>
+                      <span>
+                        {periodLabels[period]}: <span className="font-semibold text-foreground">{fmt(data.contribsInPeriod)}</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
