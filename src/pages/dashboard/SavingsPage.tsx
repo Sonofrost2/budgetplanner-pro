@@ -554,15 +554,15 @@ const SavingsPage = () => {
                 ];
                 const existingBanks = goals.map(g => (g as any).bank_name).filter(Boolean) as string[];
                 const allBanks = [...new Set([...bankOptions, ...existingBanks])].sort();
-                const showCustomInput = form.bank_name !== '' && !allBanks.includes(form.bank_name);
+                const showCustomInput = customBankMode || (form.bank_name !== '' && !allBanks.includes(form.bank_name));
                 return (
                   <>
                     <Select
                       value={showCustomInput ? '__custom__' : (form.bank_name || '__none__')}
                       onValueChange={v => {
-                        if (v === '__custom__') setForm(f => ({ ...f, bank_name: '' }));
-                        else if (v === '__none__') setForm(f => ({ ...f, bank_name: '' }));
-                        else setForm(f => ({ ...f, bank_name: v }));
+                        if (v === '__custom__') { setCustomBankMode(true); setForm(f => ({ ...f, bank_name: '' })); }
+                        else if (v === '__none__') { setCustomBankMode(false); setForm(f => ({ ...f, bank_name: '' })); }
+                        else { setCustomBankMode(false); setForm(f => ({ ...f, bank_name: v })); }
                       }}
                     >
                       <SelectTrigger className="rounded-xl h-11">
@@ -577,7 +577,7 @@ const SavingsPage = () => {
                       </SelectContent>
                     </Select>
                     {showCustomInput && (
-                      <Input value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} className="rounded-xl h-11 mt-2" placeholder={t.bankNamePlaceholder} />
+                      <Input autoFocus value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} className="rounded-xl h-11 mt-2" placeholder={t.bankNamePlaceholder} />
                     )}
                   </>
                 );
