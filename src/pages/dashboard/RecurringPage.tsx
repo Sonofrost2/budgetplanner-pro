@@ -54,6 +54,29 @@ const RecurringPage = () => {
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: '', active: true });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('confirmed');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<'description' | 'amount' | 'next_date'>('description');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterType, setFilterType] = useState('');
+  const [filterFreq, setFilterFreq] = useState('');
+
+  const filteredItems = useMemo(() => {
+    let result = [...items];
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(r => r.description.toLowerCase().includes(q) || r.categories?.name?.toLowerCase().includes(q));
+    }
+    if (filterType) result = result.filter(r => r.type === filterType);
+    if (filterFreq) result = result.filter(r => r.frequency === filterFreq);
+    result.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'description') cmp = a.description.localeCompare(b.description);
+      else if (sortField === 'amount') cmp = Number(a.amount) - Number(b.amount);
+      else if (sortField === 'next_date') cmp = a.next_date.localeCompare(b.next_date);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  }, [items, searchQuery, filterType, filterFreq, sortField, sortOrder]);
 
   // AI detection state
   const [aiPatterns, setAiPatterns] = useState<AIPattern[]>([]);
