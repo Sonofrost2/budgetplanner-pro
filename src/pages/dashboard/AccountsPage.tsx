@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
