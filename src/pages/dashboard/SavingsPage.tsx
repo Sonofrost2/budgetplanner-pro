@@ -75,6 +75,7 @@ const SavingsPage = () => {
   const [simulationDialog, setSimulationDialog] = useState<string | null>(null);
   const [simulation, setSimulation] = useState<SimulationResult | null>(null);
   const [simulating, setSimulating] = useState(false);
+  const [customBankMode, setCustomBankMode] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -414,6 +415,7 @@ const SavingsPage = () => {
           <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
             setEditGoalId(null);
             setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+            setCustomBankMode(false);
             setDialogOpen(true);
           }}>
             <Plus className="w-4 h-4 mr-1" />{t.addGoal}
@@ -433,6 +435,7 @@ const SavingsPage = () => {
             <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
               setEditGoalId(null);
               setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+              setCustomBankMode(false);
               setDialogOpen(true);
             }}>
               <Plus className="w-4 h-4 mr-1" />{t.addGoal}
@@ -470,6 +473,7 @@ const SavingsPage = () => {
                   interest_frequency: (g as any).interest_frequency || 'yearly',
                   bank_name: (g as any).bank_name || '',
                 });
+                setCustomBankMode(false);
                 setDialogOpen(true);
               }}
               onDelete={() => setDeleteId(g.id)}
@@ -544,7 +548,43 @@ const SavingsPage = () => {
             {/* Bank */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bankName} ({t.optional})</Label>
-              <Input value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} className="rounded-xl h-11" placeholder={t.bankNamePlaceholder} />
+              {(() => {
+                const bankOptions = [
+                  'SGCI', 'BICICI', 'CORIS BANK', 'BOA', 'NSIA Banque', 'SIB', 'BDU',
+                  'Ecobank', 'UBA', 'SCB', 'BACI', 'Orange Bank', 'MTN MoMo', 'Wave',
+                  'Bridge Bank', 'Banque Atlantique', 'BGFI Bank', 'Standard Chartered',
+                  'Orabank', 'Access Bank', 'BNI', 'BIAO-CI',
+                ];
+                const existingBanks = goals.map(g => (g as any).bank_name).filter(Boolean) as string[];
+                const allBanks = [...new Set([...bankOptions, ...existingBanks])].sort();
+                const showCustomInput = customBankMode || (form.bank_name !== '' && !allBanks.includes(form.bank_name));
+                return (
+                  <>
+                    <Select
+                      value={showCustomInput ? '__custom__' : (form.bank_name || '__none__')}
+                      onValueChange={v => {
+                        if (v === '__custom__') { setCustomBankMode(true); setForm(f => ({ ...f, bank_name: '' })); }
+                        else if (v === '__none__') { setCustomBankMode(false); setForm(f => ({ ...f, bank_name: '' })); }
+                        else { setCustomBankMode(false); setForm(f => ({ ...f, bank_name: v })); }
+                      }}
+                    >
+                      <SelectTrigger className="rounded-xl h-11">
+                        <SelectValue placeholder={t.bankNamePlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">{locale === 'fr' ? '— Aucune —' : '— None —'}</SelectItem>
+                        {allBanks.map(bank => (
+                          <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                        ))}
+                        <SelectItem value="__custom__">{locale === 'fr' ? '✏️ Autre...' : '✏️ Other...'}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {showCustomInput && (
+                      <Input autoFocus value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} className="rounded-xl h-11 mt-2" placeholder={t.bankNamePlaceholder} />
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* Interest rate & frequency */}
