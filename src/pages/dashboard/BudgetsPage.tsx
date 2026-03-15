@@ -67,10 +67,20 @@ const BudgetsPage = () => {
       const bType = (b as any).budget_type || 'expense';
       const txType = bType === 'income' ? 'income' : 'expense';
       let start: string, end: string;
-      if (b.period === 'weekly') {
+      if (b.period === 'daily') {
+        start = now.toISOString().split('T')[0]; end = start;
+      } else if (b.period === 'weekly') {
         const day = now.getDay();
         const ws = new Date(now); ws.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
         start = ws.toISOString().split('T')[0]; end = now.toISOString().split('T')[0];
+      } else if (b.period === 'quarterly') {
+        const q = Math.floor(now.getMonth() / 3);
+        start = new Date(now.getFullYear(), q * 3, 1).toISOString().split('T')[0];
+        end = new Date(now.getFullYear(), q * 3 + 3, 0).toISOString().split('T')[0];
+      } else if (b.period === 'semi_annual') {
+        const s = now.getMonth() < 6 ? 0 : 6;
+        start = new Date(now.getFullYear(), s, 1).toISOString().split('T')[0];
+        end = new Date(now.getFullYear(), s + 6, 0).toISOString().split('T')[0];
       } else if (b.period === 'yearly') {
         start = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
         end = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
@@ -221,7 +231,7 @@ const BudgetsPage = () => {
     );
   }
 
-  const periodLabels: Record<string, string> = { weekly: t.weekly, monthly: t.monthly, yearly: t.yearly };
+  const periodLabels: Record<string, string> = { daily: t.daily, weekly: t.weekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
 
   const renderBudgetCard = (b: any) => {
     const actual = spending[b.category_id || ''] || 0;
@@ -348,8 +358,11 @@ const BudgetsPage = () => {
           sortOrder={sortOrder}
           onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
           filterChips={[
+            { value: 'daily', label: t.daily, count: budgets.filter(b => b.period === 'daily').length },
             { value: 'weekly', label: t.weekly, count: budgets.filter(b => b.period === 'weekly').length },
             { value: 'monthly', label: t.monthly, count: budgets.filter(b => b.period === 'monthly').length },
+            { value: 'quarterly', label: t.quarterly, count: budgets.filter(b => b.period === 'quarterly').length },
+            { value: 'semi_annual', label: t.semiAnnual, count: budgets.filter(b => b.period === 'semi_annual').length },
             { value: 'yearly', label: t.yearly, count: budgets.filter(b => b.period === 'yearly').length },
           ].filter(c => c.count > 0)}
           activeFilter={filterPeriod}
@@ -448,10 +461,10 @@ const BudgetsPage = () => {
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.period}</Label>
                 <div className="grid grid-cols-1 gap-1.5">
-                  {['weekly', 'monthly', 'yearly'].map(p => (
+                  {['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'].map(p => (
                     <button key={p} type="button" onClick={() => setForm(f => ({ ...f, period: p }))}
                       className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all text-left ${form.period === p ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}>
-                      {p === 'weekly' ? t.weekly : p === 'monthly' ? t.monthly : t.yearly}
+                      {periodLabels[p] || p}
                     </button>
                   ))}
                 </div>
