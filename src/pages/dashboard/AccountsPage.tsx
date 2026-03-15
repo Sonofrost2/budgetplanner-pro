@@ -41,7 +41,7 @@ const ICONS = ['💳', '📱', '🏦', '💵', '🌊', '🟠', '🟡', '🔵', '
 const AccountsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
+  const { fmt: fmtCurrency, currency } = useProfile();
   const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
   const [searchParams, setSearchParams] = useSearchParams();
