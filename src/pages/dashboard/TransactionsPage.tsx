@@ -51,6 +51,8 @@ const TransactionsPage = () => {
   const [editing, setEditing] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
+  const [bulkModifyForm, setBulkModifyForm] = useState({ category_id: '', account_id: '' });
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
