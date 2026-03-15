@@ -1,0 +1,1 @@
+DELETE FROM categories WHERE type = 'income' AND user_id = '2bcc2034-fc1b-4d99-be21-f3362388fb35' AND id IN ('b3191daa-4710-49b7-97f9-656ef2468b06', 'dddbbc9f-97dc-4f8e-bea4-16e387f3465f', '9715cc4d-ca17-4fc4-b63e-f3b89f0a728e');
