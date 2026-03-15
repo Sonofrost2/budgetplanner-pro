@@ -57,11 +57,26 @@ const AccountsPage = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const filteredAccounts = useMemo(() => {
-    if (!typeFilter) return accounts;
-    return accounts.filter(a => a.type === typeFilter);
-  }, [accounts, typeFilter]);
+    let result = accounts;
+    if (typeFilter) result = result.filter(a => a.type === typeFilter);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(a => a.name.toLowerCase().includes(q) || a.type.toLowerCase().includes(q));
+    }
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'real_balance') cmp = Number(a.real_balance) - Number(b.real_balance);
+      else if (sortField === 'type') cmp = a.type.localeCompare(b.type);
+      return sortOrder === 'desc' ? -cmp : cmp;
+    });
+    return result;
+  }, [accounts, typeFilter, searchQuery, sortField, sortOrder]);
 
   const bulk = useBulkSelection(filteredAccounts);
 
