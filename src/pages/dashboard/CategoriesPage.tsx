@@ -31,14 +31,27 @@ const CategoriesPage = () => {
   const { invalidate } = useInvalidate();
 
   const { data: categories = [], isLoading: catLoading } = useCategories();
-  const { data: allTx = [], isLoading: txLoading } = useAllTransactions();
-  const loading = catLoading || txLoading;
 
-  const txCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    allTx.forEach(tx => { if (tx.category_id) counts[tx.category_id] = (counts[tx.category_id] || 0) + 1; });
-    return counts;
-  }, [allTx]);
+  // Lightweight count query instead of loading all transactions
+  const { data: txCounts = {}, isLoading: txCountLoading } = useQuery({
+    queryKey: ['category-tx-counts', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('category_id')
+        .eq('user_id', user!.id)
+        .not('category_id', 'is', null);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach(tx => {
+        if (tx.category_id) counts[tx.category_id] = (counts[tx.category_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+  const loading = catLoading || txCountLoading;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
