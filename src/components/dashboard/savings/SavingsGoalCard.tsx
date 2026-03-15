@@ -333,15 +333,25 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
 
       {/* ── Footer ── */}
       <Separator />
-      <div className="p-4 flex gap-2">
+      <div className="p-4 flex gap-2 flex-wrap">
         {!done && (
           <Button onClick={onAddSaving} className="flex-1 rounded-xl text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
             <Plus className="w-4 h-4 mr-2" />{t.addSaving}
           </Button>
         )}
-        {Number(goal.current_amount) > 0 && (
+        {Number(goal.current_amount) > 0 && !(goal as any).is_locked && (
           <Button onClick={onWithdraw} variant="outline" className="flex-1 rounded-xl">
             <ArrowUpRight className="w-4 h-4 mr-2" />{t.withdrawSaving}
+          </Button>
+        )}
+        {Number(goal.current_amount) > 0 && (goal as any).is_locked && (
+          <Button variant="outline" className="flex-1 rounded-xl opacity-50 cursor-not-allowed" disabled>
+            <Lock className="w-4 h-4 mr-2" />{t.savingsLocked}
+          </Button>
+        )}
+        {onSimulate && (
+          <Button onClick={onSimulate} variant="outline" className="rounded-xl" size="icon" title={t.simulateAI}>
+            <Sparkles className="w-4 h-4 text-primary" />
           </Button>
         )}
       </div>
