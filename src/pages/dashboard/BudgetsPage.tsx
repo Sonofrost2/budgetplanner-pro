@@ -60,6 +60,31 @@ const BudgetsPage = () => {
     [allCategories, form.budget_type]
   );
 
+  const spending = useMemo(() => {
+    const now = new Date();
+    const spendMap: Record<string, number> = {};
+    budgets.forEach(b => {
+      const bType = (b as any).budget_type || 'expense';
+      const txType = bType === 'income' ? 'income' : 'expense';
+      let start: string, end: string;
+      if (b.period === 'weekly') {
+        const day = now.getDay();
+        const ws = new Date(now); ws.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+        start = ws.toISOString().split('T')[0]; end = now.toISOString().split('T')[0];
+      } else if (b.period === 'yearly') {
+        start = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+        end = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
+      } else {
+        start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      }
+      const actual = allTx.filter(tx => tx.type === txType && tx.category_id === b.category_id && tx.date >= start && tx.date <= end)
+        .reduce((s, tx) => s + Number(tx.amount), 0);
+      if (b.category_id) spendMap[b.category_id] = actual;
+    });
+    return spendMap;
+  }, [budgets, allTx]);
+
   const expenseBudgets = useMemo(() => {
     let result = budgets.filter(b => (b as any).budget_type !== 'income');
     if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(b => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q)); }
@@ -91,31 +116,6 @@ const BudgetsPage = () => {
   const currentBudgets = activeTab === 'expense' ? expenseBudgets : incomeBudgets;
 
   const bulk = useBulkSelection(currentBudgets);
-
-  const spending = useMemo(() => {
-    const now = new Date();
-    const spendMap: Record<string, number> = {};
-    budgets.forEach(b => {
-      const bType = (b as any).budget_type || 'expense';
-      const txType = bType === 'income' ? 'income' : 'expense';
-      let start: string, end: string;
-      if (b.period === 'weekly') {
-        const day = now.getDay();
-        const ws = new Date(now); ws.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-        start = ws.toISOString().split('T')[0]; end = now.toISOString().split('T')[0];
-      } else if (b.period === 'yearly') {
-        start = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
-        end = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
-      } else {
-        start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-      }
-      const actual = allTx.filter(tx => tx.type === txType && tx.category_id === b.category_id && tx.date >= start && tx.date <= end)
-        .reduce((s, tx) => s + Number(tx.amount), 0);
-      if (b.category_id) spendMap[b.category_id] = actual;
-    });
-    return spendMap;
-  }, [budgets, allTx]);
 
   const refreshData = () => { invalidate('budgets', 'all-transactions'); bulk.clear(); };
 
