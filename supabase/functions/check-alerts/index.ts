@@ -97,17 +97,33 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Savings alerts — no contribution this month
+      // Savings alerts — no contribution or insufficient contribution this month
       for (const goal of savings) {
         if (Number(goal.current_amount) >= Number(goal.target_amount)) continue;
         const monthlyNeeded = Number(goal.monthly_contribution) || 0;
         if (monthlyNeeded <= 0) continue;
 
-        const goalContribs = savingsTxs.filter((tx) => tx.notes === `🎯 ${goal.name}`);
-        if (goalContribs.length === 0) {
+        // Check both app-created contributions (🎯 pattern) and imported ones (description-based)
+        const appContribs = savingsTxs.filter((tx) => tx.notes === `🎯 ${goal.name}`);
+        const importedContribs = importedSavingsTxs.filter((tx) =>
+          (goal.account_id && tx.account_id === goal.account_id) ||
+          tx.description?.toLowerCase().includes(goal.name.toLowerCase().split(' ').slice(0, 2).join(' '))
+        );
+        const totalContributed = [
+          ...appContribs.map(tx => Number(tx.amount)),
+          ...importedContribs.map(tx => Number(tx.amount)),
+        ].reduce((sum, a) => sum + a, 0);
+
+        if (totalContributed === 0) {
           alerts.push({
             title: locale === "fr" ? "🐷 Rappel épargne" : "🐷 Savings reminder",
             body: `${goal.icon} ${locale === "fr" ? "Aucun versement ce mois pour" : "No contribution this month for"} ${goal.name}`,
+          });
+        } else if (totalContributed < monthlyNeeded * 0.9) {
+          const pct = Math.round((totalContributed / monthlyNeeded) * 100);
+          alerts.push({
+            title: locale === "fr" ? `🐷 Épargne insuffisante (${pct}%)` : `🐷 Insufficient savings (${pct}%)`,
+            body: `${goal.icon} ${goal.name}: ${Math.round(totalContributed)} / ${Math.round(monthlyNeeded)}`,
           });
         }
       }
