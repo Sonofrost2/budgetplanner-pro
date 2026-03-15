@@ -47,6 +47,9 @@ const CategoriesPage = () => {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
   const [bulkModifyForm, setBulkModifyForm] = useState({ type: '' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<'name' | 'txCount'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const bulk = useBulkSelection(categories);
 
