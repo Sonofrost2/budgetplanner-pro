@@ -238,28 +238,51 @@ const RecurringPage = () => {
 
       {/* Search + Sort + Filters */}
       {items.length > 0 && (
-        <FilterToolbar
-          searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
-          searchPlaceholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
-          sortOptions={[
-            { value: 'description', label: t.description },
-            { value: 'amount', label: t.amount },
-            { value: 'next_date', label: t.nextDate },
-          ]}
-          sortValue={sortField}
-          onSortChange={v => setSortField(v as any)}
-          sortOrder={sortOrder}
-          onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
-          filterChips={[
-            { value: 'expense', label: t.expenseType, icon: '📉', count: items.filter(i => i.type === 'expense').length },
-            { value: 'income', label: t.incomeType, icon: '📈', count: items.filter(i => i.type === 'income').length },
-          ]}
-          activeFilter={filterType}
-          onFilterChange={setFilterType}
-          allLabel={locale === 'fr' ? 'Tous' : 'All'}
-          totalCount={items.length}
-        />
+        <div className="space-y-3">
+          <FilterToolbar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
+            sortOptions={[
+              { value: 'description', label: t.description },
+              { value: 'amount', label: t.amount },
+              { value: 'next_date', label: t.nextDate },
+            ]}
+            sortValue={sortField}
+            onSortChange={v => setSortField(v as any)}
+            sortOrder={sortOrder}
+            onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+            filterChips={[
+              { value: 'expense', label: t.expenseType, icon: '📉', count: items.filter(i => i.type === 'expense').length },
+              { value: 'income', label: t.incomeType, icon: '📈', count: items.filter(i => i.type === 'income').length },
+            ]}
+            activeFilter={filterType}
+            onFilterChange={setFilterType}
+            allLabel={locale === 'fr' ? 'Tous' : 'All'}
+            totalCount={items.length}
+          />
+          {/* Frequency filter chips */}
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setFilterFreq('')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${!filterFreq ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/50'}`}
+            >
+              {locale === 'fr' ? 'Toutes fréquences' : 'All frequencies'}
+            </button>
+            {(['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'] as const)
+              .map(f => ({ value: f, label: freqMap[f], count: items.filter(i => i.frequency === f).length }))
+              .filter(c => c.count > 0)
+              .map(c => (
+                <button
+                  key={c.value}
+                  onClick={() => setFilterFreq(filterFreq === c.value ? '' : c.value)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${filterFreq === c.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/50'}`}
+                >
+                  {c.label} ({c.count})
+                </button>
+              ))}
+          </div>
+        </div>
       )}
 
       {/* Tabs */}
