@@ -33,7 +33,7 @@ export const useBudgetNotifications = () => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
-    const [budgetsRes, txRes, savingsRes, savingsTxRes] = await Promise.all([
+    const [budgetsRes, txRes, savingsRes, savingsTxRes, importedSavingsTxRes] = await Promise.all([
       supabase.from('budgets').select('*, categories(name, icon)').eq('user_id', user.id),
       supabase.from('transactions').select('category_id, amount').eq('user_id', user.id).eq('type', 'expense')
         .gte('date', monthStart).lte('date', monthEnd),
@@ -41,6 +41,10 @@ export const useBudgetNotifications = () => {
       supabase.from('transactions').select('amount, date, notes')
         .eq('user_id', user.id).eq('type', 'expense')
         .like('notes', '🎯 %')
+        .gte('date', monthStart).lte('date', monthEnd),
+      supabase.from('transactions').select('amount, description, account_id')
+        .eq('user_id', user.id).eq('type', 'income')
+        .ilike('description', '%cotisation epargne%')
         .gte('date', monthStart).lte('date', monthEnd),
     ]);
 
