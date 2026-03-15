@@ -226,13 +226,7 @@ const RecurringPage = () => {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-xl gap-1.5"
-            onClick={runAiDetection}
-            disabled={aiDetecting}
-          >
+          <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={runAiDetection} disabled={aiDetecting}>
             {aiDetecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {aiDetecting ? t.aiDetecting : t.aiDetect}
           </Button>
