@@ -831,6 +831,9 @@ export const dashT = {
     to: 'To',
     apply: 'Apply',
     vsPrevious: 'vs previous period',
+    moreDetails: 'More details',
+    topExpense: 'Largest expense',
+    topIncome: 'Largest income',
   },
 } as const;
 
