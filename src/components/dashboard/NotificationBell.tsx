@@ -52,6 +52,7 @@ export const useBudgetNotifications = () => {
     const txs = txRes.data || [];
     const savings = savingsRes.data || [];
     const savingsTxs = savingsTxRes.data || [];
+    const importedSavingsTxs = importedSavingsTxRes.data || [];
     const notifs: Notification[] = [];
 
     // Check budgets — exceeded + threshold warning
