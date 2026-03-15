@@ -12,6 +12,8 @@ interface StatsCardsProps {
   totalExpenses: number;
   fmt: (n: number) => string;
   t: DashTranslations;
+  onIncomeClick?: () => void;
+  onExpenseClick?: () => void;
   savingsRate?: number;
   netCashFlow?: number;
   transactionCount?: number;
