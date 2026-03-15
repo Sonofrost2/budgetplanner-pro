@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
       const txs = txRes.data || [];
       const savings = savingsRes.data || [];
       const savingsTxs = savingsTxRes.data || [];
+      const importedSavingsTxs = savingsImportedTxRes.data || [];
 
       // Budget alerts
       for (const budget of budgets) {
