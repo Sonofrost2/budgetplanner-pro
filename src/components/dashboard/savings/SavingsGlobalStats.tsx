@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PiggyBank, Building2, TrendingUp, Wallet, Lock, Unlock } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { SavingsGoal } from '@/hooks/useDashboardData';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
