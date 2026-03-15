@@ -339,6 +339,7 @@ const SavingsPage = () => {
       setWithdrawAmount('');
       setTargetAccountId('');
       fetchData();
+      invalidateCrossModule();
       toast.success(t.saved);
     } catch (err: any) {
       toast.error(err.message || 'Erreur');
