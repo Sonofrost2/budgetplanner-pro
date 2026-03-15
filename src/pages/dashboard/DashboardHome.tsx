@@ -18,12 +18,15 @@ import { RecentTransactions } from '@/components/dashboard/home/RecentTransactio
 import { AccountsSummaryWidget } from '@/components/dashboard/home/AccountsSummaryWidget';
 import { useAccounts, useTransactionsRange, useBudgets, useSavingsGoals, useChartData } from '@/hooks/useDashboardData';
 
-type PeriodKey = 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisYear';
+type PeriodKey = 'today' | 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisSemester' | 'thisYear';
 
 const getDateRange = (period: PeriodKey) => {
   const now = new Date();
   let start: Date;
   switch (period) {
+    case 'today':
+      start = new Date(now);
+      break;
     case 'thisWeek': {
       const day = now.getDay();
       start = new Date(now);
@@ -33,6 +36,11 @@ const getDateRange = (period: PeriodKey) => {
     case 'thisQuarter': {
       const q = Math.floor(now.getMonth() / 3);
       start = new Date(now.getFullYear(), q * 3, 1);
+      break;
+    }
+    case 'thisSemester': {
+      const s = now.getMonth() < 6 ? 0 : 6;
+      start = new Date(now.getFullYear(), s, 1);
       break;
     }
     case 'thisYear':
