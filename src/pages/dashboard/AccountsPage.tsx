@@ -479,6 +479,7 @@ const AccountsPage = () => {
           onSuccess={fetchData}
         />
       )}
+      <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(bulk.count)} cancelLabel={t.cancel} confirmLabel={t.delete} />
     </div>
   );
 };
