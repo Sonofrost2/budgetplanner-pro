@@ -62,7 +62,10 @@ const AccountsPage = () => {
   const [transferOpen, setTransferOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [cashCountAccount, setCashCountAccount] = useState<Account | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [cashCounts, setCashCounts] = useState<Record<string, { counted_at: string; total_counted: number }>>({});
+  const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
