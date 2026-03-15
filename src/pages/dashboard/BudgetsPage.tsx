@@ -148,7 +148,7 @@ const BudgetsPage = () => {
 
   const bulk = useBulkSelection(currentBudgets);
 
-  const refreshData = () => { invalidate('budgets', 'all-transactions'); bulk.clear(); };
+  const refreshData = () => { invalidate('budgets', 'budget-spending'); bulk.clear(); };
 
   const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
 
