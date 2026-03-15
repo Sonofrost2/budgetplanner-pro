@@ -639,8 +639,11 @@ const BudgetsPage = () => {
               <Select value={bulkModifyForm.period} onValueChange={v => setBulkModifyForm(f => ({ ...f, period: v }))}>
                 <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Ne pas changer' : 'No change'} /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="daily">{t.daily}</SelectItem>
                   <SelectItem value="weekly">{t.weekly}</SelectItem>
                   <SelectItem value="monthly">{t.monthly}</SelectItem>
+                  <SelectItem value="quarterly">{t.quarterly}</SelectItem>
+                  <SelectItem value="semi_annual">{t.semiAnnual}</SelectItem>
                   <SelectItem value="yearly">{t.yearly}</SelectItem>
                 </SelectContent>
               </Select>
