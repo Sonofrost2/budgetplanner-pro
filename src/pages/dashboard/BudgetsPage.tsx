@@ -231,7 +231,7 @@ const BudgetsPage = () => {
     );
   }
 
-  const periodLabels: Record<string, string> = { weekly: t.weekly, monthly: t.monthly, yearly: t.yearly };
+  const periodLabels: Record<string, string> = { daily: t.daily, weekly: t.weekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
 
   const renderBudgetCard = (b: any) => {
     const actual = spending[b.category_id || ''] || 0;
