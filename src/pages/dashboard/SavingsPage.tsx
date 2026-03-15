@@ -49,6 +49,9 @@ const SavingsPage = () => {
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<'name' | 'current_amount' | 'target_amount'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [contributions, setContributions] = useState<Record<string, SavingsContribution[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
