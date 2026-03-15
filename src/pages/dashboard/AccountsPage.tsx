@@ -107,6 +107,13 @@ const AccountsPage = () => {
   };
 
   const fmt = (n: number) => fmtCurrency(n, locale);
+  const { invalidate } = useInvalidate();
+
+  // Wrapper to also invalidate react-query caches
+  const refreshAll = () => {
+    fetchData();
+    invalidate('accounts', 'transactions', 'paginated-transactions', 'chart-data', 'all-transactions');
+  };
 
   const fetchData = useCallback(async () => {
     if (!user) return;
