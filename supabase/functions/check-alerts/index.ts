@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       const alerts: { title: string; body: string }[] = [];
 
       // Check budgets
-      const [budgetsRes, txRes, savingsRes, savingsTxRes, profileRes] = await Promise.all([
+      const [budgetsRes, txRes, savingsRes, savingsTxRes, savingsImportedTxRes, profileRes] = await Promise.all([
         supabase.from("budgets").select("*, categories(name, icon)").eq("user_id", userId),
         supabase
           .from("transactions")
@@ -55,6 +55,15 @@ Deno.serve(async (req) => {
           .eq("user_id", userId)
           .eq("type", "expense")
           .like("notes", "🎯 %")
+          .gte("date", monthStart)
+          .lte("date", monthEnd),
+        // Also check imported savings transactions (description-based)
+        supabase
+          .from("transactions")
+          .select("amount, description, account_id")
+          .eq("user_id", userId)
+          .eq("type", "income")
+          .ilike("description", "%cotisation epargne%")
           .gte("date", monthStart)
           .lte("date", monthEnd),
         supabase.from("profiles").select("locale").eq("user_id", userId).single(),
