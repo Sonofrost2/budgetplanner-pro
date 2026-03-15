@@ -662,6 +662,50 @@ const BudgetsPage = () => {
 
       <ConfirmDeleteDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} onConfirm={handleDelete} title={t.confirmDelete} description={t.confirmDeleteMessage} cancelLabel={t.cancel} confirmLabel={t.delete} />
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(bulk.count)} cancelLabel={t.cancel} confirmLabel={t.delete} />
+
+      {/* AI Suggestions Dialog */}
+      <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />{t.aiBudgetSuggestTitle}</DialogTitle>
+            <DialogDescription>{t.aiBudgetSuggestDesc}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2 max-h-[400px] overflow-y-auto">
+            {aiLoading ? (
+              <div className="flex flex-col items-center py-8 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">{t.aiBudgetSuggesting}</p>
+              </div>
+            ) : aiSuggestions.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">{t.aiBudgetNoSuggestions}</p>
+            ) : (
+              aiSuggestions.map((s, i) => {
+                const cat = allCategories.find(c => c.id === s.category_id);
+                return (
+                  <Card key={i} className="border border-border/50 rounded-xl">
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{cat?.icon || '📁'}</span>
+                          <div>
+                            <p className="font-bold text-sm">{s.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{cat?.name || '-'} · {periodLabels[s.period] || s.period} · {s.budget_type === 'income' ? t.budgetTypeIncome : t.budgetTypeExpense}</p>
+                          </div>
+                        </div>
+                        <span className="font-extrabold text-lg">{fmt(s.amount)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">{t.aiBudgetReason}: {s.reason}</p>
+                      <Button size="sm" className="w-full rounded-xl text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => acceptSuggestion(s)}>
+                        <Plus className="w-3.5 h-3.5 mr-1" />{t.aiBudgetAccept}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
