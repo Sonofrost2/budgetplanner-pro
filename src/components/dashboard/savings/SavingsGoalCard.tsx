@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock } from 'lucide-react';
+import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock, Lock, Unlock, Landmark, Sparkles } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
@@ -27,9 +27,10 @@ interface SavingsGoalCardProps {
   onWithdraw: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onSimulate?: () => void;
 }
 
-export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onEdit, onDelete }: SavingsGoalCardProps) => {
+export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onEdit, onDelete, onSimulate }: SavingsGoalCardProps) => {
   const pct = goal.target_amount > 0 ? Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100) : 0;
   const done = pct >= 100;
   const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.current_amount));
@@ -115,7 +116,25 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
             </div>
             <div>
               <h3 className="text-base font-bold text-foreground">{goal.name}</h3>
-              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                {(goal as any).is_locked && (
+                  <span className="flex items-center gap-1 text-destructive font-medium">
+                    <Lock className="w-3 h-3" />
+                    {t.savingsLocked}
+                  </span>
+                )}
+                {!(goal as any).is_locked && Number(goal.current_amount) > 0 && (
+                  <span className="flex items-center gap-1 text-secondary font-medium">
+                    <Unlock className="w-3 h-3" />
+                    {t.savingsAvailable}
+                  </span>
+                )}
+                {(goal as any).bank_name && (
+                  <span className="flex items-center gap-1">
+                    <Landmark className="w-3 h-3" />
+                    {(goal as any).bank_name}
+                  </span>
+                )}
                 {goal.payment_accounts && (
                   <span className="flex items-center gap-1">
                     <Wallet className="w-3 h-3" />
@@ -132,6 +151,12 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
                     ? new Date(goal.deadline).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short', year: 'numeric' })
                     : t.savingsNoDeadline}
                 </span>
+                {Number((goal as any).interest_rate) > 0 && (
+                  <span className="flex items-center gap-1 text-primary font-medium">
+                    <TrendingUp className="w-3 h-3" />
+                    {(goal as any).interest_rate}% / {(goal as any).interest_frequency === 'monthly' ? (locale === 'fr' ? 'mois' : 'mo') : (goal as any).interest_frequency === 'quarterly' ? (locale === 'fr' ? 'trim.' : 'qtr') : (goal as any).interest_frequency === 'semi_annual' ? (locale === 'fr' ? 'sem.' : 'semi') : (locale === 'fr' ? 'an' : 'yr')}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -308,15 +333,25 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
 
       {/* ── Footer ── */}
       <Separator />
-      <div className="p-4 flex gap-2">
+      <div className="p-4 flex gap-2 flex-wrap">
         {!done && (
           <Button onClick={onAddSaving} className="flex-1 rounded-xl text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
             <Plus className="w-4 h-4 mr-2" />{t.addSaving}
           </Button>
         )}
-        {Number(goal.current_amount) > 0 && (
+        {Number(goal.current_amount) > 0 && !(goal as any).is_locked && (
           <Button onClick={onWithdraw} variant="outline" className="flex-1 rounded-xl">
             <ArrowUpRight className="w-4 h-4 mr-2" />{t.withdrawSaving}
+          </Button>
+        )}
+        {Number(goal.current_amount) > 0 && (goal as any).is_locked && (
+          <Button variant="outline" className="flex-1 rounded-xl opacity-50 cursor-not-allowed" disabled>
+            <Lock className="w-4 h-4 mr-2" />{t.savingsLocked}
+          </Button>
+        )}
+        {onSimulate && (
+          <Button onClick={onSimulate} variant="outline" className="rounded-xl" size="icon" title={t.simulateAI}>
+            <Sparkles className="w-4 h-4 text-primary" />
           </Button>
         )}
       </div>

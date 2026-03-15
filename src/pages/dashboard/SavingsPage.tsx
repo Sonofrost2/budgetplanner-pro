@@ -19,8 +19,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, PiggyBank } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -29,6 +31,16 @@ import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 import { SavingsGoalCard } from '@/components/dashboard/savings/SavingsGoalCard';
 import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSummaryTable';
 import { SavingsControlTable } from '@/components/dashboard/savings/SavingsControlTable';
+
+interface SimulationResult {
+  monthly_projections: { month: number; capital: number; interest_earned: number; total: number }[];
+  interest_income_1y: number;
+  interest_income_3y: number;
+  interest_income_5y: number;
+  estimated_goal_date?: string;
+  recommendations: string[];
+  summary: string;
+}
 
 const SavingsPage = () => {
   const { user } = useAuth();
@@ -46,10 +58,18 @@ const SavingsPage = () => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [targetAccountId, setTargetAccountId] = useState('');
-  const [form, setForm] = useState({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '' });
+  const [form, setForm] = useState({
+    name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '',
+    monthly_contribution: '', start_date: '',
+    is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
+  });
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [simulationDialog, setSimulationDialog] = useState<string | null>(null);
+  const [simulation, setSimulation] = useState<SimulationResult | null>(null);
+  const [simulating, setSimulating] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -69,7 +89,6 @@ const SavingsPage = () => {
     setGoals(goalsData);
     setAccounts(accRes.data || []);
 
-    // Group contributions by goal name
     const contribMap: Record<string, any[]> = {};
     for (const goal of goalsData) {
       contribMap[goal.id] = [];
@@ -82,8 +101,6 @@ const SavingsPage = () => {
         const desc = tx.description || '';
         const isSavingsTx = desc.startsWith(`${t.savings}:`);
         if (isSavingsTx) {
-          // Expense on source = deposit; Income on target after withdraw = withdrawal marker
-          // We identify withdrawals by checking if description contains "Retrait" or "Withdrawal"
           const isWithdrawal = desc.includes('↩');
           contribMap[matchedGoal.id].push({
             id: tx.id,
@@ -102,23 +119,97 @@ const SavingsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Sync savings from imported transactions
+  const handleSyncSavings = async () => {
+    if (!user) return;
+    setSyncing(true);
+    try {
+      // Find transactions that look like savings contributions (CAG, épargne patterns)
+      const { data: txs } = await supabase.from('transactions')
+        .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
+        .eq('user_id', user.id)
+        .or('description.ilike.%épargne%,description.ilike.%cag%,description.ilike.%savings%,notes.ilike.%🎯%')
+        .order('date', { ascending: true })
+        .limit(1000);
+
+      if (!txs || txs.length === 0) {
+        toast.info(locale === 'fr' ? 'Aucune transaction d\'épargne trouvée' : 'No savings transactions found');
+        setSyncing(false);
+        return;
+      }
+
+      // Group by savings goal name (from notes or description patterns)
+      const goalMap: Record<string, { total: number; txCount: number; accountId: string | null }> = {};
+      for (const tx of txs) {
+        let goalName = '';
+        if (tx.notes?.startsWith('🎯 ')) {
+          goalName = tx.notes.replace('🎯 ', '');
+        } else {
+          // Try to extract from description
+          const desc = tx.description?.toLowerCase() || '';
+          if (desc.includes('cag')) goalName = 'CAG';
+          else if (desc.includes('épargne') || desc.includes('savings')) {
+            goalName = tx.description || 'Épargne';
+          }
+        }
+        if (!goalName) continue;
+
+        if (!goalMap[goalName]) {
+          goalMap[goalName] = { total: 0, txCount: 0, accountId: tx.account_id };
+        }
+        // For income type on savings account = deposit
+        if (tx.type === 'income') {
+          goalMap[goalName].total += tx.amount;
+        } else if (tx.type === 'expense') {
+          goalMap[goalName].total -= tx.amount;
+        }
+        goalMap[goalName].txCount++;
+      }
+
+      // Update or create savings goals
+      let updated = 0;
+      for (const [name, info] of Object.entries(goalMap)) {
+        if (info.total <= 0) continue;
+
+        const existing = goals.find(g => g.name === name);
+        if (existing) {
+          await supabase.from('savings_goals').update({
+            current_amount: Math.max(0, info.total),
+          }).eq('id', existing.id);
+          updated++;
+        }
+      }
+
+      await fetchData();
+      toast.success(locale === 'fr' ? `${updated} objectif(s) synchronisé(s)` : `${updated} goal(s) synced`);
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleCreateOrEdit = async () => {
     if (!user || !form.name.trim() || Number(form.target_amount) <= 0) return;
+    const payload = {
+      name: form.name.trim(),
+      target_amount: Number(form.target_amount),
+      icon: form.icon || '🎯',
+      deadline: form.deadline || null,
+      account_id: form.account_id || null,
+      monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
+      start_date: form.start_date || null,
+      is_locked: form.is_locked,
+      interest_rate: form.interest_rate ? Number(form.interest_rate) : 0,
+      interest_frequency: form.interest_frequency || 'yearly',
+      bank_name: form.bank_name?.trim() || null,
+    };
+
     if (editGoalId) {
-      const { error } = await supabase.from('savings_goals').update({
-        name: form.name.trim(), target_amount: Number(form.target_amount),
-        icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
-        monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
-        start_date: form.start_date || null,
-      }).eq('id', editGoalId);
+      const { error } = await supabase.from('savings_goals').update(payload).eq('id', editGoalId);
       if (error) { toast.error(error.message); return; }
     } else {
-      const { error } = await supabase.from('savings_goals').insert({
-        user_id: user.id, name: form.name.trim(), target_amount: Number(form.target_amount),
-        icon: form.icon || '🎯', deadline: form.deadline || null, account_id: form.account_id || null,
-        monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
-        start_date: form.start_date || null,
-      });
+      const { error } = await supabase.from('savings_goals').insert({ user_id: user.id, ...payload });
       if (error) { toast.error(error.message); return; }
     }
     setDialogOpen(false);
@@ -127,7 +218,6 @@ const SavingsPage = () => {
     toast.success(t.saved);
   };
 
-  // Add contribution = transfer-like: expense on source, income on target (goal account)
   const handleAddAmount = async () => {
     if (!addAmountDialog || Number(addAmount) <= 0 || !user) return;
     const goal = goals.find(g => g.id === addAmountDialog);
@@ -138,7 +228,6 @@ const SavingsPage = () => {
       const amountToAdd = Number(addAmount);
       const today = new Date().toISOString().split('T')[0];
 
-      // Expense on source account (debit)
       if (sourceAccountId) {
         await supabase.from('transactions').insert({
           user_id: user.id, type: 'expense', amount: amountToAdd,
@@ -148,7 +237,6 @@ const SavingsPage = () => {
         await recalculateAccountBalance(sourceAccountId);
       }
 
-      // Income on target/goal account (credit)
       if (goal.account_id) {
         await supabase.from('transactions').insert({
           user_id: user.id, type: 'income', amount: amountToAdd,
@@ -174,11 +262,17 @@ const SavingsPage = () => {
     }
   };
 
-  // Withdraw = reverse: expense on goal account, income on target account
   const handleWithdraw = async () => {
     if (!withdrawDialog || Number(withdrawAmount) <= 0 || !user) return;
     const goal = goals.find(g => g.id === withdrawDialog);
     if (!goal) return;
+
+    // Check if locked
+    if ((goal as any).is_locked) {
+      toast.error(t.savingsLockedWarning);
+      return;
+    }
+
     const amount = Number(withdrawAmount);
     if (amount > Number(goal.current_amount)) {
       toast.error(locale === 'fr' ? 'Montant supérieur à l\'épargne disponible' : 'Amount exceeds available savings');
@@ -189,7 +283,6 @@ const SavingsPage = () => {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      // Expense on goal account (debit the savings account)
       if (goal.account_id) {
         await supabase.from('transactions').insert({
           user_id: user.id, type: 'expense', amount,
@@ -199,7 +292,6 @@ const SavingsPage = () => {
         await recalculateAccountBalance(goal.account_id);
       }
 
-      // Income on target account (credit the destination)
       if (targetAccountId) {
         await supabase.from('transactions').insert({
           user_id: user.id, type: 'income', amount,
@@ -232,6 +324,38 @@ const SavingsPage = () => {
     fetchData();
   };
 
+  // AI Simulation
+  const handleSimulate = async (goalId: string) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+    setSimulationDialog(goalId);
+    setSimulation(null);
+    setSimulating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-savings-simulate', {
+        body: {
+          goal_name: goal.name,
+          current_amount: goal.current_amount,
+          target_amount: goal.target_amount,
+          monthly_contribution: goal.monthly_contribution,
+          interest_rate: (goal as any).interest_rate || 0,
+          interest_frequency: (goal as any).interest_frequency || 'yearly',
+          is_locked: (goal as any).is_locked || false,
+          bank_name: (goal as any).bank_name || null,
+          deadline: goal.deadline,
+          locale,
+        },
+      });
+      if (error) throw error;
+      setSimulation(data);
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur de simulation');
+      setSimulationDialog(null);
+    } finally {
+      setSimulating(false);
+    }
+  };
+
   const icons = ['🎯', '🏖️', '🏠', '🚗', '💻', '📚', '💍', '🎓', '🛡️', '✈️'];
 
   if (loading) {
@@ -249,10 +373,11 @@ const SavingsPage = () => {
   }
 
   const currentGoalForWithdraw = goals.find(g => g.id === withdrawDialog);
+  const simulationGoal = goals.find(g => g.id === simulationDialog);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-2xl font-bold font-display">{t.savings}</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -260,13 +385,19 @@ const SavingsPage = () => {
             {goals.length > 0 && ` · ${fmt(goals.reduce((s, g) => s + Number(g.current_amount), 0))} ${locale === 'fr' ? 'épargnés' : 'saved'}`}
           </p>
         </div>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
-          setEditGoalId(null);
-        setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '' });
-          setDialogOpen(true);
-        }}>
-          <Plus className="w-4 h-4 mr-1" />{t.addGoal}
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="rounded-xl" onClick={handleSyncSavings} disabled={syncing}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? (t.syncing) : (t.syncSavings)}
+          </Button>
+          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+            setEditGoalId(null);
+            setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+            setDialogOpen(true);
+          }}>
+            <Plus className="w-4 h-4 mr-1" />{t.addGoal}
+          </Button>
+        </div>
       </div>
 
       <SavingsSummaryTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
@@ -279,7 +410,7 @@ const SavingsPage = () => {
             <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
             <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
               setEditGoalId(null);
-              setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '' });
+              setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
               setDialogOpen(true);
             }}>
               <Plus className="w-4 h-4 mr-1" />{t.addGoal}
@@ -297,7 +428,13 @@ const SavingsPage = () => {
               t={t}
               locale={locale}
               onAddSaving={() => { setAddAmountDialog(g.id); setAddAmount(''); setSourceAccountId(''); }}
-              onWithdraw={() => { setWithdrawDialog(g.id); setWithdrawAmount(''); setTargetAccountId(''); }}
+              onWithdraw={() => {
+                if ((g as any).is_locked) {
+                  toast.error(t.savingsLockedWarning);
+                  return;
+                }
+                setWithdrawDialog(g.id); setWithdrawAmount(''); setTargetAccountId('');
+              }}
               onEdit={() => {
                 setEditGoalId(g.id);
                 setForm({
@@ -306,18 +443,23 @@ const SavingsPage = () => {
                   account_id: g.account_id || '',
                   monthly_contribution: g.monthly_contribution ? String(g.monthly_contribution) : '',
                   start_date: g.start_date || '',
+                  is_locked: (g as any).is_locked || false,
+                  interest_rate: (g as any).interest_rate ? String((g as any).interest_rate) : '',
+                  interest_frequency: (g as any).interest_frequency || 'yearly',
+                  bank_name: (g as any).bank_name || '',
                 });
                 setDialogOpen(true);
               }}
               onDelete={() => setDeleteId(g.id)}
+              onSimulate={() => handleSimulate(g.id)}
             />
           ))}
         </div>
       )}
 
-      {/* Create Goal Dialog */}
+      {/* Create/Edit Goal Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditGoalId(null); }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{editGoalId ? t.editGoal : t.addGoal}</DialogTitle>
             <DialogDescription>{locale === 'fr' ? (editGoalId ? 'Modifiez votre objectif d\'épargne' : 'Définissez un objectif d\'épargne') : (editGoalId ? 'Edit your savings goal' : 'Set a savings goal')}</DialogDescription>
@@ -343,9 +485,6 @@ const SavingsPage = () => {
                 {t.savingsTargetAccount} ({t.optional})
               </Label>
               <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
-              <p className="text-xs text-muted-foreground">
-                {locale === 'fr' ? 'Le compte qui recevra les versements d\'épargne' : 'The account that will receive savings deposits'}
-              </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -367,6 +506,46 @@ const SavingsPage = () => {
                 <Input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} className="rounded-xl h-11" />
               </div>
             </div>
+
+            {/* Locked toggle */}
+            <div className="flex items-center justify-between bg-muted/50 rounded-xl p-3">
+              <div className="flex items-center gap-2">
+                {form.is_locked ? <Lock className="w-4 h-4 text-destructive" /> : <Unlock className="w-4 h-4 text-secondary" />}
+                <div>
+                  <p className="text-sm font-medium">{form.is_locked ? t.savingsIsLocked : t.savingsIsAvailable}</p>
+                  <p className="text-xs text-muted-foreground">{locale === 'fr' ? 'Empêche les retraits si bloquée' : 'Prevents withdrawals if locked'}</p>
+                </div>
+              </div>
+              <Switch checked={form.is_locked} onCheckedChange={v => setForm(f => ({ ...f, is_locked: v }))} />
+            </div>
+
+            {/* Bank */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bankName} ({t.optional})</Label>
+              <Input value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} className="rounded-xl h-11" placeholder={t.bankNamePlaceholder} />
+            </div>
+
+            {/* Interest rate & frequency */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.interestRate}</Label>
+                <Input type="number" min="0" step="0.01" value={form.interest_rate} onChange={e => setForm(f => ({ ...f, interest_rate: e.target.value }))} className="rounded-xl h-11" placeholder="Ex: 3.5" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.interestFrequency}</Label>
+                <Select value={form.interest_frequency} onValueChange={v => setForm(f => ({ ...f, interest_frequency: v }))}>
+                  <SelectTrigger className="rounded-xl h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">{t.interestMonthly}</SelectItem>
+                    <SelectItem value="quarterly">{t.interestQuarterly}</SelectItem>
+                    <SelectItem value="semi_annual">{t.interestSemiAnnual}</SelectItem>
+                    <SelectItem value="yearly">{t.interestYearly}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
@@ -381,7 +560,7 @@ const SavingsPage = () => {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{t.addSaving}</DialogTitle>
             <DialogDescription>
-              {locale === 'fr' ? 'Ajoutez un versement à cet objectif. Le compte source sera débité et le compte cible crédité.' : 'Add a contribution. The source account will be debited and the target account credited.'}
+              {locale === 'fr' ? 'Ajoutez un versement à cet objectif.' : 'Add a contribution to this goal.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -400,9 +579,6 @@ const SavingsPage = () => {
                 placeholder={locale === 'fr' ? 'Débiter depuis...' : 'Debit from...'}
                 excludeId={goals.find(g => g.id === addAmountDialog)?.account_id}
               />
-              <p className="text-xs text-muted-foreground">
-                {locale === 'fr' ? 'Le compte d\'où sera prélevé le montant' : 'The account from which the amount will be debited'}
-              </p>
             </div>
             {goals.find(g => g.id === addAmountDialog)?.payment_accounts && (
               <div className="bg-muted/50 rounded-xl p-3 text-sm">
@@ -456,9 +632,6 @@ const SavingsPage = () => {
                 placeholder={locale === 'fr' ? 'Créditer vers...' : 'Credit to...'}
                 excludeId={currentGoalForWithdraw?.account_id}
               />
-              <p className="text-xs text-muted-foreground">
-                {locale === 'fr' ? 'Le compte qui recevra les fonds retirés' : 'The account that will receive the withdrawn funds'}
-              </p>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -467,6 +640,102 @@ const SavingsPage = () => {
               {saving ? t.saving : t.withdrawSaving}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Simulation Dialog */}
+      <Dialog open={!!simulationDialog} onOpenChange={() => { setSimulationDialog(null); setSimulation(null); }}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              {t.simulationTitle}
+              {simulationGoal && <span className="text-muted-foreground font-normal">— {simulationGoal.icon} {simulationGoal.name}</span>}
+            </DialogTitle>
+          </DialogHeader>
+          {simulating ? (
+            <div className="py-12 text-center space-y-3">
+              <Sparkles className="w-8 h-8 text-primary mx-auto animate-pulse" />
+              <p className="text-sm text-muted-foreground">{t.simulating}</p>
+            </div>
+          ) : simulation ? (
+            <div className="space-y-6">
+              {/* Summary */}
+              <div className="bg-muted/50 rounded-xl p-4">
+                <p className="text-sm">{simulation.summary}</p>
+              </div>
+
+              {/* Interest income */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-primary/10 rounded-xl p-3 text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome1y}</p>
+                  <p className="text-lg font-bold text-primary mt-1">{fmt(simulation.interest_income_1y)}</p>
+                </div>
+                <div className="bg-primary/10 rounded-xl p-3 text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome3y}</p>
+                  <p className="text-lg font-bold text-primary mt-1">{fmt(simulation.interest_income_3y)}</p>
+                </div>
+                <div className="bg-primary/10 rounded-xl p-3 text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome5y}</p>
+                  <p className="text-lg font-bold text-primary mt-1">{fmt(simulation.interest_income_5y)}</p>
+                </div>
+              </div>
+
+              {simulation.estimated_goal_date && (
+                <div className="bg-secondary/10 rounded-xl p-3 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-secondary" />
+                  <span className="text-sm"><strong>{t.estimatedGoalDate}:</strong> {simulation.estimated_goal_date}</span>
+                </div>
+              )}
+
+              {/* Monthly projections table */}
+              {simulation.monthly_projections?.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{t.monthlyProjection}</h4>
+                  <div className="overflow-x-auto rounded-xl border border-border/50">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-muted/50">
+                          <th className="text-left p-2 font-medium">{locale === 'fr' ? 'Mois' : 'Month'}</th>
+                          <th className="text-right p-2 font-medium">{locale === 'fr' ? 'Capital' : 'Capital'}</th>
+                          <th className="text-right p-2 font-medium">{locale === 'fr' ? 'Intérêts' : 'Interest'}</th>
+                          <th className="text-right p-2 font-medium">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {simulation.monthly_projections.map((p) => (
+                          <tr key={p.month} className="border-t border-border/30">
+                            <td className="p-2">{p.month}</td>
+                            <td className="text-right p-2">{fmt(p.capital)}</td>
+                            <td className="text-right p-2 text-secondary">{fmt(p.interest_earned)}</td>
+                            <td className="text-right p-2 font-bold">{fmt(p.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {simulation.recommendations?.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
+                    <Lightbulb className="w-3.5 h-3.5" />
+                    {t.aiRecommendations}
+                  </h4>
+                  <div className="space-y-2">
+                    {simulation.recommendations.map((r, i) => (
+                      <div key={i} className="bg-muted/40 rounded-lg p-3 text-sm flex gap-2">
+                        <span className="text-primary font-bold">{i + 1}.</span>
+                        <span>{r}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
 
