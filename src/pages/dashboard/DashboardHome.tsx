@@ -266,6 +266,8 @@ const DashboardHome = () => {
       <motion.div variants={fadeUp}>
         <StatsCards
           balance={totalBalance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t}
+          onIncomeClick={() => navigate('/dashboard/transactions?type=income')}
+          onExpenseClick={() => navigate('/dashboard/transactions?type=expense')}
           savingsRate={totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0}
           netCashFlow={totalIncome - totalExpenses}
           transactionCount={transactionCount}
