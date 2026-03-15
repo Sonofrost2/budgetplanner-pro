@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.subscription-renew]
 verify_jwt = false
+
+[functions.ai-budget-suggest]
+verify_jwt = false
