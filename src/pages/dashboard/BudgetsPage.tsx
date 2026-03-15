@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { useBudgets, useCategories, useAllTransactions, useInvalidate } from '@/hooks/useDashboardData';
+import { useBudgets, useCategories, useInvalidate } from '@/hooks/useDashboardData';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,8 +36,7 @@ const BudgetsPage = () => {
 
   const { data: budgets = [], isLoading: budLoading } = useBudgets();
   const { data: allCategories = [], isLoading: catLoading } = useCategories();
-  const { data: allTx = [], isLoading: txLoading } = useAllTransactions();
-  const loading = budLoading || catLoading || txLoading;
+  const loading = budLoading || catLoading;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -60,12 +60,10 @@ const BudgetsPage = () => {
     [allCategories, form.budget_type]
   );
 
-  const spending = useMemo(() => {
+  // Server-side spending calculation using RPC
+  const budgetPeriodRanges = useMemo(() => {
     const now = new Date();
-    const spendMap: Record<string, number> = {};
-    budgets.forEach(b => {
-      const bType = (b as any).budget_type || 'expense';
-      const txType = bType === 'income' ? 'income' : 'expense';
+    return budgets.map(b => {
       let start: string, end: string;
       if (b.period === 'daily') {
         start = now.toISOString().split('T')[0]; end = start;
@@ -88,12 +86,35 @@ const BudgetsPage = () => {
         start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
         end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
       }
-      const actual = allTx.filter(tx => tx.type === txType && tx.category_id === b.category_id && tx.date >= start && tx.date <= end)
-        .reduce((s, tx) => s + Number(tx.amount), 0);
-      if (b.category_id) spendMap[b.category_id] = actual;
+      const bType = (b as any).budget_type || 'expense';
+      return { id: b.id, category_id: b.category_id, type: bType === 'income' ? 'income' : 'expense', start, end };
     });
-    return spendMap;
-  }, [budgets, allTx]);
+  }, [budgets]);
+
+  const { data: spending = {} } = useQuery({
+    queryKey: ['budget-spending', user?.id, budgetPeriodRanges.map(r => `${r.id}-${r.start}-${r.end}`).join(',')],
+    queryFn: async () => {
+      const spendMap: Record<string, number> = {};
+      const promises = budgetPeriodRanges
+        .filter(r => r.category_id)
+        .map(async (r) => {
+          const { data, error } = await supabase.rpc('get_budget_spending', {
+            p_user_id: user!.id,
+            p_category_id: r.category_id!,
+            p_type: r.type,
+            p_start_date: r.start,
+            p_end_date: r.end,
+          });
+          if (!error && data !== null) {
+            spendMap[r.category_id!] = Number(data);
+          }
+        });
+      await Promise.all(promises);
+      return spendMap;
+    },
+    enabled: !!user && budgetPeriodRanges.length > 0,
+    staleTime: 30_000,
+  });
 
   const expenseBudgets = useMemo(() => {
     let result = budgets.filter(b => (b as any).budget_type !== 'income');
@@ -127,7 +148,7 @@ const BudgetsPage = () => {
 
   const bulk = useBulkSelection(currentBudgets);
 
-  const refreshData = () => { invalidate('budgets', 'all-transactions'); bulk.clear(); };
+  const refreshData = () => { invalidate('budgets', 'budget-spending'); bulk.clear(); };
 
   const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
 

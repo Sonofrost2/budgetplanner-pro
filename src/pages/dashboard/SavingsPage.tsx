@@ -4,6 +4,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { useInvalidate } from '@/hooks/useDashboardData';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
 
 interface SavingsContribution {
@@ -78,6 +79,12 @@ const SavingsPage = () => {
   const [customBankMode, setCustomBankMode] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
+  const { invalidate } = useInvalidate();
+
+  // Invalidate react-query caches that depend on transactions/accounts
+  const invalidateCrossModule = () => {
+    invalidate('accounts', 'transactions', 'paginated-transactions', 'chart-data', 'all-transactions', 'savings-goals', 'budget-spending');
+  };
 
   const filteredGoals = useMemo(() => {
     let result = [...goals];
@@ -276,6 +283,7 @@ const SavingsPage = () => {
       setAddAmount('');
       setSourceAccountId('');
       fetchData();
+      invalidateCrossModule();
       toast.success(t.saved);
     } catch (err: any) {
       toast.error(err.message || 'Erreur');
@@ -331,6 +339,7 @@ const SavingsPage = () => {
       setWithdrawAmount('');
       setTargetAccountId('');
       fetchData();
+      invalidateCrossModule();
       toast.success(t.saved);
     } catch (err: any) {
       toast.error(err.message || 'Erreur');

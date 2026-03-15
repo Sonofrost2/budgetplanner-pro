@@ -28,6 +28,7 @@ import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import CashCountDialog from '@/components/dashboard/CashCountDialog';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { useInvalidate } from '@/hooks/useDashboardData';
 import type { Account, Transaction } from '@/hooks/useDashboardData';
 
 const getAccountTypes = (t: DashTranslations) => [
@@ -93,7 +94,7 @@ const AccountsPage = () => {
     const ids = Array.from(bulk.selectedIds);
     const { error } = await supabase.from('payment_accounts').delete().in('id', ids);
     if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
-    setBulkDeleteOpen(false); bulk.clear(); fetchData();
+    setBulkDeleteOpen(false); bulk.clear(); refreshAll();
     toast.success(t.bulkDeleted(ids.length));
   };
 
@@ -106,6 +107,13 @@ const AccountsPage = () => {
   };
 
   const fmt = (n: number) => fmtCurrency(n, locale);
+  const { invalidate } = useInvalidate();
+
+  // Wrapper to also invalidate react-query caches
+  const refreshAll = () => {
+    fetchData();
+    invalidate('accounts', 'transactions', 'paginated-transactions', 'chart-data', 'all-transactions');
+  };
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -185,7 +193,7 @@ const AccountsPage = () => {
     }
     setSaving(false);
     setDialogOpen(false);
-    fetchData();
+    refreshAll();
     toast.success(t.saved);
   };
 
@@ -193,7 +201,7 @@ const AccountsPage = () => {
     if (!deleteId) return;
     await supabase.from('payment_accounts').delete().eq('id', deleteId);
     setDeleteId(null);
-    fetchData();
+    refreshAll();
     toast.success(t.delete + ' ✓');
   };
 
@@ -202,7 +210,7 @@ const AccountsPage = () => {
     const { error } = await supabase.from('payment_accounts').update({ real_balance: Number(newRealBalance) }).eq('id', updateBalanceDialog.id);
     if (error) { toast.error(error.message); return; }
     setUpdateBalanceDialog(null);
-    fetchData();
+    refreshAll();
     toast.success(t.saved);
   };
 
@@ -526,7 +534,7 @@ const AccountsPage = () => {
           accounts={accounts}
           userId={user.id}
           t={t}
-          onSuccess={fetchData}
+          onSuccess={refreshAll}
         />
       )}
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(bulk.count)} cancelLabel={t.cancel} confirmLabel={t.delete} />
@@ -541,7 +549,7 @@ const AccountsPage = () => {
           locale={locale}
           fmt={fmt}
           t={t}
-          onSuccess={fetchData}
+          onSuccess={refreshAll}
         />
       )}
 

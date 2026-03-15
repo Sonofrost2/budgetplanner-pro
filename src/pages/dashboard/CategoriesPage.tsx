@@ -3,7 +3,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { useCategories, useAllTransactions, useInvalidate, type Category } from '@/hooks/useDashboardData';
+import { useCategories, useInvalidate, type Category } from '@/hooks/useDashboardData';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,14 +31,27 @@ const CategoriesPage = () => {
   const { invalidate } = useInvalidate();
 
   const { data: categories = [], isLoading: catLoading } = useCategories();
-  const { data: allTx = [], isLoading: txLoading } = useAllTransactions();
-  const loading = catLoading || txLoading;
 
-  const txCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    allTx.forEach(tx => { if (tx.category_id) counts[tx.category_id] = (counts[tx.category_id] || 0) + 1; });
-    return counts;
-  }, [allTx]);
+  // Lightweight count query instead of loading all transactions
+  const { data: txCounts = {}, isLoading: txCountLoading } = useQuery({
+    queryKey: ['category-tx-counts', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('category_id')
+        .eq('user_id', user!.id)
+        .not('category_id', 'is', null);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach(tx => {
+        if (tx.category_id) counts[tx.category_id] = (counts[tx.category_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+  const loading = catLoading || txCountLoading;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -53,7 +67,7 @@ const CategoriesPage = () => {
 
   const bulk = useBulkSelection(categories);
 
-  const refreshData = () => { invalidate('categories', 'all-transactions', 'budgets'); bulk.clear(); };
+  const refreshData = () => { invalidate('categories', 'category-tx-counts', 'budgets'); bulk.clear(); };
 
   const openNew = () => { setEditing(null); setForm({ name: '', icon: '📁', color: '#6C63FF', type: 'expense' }); setDialogOpen(true); };
   const openEdit = (cat: any) => { setEditing(cat); setForm({ name: cat.name, icon: cat.icon, color: cat.color, type: cat.type }); setDialogOpen(true); };
