@@ -165,6 +165,7 @@ const DashboardLayout = () => {
 
   return (
     <div className="min-h-screen mesh-bg flex">
+      <TopLoadingBar loading={pageLoading} />
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-[240px] glass-strong transform transition-transform lg:translate-x-0 lg:static lg:z-auto flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo */}
