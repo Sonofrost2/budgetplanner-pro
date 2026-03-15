@@ -121,9 +121,11 @@ const DashboardHome = () => {
         <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="today">{t.today}</SelectItem>
             <SelectItem value="thisWeek">{t.thisWeek}</SelectItem>
             <SelectItem value="thisMonth">{t.thisMonth}</SelectItem>
             <SelectItem value="thisQuarter">{t.thisQuarter}</SelectItem>
+            <SelectItem value="thisSemester">{t.thisSemester}</SelectItem>
             <SelectItem value="thisYear">{t.thisYear}</SelectItem>
           </SelectContent>
         </Select>

@@ -461,10 +461,10 @@ const BudgetsPage = () => {
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.period}</Label>
                 <div className="grid grid-cols-1 gap-1.5">
-                  {['weekly', 'monthly', 'yearly'].map(p => (
+                  {['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'].map(p => (
                     <button key={p} type="button" onClick={() => setForm(f => ({ ...f, period: p }))}
                       className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all text-left ${form.period === p ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}>
-                      {p === 'weekly' ? t.weekly : p === 'monthly' ? t.monthly : t.yearly}
+                      {periodLabels[p] || p}
                     </button>
                   ))}
                 </div>
