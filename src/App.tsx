@@ -29,7 +29,6 @@ import AdminPricingPage from "./pages/dashboard/AdminPricingPage";
 import CategoriesPage from "./pages/dashboard/CategoriesPage";
 import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import FamilyPage from "./pages/dashboard/FamilyPage";
-import DebtsPage from "./pages/dashboard/DebtsPage";
 import RecurringPage from "./pages/dashboard/RecurringPage";
 import NotFound from "./pages/NotFound";
 
@@ -63,7 +62,6 @@ const AnimatedRoutes = () => {
           <Route path="receipts" element={<ReceiptsPage />} />
           <Route path="family" element={<FamilyPage />} />
           <Route path="admin/pricing" element={<AdminPricingPage />} />
-          <Route path="debts" element={<DebtsPage />} />
           <Route path="recurring" element={<RecurringPage />} />
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />

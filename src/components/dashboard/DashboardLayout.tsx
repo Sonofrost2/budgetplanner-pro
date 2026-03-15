@@ -108,7 +108,6 @@ const DashboardLayout = () => {
       label: locale === 'fr' ? 'Gestion' : 'Management',
       items: [
         { key: 'savings', icon: Target, path: '/dashboard/savings' },
-        { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
         { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },
         { key: 'categories', icon: Tag, path: '/dashboard/categories' },
       ],
