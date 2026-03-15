@@ -236,6 +236,32 @@ const RecurringPage = () => {
         </div>
       </div>
 
+      {/* Search + Sort + Filters */}
+      {items.length > 0 && (
+        <FilterToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
+          sortOptions={[
+            { value: 'description', label: t.description },
+            { value: 'amount', label: t.amount },
+            { value: 'next_date', label: t.nextDate },
+          ]}
+          sortValue={sortField}
+          onSortChange={v => setSortField(v as any)}
+          sortOrder={sortOrder}
+          onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+          filterChips={[
+            { value: 'expense', label: t.expenseType, icon: '📉', count: items.filter(i => i.type === 'expense').length },
+            { value: 'income', label: t.incomeType, icon: '📈', count: items.filter(i => i.type === 'income').length },
+          ]}
+          activeFilter={filterType}
+          onFilterChange={setFilterType}
+          allLabel={locale === 'fr' ? 'Tous' : 'All'}
+          totalCount={items.length}
+        />
+      )}
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="rounded-xl">
@@ -278,7 +304,7 @@ const RecurringPage = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {items.map(r => (
+              {filteredItems.map(r => (
                 <Card key={r.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${!r.active ? 'opacity-50' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
