@@ -129,13 +129,10 @@ const AccountsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Theoretical balance = real_balance (which is calculated server-side via recalculate_account_balance)
   const getTheoreticalBalance = (accountId: string) => {
     const acc = accounts.find(a => a.id === accountId);
-    const openingBal = Number(acc?.opening_balance || 0);
-    const txs = transactions.filter(tx => tx.account_id === accountId);
-    const income = txs.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0);
-    const expense = txs.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
-    return openingBal + income - expense;
+    return Number(acc?.real_balance || 0);
   };
 
   const accountLimitReached = !isPremium && accounts.length >= limits.accounts;

@@ -26,7 +26,9 @@ const Footer = () => {
             <ul className="space-y-2.5 text-sm text-muted-foreground">
               <li><a href="#features" className="hover:text-foreground transition-colors">{t.nav.features}</a></li>
               <li><a href="#pricing" className="hover:text-foreground transition-colors">{t.nav.pricing}</a></li>
-              <li><a href="#testimonials" className="hover:text-foreground transition-colors">{t.nav.testimonials}</a></li>
+              <li><Link to="/about" className="hover:text-foreground transition-colors">{locale === 'fr' ? 'À propos' : 'About'}</Link></li>
+              <li><Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
+              <li><Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
             </ul>
           </div>
 

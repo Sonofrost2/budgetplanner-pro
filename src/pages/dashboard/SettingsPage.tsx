@@ -115,14 +115,14 @@ const SettingsPage = () => {
 
   const handleDeleteAccount = async () => {
     if (!user) return;
-    // Delete all user data then sign out
-    const tables = ['transactions', 'budgets', 'savings_goals', 'debts', 'recurring_transactions', 'cash_counts', 'payment_accounts', 'categories', 'push_subscriptions'] as const;
-    for (const table of tables) {
-      await supabase.from(table).delete().eq('user_id', user.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-account');
+      if (error) throw error;
+      toast.success(locale === 'fr' ? 'Compte supprimé' : 'Account deleted');
+      await signOut();
+    } catch (err: any) {
+      toast.error(err.message || 'Error');
     }
-    await supabase.from('profiles').delete().eq('user_id', user.id);
-    await signOut();
-    toast.success(locale === 'fr' ? 'Compte supprimé' : 'Account deleted');
   };
 
   return (
