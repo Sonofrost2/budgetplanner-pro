@@ -75,6 +75,7 @@ const SavingsPage = () => {
   const [simulationDialog, setSimulationDialog] = useState<string | null>(null);
   const [simulation, setSimulation] = useState<SimulationResult | null>(null);
   const [simulating, setSimulating] = useState(false);
+  const [customBankMode, setCustomBankMode] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
