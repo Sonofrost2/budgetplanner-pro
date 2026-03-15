@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
@@ -19,12 +20,15 @@ import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import BulkActionBar from '@/components/dashboard/BulkActionBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
+import { exportToCSV, exportToExcel } from '@/lib/export';
 
 const BudgetsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
-  const { limits, isPremium } = useSubscription();
+  const { limits, isPremium, canExportAdvanced } = useSubscription();
   const t = dashT[locale];
   const { invalidate } = useInvalidate();
 
@@ -40,16 +44,22 @@ const BudgetsPage = () => {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('expense');
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
+  const [bulkModifyForm, setBulkModifyForm] = useState({ period: '', category_id: '' });
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
-  const filteredCategories = useMemo(() => 
-    allCategories.filter(c => c.type === form.budget_type), 
+  const filteredCategories = useMemo(() =>
+    allCategories.filter(c => c.type === form.budget_type),
     [allCategories, form.budget_type]
   );
 
   const expenseBudgets = useMemo(() => budgets.filter(b => (b as any).budget_type !== 'income'), [budgets]);
   const incomeBudgets = useMemo(() => budgets.filter(b => (b as any).budget_type === 'income'), [budgets]);
+  const currentBudgets = activeTab === 'expense' ? expenseBudgets : incomeBudgets;
+
+  const bulk = useBulkSelection(currentBudgets);
 
   const spending = useMemo(() => {
     const now = new Date();
@@ -76,7 +86,7 @@ const BudgetsPage = () => {
     return spendMap;
   }, [budgets, allTx]);
 
-  const refreshData = () => invalidate('budgets', 'all-transactions');
+  const refreshData = () => { invalidate('budgets', 'all-transactions'); bulk.clear(); };
 
   const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
 
@@ -120,8 +130,55 @@ const BudgetsPage = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     await supabase.from('budgets').delete().eq('id', deleteId);
-    setDeleteId(null);
+    setDeleteId(null); refreshData();
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(bulk.selectedIds);
+    const { error } = await supabase.from('budgets').delete().in('id', ids);
+    if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
+    setBulkDeleteOpen(false); refreshData();
+    toast.success(t.bulkDeleted(ids.length));
+  };
+
+  const handleBulkModify = async () => {
+    const ids = Array.from(bulk.selectedIds);
+    const updates: Record<string, any> = {};
+    if (bulkModifyForm.period) updates.period = bulkModifyForm.period;
+    if (bulkModifyForm.category_id) updates.category_id = bulkModifyForm.category_id;
+    if (Object.keys(updates).length === 0) { toast.error(t.noChange); return; }
+    const { error } = await supabase.from('budgets').update(updates).in('id', ids);
+    if (error) { toast.error(error.message); return; }
+    setBulkModifyOpen(false); setBulkModifyForm({ period: '', category_id: '' });
     refreshData();
+    toast.success(t.bulkModified(ids.length));
+  };
+
+  const handleBulkDuplicate = async () => {
+    if (!user) return;
+    const selected = bulk.selectedItems;
+    const inserts = selected.map(b => ({
+      user_id: user.id, name: b.name + ' (copie)', amount: Number(b.amount),
+      category_id: b.category_id, period: b.period, alert_threshold: b.alert_threshold,
+      budget_type: (b as any).budget_type || 'expense', control_type: (b as any).control_type || 'max',
+    }));
+    const { error } = await supabase.from('budgets').insert(inserts);
+    if (error) { toast.error(error.message); return; }
+    refreshData();
+    toast.success(t.bulkDuplicated(inserts.length));
+  };
+
+  const handleBulkExport = (format: 'csv' | 'excel') => {
+    const data = bulk.selectedItems.map(b => ({
+      [t.budgetName]: b.name,
+      [t.budgetAmount]: b.amount,
+      [t.category]: b.categories?.name || '-',
+      [t.period]: b.period,
+      [t.budgetType]: (b as any).budget_type || 'expense',
+      [t.controlType]: (b as any).control_type || 'max',
+    }));
+    const ok = format === 'csv' ? exportToCSV(data, 'budgets') : exportToExcel(data, 'budgets');
+    if (ok) toast.success(t.saved);
   };
 
   if (loading) {
@@ -141,19 +198,17 @@ const BudgetsPage = () => {
     const pct = amount > 0 ? Math.min((actual / amount) * 100, 100) : 0;
     const controlType = b.control_type || 'max';
     const isIncome = b.budget_type === 'income';
-
-    // For max (expense): over = actual > amount (bad)
-    // For min (income/expense): under = actual < amount (bad), over = good
     const isMax = controlType === 'max';
     const isAlert = isMax ? actual > amount : actual < amount;
-    const isGood = isMax ? actual <= amount : actual >= amount;
     const remaining = isMax ? amount - actual : actual - amount;
+    const isSelected = bulk.selectedIds.has(b.id);
 
     return (
-      <Card key={b.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${isAlert ? 'ring-1 ring-destructive/20' : ''}`}>
+      <Card key={b.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-bold flex items-center gap-2.5">
+              <Checkbox checked={isSelected} onCheckedChange={() => bulk.toggle(b.id)} className="mr-1" />
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (b.categories?.color || '#6C63FF') + '20' }}>{b.categories?.icon || '📁'}</div>
               <div>
                 <span>{b.name}</span>
@@ -210,6 +265,35 @@ const BudgetsPage = () => {
     </Card>
   );
 
+  const renderTabContent = (budgetsList: any[]) => (
+    <>
+      {bulk.hasSelection && (
+        <BulkActionBar
+          count={bulk.count}
+          onDelete={() => setBulkDeleteOpen(true)}
+          onModify={() => { setBulkModifyForm({ period: '', category_id: '' }); setBulkModifyOpen(true); }}
+          onDuplicate={handleBulkDuplicate}
+          onExportCSV={canExportAdvanced ? () => handleBulkExport('csv') : undefined}
+          onExportExcel={canExportAdvanced ? () => handleBulkExport('excel') : undefined}
+          onClear={bulk.clear}
+        />
+      )}
+      {budgetsList.length === 0 ? renderEmptyState(activeTab) : (
+        <div className="space-y-2">
+          {budgetsList.length > 1 && (
+            <div className="flex items-center gap-2 px-1">
+              <Checkbox checked={bulk.isAllSelected} onCheckedChange={bulk.toggleAll} />
+              <span className="text-xs text-muted-foreground">{locale === 'fr' ? 'Tout sélectionner' : 'Select all'}</span>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {budgetsList.map(renderBudgetCard)}
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="space-y-6">
       {budgetLimitReached && <UpgradeBanner message={t.limitBudgetsReached(limits.budgets)} />}
@@ -218,7 +302,7 @@ const BudgetsPage = () => {
         <h2 className="text-2xl font-bold font-display">{t.budgets}</h2>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); bulk.clear(); }}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <TabsList className="rounded-xl">
             <TabsTrigger value="expense" className="rounded-lg gap-1.5">
@@ -234,22 +318,14 @@ const BudgetsPage = () => {
         </div>
 
         <TabsContent value="expense" className="mt-4">
-          {expenseBudgets.length === 0 ? renderEmptyState('expense') : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {expenseBudgets.map(renderBudgetCard)}
-            </div>
-          )}
+          {renderTabContent(expenseBudgets)}
         </TabsContent>
-
         <TabsContent value="income" className="mt-4">
-          {incomeBudgets.length === 0 ? renderEmptyState('income') : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {incomeBudgets.map(renderBudgetCard)}
-            </div>
-          )}
+          {renderTabContent(incomeBudgets)}
         </TabsContent>
       </Tabs>
 
+      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -332,7 +408,42 @@ const BudgetsPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Bulk Modify Dialog */}
+      <Dialog open={bulkModifyOpen} onOpenChange={setBulkModifyOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">{t.bulkModify}</DialogTitle>
+            <DialogDescription>{bulk.count} {locale === 'fr' ? 'sélectionné(s)' : 'selected'}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyPeriod}</Label>
+              <Select value={bulkModifyForm.period} onValueChange={v => setBulkModifyForm(f => ({ ...f, period: v }))}>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Ne pas changer' : 'No change'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">{t.weekly}</SelectItem>
+                  <SelectItem value="monthly">{t.monthly}</SelectItem>
+                  <SelectItem value="yearly">{t.yearly}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyCategory}</Label>
+              <Select value={bulkModifyForm.category_id} onValueChange={v => setBulkModifyForm(f => ({ ...f, category_id: v }))}>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Ne pas changer' : 'No change'} /></SelectTrigger>
+                <SelectContent>{allCategories.filter(c => c.type === activeTab).map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setBulkModifyOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleBulkModify}>{t.applyChanges}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDeleteDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} onConfirm={handleDelete} title={t.confirmDelete} description={t.confirmDeleteMessage} cancelLabel={t.cancel} confirmLabel={t.delete} />
+      <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(bulk.count)} cancelLabel={t.cancel} confirmLabel={t.delete} />
     </div>
   );
 };
