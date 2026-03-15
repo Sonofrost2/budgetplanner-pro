@@ -56,6 +56,25 @@ const AccountsPage = () => {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+  const bulk = useBulkSelection(filteredAccounts);
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(bulk.selectedIds);
+    const { error } = await supabase.from('payment_accounts').delete().in('id', ids);
+    if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
+    setBulkDeleteOpen(false); bulk.clear(); fetchData();
+    toast.success(t.bulkDeleted(ids.length));
+  };
+
+  const handleBulkExport = (format: 'csv' | 'excel') => {
+    const data = bulk.selectedItems.map(a => ({
+      [t.accountName]: a.name, [t.type]: a.type, [t.openingBalance]: a.opening_balance, [t.realBalance]: a.real_balance,
+    }));
+    const ok = format === 'csv' ? exportToCSV(data, 'accounts') : exportToExcel(data, 'accounts');
+    if (ok) toast.success(t.saved);
+  };
 
   const filteredAccounts = useMemo(() => {
     if (!typeFilter) return accounts;
