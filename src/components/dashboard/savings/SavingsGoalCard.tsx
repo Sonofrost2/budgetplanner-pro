@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock } from 'lucide-react';
+import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock, Lock, Unlock, Landmark, Sparkles } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
@@ -27,6 +27,7 @@ interface SavingsGoalCardProps {
   onWithdraw: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onSimulate?: () => void;
 }
 
 export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onEdit, onDelete }: SavingsGoalCardProps) => {
