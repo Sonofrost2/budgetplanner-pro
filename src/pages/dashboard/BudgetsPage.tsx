@@ -358,8 +358,11 @@ const BudgetsPage = () => {
           sortOrder={sortOrder}
           onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
           filterChips={[
+            { value: 'daily', label: t.daily, count: budgets.filter(b => b.period === 'daily').length },
             { value: 'weekly', label: t.weekly, count: budgets.filter(b => b.period === 'weekly').length },
             { value: 'monthly', label: t.monthly, count: budgets.filter(b => b.period === 'monthly').length },
+            { value: 'quarterly', label: t.quarterly, count: budgets.filter(b => b.period === 'quarterly').length },
+            { value: 'semi_annual', label: t.semiAnnual, count: budgets.filter(b => b.period === 'semi_annual').length },
             { value: 'yearly', label: t.yearly, count: budgets.filter(b => b.period === 'yearly').length },
           ].filter(c => c.count > 0)}
           activeFilter={filterPeriod}
