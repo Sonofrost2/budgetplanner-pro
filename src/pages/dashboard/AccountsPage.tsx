@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +23,7 @@ import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
+import CashCountDialog from '@/components/dashboard/CashCountDialog';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import type { Account, Transaction } from '@/hooks/useDashboardData';
@@ -40,7 +41,7 @@ const ICONS = ['💳', '📱', '🏦', '💵', '🌊', '🟠', '🟡', '🔵', '
 const AccountsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
+  const { fmt: fmtCurrency, currency } = useProfile();
   const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
   const [searchParams, setSearchParams] = useSearchParams();
@@ -58,6 +59,7 @@ const AccountsPage = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [cashCountAccount, setCashCountAccount] = useState<Account | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -355,9 +357,16 @@ const AccountsPage = () => {
                       </p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full text-xs rounded-xl" onClick={() => { setUpdateBalanceDialog(acc); setNewRealBalance(String(acc.real_balance)); }}>
-                    {t.updateRealBalance}
-                  </Button>
+                  {acc.type === 'cash' ? (
+                    <Button variant="outline" size="sm" className="w-full text-xs rounded-xl gap-1.5" onClick={() => setCashCountAccount(acc)}>
+                      <Coins className="w-3.5 h-3.5" />
+                      {t.cashCount}
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="w-full text-xs rounded-xl" onClick={() => { setUpdateBalanceDialog(acc); setNewRealBalance(String(acc.real_balance)); }}>
+                      {t.updateRealBalance}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -499,6 +508,20 @@ const AccountsPage = () => {
         />
       )}
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(bulk.count)} cancelLabel={t.cancel} confirmLabel={t.delete} />
+
+      {user && (
+        <CashCountDialog
+          open={!!cashCountAccount}
+          onOpenChange={v => { if (!v) setCashCountAccount(null); }}
+          account={cashCountAccount}
+          userId={user.id}
+          currency={currency}
+          locale={locale}
+          fmt={fmt}
+          t={t}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 };
