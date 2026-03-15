@@ -149,6 +149,12 @@ export const useBudgetNotifications = () => {
 
   useEffect(() => { checkNotifications(); }, [checkNotifications]);
 
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(checkNotifications, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [checkNotifications]);
+
   return { notifications, loading, refresh: checkNotifications };
 };
 
