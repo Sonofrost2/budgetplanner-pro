@@ -3,7 +3,7 @@ import { Wallet, Heart } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 
 const Footer = () => {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   return (
     <footer className="relative border-t border-glass-border glass-subtle">
