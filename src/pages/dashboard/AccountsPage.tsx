@@ -108,12 +108,21 @@ const AccountsPage = () => {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const [accRes, txRes] = await Promise.all([
+    const [accRes, txRes, ccRes] = await Promise.all([
       supabase.from('payment_accounts').select('*').eq('user_id', user.id).order('created_at'),
       supabase.from('transactions').select('type, amount, account_id').eq('user_id', user.id).limit(10000),
+      supabase.from('cash_counts').select('account_id, counted_at, total_counted').eq('user_id', user.id).order('counted_at', { ascending: false }),
     ]);
     setAccounts(accRes.data || []);
     setTransactions(txRes.data || []);
+    // Build map of latest cash count per account
+    const latestMap: Record<string, { counted_at: string; total_counted: number }> = {};
+    (ccRes.data || []).forEach(cc => {
+      if (cc.account_id && !latestMap[cc.account_id]) {
+        latestMap[cc.account_id] = { counted_at: cc.counted_at!, total_counted: Number(cc.total_counted) };
+      }
+    });
+    setCashCounts(latestMap);
     setLoading(false);
   }, [user]);
 
