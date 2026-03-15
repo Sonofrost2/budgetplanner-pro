@@ -19,6 +19,15 @@ interface AccountsWidgetProps {
   t: DashTranslations;
 }
 
+const listItem = {
+  hidden: { opacity: 0, x: -8 },
+  show: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: { delay: i * 0.06, duration: 0.3, ease: 'easeOut' as const },
+  }),
+};
+
 export const AccountsWidget = ({ accounts, fmt, t }: AccountsWidgetProps) => {
   const navigate = useNavigate();
 
@@ -38,7 +47,7 @@ export const AccountsWidget = ({ accounts, fmt, t }: AccountsWidgetProps) => {
         </div>
         <div className="px-4 pb-4">
           {accounts.length === 0 ? (
-            <div className="text-center py-6">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-6">
               <div className="w-10 h-10 rounded-xl bg-muted/50 mx-auto mb-2.5 flex items-center justify-center">
                 <CreditCard className="w-4 h-4 text-muted-foreground/40" />
               </div>
@@ -46,20 +55,36 @@ export const AccountsWidget = ({ accounts, fmt, t }: AccountsWidgetProps) => {
               <Button size="sm" variant="outline" className="rounded-xl h-7 text-[10px] glass border-glass-border" onClick={() => navigate('/dashboard/accounts')}>
                 <Plus className="w-3 h-3 mr-1" />{t.addAccount}
               </Button>
-            </div>
+            </motion.div>
           ) : (
             <div className="space-y-1">
-              {accounts.map(acc => (
-                <div key={acc.id} className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/30 transition-colors cursor-pointer active:scale-[0.98]" onClick={() => navigate('/dashboard/accounts')}>
+              {accounts.map((acc, i) => (
+                <motion.div
+                  key={acc.id}
+                  custom={i}
+                  variants={listItem}
+                  initial="hidden"
+                  animate="show"
+                  whileHover={{ x: 4, backgroundColor: 'hsl(var(--muted) / 0.3)' }}
+                  whileTap={{ scale: 0.97 }}
+                  className="flex items-center justify-between p-2 rounded-xl transition-colors cursor-pointer"
+                  onClick={() => navigate('/dashboard/accounts')}
+                >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-base">{acc.icon}</span>
+                    <motion.span
+                      className="text-base"
+                      whileHover={{ scale: 1.2, rotate: 10 }}
+                      transition={{ type: 'spring', stiffness: 400 }}
+                    >
+                      {acc.icon}
+                    </motion.span>
                     <div>
                       <p className="text-xs font-semibold">{acc.name}</p>
                       <p className="text-[10px] text-muted-foreground capitalize">{acc.type.replace('_', ' ')}</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold">{fmt(acc.real_balance)}</span>
-                </div>
+                  <span className="text-xs font-bold tabular-nums">{fmt(acc.real_balance)}</span>
+                </motion.div>
               ))}
             </div>
           )}
