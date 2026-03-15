@@ -146,6 +146,7 @@ const SecondaryStatRow = ({ label, value, icon: Icon, iconColor, bg, color, tren
 
 export const StatsCards = ({
   balance, totalIncome, totalExpenses, fmt, t,
+  onIncomeClick, onExpenseClick,
   savingsRate, netCashFlow, transactionCount, dailyAverage,
   topExpense, topIncome,
   prevIncome, prevExpenses, prevNetCashFlow, prevTransactionCount, prevDailyAverage, prevSavingsRate,
