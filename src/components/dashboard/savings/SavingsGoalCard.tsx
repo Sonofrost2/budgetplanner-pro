@@ -30,7 +30,7 @@ interface SavingsGoalCardProps {
   onSimulate?: () => void;
 }
 
-export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onEdit, onDelete }: SavingsGoalCardProps) => {
+export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onEdit, onDelete, onSimulate }: SavingsGoalCardProps) => {
   const pct = goal.target_amount > 0 ? Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100) : 0;
   const done = pct >= 100;
   const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.current_amount));
