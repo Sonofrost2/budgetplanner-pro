@@ -47,7 +47,7 @@ interface SimulationResult {
 const SavingsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
+  const { fmt: fmtCurrency, currency } = useProfile();
   const t = dashT[locale];
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
