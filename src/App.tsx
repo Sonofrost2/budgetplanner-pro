@@ -71,6 +71,8 @@ const AnimatedRoutes = () => {
           <Route path="family" element={<FamilyPage />} />
           <Route path="admin/pricing" element={<AdminPricingPage />} />
           <Route path="recurring" element={<RecurringPage />} />
+          <Route path="guide" element={<GuidePage />} />
+          <Route path="debts" element={<DebtsPage />} />
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>

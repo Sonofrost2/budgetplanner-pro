@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.ai-savings-simulate]
 verify_jwt = false
+
+[functions.process-recurring]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
