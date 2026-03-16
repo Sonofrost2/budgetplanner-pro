@@ -9,7 +9,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { PieChart as PieChartIcon, AlertTriangle, CheckCircle } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { abbreviateNumber } from '@/lib/utils';
+
+const TOOLTIP_STYLE = {
+  borderRadius: '12px',
+  border: 'none',
+  background: 'hsl(var(--card))',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+  fontSize: '12px',
+  padding: '8px 12px',
+};
 
 const BudgetAnalysisTab = () => {
   const { user } = useAuth();
@@ -58,7 +68,7 @@ const BudgetAnalysisTab = () => {
   const expenseBudgets = budgets.filter(b => (b as any).budget_type !== 'income');
 
   const chartData = expenseBudgets.map(b => ({
-    name: b.name,
+    name: b.name.length > 12 ? b.name.slice(0, 12) + '…' : b.name,
     budget: Number(b.amount),
     actual: spending[b.id] || 0,
   }));
@@ -116,20 +126,28 @@ const BudgetAnalysisTab = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={120} />
-                  <Tooltip formatter={(v: number) => fmt(v)} />
-                  <Legend />
+                  <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => abbreviateNumber(v, locale)} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={100} />
+                  <Tooltip formatter={(v: number) => fmt(v)} contentStyle={TOOLTIP_STYLE} />
                   <Bar dataKey="budget" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name={t.budgetAmount} />
                   <Bar dataKey="actual" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} name={t.spent} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            <div className="flex items-center justify-center gap-6 mt-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-3 h-1 rounded-full bg-primary" />
+                {t.budgetAmount}
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-3 h-1 rounded-full bg-destructive" />
+                {t.spent}
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Detail list */}
       <div className="space-y-3">
         {expenseBudgets.map(b => {
           const actual = spending[b.id] || 0;

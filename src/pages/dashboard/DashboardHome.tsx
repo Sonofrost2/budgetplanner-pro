@@ -331,7 +331,7 @@ const DashboardHome = () => {
           <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />
 
           {/* Charts */}
-          <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} />
+          <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} locale={locale} />
         </motion.div>
 
         {/* Right column — 1/3 */}
