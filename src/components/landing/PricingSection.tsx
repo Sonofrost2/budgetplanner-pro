@@ -64,18 +64,24 @@ const PricingSection = () => {
     if (plan.name === 'free') {
       const isCfa = detectedCurrency === 'XOF' || detectedCurrency === 'XAF';
       const formatted = isCfa ? '0 CFA' : detectedCurrency === 'EUR' ? '0 €' : detectedCurrency === 'USD' ? '0 $' : `0 ${detectedCurrency}`;
-      return { amount: 0, formatted, currency: detectedCurrency };
+      return { amount: 0, formatted, currency: detectedCurrency, monthlyEquivalent: '' };
     }
     const base = formatPrice(plan.currency_prices);
-    if (!base || base.amount === 0) return base;
-    if (!annual) return base;
-    const discounted = Math.round(base.amount * 0.8 * 100) / 100;
+    if (!base || base.amount === 0) return { ...base, monthlyEquivalent: '' };
+    if (!annual) return { ...base, monthlyEquivalent: '' };
+
+    // Annual: show TOTAL annual amount (monthly * 12 * 0.8)
+    const monthlyDiscounted = Math.round(base.amount * 0.8 * 100) / 100;
+    const totalAnnual = Math.round(monthlyDiscounted * 12);
     const { currency } = base;
     const isCfa = currency === 'XOF' || currency === 'XAF';
     const formatted = isCfa
-      ? `${Math.round(discounted).toLocaleString('fr-FR')} CFA`
-      : `${discounted.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency}`;
-    return { amount: discounted, formatted, currency };
+      ? `${totalAnnual.toLocaleString('fr-FR')} CFA`
+      : `${totalAnnual.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency}`;
+    const monthlyFormatted = isCfa
+      ? `${Math.round(monthlyDiscounted).toLocaleString('fr-FR')} CFA`
+      : `${monthlyDiscounted.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency}`;
+    return { amount: totalAnnual, formatted, currency, monthlyEquivalent: monthlyFormatted };
   };
 
   const planCards = [
