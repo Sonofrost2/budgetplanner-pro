@@ -172,6 +172,17 @@ const BudgetsPage = () => {
     if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
     if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
     if (!VALID_PERIODS.includes(form.period as any)) errs.period = locale === 'fr' ? 'Période invalide' : 'Invalid period';
+    // Validate reference_date for periodic budgets
+    if (['quarterly', 'semi_annual', 'yearly'].includes(form.period) && !form.reference_date) {
+      errs.reference_date = locale === 'fr' ? 'Date de référence requise pour cette période' : 'Reference date required for this period';
+    }
+    // Validate active_days for daily budgets
+    if (form.period === 'daily') {
+      const days = form.active_days.split(',').filter(Boolean);
+      if (days.length === 0) {
+        errs.active_days = locale === 'fr' ? 'Sélectionnez au moins un jour actif' : 'Select at least one active day';
+      }
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };

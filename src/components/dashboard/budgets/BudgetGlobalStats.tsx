@@ -32,7 +32,11 @@ const BudgetGlobalStats = ({ budgets, spending, fmt }: BudgetGlobalStatsProps) =
 
     for (const b of budgets) {
       const amount = Number(b.amount);
-      const multiplier = PERIOD_MULTIPLIER[b.period] || 12;
+      // For daily budgets with active_days, scale down from 365
+      const activeDaysArr = b.active_days ? String(b.active_days).split(',').filter(Boolean) : [];
+      const multiplier = b.period === 'daily' && activeDaysArr.length > 0
+        ? Math.round((activeDaysArr.length / 7) * 365)
+        : (PERIOD_MULTIPLIER[b.period] || 12);
       totalAnnualized += amount * multiplier;
       totalBudgetPeriod += amount;
 
