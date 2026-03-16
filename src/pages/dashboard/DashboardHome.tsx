@@ -20,6 +20,7 @@ import { ForecastWidget } from '@/components/dashboard/home/ForecastWidget';
 import { ChartsSection } from '@/components/dashboard/home/ChartsSection';
 import { RecentTransactions } from '@/components/dashboard/home/RecentTransactions';
 import { AccountsSummaryWidget } from '@/components/dashboard/home/AccountsSummaryWidget';
+import { WeeklyPlannerWidget } from '@/components/dashboard/home/WeeklyPlannerWidget';
 import { useAccounts, useTransactionsRange, useBudgets, useSavingsGoals, useChartData } from '@/hooks/useDashboardData';
 
 type PeriodKey = 'today' | 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisSemester' | 'thisYear' | 'custom';
