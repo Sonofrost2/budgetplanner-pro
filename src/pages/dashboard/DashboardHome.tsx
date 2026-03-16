@@ -339,6 +339,7 @@ const DashboardHome = () => {
 
         {/* Right column — 1/3 */}
         <motion.div variants={fadeUp} className="space-y-4">
+          <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} />
           <AccountsWidget accounts={accounts} fmt={fmt} t={t} />
           <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />
           <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />
