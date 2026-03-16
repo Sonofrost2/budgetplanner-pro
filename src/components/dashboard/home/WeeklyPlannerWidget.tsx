@@ -20,6 +20,8 @@ interface Budget {
   category_id: string | null;
   expected_day?: number | null;
   occurrence_frequency?: string | null;
+  reference_date?: string | null;
+  active_days?: string | null;
   categories?: { name: string; icon: string; color: string } | null;
 }
 
@@ -120,73 +122,113 @@ function getOccurrencesInWeek(
 ): number {
   const freq = budget.occurrence_frequency;
   const expectedDay = budget.expected_day;
+  const refDateStr = budget.reference_date;
+  const activeDays = budget.active_days;
 
   // No frequency info: fall back to proportional allocation
   if (!freq) return -1; // sentinel: use proportional
 
-  if (freq === 'daily') return 7;
+  if (freq === 'daily') {
+    // If active_days is set, count how many active days fall in this week
+    if (activeDays) {
+      const activeDayNums = activeDays.split(',').filter(Boolean).map(Number);
+      let count = 0;
+      for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+        const jsDay = d.getDay();
+        const isoDay = jsDay === 0 ? 7 : jsDay;
+        if (activeDayNums.includes(isoDay)) count++;
+      }
+      return count;
+    }
+    return 7;
+  }
 
   if (freq === 'once') {
-    // One-time: only if expected_day falls in this week
+    // If reference_date is set, check if it falls in this week
+    if (refDateStr) {
+      const refDate = new Date(refDateStr);
+      if (refDate >= weekStart && refDate <= weekEnd) return 1;
+      return 0;
+    }
     if (expectedDay && dayFallsInWeek(expectedDay, budget.period, weekStart, weekEnd)) return 1;
-    return 0; // not this week, but we don't know when → use proportional
+    return 0;
   }
 
   if (freq === 'weekly') {
-    // Occurs every week; if expected_day set, check it falls in week (it always should for weekly)
     return 1;
   }
 
   if (freq === 'biweekly') {
-    // Occurs every 2 weeks; approximate: 0.5 per week on average, but check expected_day
     if (expectedDay && dayFallsInWeek(expectedDay, budget.period, weekStart, weekEnd)) {
-      // Check if this is an "on" week (using week number parity)
       const weekNum = Math.floor(weekStart.getTime() / (7 * 86400000));
       return weekNum % 2 === 0 ? 1 : 0;
     }
-    return -1; // proportional fallback
-  }
-
-  if (freq === 'monthly') {
-    if (expectedDay && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
-    if (expectedDay) return 0; // has expected day but not this week
-    return -1; // no expected day, use proportional
-  }
-
-  if (freq === 'quarterly') {
-    // Check if expected_day falls in this week AND we're in a quarter-start month
-    const monthsInWeek = new Set<number>();
-    for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
-      monthsInWeek.add(d.getMonth());
-    }
-    const quarterMonths = [0, 3, 6, 9];
-    const isQuarterMonth = [...monthsInWeek].some(m => quarterMonths.includes(m));
-    if (expectedDay && isQuarterMonth && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
-    if (expectedDay) return 0;
     return -1;
   }
 
-  if (freq === 'semi_annual') {
-    const monthsInWeek = new Set<number>();
-    for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
-      monthsInWeek.add(d.getMonth());
+  // For monthly, quarterly, semi_annual, yearly: use reference_date if available
+  if (['monthly', 'quarterly', 'semi_annual', 'yearly'].includes(freq)) {
+    if (refDateStr) {
+      const refDate = new Date(refDateStr);
+      const increment = freq === 'monthly' ? 1 : freq === 'quarterly' ? 3 : freq === 'semi_annual' ? 6 : 12;
+      
+      // Generate occurrences near this week
+      let d = new Date(refDate);
+      // Go back far enough
+      const twoYearsAgo = new Date(weekStart);
+      twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+      while (d > twoYearsAgo) { d.setMonth(d.getMonth() - increment); }
+      // Now iterate forward to find if any occurrence lands in this week
+      const twoYearsAhead = new Date(weekEnd);
+      twoYearsAhead.setFullYear(twoYearsAhead.getFullYear() + 1);
+      while (d <= twoYearsAhead) {
+        if (d >= weekStart && d <= weekEnd) return 1;
+        d = new Date(d);
+        d.setMonth(d.getMonth() + increment);
+      }
+      return 0;
     }
-    const semiMonths = [0, 6];
-    const isSemiMonth = [...monthsInWeek].some(m => semiMonths.includes(m));
-    if (expectedDay && isSemiMonth && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
-    if (expectedDay) return 0;
-    return -1;
-  }
+    
+    // Fallback to expectedDay logic
+    if (freq === 'monthly') {
+      if (expectedDay && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
+      if (expectedDay) return 0;
+      return -1;
+    }
 
-  if (freq === 'yearly') {
-    // Only in January on expected_day
-    const monthsInWeek = new Set<number>();
-    for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
-      monthsInWeek.add(d.getMonth());
+    if (freq === 'quarterly') {
+      const monthsInWeek = new Set<number>();
+      for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+        monthsInWeek.add(d.getMonth());
+      }
+      const quarterMonths = [0, 3, 6, 9];
+      const isQuarterMonth = [...monthsInWeek].some(m => quarterMonths.includes(m));
+      if (expectedDay && isQuarterMonth && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
+      if (expectedDay) return 0;
+      return -1;
     }
-    if (expectedDay && monthsInWeek.has(0) && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
-    if (expectedDay) return 0;
-    return -1;
+
+    if (freq === 'semi_annual') {
+      const monthsInWeek = new Set<number>();
+      for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+        monthsInWeek.add(d.getMonth());
+      }
+      const semiMonths = [0, 6];
+      const isSemiMonth = [...monthsInWeek].some(m => semiMonths.includes(m));
+      if (expectedDay && isSemiMonth && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
+      if (expectedDay) return 0;
+      return -1;
+    }
+
+    if (freq === 'yearly') {
+      const monthsInWeek = new Set<number>();
+      for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+        monthsInWeek.add(d.getMonth());
+      }
+      if (expectedDay && monthsInWeek.has(0) && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
+      if (expectedDay) return 0;
+      return -1;
+    }
   }
 
   return -1; // unknown frequency, use proportional
@@ -209,15 +251,15 @@ function computeWeeklyTarget(
 
   if (occurrences > 0) {
     // We know exactly how many times it occurs this week
-    if (budget.occurrence_frequency === 'daily') return amount * 7; // daily budget = amount per day
+    if (budget.occurrence_frequency === 'daily') return amount * occurrences; // daily budget = amount per active day
     // For other frequencies: the full budget amount is for each occurrence
-    // But if the budget period covers multiple occurrences, divide accordingly
     const freq = budget.occurrence_frequency;
     if (freq === 'weekly' && period === 'weekly') return amount;
-    if (freq === 'weekly' && period === 'monthly') return amount / 4.33; // monthly budget, weekly spend
-    if (freq === 'monthly' || freq === 'once') return amount; // full amount this week
-    if (freq === 'biweekly' && occurrences === 1) return amount; // biweekly, this is the week
-    return amount * occurrences; // fallback
+    if (freq === 'weekly' && period === 'monthly') return amount / 4.33;
+    if (freq === 'monthly' || freq === 'once') return amount;
+    if (freq === 'quarterly' || freq === 'semi_annual' || freq === 'yearly') return amount;
+    if (freq === 'biweekly' && occurrences === 1) return amount;
+    return amount * occurrences;
   }
 
   // Proportional fallback (occurrences === -1)

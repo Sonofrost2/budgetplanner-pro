@@ -48,7 +48,7 @@ const BudgetsPage = () => {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly', alert_threshold: '80', budget_type: 'expense', control_type: 'max', expected_day: '', occurrence_frequency: '' });
+  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly', alert_threshold: '80', budget_type: 'expense', control_type: 'max', expected_day: '', occurrence_frequency: '', reference_date: '', active_days: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -177,20 +177,20 @@ const BudgetsPage = () => {
     if (budgetLimitReached) { toast.error(t.limitBudgetsToast(limits.budgets)); return; }
     const cats = allCategories.filter(c => c.type === budgetType);
     setErrors({}); setEditId(null);
-    setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max', expected_day: '', occurrence_frequency: '' });
+    setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max', expected_day: '', occurrence_frequency: '', reference_date: '', active_days: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (b: any) => {
     setErrors({}); setEditId(b.id);
-    setForm({ name: b.name, amount: String(b.amount), category_id: b.category_id || '', period: b.period || 'monthly', alert_threshold: String(b.alert_threshold ?? 80), budget_type: b.budget_type || 'expense', control_type: b.control_type || 'max', expected_day: b.expected_day ? String(b.expected_day) : '', occurrence_frequency: b.occurrence_frequency || '' });
+    setForm({ name: b.name, amount: String(b.amount), category_id: b.category_id || '', period: b.period || 'monthly', alert_threshold: String(b.alert_threshold ?? 80), budget_type: b.budget_type || 'expense', control_type: b.control_type || 'max', expected_day: b.expected_day ? String(b.expected_day) : '', occurrence_frequency: b.occurrence_frequency || '', reference_date: b.reference_date || '', active_days: b.active_days || '' });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
     if (!user || !validate()) return;
     setSaving(true);
-    const payload = { name: form.name.trim(), amount: Number(form.amount), category_id: form.category_id || null, period: form.period, alert_threshold: Number(form.alert_threshold) || 80, budget_type: form.budget_type, control_type: form.control_type, expected_day: form.expected_day ? Number(form.expected_day) : null, occurrence_frequency: form.occurrence_frequency || null };
+    const payload = { name: form.name.trim(), amount: Number(form.amount), category_id: form.category_id || null, period: form.period, alert_threshold: Number(form.alert_threshold) || 80, budget_type: form.budget_type, control_type: form.control_type, expected_day: form.expected_day ? Number(form.expected_day) : null, occurrence_frequency: form.occurrence_frequency || null, reference_date: form.reference_date || null, active_days: form.active_days || null };
     const { error } = editId
       ? await supabase.from('budgets').update(payload).eq('id', editId)
       : await supabase.from('budgets').insert({ ...payload, user_id: user.id });
@@ -322,6 +322,8 @@ const BudgetsPage = () => {
       control_type: s.budget_type === 'income' ? 'min' : 'max',
       expected_day: '',
       occurrence_frequency: '',
+      reference_date: '',
+      active_days: '',
     });
     setDialogOpen(true);
   };
@@ -439,10 +441,16 @@ const BudgetsPage = () => {
             </p>
           )}
 
-          {/* Expected day & occurrence frequency indicators */}
-          {(b.expected_day || b.occurrence_frequency) && (
+          {/* Scheduling indicators */}
+          {(b.expected_day || b.occurrence_frequency || b.reference_date || b.active_days) && (
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {b.expected_day && (
+              {b.reference_date && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/8 text-primary text-[10px] font-semibold border border-primary/15">
+                  <Calendar className="w-3 h-3" />
+                  {new Date(b.reference_date).toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })}
+                </span>
+              )}
+              {!b.reference_date && b.expected_day && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/8 text-primary text-[10px] font-semibold border border-primary/15">
                   <Clock className="w-3 h-3" />
                   {locale === 'fr' ? `Jour ${b.expected_day}` : `Day ${b.expected_day}`}
@@ -454,6 +462,29 @@ const BudgetsPage = () => {
                   {occFreqLabels[b.occurrence_frequency] || b.occurrence_frequency}
                 </span>
               )}
+              {b.active_days && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/10 text-secondary text-[10px] font-semibold border border-secondary/15">
+                  <Calendar className="w-3 h-3" />
+                  {b.active_days === '1,2,3,4,5,6,7' ? (locale === 'fr' ? '7j/7' : '7d/7') :
+                   b.active_days === '1,2,3,4,5' ? (locale === 'fr' ? 'Lun-Ven' : 'Mon-Fri') :
+                   b.active_days.split(',').map((d: string) => {
+                     const labels: Record<string, string> = locale === 'fr' ? { '1': 'L', '2': 'M', '3': 'Me', '4': 'J', '5': 'V', '6': 'S', '7': 'D' } : { '1': 'M', '2': 'T', '3': 'W', '4': 'T', '5': 'F', '6': 'S', '7': 'S' };
+                     return labels[d] || d;
+                   }).join('·')}
+                </span>
+              )}
+              {b.reference_date && ['quarterly', 'semi_annual', 'yearly'].includes(b.period) && (() => {
+                const refDate = new Date(b.reference_date);
+                const increment = b.period === 'quarterly' ? 3 : b.period === 'semi_annual' ? 6 : 12;
+                const now = new Date();
+                let d = new Date(refDate);
+                while (d < now) { d.setMonth(d.getMonth() + increment); }
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium border border-border/50">
+                    {locale === 'fr' ? 'Prochain' : 'Next'}: {d.toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })}
+                  </span>
+                );
+              })()}
             </div>
           )}
         </CardContent>
@@ -700,6 +731,84 @@ const BudgetsPage = () => {
                 <p className="text-[10px] text-muted-foreground">{t.occurrenceHint}</p>
               </div>
             </div>
+
+            {/* Reference date for periodic budgets */}
+            {['quarterly', 'semi_annual', 'yearly', 'monthly'].includes(form.period) && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3" />{t.referenceDate}
+                </Label>
+                <Input
+                  type="date"
+                  value={form.reference_date}
+                  onChange={e => setForm(f => ({ ...f, reference_date: e.target.value }))}
+                  className="rounded-xl h-10"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  {t.referenceDateHint}
+                  {['quarterly', 'semi_annual', 'yearly'].includes(form.period) && (
+                    <span className="block mt-0.5 text-primary/80">{t.referenceDateQuarterlyHint}</span>
+                  )}
+                </p>
+                {form.reference_date && ['quarterly', 'semi_annual', 'yearly'].includes(form.period) && (
+                  <div className="bg-muted/50 rounded-lg px-3 py-2 text-[10px] space-y-0.5">
+                    <p className="font-semibold text-muted-foreground">{t.nextOccurrence}:</p>
+                    {(() => {
+                      const refDate = new Date(form.reference_date);
+                      const dates: string[] = [];
+                      const increment = form.period === 'quarterly' ? 3 : form.period === 'semi_annual' ? 6 : 12;
+                      const now = new Date();
+                      let d = new Date(refDate);
+                      while (d < now) { d.setMonth(d.getMonth() + increment); }
+                      for (let i = 0; i < 4; i++) {
+                        dates.push(d.toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }));
+                        d = new Date(d); d.setMonth(d.getMonth() + increment);
+                      }
+                      return dates.map((dt, i) => <span key={i} className="inline-block mr-2 text-foreground font-medium">📅 {dt}</span>);
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Active days for daily budgets */}
+            {form.period === 'daily' && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.activeDays}</Label>
+                <div className="flex gap-1.5">
+                  {[
+                    { key: '1', label: t.activeDaysMon },
+                    { key: '2', label: t.activeDaysTue },
+                    { key: '3', label: t.activeDaysWed },
+                    { key: '4', label: t.activeDaysThu },
+                    { key: '5', label: t.activeDaysFri },
+                    { key: '6', label: t.activeDaysSat },
+                    { key: '7', label: t.activeDaysSun },
+                  ].map(day => {
+                    const selected = form.active_days.split(',').filter(Boolean).includes(day.key);
+                    return (
+                      <button
+                        key={day.key}
+                        type="button"
+                        onClick={() => {
+                          const current = form.active_days.split(',').filter(Boolean);
+                          const next = selected ? current.filter(d => d !== day.key) : [...current, day.key].sort();
+                          setForm(f => ({ ...f, active_days: next.join(',') }));
+                        }}
+                        className={`w-9 h-9 rounded-lg text-[10px] font-bold transition-all border ${selected ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/30 text-muted-foreground border-border hover:bg-muted/50'}`}
+                      >
+                        {day.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-2 mt-1">
+                  <button type="button" className="text-[10px] text-primary underline" onClick={() => setForm(f => ({ ...f, active_days: '1,2,3,4,5,6,7' }))}>{t.allDays}</button>
+                  <button type="button" className="text-[10px] text-primary underline" onClick={() => setForm(f => ({ ...f, active_days: '1,2,3,4,5' }))}>{t.weekdays}</button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">{t.activeDaysHint}</p>
+              </div>
+            )}
           </div>
       </ResponsiveFormDialog>
 

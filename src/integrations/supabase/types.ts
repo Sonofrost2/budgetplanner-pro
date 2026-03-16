@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       budgets: {
         Row: {
+          active_days: string | null
           alert_threshold: number | null
           amount: number
           budget_type: string
@@ -27,10 +28,12 @@ export type Database = {
           name: string
           occurrence_frequency: string | null
           period: string
+          reference_date: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          active_days?: string | null
           alert_threshold?: number | null
           amount: number
           budget_type?: string
@@ -42,10 +45,12 @@ export type Database = {
           name: string
           occurrence_frequency?: string | null
           period?: string
+          reference_date?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          active_days?: string | null
           alert_threshold?: number | null
           amount?: number
           budget_type?: string
@@ -57,6 +62,7 @@ export type Database = {
           name?: string
           occurrence_frequency?: string | null
           period?: string
+          reference_date?: string | null
           updated_at?: string
           user_id?: string
         }
