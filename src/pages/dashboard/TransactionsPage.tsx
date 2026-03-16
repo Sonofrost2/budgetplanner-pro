@@ -693,6 +693,29 @@ const TransactionsPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Budget Overspend Confirmation */}
+      <AlertDialog open={budgetOverspendOpen} onOpenChange={setBudgetOverspendOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              {locale === 'fr' ? 'Budget dépassé' : 'Budget exceeded'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {locale === 'fr'
+                ? `Le budget "${overspendBudgetName}" est déjà consommé à 100%. Souhaitez-vous quand même imputer cette dépense ? Cela créera un dépassement volontaire.`
+                : `The budget "${overspendBudgetName}" is already 100% consumed. Do you still want to record this expense? This will create a voluntary overspend.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">{t.cancel}</AlertDialogCancel>
+            <AlertDialogAction className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleForceOverspend}>
+              {locale === 'fr' ? 'Confirmer le dépassement' : 'Confirm overspend'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

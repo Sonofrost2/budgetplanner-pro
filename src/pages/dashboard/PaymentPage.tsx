@@ -215,11 +215,13 @@ const PaymentPage = () => {
           <div className="pt-2">
             <span className="text-4xl font-bold">{price === 0 ? '0' : fmt(price, locale).replace(/\s/g, ' ')}</span>
             <span className="text-muted-foreground text-sm ml-1">
-              {currency}/{annual ? t.perMonthAnnual : t.perMonth}
+              {currency}/{annual ? (locale === 'fr' ? 'an' : 'yr') : t.perMonth}
             </span>
           </div>
           {annual && price > 0 && (
-            <p className="text-xs text-muted-foreground line-through">{fmt(originalPrice, locale)}/{t.perMonth}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              ≈ {fmt(getMonthlyEquivalent(plan), locale)}{t.perMonth}
+            </p>
           )}
         </CardHeader>
         <CardContent className="space-y-3">
