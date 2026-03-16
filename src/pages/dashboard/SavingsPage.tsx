@@ -37,12 +37,18 @@ import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSumma
 import { SavingsControlTable } from '@/components/dashboard/savings/SavingsControlTable';
 import { SavingsGlobalStats } from '@/components/dashboard/savings/SavingsGlobalStats';
 
-interface SimulationResult {
+interface ScenarioData {
   monthly_projections: { month: number; capital: number; interest_earned: number; total: number }[];
   interest_income_1y: number;
   interest_income_3y: number;
   interest_income_5y: number;
-  estimated_goal_date?: string;
+  estimated_goal_date?: string | null;
+}
+
+interface SimulationResult {
+  continue: ScenarioData;
+  stop_now: ScenarioData;
+  interest_lost: number;
   recommendations: string[];
   summary: string;
 }
