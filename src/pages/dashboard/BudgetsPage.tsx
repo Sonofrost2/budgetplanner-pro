@@ -630,6 +630,45 @@ const BudgetsPage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Expected day & occurrence frequency */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3" />{t.expectedDay}
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max={form.period === 'weekly' ? 7 : 31}
+                  value={form.expected_day}
+                  onChange={e => setForm(f => ({ ...f, expected_day: e.target.value }))}
+                  placeholder={form.period === 'weekly' ? '1-7' : '1-31'}
+                  className="rounded-xl h-11"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  {form.period === 'weekly' ? t.expectedDayWeekHint : t.expectedDayMonthHint}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.occurrenceFrequency}</Label>
+                <Select value={form.occurrence_frequency} onValueChange={v => setForm(f => ({ ...f, occurrence_frequency: v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.occurrenceAuto} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="once">{t.occurrenceOnce}</SelectItem>
+                    <SelectItem value="daily">{t.daily}</SelectItem>
+                    <SelectItem value="weekly">{t.weekly}</SelectItem>
+                    <SelectItem value="biweekly">{t.occurrenceBiweekly}</SelectItem>
+                    <SelectItem value="monthly">{t.monthly}</SelectItem>
+                    <SelectItem value="quarterly">{t.quarterly}</SelectItem>
+                    <SelectItem value="semi_annual">{t.semiAnnual}</SelectItem>
+                    <SelectItem value="yearly">{t.yearly}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">{t.occurrenceHint}</p>
+              </div>
+            </div>
+          </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
