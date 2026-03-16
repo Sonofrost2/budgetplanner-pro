@@ -780,6 +780,7 @@ const BudgetsPage = () => {
                 <p className="text-[10px] text-muted-foreground">{t.activeDaysHint}</p>
               </div>
             )}
+          </div>
       </ResponsiveFormDialog>
 
       {/* Bulk Modify Dialog */}
