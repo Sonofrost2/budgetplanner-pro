@@ -168,9 +168,14 @@ const PricingSection = () => {
                   <div className="flex flex-wrap items-baseline gap-x-1.5">
                     <span className="text-3xl font-extrabold">{card.price?.formatted ?? '—'}</span>
                     {card.plan?.name !== 'free' && (
-                      <span className="text-xs text-muted-foreground">{annual ? t.pricing.perMonthAnnual : t.pricing.perMonth}</span>
+                      <span className="text-xs text-muted-foreground">{annual ? '/an' : t.pricing.perMonth}</span>
                     )}
                   </div>
+                  {annual && card.price?.monthlyEquivalent && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      ≈ {card.price.monthlyEquivalent}{t.pricing.perMonth}
+                    </p>
+                  )}
                   {card.trial > 0 && (
                     <p className="mt-2 text-[10px] font-semibold text-primary bg-primary/10 inline-block px-2.5 py-0.5 rounded-full">
                       {card.trial} {t.pricing.trialDays}
