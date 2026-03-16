@@ -175,7 +175,7 @@ const BudgetsPage = () => {
     if (budgetLimitReached) { toast.error(t.limitBudgetsToast(limits.budgets)); return; }
     const cats = allCategories.filter(c => c.type === budgetType);
     setErrors({}); setEditId(null);
-    setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max' });
+    setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max', expected_day: '', occurrence_frequency: '' });
     setDialogOpen(true);
   };
 
