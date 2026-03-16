@@ -441,10 +441,16 @@ const BudgetsPage = () => {
             </p>
           )}
 
-          {/* Expected day & occurrence frequency indicators */}
-          {(b.expected_day || b.occurrence_frequency) && (
+          {/* Scheduling indicators */}
+          {(b.expected_day || b.occurrence_frequency || b.reference_date || b.active_days) && (
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {b.expected_day && (
+              {b.reference_date && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/8 text-primary text-[10px] font-semibold border border-primary/15">
+                  <Calendar className="w-3 h-3" />
+                  {new Date(b.reference_date).toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })}
+                </span>
+              )}
+              {!b.reference_date && b.expected_day && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/8 text-primary text-[10px] font-semibold border border-primary/15">
                   <Clock className="w-3 h-3" />
                   {locale === 'fr' ? `Jour ${b.expected_day}` : `Day ${b.expected_day}`}
@@ -456,6 +462,29 @@ const BudgetsPage = () => {
                   {occFreqLabels[b.occurrence_frequency] || b.occurrence_frequency}
                 </span>
               )}
+              {b.active_days && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/10 text-secondary text-[10px] font-semibold border border-secondary/15">
+                  <Calendar className="w-3 h-3" />
+                  {b.active_days === '1,2,3,4,5,6,7' ? (locale === 'fr' ? '7j/7' : '7d/7') :
+                   b.active_days === '1,2,3,4,5' ? (locale === 'fr' ? 'Lun-Ven' : 'Mon-Fri') :
+                   b.active_days.split(',').map((d: string) => {
+                     const labels: Record<string, string> = locale === 'fr' ? { '1': 'L', '2': 'M', '3': 'Me', '4': 'J', '5': 'V', '6': 'S', '7': 'D' } : { '1': 'M', '2': 'T', '3': 'W', '4': 'T', '5': 'F', '6': 'S', '7': 'S' };
+                     return labels[d] || d;
+                   }).join('·')}
+                </span>
+              )}
+              {b.reference_date && ['quarterly', 'semi_annual', 'yearly'].includes(b.period) && (() => {
+                const refDate = new Date(b.reference_date);
+                const increment = b.period === 'quarterly' ? 3 : b.period === 'semi_annual' ? 6 : 12;
+                const now = new Date();
+                let d = new Date(refDate);
+                while (d < now) { d.setMonth(d.getMonth() + increment); }
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium border border-border/50">
+                    {locale === 'fr' ? 'Prochain' : 'Next'}: {d.toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })}
+                  </span>
+                );
+              })()}
             </div>
           )}
         </CardContent>
