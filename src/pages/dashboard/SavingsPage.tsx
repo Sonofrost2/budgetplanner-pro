@@ -74,7 +74,7 @@ const SavingsPage = () => {
   const [targetAccountId, setTargetAccountId] = useState('');
   const [form, setForm] = useState({
     name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '',
-    monthly_contribution: '', start_date: '',
+    monthly_contribution: '', start_date: '', contribution_day: '',
     is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
   });
   const [loading, setLoading] = useState(true);
