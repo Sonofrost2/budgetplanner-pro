@@ -610,6 +610,8 @@ const AccountsPage = () => {
           </div>
         </SheetContent>
       </Sheet>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
