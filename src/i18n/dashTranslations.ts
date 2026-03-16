@@ -525,6 +525,15 @@ export const dashT = {
     weeklyOver: 'Dépassé',
     weeklyIncomeExpected: 'Revenus prévus',
     weeklyNetBalance: 'Solde net hebdomadaire',
+    // Budget scheduling
+    expectedDay: 'Jour prévu',
+    expectedDayWeekHint: '1=Lun, 2=Mar, ..., 7=Dim',
+    expectedDayMonthHint: 'Jour du mois (ex: 25 pour le salaire)',
+    occurrenceFrequency: 'Fréquence',
+    occurrenceAuto: 'Automatique',
+    occurrenceOnce: 'Une seule fois',
+    occurrenceBiweekly: 'Bimensuel',
+    occurrenceHint: 'À quelle fréquence cette dépense/revenu a lieu',
   },
   en: {
     dashboard: 'Dashboard',
