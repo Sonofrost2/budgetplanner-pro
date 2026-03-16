@@ -121,10 +121,19 @@ const DebtsPage = () => {
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
-          <DialogHeader><DialogTitle className="text-xl font-bold">{editId ? t.edit : t.addDebt}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Enregistrez une dette à suivre' : 'Record a debt to track'}</DialogDescription></DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 pr-1 form-animate">
+      <ResponsiveFormDialog
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}
+        title={editId ? t.edit : t.addDebt}
+        description={locale === 'fr' ? 'Enregistrez une dette à suivre' : 'Record a debt to track'}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button>
+          </>
+        }
+      >
+          <div className="space-y-4">
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.creditor}</Label><Input value={form.creditor_name} onChange={e => setForm(f => ({ ...f, creditor_name: e.target.value }))} className="rounded-xl h-11" /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.totalDebt}</Label><Input type="number" min="1" value={form.total_amount} onChange={e => setForm(f => ({ ...f, total_amount: e.target.value }))} className="rounded-xl h-11" /></div>
@@ -133,9 +142,7 @@ const DebtsPage = () => {
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.deadline} ({t.optional})</Label><Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="rounded-xl h-11" /></div>
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.notes} ({t.optional})</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="rounded-xl h-11" /></div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0"><Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button><Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveFormDialog>
 
       <Dialog open={!!payDialog} onOpenChange={() => setPayDialog(null)}>
         <DialogContent className="sm:max-w-md">
