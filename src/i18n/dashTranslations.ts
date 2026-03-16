@@ -407,6 +407,8 @@ export const dashT = {
     interestLost: 'Manque à gagner si arrêt',
     ifYouStopToday: 'Si vous arrêtez les cotisations aujourd\'hui, vous perdriez',
     inInterest: 'en intérêts sur 1 an',
+    comparisonChart: 'Comparaison des scénarios',
+    exportPDF: 'Exporter en PDF',
     simulateAI: 'Simuler avec l\'IA',
     simulating: 'Simulation en cours...',
     simulationTitle: 'Simulation IA de l\'épargne',
