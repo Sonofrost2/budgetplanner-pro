@@ -232,6 +232,17 @@ const AccountsPage = () => {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="manage">
+        <TabsList className="rounded-xl mb-4">
+          <TabsTrigger value="manage" className="rounded-lg gap-1.5"><Wallet className="w-4 h-4" />{t.management}</TabsTrigger>
+          <TabsTrigger value="recap" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{t.accountsRecap}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="recap">
+          <AccountsRecapTab />
+        </TabsContent>
+
+        <TabsContent value="manage">
       {accountLimitReached && (
         <UpgradeBanner message={t.limitAccountsReached(limits.accounts)} />
       )}
