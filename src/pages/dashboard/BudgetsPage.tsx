@@ -460,6 +460,7 @@ const BudgetsPage = () => {
       </Card>
       </ScrollReveal>
     );
+  };
 
   const renderEmptyState = (budgetType: string) => (
     <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
