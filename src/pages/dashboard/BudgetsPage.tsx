@@ -172,6 +172,17 @@ const BudgetsPage = () => {
     if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
     if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
     if (!VALID_PERIODS.includes(form.period as any)) errs.period = locale === 'fr' ? 'Période invalide' : 'Invalid period';
+    // Validate reference_date for periodic budgets
+    if (['quarterly', 'semi_annual', 'yearly'].includes(form.period) && !form.reference_date) {
+      errs.reference_date = locale === 'fr' ? 'Date de référence requise pour cette période' : 'Reference date required for this period';
+    }
+    // Validate active_days for daily budgets
+    if (form.period === 'daily') {
+      const days = form.active_days.split(',').filter(Boolean);
+      if (days.length === 0) {
+        errs.active_days = locale === 'fr' ? 'Sélectionnez au moins un jour actif' : 'Select at least one active day';
+      }
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -353,7 +364,11 @@ const BudgetsPage = () => {
     const dailyPace = actual / daysElapsed;
     const expectedPace = amount / daysTotal;
     const projection = (actual / daysElapsed) * daysTotal;
-    const annualized = amount * (PERIOD_MULTIPLIER[b.period] || 12);
+    // Annualized: for daily budgets with active_days, scale down from 365
+    const activeDaysArr = b.active_days ? b.active_days.split(',').filter(Boolean) : [];
+    const annualized = b.period === 'daily' && activeDaysArr.length > 0
+      ? amount * Math.round((activeDaysArr.length / 7) * 365)
+      : amount * (PERIOD_MULTIPLIER[b.period] || 12);
 
     // Pace status
     const paceRatio = expectedPace > 0 ? dailyPace / expectedPace : 0;
@@ -748,6 +763,7 @@ const BudgetsPage = () => {
                   onChange={e => setForm(f => ({ ...f, reference_date: e.target.value }))}
                   className="rounded-xl h-10"
                 />
+                {errors.reference_date && <p className="text-xs text-destructive">{errors.reference_date}</p>}
                 <p className="text-[10px] text-muted-foreground">
                   {t.referenceDateHint}
                   {['quarterly', 'semi_annual', 'yearly'].includes(form.period) && (
@@ -810,6 +826,7 @@ const BudgetsPage = () => {
                   <button type="button" className="text-[10px] text-primary underline" onClick={() => setForm(f => ({ ...f, active_days: '1,2,3,4,5,6,7' }))}>{t.allDays}</button>
                   <button type="button" className="text-[10px] text-primary underline" onClick={() => setForm(f => ({ ...f, active_days: '1,2,3,4,5' }))}>{t.weekdays}</button>
                 </div>
+                {errors.active_days && <p className="text-xs text-destructive">{errors.active_days}</p>}
                 <p className="text-[10px] text-muted-foreground">{t.activeDaysHint}</p>
               </div>
             )}
