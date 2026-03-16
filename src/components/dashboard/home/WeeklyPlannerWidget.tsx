@@ -251,15 +251,15 @@ function computeWeeklyTarget(
 
   if (occurrences > 0) {
     // We know exactly how many times it occurs this week
-    if (budget.occurrence_frequency === 'daily') return amount * 7; // daily budget = amount per day
+    if (budget.occurrence_frequency === 'daily') return amount * occurrences; // daily budget = amount per active day
     // For other frequencies: the full budget amount is for each occurrence
-    // But if the budget period covers multiple occurrences, divide accordingly
     const freq = budget.occurrence_frequency;
     if (freq === 'weekly' && period === 'weekly') return amount;
-    if (freq === 'weekly' && period === 'monthly') return amount / 4.33; // monthly budget, weekly spend
-    if (freq === 'monthly' || freq === 'once') return amount; // full amount this week
-    if (freq === 'biweekly' && occurrences === 1) return amount; // biweekly, this is the week
-    return amount * occurrences; // fallback
+    if (freq === 'weekly' && period === 'monthly') return amount / 4.33;
+    if (freq === 'monthly' || freq === 'once') return amount;
+    if (freq === 'quarterly' || freq === 'semi_annual' || freq === 'yearly') return amount;
+    if (freq === 'biweekly' && occurrences === 1) return amount;
+    return amount * occurrences;
   }
 
   // Proportional fallback (occurrences === -1)
