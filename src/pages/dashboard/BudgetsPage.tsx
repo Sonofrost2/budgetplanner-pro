@@ -480,6 +480,17 @@ const BudgetsPage = () => {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="manage">
+        <TabsList className="rounded-xl mb-4">
+          <TabsTrigger value="manage" className="rounded-lg gap-1.5"><PieChart className="w-4 h-4" />{t.management}</TabsTrigger>
+          <TabsTrigger value="analysis" className="rounded-lg gap-1.5"><TrendingUp className="w-4 h-4" />{t.budgetAnalysis}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analysis">
+          <BudgetAnalysisTab />
+        </TabsContent>
+
+        <TabsContent value="manage">
       {budgetLimitReached && <UpgradeBanner message={t.limitBudgetsReached(limits.budgets)} />}
 
       <div className="flex items-center justify-between">
