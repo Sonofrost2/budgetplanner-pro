@@ -202,7 +202,7 @@ const PricingSection = () => {
                   ))}
                 </ul>
 
-                <Link to="/signup" className="block">
+                <Link to={user ? "/dashboard/payment" : "/signup"} className="block">
                   {card.featured ? (
                     <Button className="w-full h-10 text-primary-foreground text-xs font-semibold rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-[1.02]" style={{ background: 'var(--gradient-primary)' }}>
                       {card.cta}
