@@ -19,6 +19,7 @@ import { TopLoadingBar } from '@/components/ui/top-loading-bar';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
 import { OfflineBanner } from '@/components/dashboard/OfflineBanner';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import AIChatWidget from '@/components/dashboard/AIChatWidget';
 
 const DashboardLayout = () => {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -278,6 +279,7 @@ const DashboardLayout = () => {
       </main>
 
       <OfflineBanner />
+      <AIChatWidget />
 
       <ConfirmDeleteDialog
         open={logoutDialogOpen}

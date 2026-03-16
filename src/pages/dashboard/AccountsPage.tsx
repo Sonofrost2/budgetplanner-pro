@@ -15,8 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins, History } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins, History, BarChart3 } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
+import AccountsRecapTab from '@/components/dashboard/tabs/AccountsRecapTab';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -230,6 +232,17 @@ const AccountsPage = () => {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="manage">
+        <TabsList className="rounded-xl mb-4">
+          <TabsTrigger value="manage" className="rounded-lg gap-1.5"><Wallet className="w-4 h-4" />{t.management}</TabsTrigger>
+          <TabsTrigger value="recap" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{t.accountsRecap}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="recap">
+          <AccountsRecapTab />
+        </TabsContent>
+
+        <TabsContent value="manage">
       {accountLimitReached && (
         <UpgradeBanner message={t.limitAccountsReached(limits.accounts)} />
       )}
@@ -597,6 +610,8 @@ const AccountsPage = () => {
           </div>
         </SheetContent>
       </Sheet>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -26,6 +26,7 @@ import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import BudgetGlobalStats from '@/components/dashboard/budgets/BudgetGlobalStats';
+import BudgetAnalysisTab from '@/components/dashboard/tabs/BudgetAnalysisTab';
 
 const PERIOD_MULTIPLIER: Record<string, number> = {
   daily: 365, weekly: 52, monthly: 12, quarterly: 4, semi_annual: 2, yearly: 1,
@@ -479,6 +480,17 @@ const BudgetsPage = () => {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="manage">
+        <TabsList className="rounded-xl mb-4">
+          <TabsTrigger value="manage" className="rounded-lg gap-1.5"><PieChart className="w-4 h-4" />{t.management}</TabsTrigger>
+          <TabsTrigger value="analysis" className="rounded-lg gap-1.5"><TrendingUp className="w-4 h-4" />{t.budgetAnalysis}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analysis">
+          <BudgetAnalysisTab />
+        </TabsContent>
+
+        <TabsContent value="manage">
       {budgetLimitReached && <UpgradeBanner message={t.limitBudgetsReached(limits.budgets)} />}
 
       <div className="flex items-center justify-between">
@@ -709,6 +721,8 @@ const BudgetsPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
