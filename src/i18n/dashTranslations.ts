@@ -523,6 +523,8 @@ export const dashT = {
     weeklyOnTrack: 'En bonne voie',
     weeklyAtRisk: 'Attention',
     weeklyOver: 'Dépassé',
+    weeklyIncomeExpected: 'Revenus prévus',
+    weeklyNetBalance: 'Solde net hebdomadaire',
   },
   en: {
     dashboard: 'Dashboard',
