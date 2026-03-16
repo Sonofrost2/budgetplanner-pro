@@ -721,6 +721,8 @@ const BudgetsPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
