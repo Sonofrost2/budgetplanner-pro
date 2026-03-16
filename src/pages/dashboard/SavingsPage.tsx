@@ -608,12 +608,12 @@ const SavingsPage = () => {
 
       {/* Create/Edit Goal Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditGoalId(null); }}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{editGoalId ? t.editGoal : t.addGoal}</DialogTitle>
             <DialogDescription>{locale === 'fr' ? (editGoalId ? 'Modifiez votre objectif d\'épargne' : 'Définissez un objectif d\'épargne') : (editGoalId ? 'Edit your savings goal' : 'Set a savings goal')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 pr-1 form-animate">
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.goalName}</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} className="rounded-xl h-11" />

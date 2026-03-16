@@ -559,20 +559,20 @@ const BudgetsPage = () => {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{editId ? t.editBudget : t.addBudget}</DialogTitle>
             <DialogDescription>{form.budget_type === 'income' ? t.createBudgetDescIncome : t.createBudgetDesc}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-5 py-2">
-            <div className="space-y-2">
+          <div className="space-y-4 py-2 overflow-y-auto flex-1 pr-1 form-animate">
+            <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.budgetName}</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} placeholder={t.budgetPlaceholder} className={`rounded-xl h-11 ${errors.name ? 'border-destructive' : ''}`} />
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} placeholder={t.budgetPlaceholder} className={`rounded-xl h-10 ${errors.name ? 'border-destructive' : ''}`} />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
 
             {!editId && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.budgetType}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {['expense', 'income'].map(bt => (
@@ -580,7 +580,7 @@ const BudgetsPage = () => {
                       const cats = allCategories.filter(c => c.type === bt);
                       setForm(f => ({ ...f, budget_type: bt, category_id: cats[0]?.id || '', control_type: bt === 'income' ? 'min' : 'max' }));
                     }}
-                      className={`px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all flex items-center gap-2 justify-center ${form.budget_type === bt ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}>
+                      className={`px-3 py-2 rounded-xl border text-sm font-semibold transition-all flex items-center gap-2 justify-center ${form.budget_type === bt ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}>
                       {bt === 'expense' ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
                       {bt === 'expense' ? t.budgetTypeExpense : t.budgetTypeIncome}
                     </button>
@@ -589,53 +589,54 @@ const BudgetsPage = () => {
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.controlType}</Label>
-              <div className="grid grid-cols-1 gap-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 {['max', 'min'].map(ct => (
                   <button key={ct} type="button" onClick={() => setForm(f => ({ ...f, control_type: ct }))}
-                    className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all text-left ${form.control_type === ct ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}>
+                    className={`px-3 py-2 rounded-xl border text-xs font-semibold transition-all text-center ${form.control_type === ct ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}>
                     {ct === 'max' ? t.controlTypeMax : t.controlTypeMin}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
-              <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
-                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger>
-                <SelectContent>{filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
+                <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
+                  <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={t.selectCategory} /></SelectTrigger>
+                  <SelectContent>{filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.alertThreshold}</Label>
+                <Input type="number" min="1" max="100" value={form.alert_threshold} onChange={e => setForm(f => ({ ...f, alert_threshold: e.target.value }))} className="rounded-xl h-10" />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.alertThreshold}</Label>
-              <Input type="number" min="1" max="100" value={form.alert_threshold} onChange={e => setForm(f => ({ ...f, alert_threshold: e.target.value }))} className="rounded-xl h-11 w-24" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{form.control_type === 'min' ? t.target : t.budgetAmount}</Label>
-                <Input type="number" min="1" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0" className={`rounded-xl h-11 text-lg font-bold ${errors.amount ? 'border-destructive' : ''}`} />
+                <Input type="number" min="1" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0" className={`rounded-xl h-10 text-lg font-bold ${errors.amount ? 'border-destructive' : ''}`} />
                 {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.period}</Label>
-                <div className="grid grid-cols-1 gap-1.5">
-                  {['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'].map(p => (
-                    <button key={p} type="button" onClick={() => setForm(f => ({ ...f, period: p }))}
-                      className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all text-left ${form.period === p ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/50'}`}>
-                      {periodLabels[p] || p}
-                    </button>
-                  ))}
-                </div>
+                <Select value={form.period} onValueChange={v => setForm(f => ({ ...f, period: v }))}>
+                  <SelectTrigger className="rounded-xl h-10"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'].map(p => (
+                      <SelectItem key={p} value={p}>{periodLabels[p] || p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             {/* Expected day & occurrence frequency */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <Calendar className="w-3 h-3" />{t.expectedDay}
                 </Label>
@@ -646,16 +647,16 @@ const BudgetsPage = () => {
                   value={form.expected_day}
                   onChange={e => setForm(f => ({ ...f, expected_day: e.target.value }))}
                   placeholder={form.period === 'weekly' ? '1-7' : '1-31'}
-                  className="rounded-xl h-11"
+                  className="rounded-xl h-10"
                 />
                 <p className="text-[10px] text-muted-foreground">
                   {form.period === 'weekly' ? t.expectedDayWeekHint : t.expectedDayMonthHint}
                 </p>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.occurrenceFrequency}</Label>
                 <Select value={form.occurrence_frequency} onValueChange={v => setForm(f => ({ ...f, occurrence_frequency: v }))}>
-                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.occurrenceAuto} /></SelectTrigger>
+                  <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={t.occurrenceAuto} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="once">{t.occurrenceOnce}</SelectItem>
                     <SelectItem value="daily">{t.daily}</SelectItem>
