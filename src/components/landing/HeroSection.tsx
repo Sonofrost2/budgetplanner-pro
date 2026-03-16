@@ -2,10 +2,12 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Shield, Star, Users, TrendingUp, TrendingDown, Wallet, Sparkles, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
 
 const HeroSection = () => {
   const { t } = useLanguage();
+  const { user } = useAuth();
 
   const handleLearnMore = () => {
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
