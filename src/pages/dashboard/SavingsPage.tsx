@@ -500,6 +500,7 @@ const SavingsPage = () => {
                   account_id: g.account_id || '',
                   monthly_contribution: g.monthly_contribution ? String(g.monthly_contribution) : '',
                   start_date: g.start_date || '',
+                  contribution_day: (g as any).contribution_day ? String((g as any).contribution_day) : '',
                   is_locked: (g as any).is_locked || false,
                   interest_rate: (g as any).interest_rate ? String((g as any).interest_rate) : '',
                   interest_frequency: (g as any).interest_frequency || 'yearly',
