@@ -282,6 +282,51 @@ const TransactionsPage = () => {
     setDialogOpen(true);
   };
 
+  const checkBudgetOverspend = async (): Promise<boolean> => {
+    if (!user || form.type !== 'expense' || !form.category_id) return true;
+    // Check if there's a budget for this category
+    const { data: budgets } = await supabase
+      .from('budgets')
+      .select('id, name, amount, period, control_type')
+      .eq('user_id', user.id)
+      .eq('category_id', form.category_id)
+      .eq('budget_type', 'expense')
+      .eq('control_type', 'max');
+    if (!budgets || budgets.length === 0) return true;
+
+    const budget = budgets[0];
+    // Calculate period dates
+    const now = new Date();
+    let startDate: string, endDate: string;
+    if (budget.period === 'weekly') {
+      const d = new Date(now); d.setDate(d.getDate() - d.getDay());
+      startDate = d.toISOString().split('T')[0];
+      const e = new Date(d); e.setDate(e.getDate() + 6);
+      endDate = e.toISOString().split('T')[0];
+    } else if (budget.period === 'yearly') {
+      startDate = `${now.getFullYear()}-01-01`;
+      endDate = `${now.getFullYear()}-12-31`;
+    } else {
+      startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      endDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${lastDay}`;
+    }
+
+    const { data: spentData } = await supabase.rpc('get_budget_spending', {
+      p_user_id: user.id, p_category_id: form.category_id, p_type: 'expense',
+      p_start_date: startDate, p_end_date: endDate,
+    });
+    const spent = Number(spentData) || 0;
+    const newTotal = spent + Number(form.amount);
+
+    if (newTotal > Number(budget.amount)) {
+      setOverspendBudgetName(budget.name);
+      setBudgetOverspendOpen(true);
+      return false; // Don't save yet
+    }
+    return true;
+  };
+
   const handleSave = async () => {
     if (!user || !validate()) return;
     setSaving(true);
@@ -290,6 +335,13 @@ const TransactionsPage = () => {
       type: form.type, category_id: form.category_id || null, account_id: form.account_id || null,
       date: form.date, notes: form.notes.trim() || null,
     };
+
+    // Check budget overspend only for new expenses (not editing)
+    if (!editing && form.type === 'expense') {
+      const canProceed = await checkBudgetOverspend();
+      if (!canProceed) { setSaving(false); return; }
+    }
+
     if (editing) {
       const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
@@ -300,6 +352,24 @@ const TransactionsPage = () => {
       if (error) { toast.error(error.message); setSaving(false); return; }
       if (payload.account_id) await supabase.rpc('recalculate_account_balance', { p_account_id: payload.account_id });
     }
+    setSaving(false);
+    setDialogOpen(false);
+    refreshData();
+    toast.success(t.saved);
+  };
+
+  const handleForceOverspend = async () => {
+    setBudgetOverspendOpen(false);
+    if (!user) return;
+    setSaving(true);
+    const payload = {
+      user_id: user.id, description: form.description.trim(), amount: Number(form.amount),
+      type: form.type, category_id: form.category_id || null, account_id: form.account_id || null,
+      date: form.date, notes: form.notes.trim() ? form.notes.trim() + ' [Dépassement volontaire]' : '[Dépassement volontaire]',
+    };
+    const { error } = await supabase.from('transactions').insert(payload);
+    if (error) { toast.error(error.message); setSaving(false); return; }
+    if (payload.account_id) await supabase.rpc('recalculate_account_balance', { p_account_id: payload.account_id });
     setSaving(false);
     setDialogOpen(false);
     refreshData();

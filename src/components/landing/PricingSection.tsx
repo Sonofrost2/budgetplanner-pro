@@ -87,7 +87,7 @@ const PricingSection = () => {
   const planCards = [
     {
       plan: freePlan, name: t.pricing.free, icon: Zap,
-      price: freePlan ? getDisplayPrice(freePlan) : { formatted: '0' },
+      price: freePlan ? getDisplayPrice(freePlan) : { formatted: '0', monthlyEquivalent: '' },
       cta: t.pricing.ctaFree, featured: false,
       features: freePlan?.features || [],
       excluded: t.pricing.excludedFree as readonly string[],
