@@ -424,9 +424,9 @@ const AccountsPage = () => {
             <DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addAccount}</DialogTitle>
             <DialogDescription>{t.configureAccount}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-5 py-2">
+          <div className="space-y-4 py-2 overflow-y-auto flex-1 pr-1 form-animate">
             {/* Account name */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.accountName}</Label>
               <Input
                 value={form.name}
