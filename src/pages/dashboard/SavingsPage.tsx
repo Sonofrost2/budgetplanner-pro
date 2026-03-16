@@ -555,7 +555,21 @@ const SavingsPage = () => {
                 <Input type="number" min="0" step="0.01" value={form.monthly_contribution} onChange={e => setForm(f => ({ ...f, monthly_contribution: e.target.value }))} className="rounded-xl h-11" placeholder={locale === 'fr' ? 'Ex: 50 000' : 'E.g. 500'} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.contributionDay}</Label>
+                <Select value={form.contribution_day || '__none__'} onValueChange={v => setForm(f => ({ ...f, contribution_day: v === '__none__' ? '' : v }))}>
+                  <SelectTrigger className="rounded-xl h-11">
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {Array.from({ length: 31 }, (_, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.startDate}</Label>
                 <Input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} className="rounded-xl h-11" />
