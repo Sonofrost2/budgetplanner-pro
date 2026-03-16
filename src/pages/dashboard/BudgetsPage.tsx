@@ -438,10 +438,28 @@ const BudgetsPage = () => {
               )}
             </p>
           )}
+
+          {/* Expected day & occurrence frequency indicators */}
+          {(b.expected_day || b.occurrence_frequency) && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {b.expected_day && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/8 text-primary text-[10px] font-semibold border border-primary/15">
+                  <Clock className="w-3 h-3" />
+                  {locale === 'fr' ? `Jour ${b.expected_day}` : `Day ${b.expected_day}`}
+                </span>
+              )}
+              {b.occurrence_frequency && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground text-[10px] font-semibold border border-accent/15">
+                  <Repeat className="w-3 h-3" />
+                  {occFreqLabels[b.occurrence_frequency] || b.occurrence_frequency}
+                </span>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
+      </ScrollReveal>
     );
-  };
 
   const renderEmptyState = (budgetType: string) => (
     <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
