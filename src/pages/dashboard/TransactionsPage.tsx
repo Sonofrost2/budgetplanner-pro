@@ -64,6 +64,8 @@ const TransactionsPage = () => {
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [transferOpen, setTransferOpen] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [budgetOverspendOpen, setBudgetOverspendOpen] = useState(false);
+  const [overspendBudgetName, setOverspendBudgetName] = useState('');
 
   // Server-side paginated transactions
   const { data: paginatedResult, isLoading: txLoading, isFetching: txFetching } = usePaginatedTransactions({
