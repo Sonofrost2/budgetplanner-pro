@@ -6,7 +6,17 @@ import { dashT } from '@/i18n/dashTranslations';
 import { useAccounts, useAllTransactions } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from 'recharts';
+import { abbreviateNumber } from '@/lib/utils';
+
+const TOOLTIP_STYLE = {
+  borderRadius: '12px',
+  border: 'none',
+  background: 'hsl(var(--card))',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+  fontSize: '12px',
+  padding: '8px 12px',
+};
 
 const AccountsRecapTab = () => {
   const { locale } = useLanguage();
@@ -20,7 +30,6 @@ const AccountsRecapTab = () => {
   const totalOpening = accounts.reduce((s, a) => s + Number(a.opening_balance), 0);
   const evolution = totalBalance - totalOpening;
 
-  // Monthly balance evolution (last 6 months)
   const monthlyData = useMemo(() => {
     const months: { month: string; balance: number }[] = [];
     const now = new Date();
@@ -28,7 +37,6 @@ const AccountsRecapTab = () => {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
       const label = d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
-
       let balance = totalOpening;
       for (const tx of transactions) {
         const txDate = new Date(tx.date);
@@ -41,7 +49,6 @@ const AccountsRecapTab = () => {
     return months;
   }, [transactions, totalOpening, locale]);
 
-  // Per-account balances
   const accountData = accounts.map(a => ({
     name: `${a.icon} ${a.name}`,
     balance: Number(a.real_balance),
@@ -60,7 +67,6 @@ const AccountsRecapTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border border-border/50 rounded-2xl">
           <CardContent className="p-4">
@@ -85,7 +91,6 @@ const AccountsRecapTab = () => {
         </Card>
       </div>
 
-      {/* Balance evolution chart */}
       <Card className="border border-border/50 rounded-2xl">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-bold flex items-center gap-2">
@@ -98,9 +103,9 @@ const AccountsRecapTab = () => {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                <Tooltip formatter={(v: number) => fmt(v)} />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => abbreviateNumber(v, locale)} />
+                <Tooltip formatter={(v: number) => fmt(v)} contentStyle={TOOLTIP_STYLE} />
                 <Line type="monotone" dataKey="balance" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} name={t.totalBalance} />
               </LineChart>
             </ResponsiveContainer>
@@ -108,7 +113,6 @@ const AccountsRecapTab = () => {
         </CardContent>
       </Card>
 
-      {/* Per-account bar chart */}
       {accountData.length > 1 && (
         <Card className="border border-border/50 rounded-2xl">
           <CardHeader className="pb-2">
@@ -121,9 +125,9 @@ const AccountsRecapTab = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={accountData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} className="text-muted-foreground" />
-                  <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                  <Tooltip formatter={(v: number) => fmt(v)} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => abbreviateNumber(v, locale)} />
+                  <Tooltip formatter={(v: number) => fmt(v)} contentStyle={TOOLTIP_STYLE} />
                   <Bar dataKey="balance" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} name={t.realBalance} />
                 </BarChart>
               </ResponsiveContainer>

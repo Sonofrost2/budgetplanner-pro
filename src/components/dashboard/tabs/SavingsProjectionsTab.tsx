@@ -6,6 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Target, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { abbreviateNumber } from '@/lib/utils';
+
+const TOOLTIP_STYLE = {
+  borderRadius: '12px',
+  border: 'none',
+  background: 'hsl(var(--card))',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+  fontSize: '12px',
+  padding: '8px 12px',
+};
 
 interface Props {
   goals: any[];
@@ -20,7 +30,6 @@ const SavingsProjectionsTab = ({ goals, fmt }: Props) => {
   const totalTarget = goals.reduce((s, g) => s + Number(g.target_amount), 0);
   const globalPct = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
-  // Projection: if each goal has monthly_contribution, project 12 months
   const projectionData = useMemo(() => {
     const months: { month: string; projected: number; target: number }[] = [];
     for (let i = 0; i <= 12; i++) {
@@ -91,17 +100,26 @@ const SavingsProjectionsTab = ({ goals, fmt }: Props) => {
               <LineChart data={projectionData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: number) => fmt(v)} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => abbreviateNumber(v, locale)} />
+                <Tooltip formatter={(v: number) => fmt(v)} contentStyle={TOOLTIP_STYLE} />
                 <Line type="monotone" dataKey="projected" stroke="hsl(var(--primary))" strokeWidth={2} name={locale === 'fr' ? 'Projeté' : 'Projected'} />
                 <Line type="monotone" dataKey="target" stroke="hsl(var(--destructive))" strokeDasharray="5 5" strokeWidth={1.5} name={t.target} />
               </LineChart>
             </ResponsiveContainer>
           </div>
+          <div className="flex items-center justify-center gap-6 mt-2">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="w-3 h-1 rounded-full bg-primary" />
+              {locale === 'fr' ? 'Projeté' : 'Projected'}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="w-3 h-1 rounded-full bg-destructive" style={{ opacity: 0.6 }} />
+              {t.target}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Per-goal detail */}
       <div className="space-y-3">
         {goals.map(g => {
           const pct = Number(g.target_amount) > 0 ? (Number(g.current_amount) / Number(g.target_amount)) * 100 : 0;
