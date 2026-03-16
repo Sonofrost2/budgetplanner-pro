@@ -1,0 +1,2 @@
+ALTER TABLE public.budgets DROP CONSTRAINT budgets_period_check;
+ALTER TABLE public.budgets ADD CONSTRAINT budgets_period_check CHECK (period IN ('daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'));
