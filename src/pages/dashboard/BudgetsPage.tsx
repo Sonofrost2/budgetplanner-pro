@@ -763,6 +763,7 @@ const BudgetsPage = () => {
                   onChange={e => setForm(f => ({ ...f, reference_date: e.target.value }))}
                   className="rounded-xl h-10"
                 />
+                {errors.reference_date && <p className="text-xs text-destructive">{errors.reference_date}</p>}
                 <p className="text-[10px] text-muted-foreground">
                   {t.referenceDateHint}
                   {['quarterly', 'semi_annual', 'yearly'].includes(form.period) && (
