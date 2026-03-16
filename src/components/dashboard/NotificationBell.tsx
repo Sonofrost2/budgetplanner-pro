@@ -223,6 +223,92 @@ const severityStyles: Record<Notification['severity'], string> = {
   success: 'border-l-secondary bg-secondary/5',
 };
 
+const GROUP_THRESHOLD = 3;
+
+const groupLabels: Record<string, Record<Notification['type'], string>> = {
+  fr: {
+    budget_exceeded: 'budgets dépassés',
+    budget_warning: 'budgets en alerte',
+    savings_reached: 'objectifs atteints',
+    savings_behind: 'rappels épargne',
+  },
+  en: {
+    budget_exceeded: 'budgets exceeded',
+    budget_warning: 'budget warnings',
+    savings_reached: 'goals reached',
+    savings_behind: 'savings reminders',
+  },
+};
+
+interface NotifGroup {
+  type: Notification['type'];
+  items: Notification[];
+  severity: Notification['severity'];
+}
+
+const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup }: {
+  group: NotifGroup;
+  locale: string;
+  onDismiss: (id: string) => void;
+  onDismissGroup: (ids: string[]) => void;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const labels = groupLabels[locale] || groupLabels.en;
+  const worstSeverity = group.items.reduce((worst, n) => {
+    const order = { critical: 0, warning: 1, info: 2, success: 3 };
+    return order[n.severity] < order[worst] ? n.severity : worst;
+  }, 'success' as Notification['severity']);
+
+  return (
+    <div className={`rounded-lg border-l-[3px] overflow-hidden ${severityStyles[worstSeverity]}`}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full px-3 py-2.5 flex items-center gap-2.5 hover:bg-muted/40 transition-colors"
+      >
+        <div className="flex-shrink-0">{iconMap[group.type]}</div>
+        <div className="min-w-0 flex-1 text-left">
+          <p className="text-xs font-semibold leading-tight">
+            {group.items.length} {labels[group.type]}
+          </p>
+        </div>
+        <Badge variant="outline" className="text-[10px] h-5 px-1.5 flex-shrink-0">
+          {group.items.length}
+        </Badge>
+        {expanded ? (
+          <ChevronUp className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        ) : (
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+        )}
+      </button>
+      {expanded && (
+        <div className="border-t border-border/50">
+          {group.items.map(n => (
+            <div key={n.id} className="px-3 py-2 flex items-start gap-2.5 border-b border-border/30 last:border-b-0">
+              <div className="min-w-0 flex-1 pl-6">
+                <p className="text-xs font-medium leading-tight">{n.title}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{n.message}</p>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDismiss(n.id); }}
+                className="flex-shrink-0 p-1 rounded-md hover:bg-muted/80 transition-colors"
+                aria-label="Dismiss"
+              >
+                <X className="w-3 h-3 text-muted-foreground" />
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDismissGroup(group.items.map(n => n.id)); }}
+            className="w-full px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors text-center"
+          >
+            {locale === 'fr' ? 'Tout effacer ce groupe' : 'Clear this group'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const NotificationBell = () => {
   const { notifications, refresh } = useBudgetNotifications();
   const { locale } = useLanguage();
@@ -239,11 +325,47 @@ export const NotificationBell = () => {
     });
   };
 
+  const handleDismissGroup = (ids: string[]) => {
+    setDismissed(prev => {
+      const next = new Set([...prev, ...ids]);
+      saveDismissedIds(next);
+      return next;
+    });
+  };
+
   const handleDismissAll = () => {
     const next = new Set(notifications.map(n => n.id));
     saveDismissedIds(next);
     setDismissed(next);
   };
+
+  // Group notifications by type
+  const typeGroups = new Map<Notification['type'], Notification[]>();
+  for (const n of visible) {
+    const list = typeGroups.get(n.type) || [];
+    list.push(n);
+    typeGroups.set(n.type, list);
+  }
+
+  // Build render items: grouped cards for 3+ same-type, individual for rest
+  const renderItems: Array<{ kind: 'single'; notif: Notification } | { kind: 'group'; group: NotifGroup }> = [];
+  const rendered = new Set<string>();
+
+  for (const [type, items] of typeGroups) {
+    if (items.length >= GROUP_THRESHOLD) {
+      renderItems.push({
+        kind: 'group',
+        group: { type, items, severity: items[0].severity },
+      });
+      items.forEach(n => rendered.add(n.id));
+    }
+  }
+
+  for (const n of visible) {
+    if (!rendered.has(n.id)) {
+      renderItems.push({ kind: 'single', notif: n });
+    }
+  }
 
   return (
     <Popover>
@@ -258,7 +380,6 @@ export const NotificationBell = () => {
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[calc(100vw-2rem)] max-w-sm p-0" align="end" sideOffset={8}>
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
             <p className="text-sm font-bold">Notifications</p>
@@ -273,7 +394,6 @@ export const NotificationBell = () => {
           )}
         </div>
 
-        {/* Body */}
         {visible.length === 0 ? (
           <div className="px-4 py-8 text-center">
             <Bell className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
@@ -284,25 +404,35 @@ export const NotificationBell = () => {
         ) : (
           <ScrollArea className="max-h-[60vh]">
             <div className="p-2 space-y-1.5">
-              {visible.map(n => (
-                <div
-                  key={n.id}
-                  className={`relative px-3 py-2.5 rounded-lg border-l-[3px] flex items-start gap-2.5 transition-colors ${severityStyles[n.severity]}`}
-                >
-                  <div className="mt-0.5 flex-shrink-0">{iconMap[n.type]}</div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold leading-tight">{n.title}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{n.message}</p>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDismiss(n.id); }}
-                    className="flex-shrink-0 p-1 rounded-md hover:bg-muted/80 transition-colors"
-                    aria-label="Dismiss"
+              {renderItems.map((item, i) =>
+                item.kind === 'group' ? (
+                  <GroupedNotifCard
+                    key={`group-${item.group.type}`}
+                    group={item.group}
+                    locale={locale}
+                    onDismiss={handleDismiss}
+                    onDismissGroup={handleDismissGroup}
+                  />
+                ) : (
+                  <div
+                    key={item.notif.id}
+                    className={`relative px-3 py-2.5 rounded-lg border-l-[3px] flex items-start gap-2.5 transition-colors ${severityStyles[item.notif.severity]}`}
                   >
-                    <X className="w-3.5 h-3.5 text-muted-foreground" />
-                  </button>
-                </div>
-              ))}
+                    <div className="mt-0.5 flex-shrink-0">{iconMap[item.notif.type]}</div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold leading-tight">{item.notif.title}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{item.notif.message}</p>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDismiss(item.notif.id); }}
+                      className="flex-shrink-0 p-1 rounded-md hover:bg-muted/80 transition-colors"
+                      aria-label="Dismiss"
+                    >
+                      <X className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  </div>
+                )
+              )}
             </div>
           </ScrollArea>
         )}
