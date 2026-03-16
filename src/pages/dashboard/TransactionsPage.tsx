@@ -436,6 +436,17 @@ const TransactionsPage = () => {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="manage">
+        <TabsList className="rounded-xl mb-4">
+          <TabsTrigger value="manage" className="rounded-lg gap-1.5"><ArrowUpDown className="w-4 h-4" />{t.management}</TabsTrigger>
+          <TabsTrigger value="stats" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{t.transactionsStats}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="stats">
+          <TransactionsStatsTab />
+        </TabsContent>
+
+        <TabsContent value="manage">
       {limitReached && <UpgradeBanner message={t.limitReachedTransactions(thisMonthCount, limits.transactionsPerMonth)} />}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
