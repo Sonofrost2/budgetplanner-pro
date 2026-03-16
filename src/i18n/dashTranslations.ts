@@ -1044,6 +1044,8 @@ export const dashT = {
     weeklyOnTrack: 'On track',
     weeklyAtRisk: 'At risk',
     weeklyOver: 'Over budget',
+    weeklyIncomeExpected: 'Expected income',
+    weeklyNetBalance: 'Weekly net balance',
   },
 } as const;
 
