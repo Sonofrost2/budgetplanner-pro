@@ -833,6 +833,8 @@ const SavingsPage = () => {
         cancelLabel={t.cancel}
         confirmLabel={t.delete}
       />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
