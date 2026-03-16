@@ -411,6 +411,17 @@ const SavingsPage = () => {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="manage">
+        <TabsList className="rounded-xl mb-4">
+          <TabsTrigger value="manage" className="rounded-lg gap-1.5"><PiggyBank className="w-4 h-4" />{t.management}</TabsTrigger>
+          <TabsTrigger value="projections" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{t.savingsProjections}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="projections">
+          <SavingsProjectionsTab goals={goals} fmt={fmt} />
+        </TabsContent>
+
+        <TabsContent value="manage">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-2xl font-bold font-display">{t.savings}</h2>
