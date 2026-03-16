@@ -850,9 +850,14 @@ const SavingsPage = () => {
             </div>
           ) : simulation ? (
             <div className="space-y-6">
-              {/* Summary */}
-              <div className="bg-muted/50 rounded-xl p-4">
-                <p className="text-sm">{simulation.summary}</p>
+              {/* Summary + Export button */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="bg-muted/50 rounded-xl p-4 flex-1">
+                  <p className="text-sm">{simulation.summary}</p>
+                </div>
+                <Button size="sm" variant="outline" className="rounded-xl shrink-0" onClick={handleExportSimulationPDF}>
+                  <Download className="w-4 h-4 mr-1" />{t.exportPDF}
+                </Button>
               </div>
 
               {/* Interest lost banner */}
@@ -862,6 +867,37 @@ const SavingsPage = () => {
                   <span className="text-sm">
                     <strong>{t.ifYouStopToday}</strong> {fmt(simulation.interest_lost)} {t.inInterest}
                   </span>
+                </div>
+              )}
+
+              {/* Comparison chart */}
+              {simulation.continue.monthly_projections?.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    {t.comparisonChart}
+                  </h4>
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={simulation.continue.monthly_projections.map((p, i) => ({
+                        month: p.month,
+                        continue_total: p.total,
+                        stop_total: simulation.stop_now.monthly_projections?.[i]?.total ?? p.total,
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} label={{ value: locale === 'fr' ? 'Mois' : 'Month', position: 'insideBottom', offset: -5, fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                        <Tooltip
+                          formatter={(value: number, name: string) => [fmt(value), name === 'continue_total' ? t.scenarioContinue : t.scenarioStopNow]}
+                          labelFormatter={(label: number) => `${locale === 'fr' ? 'Mois' : 'Month'} ${label}`}
+                          contentStyle={{ borderRadius: '0.75rem', border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))' }}
+                        />
+                        <Legend formatter={(value: string) => value === 'continue_total' ? t.scenarioContinue : t.scenarioStopNow} />
+                        <Line type="monotone" dataKey="continue_total" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
+                        <Line type="monotone" dataKey="stop_total" stroke="hsl(var(--destructive))" strokeWidth={2} strokeDasharray="6 3" dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               )}
 
@@ -881,7 +917,6 @@ const SavingsPage = () => {
                   return (
                     <TabsContent key={scenario} value={scenario === 'continue' ? 'continue' : 'stop'}>
                       <div className="space-y-4">
-                        {/* Interest income */}
                         <div className="grid grid-cols-3 gap-3">
                           <div className="bg-primary/10 rounded-xl p-3 text-center">
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome1y}</p>
@@ -904,7 +939,6 @@ const SavingsPage = () => {
                           </div>
                         )}
 
-                        {/* Monthly projections table */}
                         {data.monthly_projections?.length > 0 && (
                           <div>
                             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{t.monthlyProjection}</h4>
