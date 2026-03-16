@@ -29,7 +29,7 @@ import AdminPricingPage from "./pages/dashboard/AdminPricingPage";
 import CategoriesPage from "./pages/dashboard/CategoriesPage";
 import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import FamilyPage from "./pages/dashboard/FamilyPage";
-import RecurringPage from "./pages/dashboard/RecurringPage";
+
 import AboutPage from "./pages/AboutPage";
 import BlogPage from "./pages/BlogPage";
 import ContactPage from "./pages/ContactPage";
@@ -70,7 +70,7 @@ const AnimatedRoutes = () => {
           <Route path="receipts" element={<ReceiptsPage />} />
           <Route path="family" element={<FamilyPage />} />
           <Route path="admin/pricing" element={<AdminPricingPage />} />
-          <Route path="recurring" element={<RecurringPage />} />
+          
           <Route path="guide" element={<GuidePage />} />
           
         </Route>

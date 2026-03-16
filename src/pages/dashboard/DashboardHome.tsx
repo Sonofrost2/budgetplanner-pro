@@ -129,16 +129,13 @@ const DashboardHome = () => {
   const { data: savingsGoals = [], isLoading: savLoading } = useSavingsGoals();
   const { data: monthlyData = [] } = useChartData(locale);
 
-  // Full-month transactions for weekly planner (always current month scope)
-  const monthStartForPlanner = useMemo(() => {
+  // Planner needs transactions from year start to cover all periodicities
+  const yearStartForPlanner = useMemo(() => {
     const d = new Date();
-    // Include last week which may fall in previous month
-    const twoWeeksAgo = new Date(d);
-    twoWeeksAgo.setDate(d.getDate() - 14);
-    return twoWeeksAgo.toISOString().split('T')[0];
+    return `${d.getFullYear()}-01-01`;
   }, []);
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
-  const { data: plannerTransactions = [] } = useTransactionsRange(monthStartForPlanner, todayStr);
+  const { data: plannerTransactions = [] } = useTransactionsRange(yearStartForPlanner, todayStr);
 
   const loading = accLoading || txLoading || budLoading || savLoading;
 
