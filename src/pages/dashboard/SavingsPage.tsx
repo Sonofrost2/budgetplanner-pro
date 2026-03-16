@@ -23,7 +23,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3 } from 'lucide-react';
+import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjectionsTab';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
@@ -399,6 +400,86 @@ const SavingsPage = () => {
     }
   };
 
+  const handleExportSimulationPDF = async () => {
+    if (!simulation || !simulationGoal) return;
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
+    const doc = new jsPDF();
+    const isFr = locale === 'fr';
+    const title = `${t.simulationTitle} — ${simulationGoal.name}`;
+
+    doc.setFontSize(16);
+    doc.text(title, 14, 20);
+
+    doc.setFontSize(10);
+    doc.text(simulation.summary, 14, 30, { maxWidth: 180 });
+
+    let y = 50;
+
+    // Scenario labels
+    const scenarios = [
+      { label: isFr ? 'Scénario 1 : Cotisations continues' : 'Scenario 1: Ongoing contributions', data: simulation.continue },
+      { label: isFr ? 'Scénario 2 : Arrêt aujourd\'hui' : 'Scenario 2: Stop today', data: simulation.stop_now },
+    ];
+
+    for (const sc of scenarios) {
+      doc.setFontSize(12);
+      doc.text(sc.label, 14, y);
+      y += 7;
+
+      doc.setFontSize(9);
+      doc.text(`${t.interestIncome1y}: ${fmt(sc.data.interest_income_1y)}`, 14, y); y += 5;
+      doc.text(`${t.interestIncome3y}: ${fmt(sc.data.interest_income_3y)}`, 14, y); y += 5;
+      doc.text(`${t.interestIncome5y}: ${fmt(sc.data.interest_income_5y)}`, 14, y); y += 5;
+      if (sc.data.estimated_goal_date) {
+        doc.text(`${t.estimatedGoalDate}: ${sc.data.estimated_goal_date}`, 14, y); y += 5;
+      }
+
+      if (sc.data.monthly_projections?.length > 0) {
+        autoTable(doc, {
+          startY: y + 2,
+          head: [[isFr ? 'Mois' : 'Month', 'Capital', isFr ? 'Intérêts' : 'Interest', 'Total']],
+          body: sc.data.monthly_projections.map(p => [
+            String(p.month), fmt(p.capital), fmt(p.interest_earned), fmt(p.total),
+          ]),
+          styles: { fontSize: 7 },
+          headStyles: { fillColor: [99, 102, 241] },
+        });
+        y = (doc as any).lastAutoTable.finalY + 10;
+      } else {
+        y += 10;
+      }
+
+      if (y > 250) { doc.addPage(); y = 20; }
+    }
+
+    // Interest lost
+    if (simulation.interest_lost > 0) {
+      doc.setFontSize(10);
+      doc.setTextColor(220, 38, 38);
+      doc.text(`${t.interestLost}: ${fmt(simulation.interest_lost)}`, 14, y);
+      doc.setTextColor(0, 0, 0);
+      y += 10;
+    }
+
+    // Recommendations
+    if (simulation.recommendations?.length > 0) {
+      if (y > 240) { doc.addPage(); y = 20; }
+      doc.setFontSize(12);
+      doc.text(t.aiRecommendations, 14, y); y += 7;
+      doc.setFontSize(9);
+      for (const r of simulation.recommendations) {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.text(`• ${r}`, 16, y, { maxWidth: 175 });
+        y += Math.ceil(r.length / 80) * 5 + 3;
+      }
+    }
+
+    doc.save(`simulation-${simulationGoal.name.replace(/\s+/g, '_')}.pdf`);
+    toast.success(isFr ? 'PDF exporté avec succès' : 'PDF exported successfully');
+  };
+
   const icons = ['🎯', '🏖️', '🏠', '🚗', '💻', '📚', '💍', '🎓', '🛡️', '✈️'];
 
   if (loading) {
@@ -769,9 +850,14 @@ const SavingsPage = () => {
             </div>
           ) : simulation ? (
             <div className="space-y-6">
-              {/* Summary */}
-              <div className="bg-muted/50 rounded-xl p-4">
-                <p className="text-sm">{simulation.summary}</p>
+              {/* Summary + Export button */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="bg-muted/50 rounded-xl p-4 flex-1">
+                  <p className="text-sm">{simulation.summary}</p>
+                </div>
+                <Button size="sm" variant="outline" className="rounded-xl shrink-0" onClick={handleExportSimulationPDF}>
+                  <Download className="w-4 h-4 mr-1" />{t.exportPDF}
+                </Button>
               </div>
 
               {/* Interest lost banner */}
@@ -781,6 +867,37 @@ const SavingsPage = () => {
                   <span className="text-sm">
                     <strong>{t.ifYouStopToday}</strong> {fmt(simulation.interest_lost)} {t.inInterest}
                   </span>
+                </div>
+              )}
+
+              {/* Comparison chart */}
+              {simulation.continue.monthly_projections?.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    {t.comparisonChart}
+                  </h4>
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={simulation.continue.monthly_projections.map((p, i) => ({
+                        month: p.month,
+                        continue_total: p.total,
+                        stop_total: simulation.stop_now.monthly_projections?.[i]?.total ?? p.total,
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} label={{ value: locale === 'fr' ? 'Mois' : 'Month', position: 'insideBottom', offset: -5, fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                        <Tooltip
+                          formatter={(value: number, name: string) => [fmt(value), name === 'continue_total' ? t.scenarioContinue : t.scenarioStopNow]}
+                          labelFormatter={(label: number) => `${locale === 'fr' ? 'Mois' : 'Month'} ${label}`}
+                          contentStyle={{ borderRadius: '0.75rem', border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))' }}
+                        />
+                        <Legend formatter={(value: string) => value === 'continue_total' ? t.scenarioContinue : t.scenarioStopNow} />
+                        <Line type="monotone" dataKey="continue_total" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
+                        <Line type="monotone" dataKey="stop_total" stroke="hsl(var(--destructive))" strokeWidth={2} strokeDasharray="6 3" dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               )}
 
@@ -800,7 +917,6 @@ const SavingsPage = () => {
                   return (
                     <TabsContent key={scenario} value={scenario === 'continue' ? 'continue' : 'stop'}>
                       <div className="space-y-4">
-                        {/* Interest income */}
                         <div className="grid grid-cols-3 gap-3">
                           <div className="bg-primary/10 rounded-xl p-3 text-center">
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome1y}</p>
@@ -823,7 +939,6 @@ const SavingsPage = () => {
                           </div>
                         )}
 
-                        {/* Monthly projections table */}
                         {data.monthly_projections?.length > 0 && (
                           <div>
                             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{t.monthlyProjection}</h4>
