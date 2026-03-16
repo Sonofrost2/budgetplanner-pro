@@ -129,6 +129,17 @@ const DashboardHome = () => {
   const { data: savingsGoals = [], isLoading: savLoading } = useSavingsGoals();
   const { data: monthlyData = [] } = useChartData(locale);
 
+  // Full-month transactions for weekly planner (always current month scope)
+  const monthStartForPlanner = useMemo(() => {
+    const d = new Date();
+    // Include last week which may fall in previous month
+    const twoWeeksAgo = new Date(d);
+    twoWeeksAgo.setDate(d.getDate() - 14);
+    return twoWeeksAgo.toISOString().split('T')[0];
+  }, []);
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const { data: plannerTransactions = [] } = useTransactionsRange(monthStartForPlanner, todayStr);
+
   const loading = accLoading || txLoading || budLoading || savLoading;
 
   const categoryData = useMemo(() => {
