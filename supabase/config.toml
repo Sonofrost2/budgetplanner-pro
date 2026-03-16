@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.ai-budget-suggest]
 verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false

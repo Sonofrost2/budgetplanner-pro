@@ -5,7 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { BookOpen, HelpCircle, Play, ArrowRight, CreditCard, Tag, ArrowUpDown, PieChart, Target, FileText, BarChart3, Users } from 'lucide-react';
+import { BookOpen, HelpCircle, Play, ArrowRight, CreditCard, Tag, ArrowUpDown, PieChart, Target, FileText, BarChart3, Users, Sparkles, RefreshCw, Layers } from 'lucide-react';
 
 const GuidePage = () => {
   const { locale } = useLanguage();
@@ -19,6 +19,9 @@ const GuidePage = () => {
     { key: 'reportsGuide', icon: FileText, link: '/dashboard/reports' },
     { key: 'forecastsGuide', icon: BarChart3, link: '/dashboard/forecasts' },
     { key: 'familyGuide', icon: Users, link: '/dashboard/family' },
+    { key: 'aiChatGuide', icon: Sparkles, link: '/dashboard' },
+    { key: 'recurringGuide', icon: RefreshCw, link: '/dashboard/recurring' },
+    { key: 'subPagesGuide', icon: Layers, link: '/dashboard/accounts' },
   ];
 
   const faqItems = [
@@ -27,6 +30,15 @@ const GuidePage = () => {
     { q: 'faqBalanceExplain', a: 'faqBalanceExplainAnswer' },
     { q: 'faqCancelSub', a: 'faqCancelSubAnswer' },
     { q: 'faqDataSecurity', a: 'faqDataSecurityAnswer' },
+    { q: 'faqAIChat', a: 'faqAIChatAnswer' },
+    { q: 'faqInvestments', a: 'faqInvestmentsAnswer' },
+    { q: 'faqSubPages', a: 'faqSubPagesAnswer' },
+    { q: 'faqRecurring', a: 'faqRecurringAnswer' },
+    { q: 'faqFamilySharing', a: 'faqFamilySharingAnswer' },
+    { q: 'faqBudgetOverspend', a: 'faqBudgetOverspendAnswer' },
+    { q: 'faqOfflineMode', a: 'faqOfflineModeAnswer' },
+    { q: 'faqInterestCalc', a: 'faqInterestCalcAnswer' },
+    { q: 'faqDeleteAccount', a: 'faqDeleteAccountAnswer' },
   ];
 
   const tutorialSteps = [
@@ -35,6 +47,8 @@ const GuidePage = () => {
     { key: 'tutorialStep3', desc: 'tutorialStep3Desc', link: '/dashboard/transactions', icon: ArrowUpDown },
     { key: 'tutorialStep4', desc: 'tutorialStep4Desc', link: '/dashboard/budgets', icon: PieChart },
     { key: 'tutorialStep5', desc: 'tutorialStep5Desc', link: '/dashboard/reports', icon: FileText },
+    { key: 'tutorialStep6', desc: 'tutorialStep6Desc', link: '/dashboard', icon: Sparkles },
+    { key: 'tutorialStep7', desc: 'tutorialStep7Desc', link: '/dashboard/accounts', icon: Layers },
   ];
 
   return (
@@ -93,7 +107,7 @@ const GuidePage = () => {
                         <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
                           <HelpCircle className="w-4 h-4 text-accent" />
                         </div>
-                        <span className="font-semibold">{t[item.q as keyof typeof t] as string}</span>
+                        <span className="font-semibold text-left">{t[item.q as keyof typeof t] as string}</span>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-5 pb-4">
