@@ -322,6 +322,8 @@ const BudgetsPage = () => {
       control_type: s.budget_type === 'income' ? 'min' : 'max',
       expected_day: '',
       occurrence_frequency: '',
+      reference_date: '',
+      active_days: '',
     });
     setDialogOpen(true);
   };
