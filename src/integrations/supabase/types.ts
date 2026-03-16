@@ -458,6 +458,7 @@ export type Database = {
         Row: {
           account_id: string | null
           bank_name: string | null
+          contribution_day: number | null
           created_at: string
           current_amount: number
           deadline: string | null
@@ -476,6 +477,7 @@ export type Database = {
         Insert: {
           account_id?: string | null
           bank_name?: string | null
+          contribution_day?: number | null
           created_at?: string
           current_amount?: number
           deadline?: string | null
@@ -494,6 +496,7 @@ export type Database = {
         Update: {
           account_id?: string | null
           bank_name?: string | null
+          contribution_day?: number | null
           created_at?: string
           current_amount?: number
           deadline?: string | null
