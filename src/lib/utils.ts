@@ -23,6 +23,6 @@ export function groupTopN<T extends { name: string; value: number }>(
   const top = data.slice(0, n);
   const rest = data.slice(n);
   const otherValue = rest.reduce((s, d) => s + d.value, 0);
-  const otherItem = { name: locale === 'fr' ? 'Autres' : 'Other', value: otherValue, color: '#94A3B8' } as T;
+  const otherItem = { name: locale === 'fr' ? 'Autres' : 'Other', value: otherValue, color: '#94A3B8' } as unknown as T;
   return [...top, otherItem];
 }
