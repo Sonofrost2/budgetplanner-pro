@@ -318,6 +318,8 @@ const BudgetsPage = () => {
       alert_threshold: '80',
       budget_type: s.budget_type || 'expense',
       control_type: s.budget_type === 'income' ? 'min' : 'max',
+      expected_day: '',
+      occurrence_frequency: '',
     });
     setDialogOpen(true);
   };
