@@ -687,13 +687,14 @@ const BudgetsPage = () => {
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.period}</Label>
                 <Select value={form.period} onValueChange={v => setForm(f => ({ ...f, period: v }))}>
-                  <SelectTrigger className="rounded-xl h-10"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className={`rounded-xl h-10 ${errors.period ? 'border-destructive' : ''}`}><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'].map(p => (
+                    {VALID_PERIODS.map(p => (
                       <SelectItem key={p} value={p}>{periodLabels[p] || p}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.period && <p className="text-xs text-destructive">{errors.period}</p>}
               </div>
             </div>
 
