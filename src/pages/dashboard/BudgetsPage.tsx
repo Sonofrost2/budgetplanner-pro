@@ -702,7 +702,84 @@ const BudgetsPage = () => {
                 <p className="text-[10px] text-muted-foreground">{t.occurrenceHint}</p>
               </div>
             </div>
-          </div>
+
+            {/* Reference date for periodic budgets */}
+            {['quarterly', 'semi_annual', 'yearly', 'monthly'].includes(form.period) && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3" />{t.referenceDate}
+                </Label>
+                <Input
+                  type="date"
+                  value={form.reference_date}
+                  onChange={e => setForm(f => ({ ...f, reference_date: e.target.value }))}
+                  className="rounded-xl h-10"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  {t.referenceDateHint}
+                  {['quarterly', 'semi_annual', 'yearly'].includes(form.period) && (
+                    <span className="block mt-0.5 text-primary/80">{t.referenceDateQuarterlyHint}</span>
+                  )}
+                </p>
+                {form.reference_date && ['quarterly', 'semi_annual', 'yearly'].includes(form.period) && (
+                  <div className="bg-muted/50 rounded-lg px-3 py-2 text-[10px] space-y-0.5">
+                    <p className="font-semibold text-muted-foreground">{t.nextOccurrence}:</p>
+                    {(() => {
+                      const refDate = new Date(form.reference_date);
+                      const dates: string[] = [];
+                      const increment = form.period === 'quarterly' ? 3 : form.period === 'semi_annual' ? 6 : 12;
+                      const now = new Date();
+                      let d = new Date(refDate);
+                      while (d < now) { d.setMonth(d.getMonth() + increment); }
+                      for (let i = 0; i < 4; i++) {
+                        dates.push(d.toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }));
+                        d = new Date(d); d.setMonth(d.getMonth() + increment);
+                      }
+                      return dates.map((dt, i) => <span key={i} className="inline-block mr-2 text-foreground font-medium">📅 {dt}</span>);
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Active days for daily budgets */}
+            {form.period === 'daily' && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.activeDays}</Label>
+                <div className="flex gap-1.5">
+                  {[
+                    { key: '1', label: t.activeDaysMon },
+                    { key: '2', label: t.activeDaysTue },
+                    { key: '3', label: t.activeDaysWed },
+                    { key: '4', label: t.activeDaysThu },
+                    { key: '5', label: t.activeDaysFri },
+                    { key: '6', label: t.activeDaysSat },
+                    { key: '7', label: t.activeDaysSun },
+                  ].map(day => {
+                    const selected = form.active_days.split(',').filter(Boolean).includes(day.key);
+                    return (
+                      <button
+                        key={day.key}
+                        type="button"
+                        onClick={() => {
+                          const current = form.active_days.split(',').filter(Boolean);
+                          const next = selected ? current.filter(d => d !== day.key) : [...current, day.key].sort();
+                          setForm(f => ({ ...f, active_days: next.join(',') }));
+                        }}
+                        className={`w-9 h-9 rounded-lg text-[10px] font-bold transition-all border ${selected ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/30 text-muted-foreground border-border hover:bg-muted/50'}`}
+                      >
+                        {day.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-2 mt-1">
+                  <button type="button" className="text-[10px] text-primary underline" onClick={() => setForm(f => ({ ...f, active_days: '1,2,3,4,5,6,7' }))}>{t.allDays}</button>
+                  <button type="button" className="text-[10px] text-primary underline" onClick={() => setForm(f => ({ ...f, active_days: '1,2,3,4,5' }))}>{t.weekdays}</button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">{t.activeDaysHint}</p>
+              </div>
+            )}
       </ResponsiveFormDialog>
 
       {/* Bulk Modify Dialog */}
