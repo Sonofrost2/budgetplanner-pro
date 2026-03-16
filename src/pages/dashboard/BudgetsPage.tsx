@@ -163,12 +163,15 @@ const BudgetsPage = () => {
 
   const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
 
+  const VALID_PERIODS = ['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'] as const;
+
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = t.nameRequired;
     if (form.name.trim().length > 100) errs.name = t.maxChars(100);
     if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
     if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
+    if (!VALID_PERIODS.includes(form.period as any)) errs.period = locale === 'fr' ? 'Période invalide' : 'Invalid period';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
