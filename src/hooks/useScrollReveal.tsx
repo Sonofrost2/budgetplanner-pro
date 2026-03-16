@@ -44,15 +44,14 @@ interface ScrollRevealProps {
   children: React.ReactNode;
   className?: string;
   delay?: number;
-  as?: keyof JSX.IntrinsicElements;
 }
 
-export function ScrollReveal({ children, className, delay = 0, as: Tag = 'div' }: ScrollRevealProps) {
+export function ScrollReveal({ children, className, delay = 0 }: ScrollRevealProps) {
   const { ref, isVisible } = useScrollReveal<HTMLDivElement>();
 
   return (
-    <Tag
-      ref={ref as any}
+    <div
+      ref={ref}
       className={cn(
         'transition-all duration-500 ease-out',
         isVisible
@@ -63,6 +62,6 @@ export function ScrollReveal({ children, className, delay = 0, as: Tag = 'div' }
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
-    </Tag>
+    </div>
   );
 }
