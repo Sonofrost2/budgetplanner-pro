@@ -20,6 +20,8 @@ interface Budget {
   category_id: string | null;
   expected_day?: number | null;
   occurrence_frequency?: string | null;
+  reference_date?: string | null;
+  active_days?: string | null;
   categories?: { name: string; icon: string; color: string } | null;
 }
 
