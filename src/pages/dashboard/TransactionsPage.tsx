@@ -581,12 +581,12 @@ const TransactionsPage = () => {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addTransaction}</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">{t.fillTransactionDetails}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-5 py-2">
+          <div className="space-y-4 py-2 overflow-y-auto flex-1 pr-1 form-animate">
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.type}</Label>
               <div className="grid grid-cols-2 gap-2">
