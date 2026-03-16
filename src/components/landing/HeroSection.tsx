@@ -2,10 +2,12 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Shield, Star, Users, TrendingUp, TrendingDown, Wallet, Sparkles, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
 
 const HeroSection = () => {
   const { t } = useLanguage();
+  const { user } = useAuth();
 
   const handleLearnMore = () => {
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
@@ -51,7 +53,7 @@ const HeroSection = () => {
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
               className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-              <Link to="/signup">
+              <Link to={user ? "/dashboard" : "/signup"}>
                 <Button size="lg" className="w-full sm:w-auto text-primary-foreground text-sm px-7 h-11 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]" style={{ background: 'var(--gradient-primary)' }}>
                   {t.hero.cta}<ArrowRight className="w-4 h-4 ml-2" />
                 </Button>

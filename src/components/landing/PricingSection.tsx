@@ -3,6 +3,7 @@ import { Check, X, Sparkles, Crown, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useGeolocatedCurrency } from '@/hooks/useGeolocatedCurrency';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
@@ -19,6 +20,7 @@ type Plan = {
 
 const PricingSection = () => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const { formatPrice, loading: geoLoading, detectedCurrency } = useGeolocatedCurrency();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,24 +64,30 @@ const PricingSection = () => {
     if (plan.name === 'free') {
       const isCfa = detectedCurrency === 'XOF' || detectedCurrency === 'XAF';
       const formatted = isCfa ? '0 CFA' : detectedCurrency === 'EUR' ? '0 €' : detectedCurrency === 'USD' ? '0 $' : `0 ${detectedCurrency}`;
-      return { amount: 0, formatted, currency: detectedCurrency };
+      return { amount: 0, formatted, currency: detectedCurrency, monthlyEquivalent: '' };
     }
     const base = formatPrice(plan.currency_prices);
-    if (!base || base.amount === 0) return base;
-    if (!annual) return base;
-    const discounted = Math.round(base.amount * 0.8 * 100) / 100;
+    if (!base || base.amount === 0) return { ...base, monthlyEquivalent: '' };
+    if (!annual) return { ...base, monthlyEquivalent: '' };
+
+    // Annual: show TOTAL annual amount (monthly * 12 * 0.8)
+    const monthlyDiscounted = Math.round(base.amount * 0.8 * 100) / 100;
+    const totalAnnual = Math.round(monthlyDiscounted * 12);
     const { currency } = base;
     const isCfa = currency === 'XOF' || currency === 'XAF';
     const formatted = isCfa
-      ? `${Math.round(discounted).toLocaleString('fr-FR')} CFA`
-      : `${discounted.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency}`;
-    return { amount: discounted, formatted, currency };
+      ? `${totalAnnual.toLocaleString('fr-FR')} CFA`
+      : `${totalAnnual.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency}`;
+    const monthlyFormatted = isCfa
+      ? `${Math.round(monthlyDiscounted).toLocaleString('fr-FR')} CFA`
+      : `${monthlyDiscounted.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency}`;
+    return { amount: totalAnnual, formatted, currency, monthlyEquivalent: monthlyFormatted };
   };
 
   const planCards = [
     {
       plan: freePlan, name: t.pricing.free, icon: Zap,
-      price: freePlan ? getDisplayPrice(freePlan) : { formatted: '0' },
+      price: freePlan ? getDisplayPrice(freePlan) : { formatted: '0', monthlyEquivalent: '' },
       cta: t.pricing.ctaFree, featured: false,
       features: freePlan?.features || [],
       excluded: t.pricing.excludedFree as readonly string[],
@@ -160,9 +168,14 @@ const PricingSection = () => {
                   <div className="flex flex-wrap items-baseline gap-x-1.5">
                     <span className="text-3xl font-extrabold">{card.price?.formatted ?? '—'}</span>
                     {card.plan?.name !== 'free' && (
-                      <span className="text-xs text-muted-foreground">{annual ? t.pricing.perMonthAnnual : t.pricing.perMonth}</span>
+                      <span className="text-xs text-muted-foreground">{annual ? '/an' : t.pricing.perMonth}</span>
                     )}
                   </div>
+                  {annual && card.price?.monthlyEquivalent && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      ≈ {card.price.monthlyEquivalent}{t.pricing.perMonth}
+                    </p>
+                  )}
                   {card.trial > 0 && (
                     <p className="mt-2 text-[10px] font-semibold text-primary bg-primary/10 inline-block px-2.5 py-0.5 rounded-full">
                       {card.trial} {t.pricing.trialDays}
@@ -189,7 +202,7 @@ const PricingSection = () => {
                   ))}
                 </ul>
 
-                <Link to="/signup" className="block">
+                <Link to={user ? "/dashboard/payment" : "/signup"} className="block">
                   {card.featured ? (
                     <Button className="w-full h-10 text-primary-foreground text-xs font-semibold rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-[1.02]" style={{ background: 'var(--gradient-primary)' }}>
                       {card.cta}
