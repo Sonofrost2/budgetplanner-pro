@@ -405,60 +405,68 @@ const SavingsPage = () => {
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
 
+    // Plain-text number formatter safe for jsPDF default font (no unicode spaces/symbols)
+    const pdfFmt = (n: number) => {
+      const parts = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+      return `${parts} ${currency}`;
+    };
+
     const doc = new jsPDF();
     const isFr = locale === 'fr';
-    const title = `${t.simulationTitle} — ${simulationGoal.name}`;
+    const title = `Simulation IA - ${simulationGoal.name}`;
 
     doc.setFontSize(16);
     doc.text(title, 14, 20);
 
+    // Summary — wrap long text properly
     doc.setFontSize(10);
-    doc.text(simulation.summary, 14, 30, { maxWidth: 180 });
+    const summaryLines = doc.splitTextToSize(simulation.summary, 180);
+    doc.text(summaryLines, 14, 30);
 
-    let y = 50;
+    let y = 30 + summaryLines.length * 5 + 5;
 
-    // Scenario labels
     const scenarios = [
-      { label: isFr ? 'Scénario 1 : Cotisations continues' : 'Scenario 1: Ongoing contributions', data: simulation.continue },
-      { label: isFr ? 'Scénario 2 : Arrêt aujourd\'hui' : 'Scenario 2: Stop today', data: simulation.stop_now },
+      { label: isFr ? 'Scenario 1 : Cotisations continues' : 'Scenario 1: Ongoing contributions', data: simulation.continue },
+      { label: isFr ? 'Scenario 2 : Arret aujourd\'hui' : 'Scenario 2: Stop today', data: simulation.stop_now },
     ];
 
     for (const sc of scenarios) {
+      if (y > 250) { doc.addPage(); y = 20; }
+
       doc.setFontSize(12);
       doc.text(sc.label, 14, y);
       y += 7;
 
       doc.setFontSize(9);
-      doc.text(`${t.interestIncome1y}: ${fmt(sc.data.interest_income_1y)}`, 14, y); y += 5;
-      doc.text(`${t.interestIncome3y}: ${fmt(sc.data.interest_income_3y)}`, 14, y); y += 5;
-      doc.text(`${t.interestIncome5y}: ${fmt(sc.data.interest_income_5y)}`, 14, y); y += 5;
+      doc.text(`${isFr ? 'Interets sur 1 an' : 'Interest 1y'}: ${pdfFmt(sc.data.interest_income_1y)}`, 14, y); y += 5;
+      doc.text(`${isFr ? 'Interets sur 3 ans' : 'Interest 3y'}: ${pdfFmt(sc.data.interest_income_3y)}`, 14, y); y += 5;
+      doc.text(`${isFr ? 'Interets sur 5 ans' : 'Interest 5y'}: ${pdfFmt(sc.data.interest_income_5y)}`, 14, y); y += 5;
       if (sc.data.estimated_goal_date) {
-        doc.text(`${t.estimatedGoalDate}: ${sc.data.estimated_goal_date}`, 14, y); y += 5;
+        doc.text(`${isFr ? 'Date d\'atteinte estimee' : 'Estimated goal date'}: ${sc.data.estimated_goal_date}`, 14, y); y += 5;
       }
 
       if (sc.data.monthly_projections?.length > 0) {
         autoTable(doc, {
           startY: y + 2,
-          head: [[isFr ? 'Mois' : 'Month', 'Capital', isFr ? 'Intérêts' : 'Interest', 'Total']],
-          body: sc.data.monthly_projections.map(p => [
-            String(p.month), fmt(p.capital), fmt(p.interest_earned), fmt(p.total),
+          head: [[isFr ? 'Mois' : 'Month', 'Capital', isFr ? 'Interets' : 'Interest', 'Total']],
+          body: sc.data.monthly_projections.map((p: any) => [
+            String(p.month), pdfFmt(p.capital), pdfFmt(p.interest_earned), pdfFmt(p.total),
           ]),
-          styles: { fontSize: 7 },
+          styles: { fontSize: 7, font: 'helvetica' },
           headStyles: { fillColor: [99, 102, 241] },
         });
         y = (doc as any).lastAutoTable.finalY + 10;
       } else {
         y += 10;
       }
-
-      if (y > 250) { doc.addPage(); y = 20; }
     }
 
     // Interest lost
     if (simulation.interest_lost > 0) {
+      if (y > 260) { doc.addPage(); y = 20; }
       doc.setFontSize(10);
       doc.setTextColor(220, 38, 38);
-      doc.text(`${t.interestLost}: ${fmt(simulation.interest_lost)}`, 14, y);
+      doc.text(`${isFr ? 'Manque a gagner si arret' : 'Interest lost if stopped'}: ${pdfFmt(simulation.interest_lost)}`, 14, y);
       doc.setTextColor(0, 0, 0);
       y += 10;
     }
@@ -467,17 +475,18 @@ const SavingsPage = () => {
     if (simulation.recommendations?.length > 0) {
       if (y > 240) { doc.addPage(); y = 20; }
       doc.setFontSize(12);
-      doc.text(t.aiRecommendations, 14, y); y += 7;
+      doc.text(isFr ? 'Recommandations IA' : 'AI Recommendations', 14, y); y += 7;
       doc.setFontSize(9);
-      for (const r of simulation.recommendations) {
+      for (let i = 0; i < simulation.recommendations.length; i++) {
         if (y > 270) { doc.addPage(); y = 20; }
-        doc.text(`• ${r}`, 16, y, { maxWidth: 175 });
-        y += Math.ceil(r.length / 80) * 5 + 3;
+        const recLines = doc.splitTextToSize(`${i + 1}. ${simulation.recommendations[i]}`, 175);
+        doc.text(recLines, 16, y);
+        y += recLines.length * 4.5 + 3;
       }
     }
 
     doc.save(`simulation-${simulationGoal.name.replace(/\s+/g, '_')}.pdf`);
-    toast.success(isFr ? 'PDF exporté avec succès' : 'PDF exported successfully');
+    toast.success(isFr ? 'PDF exporte avec succes' : 'PDF exported successfully');
   };
 
   const icons = ['🎯', '🏖️', '🏠', '🚗', '💻', '📚', '💍', '🎓', '🛡️', '✈️'];
