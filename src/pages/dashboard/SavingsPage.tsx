@@ -236,6 +236,7 @@ const SavingsPage = () => {
       account_id: form.account_id || null,
       monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
       start_date: form.start_date || null,
+      contribution_day: form.contribution_day ? Number(form.contribution_day) : null,
       is_locked: form.is_locked,
       interest_rate: form.interest_rate ? Number(form.interest_rate) : 0,
       interest_frequency: form.interest_frequency || 'yearly',
