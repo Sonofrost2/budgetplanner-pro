@@ -383,6 +383,8 @@ const SavingsPage = () => {
           is_locked: (goal as any).is_locked || false,
           bank_name: (goal as any).bank_name || null,
           deadline: goal.deadline,
+          start_date: (goal as any).start_date || null,
+          contribution_day: (goal as any).contribution_day || null,
           locale,
           currency,
         },
