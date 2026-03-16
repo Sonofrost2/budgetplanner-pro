@@ -419,7 +419,7 @@ const AccountsPage = () => {
 
       {/* Add/Edit Account Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addAccount}</DialogTitle>
             <DialogDescription>{t.configureAccount}</DialogDescription>
