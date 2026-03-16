@@ -20,6 +20,7 @@ import { ForecastWidget } from '@/components/dashboard/home/ForecastWidget';
 import { ChartsSection } from '@/components/dashboard/home/ChartsSection';
 import { RecentTransactions } from '@/components/dashboard/home/RecentTransactions';
 import { AccountsSummaryWidget } from '@/components/dashboard/home/AccountsSummaryWidget';
+import { WeeklyPlannerWidget } from '@/components/dashboard/home/WeeklyPlannerWidget';
 import { useAccounts, useTransactionsRange, useBudgets, useSavingsGoals, useChartData } from '@/hooks/useDashboardData';
 
 type PeriodKey = 'today' | 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisSemester' | 'thisYear' | 'custom';
@@ -127,6 +128,17 @@ const DashboardHome = () => {
   const { data: budgetsRaw = [], isLoading: budLoading } = useBudgets();
   const { data: savingsGoals = [], isLoading: savLoading } = useSavingsGoals();
   const { data: monthlyData = [] } = useChartData(locale);
+
+  // Full-month transactions for weekly planner (always current month scope)
+  const monthStartForPlanner = useMemo(() => {
+    const d = new Date();
+    // Include last week which may fall in previous month
+    const twoWeeksAgo = new Date(d);
+    twoWeeksAgo.setDate(d.getDate() - 14);
+    return twoWeeksAgo.toISOString().split('T')[0];
+  }, []);
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const { data: plannerTransactions = [] } = useTransactionsRange(monthStartForPlanner, todayStr);
 
   const loading = accLoading || txLoading || budLoading || savLoading;
 
@@ -327,6 +339,7 @@ const DashboardHome = () => {
 
         {/* Right column — 1/3 */}
         <motion.div variants={fadeUp} className="space-y-4">
+          <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} />
           <AccountsWidget accounts={accounts} fmt={fmt} t={t} />
           <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />
           <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />
