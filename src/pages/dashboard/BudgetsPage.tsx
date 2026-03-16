@@ -353,7 +353,11 @@ const BudgetsPage = () => {
     const dailyPace = actual / daysElapsed;
     const expectedPace = amount / daysTotal;
     const projection = (actual / daysElapsed) * daysTotal;
-    const annualized = amount * (PERIOD_MULTIPLIER[b.period] || 12);
+    // Annualized: for daily budgets with active_days, scale down from 365
+    const activeDaysArr = b.active_days ? b.active_days.split(',').filter(Boolean) : [];
+    const annualized = b.period === 'daily' && activeDaysArr.length > 0
+      ? amount * Math.round((activeDaysArr.length / 7) * 365)
+      : amount * (PERIOD_MULTIPLIER[b.period] || 12);
 
     // Pace status
     const paceRatio = expectedPace > 0 ? dailyPace / expectedPace : 0;
