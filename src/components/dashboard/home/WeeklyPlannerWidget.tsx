@@ -256,6 +256,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
 
   const thisWeek = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
   const weekStartDate = useMemo(() => new Date(thisWeek.start), [thisWeek.start]);
+  const weekEndDate = useMemo(() => new Date(thisWeek.end), [thisWeek.end]);
 
   const expenseBudgets = useMemo(() =>
     budgets.filter(b => b.budget_type === 'expense'), [budgets]);
