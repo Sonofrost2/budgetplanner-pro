@@ -284,7 +284,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
         .filter(tx => tx.type === 'expense' && tx.category_id === b.category_id && tx.date >= rangeStart && tx.date <= rangeEnd)
         .reduce((s, tx) => s + Number(tx.amount), 0);
 
-      const autoTarget = computeWeeklyTarget(b, periodSpent, weekStartDate);
+      const autoTarget = computeWeeklyTarget(b, periodSpent, weekStartDate, weekEndDate);
       const customTarget = customTargets[b.id];
       const weeklyTarget = customTarget ?? autoTarget;
 
