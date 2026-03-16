@@ -163,12 +163,15 @@ const BudgetsPage = () => {
 
   const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
 
+  const VALID_PERIODS = ['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'] as const;
+
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = t.nameRequired;
     if (form.name.trim().length > 100) errs.name = t.maxChars(100);
     if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
     if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
+    if (!VALID_PERIODS.includes(form.period as any)) errs.period = locale === 'fr' ? 'Période invalide' : 'Invalid period';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -684,13 +687,14 @@ const BudgetsPage = () => {
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.period}</Label>
                 <Select value={form.period} onValueChange={v => setForm(f => ({ ...f, period: v }))}>
-                  <SelectTrigger className="rounded-xl h-10"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className={`rounded-xl h-10 ${errors.period ? 'border-destructive' : ''}`}><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'].map(p => (
+                    {VALID_PERIODS.map(p => (
                       <SelectItem key={p} value={p}>{periodLabels[p] || p}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.period && <p className="text-xs text-destructive">{errors.period}</p>}
               </div>
             </div>
 
