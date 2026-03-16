@@ -907,6 +907,8 @@ export const dashT = {
     interestLost: 'Interest lost if stopped',
     ifYouStopToday: 'If you stop contributions today, you would lose',
     inInterest: 'in interest over 1 year',
+    comparisonChart: 'Scenario comparison',
+    exportPDF: 'Export as PDF',
     simulateAI: 'Simulate with AI',
     simulating: 'Simulating...',
     simulationTitle: 'AI Savings Simulation',
