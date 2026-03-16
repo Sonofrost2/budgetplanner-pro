@@ -559,14 +559,19 @@ const BudgetsPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{editId ? t.editBudget : t.addBudget}</DialogTitle>
-            <DialogDescription>{form.budget_type === 'income' ? t.createBudgetDescIncome : t.createBudgetDesc}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2 overflow-y-auto flex-1 pr-1 form-animate">
+      <ResponsiveFormDialog
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}
+        title={editId ? t.editBudget : t.addBudget}
+        description={form.budget_type === 'income' ? t.createBudgetDescIncome : t.createBudgetDesc}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl min-w-[120px]" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>{saving ? t.creating : t.save}</Button>
+          </>
+        }
+      >
+          <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.budgetName}</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} placeholder={t.budgetPlaceholder} className={`rounded-xl h-10 ${errors.name ? 'border-destructive' : ''}`} />
@@ -674,12 +679,7 @@ const BudgetsPage = () => {
               </div>
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
-            <Button className="text-primary-foreground rounded-xl min-w-[120px]" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>{saving ? t.creating : t.save}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveFormDialog>
 
       {/* Bulk Modify Dialog */}
       <Dialog open={bulkModifyOpen} onOpenChange={setBulkModifyOpen}>
