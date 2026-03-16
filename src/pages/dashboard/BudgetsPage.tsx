@@ -362,8 +362,11 @@ const BudgetsPage = () => {
       else if (paceRatio > 1.15) { paceLabel = t.paceOnTrack; paceColor = 'text-secondary'; }
     }
 
+    const occFreqLabels: Record<string, string> = { once: t.occurrenceOnce, daily: t.daily, weekly: t.weekly, biweekly: t.occurrenceBiweekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
+
     return (
-      <Card key={b.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
+      <ScrollReveal key={b.id}>
+      <Card className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] hover:-translate-y-1 transition-all duration-300 ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-bold flex items-center gap-2.5">
