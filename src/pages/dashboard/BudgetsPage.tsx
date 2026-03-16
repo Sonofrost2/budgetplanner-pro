@@ -826,6 +826,7 @@ const BudgetsPage = () => {
                   <button type="button" className="text-[10px] text-primary underline" onClick={() => setForm(f => ({ ...f, active_days: '1,2,3,4,5,6,7' }))}>{t.allDays}</button>
                   <button type="button" className="text-[10px] text-primary underline" onClick={() => setForm(f => ({ ...f, active_days: '1,2,3,4,5' }))}>{t.weekdays}</button>
                 </div>
+                {errors.active_days && <p className="text-xs text-destructive">{errors.active_days}</p>}
                 <p className="text-[10px] text-muted-foreground">{t.activeDaysHint}</p>
               </div>
             )}
