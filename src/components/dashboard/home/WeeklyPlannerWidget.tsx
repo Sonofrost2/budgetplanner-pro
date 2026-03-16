@@ -18,6 +18,8 @@ interface Budget {
   period: string;
   budget_type: string;
   category_id: string | null;
+  expected_day?: number | null;
+  occurrence_frequency?: string | null;
   categories?: { name: string; icon: string; color: string } | null;
 }
 
@@ -90,19 +92,138 @@ function getPeriodRange(period: string, refDate: Date): { start: Date; end: Date
   }
 }
 
-/** Compute weekly target from a budget based on its period */
+/** Check if a specific day falls within a week range */
+function dayFallsInWeek(expectedDay: number, period: string, weekStart: Date, weekEnd: Date): boolean {
+  if (period === 'weekly') {
+    // expectedDay is 1=Mon..7=Sun
+    const weekDayOfStart = weekStart.getDay(); // 0=Sun..6=Sat
+    // Convert: Mon=1 maps to getDay()=1, Sun=7 maps to getDay()=0
+    for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+      const jsDay = d.getDay();
+      const isoDay = jsDay === 0 ? 7 : jsDay;
+      if (isoDay === expectedDay) return true;
+    }
+    return false;
+  }
+  // For monthly+ periods, expectedDay is day of month (1-31)
+  for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+    if (d.getDate() === expectedDay) return true;
+  }
+  return false;
+}
+
+/** Get occurrence dates in a given week based on frequency */
+function getOccurrencesInWeek(
+  budget: Budget,
+  weekStart: Date,
+  weekEnd: Date
+): number {
+  const freq = budget.occurrence_frequency;
+  const expectedDay = budget.expected_day;
+
+  // No frequency info: fall back to proportional allocation
+  if (!freq) return -1; // sentinel: use proportional
+
+  if (freq === 'daily') return 7;
+
+  if (freq === 'once') {
+    // One-time: only if expected_day falls in this week
+    if (expectedDay && dayFallsInWeek(expectedDay, budget.period, weekStart, weekEnd)) return 1;
+    return 0; // not this week, but we don't know when → use proportional
+  }
+
+  if (freq === 'weekly') {
+    // Occurs every week; if expected_day set, check it falls in week (it always should for weekly)
+    return 1;
+  }
+
+  if (freq === 'biweekly') {
+    // Occurs every 2 weeks; approximate: 0.5 per week on average, but check expected_day
+    if (expectedDay && dayFallsInWeek(expectedDay, budget.period, weekStart, weekEnd)) {
+      // Check if this is an "on" week (using week number parity)
+      const weekNum = Math.floor(weekStart.getTime() / (7 * 86400000));
+      return weekNum % 2 === 0 ? 1 : 0;
+    }
+    return -1; // proportional fallback
+  }
+
+  if (freq === 'monthly') {
+    if (expectedDay && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
+    if (expectedDay) return 0; // has expected day but not this week
+    return -1; // no expected day, use proportional
+  }
+
+  if (freq === 'quarterly') {
+    // Check if expected_day falls in this week AND we're in a quarter-start month
+    const monthsInWeek = new Set<number>();
+    for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+      monthsInWeek.add(d.getMonth());
+    }
+    const quarterMonths = [0, 3, 6, 9];
+    const isQuarterMonth = [...monthsInWeek].some(m => quarterMonths.includes(m));
+    if (expectedDay && isQuarterMonth && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
+    if (expectedDay) return 0;
+    return -1;
+  }
+
+  if (freq === 'semi_annual') {
+    const monthsInWeek = new Set<number>();
+    for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+      monthsInWeek.add(d.getMonth());
+    }
+    const semiMonths = [0, 6];
+    const isSemiMonth = [...monthsInWeek].some(m => semiMonths.includes(m));
+    if (expectedDay && isSemiMonth && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
+    if (expectedDay) return 0;
+    return -1;
+  }
+
+  if (freq === 'yearly') {
+    // Only in January on expected_day
+    const monthsInWeek = new Set<number>();
+    for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+      monthsInWeek.add(d.getMonth());
+    }
+    if (expectedDay && monthsInWeek.has(0) && dayFallsInWeek(expectedDay, 'monthly', weekStart, weekEnd)) return 1;
+    if (expectedDay) return 0;
+    return -1;
+  }
+
+  return -1; // unknown frequency, use proportional
+}
+
+/** Compute weekly target from a budget based on its period, frequency, and expected day */
 function computeWeeklyTarget(
   budget: Budget,
   periodSpent: number,
-  weekStart: Date
+  weekStart: Date,
+  weekEnd: Date
 ): number {
   const period = budget.period;
   const amount = budget.amount;
 
+  // Check if we have precise scheduling info
+  const occurrences = getOccurrencesInWeek(budget, weekStart, weekEnd);
+
+  if (occurrences === 0) return 0; // not expected this week
+
+  if (occurrences > 0) {
+    // We know exactly how many times it occurs this week
+    if (budget.occurrence_frequency === 'daily') return amount * 7; // daily budget = amount per day
+    // For other frequencies: the full budget amount is for each occurrence
+    // But if the budget period covers multiple occurrences, divide accordingly
+    const freq = budget.occurrence_frequency;
+    if (freq === 'weekly' && period === 'weekly') return amount;
+    if (freq === 'weekly' && period === 'monthly') return amount / 4.33; // monthly budget, weekly spend
+    if (freq === 'monthly' || freq === 'once') return amount; // full amount this week
+    if (freq === 'biweekly' && occurrences === 1) return amount; // biweekly, this is the week
+    return amount * occurrences; // fallback
+  }
+
+  // Proportional fallback (occurrences === -1)
   if (period === 'daily') return amount * 7;
   if (period === 'weekly') return amount;
 
-  // For monthly, quarterly, semi_annual, yearly: remaining / weeks left
   const range = getPeriodRange(period, weekStart);
   const remaining = Math.max(0, amount - periodSpent);
   const msLeft = range.end.getTime() - weekStart.getTime();
@@ -135,6 +256,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
 
   const thisWeek = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
   const weekStartDate = useMemo(() => new Date(thisWeek.start), [thisWeek.start]);
+  const weekEndDate = useMemo(() => new Date(thisWeek.end), [thisWeek.end]);
 
   const expenseBudgets = useMemo(() =>
     budgets.filter(b => b.budget_type === 'expense'), [budgets]);
@@ -162,7 +284,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
         .filter(tx => tx.type === 'expense' && tx.category_id === b.category_id && tx.date >= rangeStart && tx.date <= rangeEnd)
         .reduce((s, tx) => s + Number(tx.amount), 0);
 
-      const autoTarget = computeWeeklyTarget(b, periodSpent, weekStartDate);
+      const autoTarget = computeWeeklyTarget(b, periodSpent, weekStartDate, weekEndDate);
       const customTarget = customTargets[b.id];
       const weeklyTarget = customTarget ?? autoTarget;
 
@@ -202,7 +324,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
         .filter(tx => tx.type === 'income' && tx.category_id === b.category_id && tx.date >= rangeStart && tx.date <= rangeEnd)
         .reduce((s, tx) => s + Number(tx.amount), 0);
 
-      const autoTarget = computeWeeklyTarget(b, periodReceived, weekStartDate);
+      const autoTarget = computeWeeklyTarget(b, periodReceived, weekStartDate, weekEndDate);
       const weekReceived = weekIncomeTxs
         .filter(tx => tx.category_id === b.category_id)
         .reduce((s, tx) => s + Number(tx.amount), 0);

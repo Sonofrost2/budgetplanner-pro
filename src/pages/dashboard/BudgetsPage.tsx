@@ -46,7 +46,7 @@ const BudgetsPage = () => {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly', alert_threshold: '80', budget_type: 'expense', control_type: 'max' });
+  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly', alert_threshold: '80', budget_type: 'expense', control_type: 'max', expected_day: '', occurrence_frequency: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -175,20 +175,20 @@ const BudgetsPage = () => {
     if (budgetLimitReached) { toast.error(t.limitBudgetsToast(limits.budgets)); return; }
     const cats = allCategories.filter(c => c.type === budgetType);
     setErrors({}); setEditId(null);
-    setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max' });
+    setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max', expected_day: '', occurrence_frequency: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (b: any) => {
     setErrors({}); setEditId(b.id);
-    setForm({ name: b.name, amount: String(b.amount), category_id: b.category_id || '', period: b.period || 'monthly', alert_threshold: String(b.alert_threshold ?? 80), budget_type: b.budget_type || 'expense', control_type: b.control_type || 'max' });
+    setForm({ name: b.name, amount: String(b.amount), category_id: b.category_id || '', period: b.period || 'monthly', alert_threshold: String(b.alert_threshold ?? 80), budget_type: b.budget_type || 'expense', control_type: b.control_type || 'max', expected_day: b.expected_day ? String(b.expected_day) : '', occurrence_frequency: b.occurrence_frequency || '' });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
     if (!user || !validate()) return;
     setSaving(true);
-    const payload = { name: form.name.trim(), amount: Number(form.amount), category_id: form.category_id || null, period: form.period, alert_threshold: Number(form.alert_threshold) || 80, budget_type: form.budget_type, control_type: form.control_type };
+    const payload = { name: form.name.trim(), amount: Number(form.amount), category_id: form.category_id || null, period: form.period, alert_threshold: Number(form.alert_threshold) || 80, budget_type: form.budget_type, control_type: form.control_type, expected_day: form.expected_day ? Number(form.expected_day) : null, occurrence_frequency: form.occurrence_frequency || null };
     const { error } = editId
       ? await supabase.from('budgets').update(payload).eq('id', editId)
       : await supabase.from('budgets').insert({ ...payload, user_id: user.id });
@@ -318,6 +318,8 @@ const BudgetsPage = () => {
       alert_threshold: '80',
       budget_type: s.budget_type || 'expense',
       control_type: s.budget_type === 'income' ? 'min' : 'max',
+      expected_day: '',
+      occurrence_frequency: '',
     });
     setDialogOpen(true);
   };
@@ -628,6 +630,44 @@ const BudgetsPage = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* Expected day & occurrence frequency */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3" />{t.expectedDay}
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max={form.period === 'weekly' ? 7 : 31}
+                  value={form.expected_day}
+                  onChange={e => setForm(f => ({ ...f, expected_day: e.target.value }))}
+                  placeholder={form.period === 'weekly' ? '1-7' : '1-31'}
+                  className="rounded-xl h-11"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  {form.period === 'weekly' ? t.expectedDayWeekHint : t.expectedDayMonthHint}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.occurrenceFrequency}</Label>
+                <Select value={form.occurrence_frequency} onValueChange={v => setForm(f => ({ ...f, occurrence_frequency: v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.occurrenceAuto} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="once">{t.occurrenceOnce}</SelectItem>
+                    <SelectItem value="daily">{t.daily}</SelectItem>
+                    <SelectItem value="weekly">{t.weekly}</SelectItem>
+                    <SelectItem value="biweekly">{t.occurrenceBiweekly}</SelectItem>
+                    <SelectItem value="monthly">{t.monthly}</SelectItem>
+                    <SelectItem value="quarterly">{t.quarterly}</SelectItem>
+                    <SelectItem value="semi_annual">{t.semiAnnual}</SelectItem>
+                    <SelectItem value="yearly">{t.yearly}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">{t.occurrenceHint}</p>
               </div>
             </div>
           </div>

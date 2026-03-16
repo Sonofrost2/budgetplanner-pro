@@ -525,6 +525,15 @@ export const dashT = {
     weeklyOver: 'Dépassé',
     weeklyIncomeExpected: 'Revenus prévus',
     weeklyNetBalance: 'Solde net hebdomadaire',
+    // Budget scheduling
+    expectedDay: 'Jour prévu',
+    expectedDayWeekHint: '1=Lun, 2=Mar, ..., 7=Dim',
+    expectedDayMonthHint: 'Jour du mois (ex: 25 pour le salaire)',
+    occurrenceFrequency: 'Fréquence',
+    occurrenceAuto: 'Automatique',
+    occurrenceOnce: 'Une seule fois',
+    occurrenceBiweekly: 'Bimensuel',
+    occurrenceHint: 'À quelle fréquence cette dépense/revenu a lieu',
   },
   en: {
     dashboard: 'Dashboard',
@@ -1046,6 +1055,15 @@ export const dashT = {
     weeklyOver: 'Over budget',
     weeklyIncomeExpected: 'Expected income',
     weeklyNetBalance: 'Weekly net balance',
+    // Budget scheduling
+    expectedDay: 'Expected day',
+    expectedDayWeekHint: '1=Mon, 2=Tue, ..., 7=Sun',
+    expectedDayMonthHint: 'Day of the month (e.g. 25 for salary)',
+    occurrenceFrequency: 'Frequency',
+    occurrenceAuto: 'Automatic',
+    occurrenceOnce: 'One-time',
+    occurrenceBiweekly: 'Biweekly',
+    occurrenceHint: 'How often this expense/income occurs',
   },
 } as const;
 

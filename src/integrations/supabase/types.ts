@@ -22,8 +22,10 @@ export type Database = {
           category_id: string | null
           control_type: string
           created_at: string
+          expected_day: number | null
           id: string
           name: string
+          occurrence_frequency: string | null
           period: string
           updated_at: string
           user_id: string
@@ -35,8 +37,10 @@ export type Database = {
           category_id?: string | null
           control_type?: string
           created_at?: string
+          expected_day?: number | null
           id?: string
           name: string
+          occurrence_frequency?: string | null
           period?: string
           updated_at?: string
           user_id: string
@@ -48,8 +52,10 @@ export type Database = {
           category_id?: string | null
           control_type?: string
           created_at?: string
+          expected_day?: number | null
           id?: string
           name?: string
+          occurrence_frequency?: string | null
           period?: string
           updated_at?: string
           user_id?: string
