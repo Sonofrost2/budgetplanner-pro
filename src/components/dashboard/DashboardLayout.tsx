@@ -279,6 +279,7 @@ const DashboardLayout = () => {
       </main>
 
       <OfflineBanner />
+      <AIChatWidget />
 
       <ConfirmDeleteDialog
         open={logoutDialogOpen}
