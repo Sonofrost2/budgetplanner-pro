@@ -14,9 +14,11 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
+import { ScrollReveal } from '@/hooks/useScrollReveal';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -360,8 +362,11 @@ const BudgetsPage = () => {
       else if (paceRatio > 1.15) { paceLabel = t.paceOnTrack; paceColor = 'text-secondary'; }
     }
 
+    const occFreqLabels: Record<string, string> = { once: t.occurrenceOnce, daily: t.daily, weekly: t.weekly, biweekly: t.occurrenceBiweekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
+
     return (
-      <Card key={b.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] transition-shadow ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
+      <ScrollReveal key={b.id}>
+      <Card className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] hover:-translate-y-1 transition-all duration-300 ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-bold flex items-center gap-2.5">
@@ -433,8 +438,27 @@ const BudgetsPage = () => {
               )}
             </p>
           )}
+
+          {/* Expected day & occurrence frequency indicators */}
+          {(b.expected_day || b.occurrence_frequency) && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {b.expected_day && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/8 text-primary text-[10px] font-semibold border border-primary/15">
+                  <Clock className="w-3 h-3" />
+                  {locale === 'fr' ? `Jour ${b.expected_day}` : `Day ${b.expected_day}`}
+                </span>
+              )}
+              {b.occurrence_frequency && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground text-[10px] font-semibold border border-accent/15">
+                  <Repeat className="w-3 h-3" />
+                  {occFreqLabels[b.occurrence_frequency] || b.occurrence_frequency}
+                </span>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
+      </ScrollReveal>
     );
   };
 
@@ -557,14 +581,19 @@ const BudgetsPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{editId ? t.editBudget : t.addBudget}</DialogTitle>
-            <DialogDescription>{form.budget_type === 'income' ? t.createBudgetDescIncome : t.createBudgetDesc}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2 overflow-y-auto flex-1 pr-1 form-animate">
+      <ResponsiveFormDialog
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}
+        title={editId ? t.editBudget : t.addBudget}
+        description={form.budget_type === 'income' ? t.createBudgetDescIncome : t.createBudgetDesc}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl min-w-[120px]" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>{saving ? t.creating : t.save}</Button>
+          </>
+        }
+      >
+          <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.budgetName}</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} placeholder={t.budgetPlaceholder} className={`rounded-xl h-10 ${errors.name ? 'border-destructive' : ''}`} />
@@ -672,12 +701,7 @@ const BudgetsPage = () => {
               </div>
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
-            <Button className="text-primary-foreground rounded-xl min-w-[120px]" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>{saving ? t.creating : t.save}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveFormDialog>
 
       {/* Bulk Modify Dialog */}
       <Dialog open={bulkModifyOpen} onOpenChange={setBulkModifyOpen}>

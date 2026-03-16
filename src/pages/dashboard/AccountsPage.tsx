@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -418,65 +419,49 @@ const AccountsPage = () => {
       )}
 
       {/* Add/Edit Account Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addAccount}</DialogTitle>
-            <DialogDescription>{t.configureAccount}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2 overflow-y-auto flex-1 pr-1 form-animate">
+      <ResponsiveFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editing ? t.edit : t.addAccount}
+        description={t.configureAccount}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl min-w-[120px]" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>
+              {saving ? t.saving : t.save}
+            </Button>
+          </>
+        }
+      >
+          <div className="space-y-4 py-2">
             {/* Account name */}
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.accountName}</Label>
-              <Input
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                maxLength={100}
-                placeholder={t.accountNamePlaceholder}
-                className={`rounded-xl h-11 ${errors.name ? 'border-destructive' : ''}`}
-              />
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} placeholder={t.accountNamePlaceholder} className={`rounded-xl h-11 ${errors.name ? 'border-destructive' : ''}`} />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
-
             {/* Type */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.type}</Label>
-               <div className="grid grid-cols-3 gap-2">
-                 {getAccountTypes(t).slice(0, 3).map(at => (
-                  <button
-                    key={at.value}
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, type: at.value }))}
-                    className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 text-xs font-semibold transition-all ${
-                      form.type === at.value
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    <span className="text-xl">{at.icon}</span>
+              <div className="grid grid-cols-3 gap-2">
+                {getAccountTypes(t).slice(0, 3).map(at => (
+                  <button key={at.value} type="button" onClick={() => setForm(f => ({ ...f, type: at.value }))}
+                    className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${form.type === at.value ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
+                    <span className="text-lg">{at.icon}</span>
                     {at.label.split(' ').slice(1).join(' ')}
                   </button>
                 ))}
               </div>
-               <div className="grid grid-cols-2 gap-2">
-                 {getAccountTypes(t).slice(3).map(at => (
-                  <button
-                    key={at.value}
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, type: at.value }))}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${
-                      form.type === at.value
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
-                    }`}
-                  >
+              <div className="grid grid-cols-2 gap-2">
+                {getAccountTypes(t).slice(3).map(at => (
+                  <button key={at.value} type="button" onClick={() => setForm(f => ({ ...f, type: at.value }))}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-xs font-semibold transition-all ${form.type === at.value ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
                     <span className="text-lg">{at.icon}</span>
                     {at.label.split(' ').slice(1).join(' ')}
                   </button>
                 ))}
               </div>
             </div>
-
             {/* Icon */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.iconLabel}</Label>
@@ -489,28 +474,14 @@ const AccountsPage = () => {
                 ))}
               </div>
             </div>
-
             {/* Opening balance */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.openingBalance}</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={form.opening_balance}
-                onChange={e => setForm(f => ({ ...f, opening_balance: e.target.value }))}
-                className={`rounded-xl h-11 text-lg font-bold ${errors.opening_balance ? 'border-destructive' : ''}`}
-              />
+              <Input type="number" step="0.01" value={form.opening_balance} onChange={e => setForm(f => ({ ...f, opening_balance: e.target.value }))} className={`rounded-xl h-11 text-lg font-bold ${errors.opening_balance ? 'border-destructive' : ''}`} />
               {errors.opening_balance && <p className="text-xs text-destructive">{errors.opening_balance}</p>}
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
-            <Button className="text-primary-foreground rounded-xl min-w-[120px]" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>
-              {saving ? t.saving : t.save}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveFormDialog>
 
       {/* Update balance dialog */}
       <Dialog open={!!updateBalanceDialog} onOpenChange={() => setUpdateBalanceDialog(null)}>

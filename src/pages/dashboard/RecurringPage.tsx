@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -438,10 +439,19 @@ const RecurringPage = () => {
       </Tabs>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
-          <DialogHeader><DialogTitle className="text-xl font-bold">{editId ? t.edit : t.addRecurring}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Configurez une transaction récurrente' : 'Configure a recurring transaction'}</DialogDescription></DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 pr-1 form-animate">
+      <ResponsiveFormDialog
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditId(null); }}
+        title={editId ? t.edit : t.addRecurring}
+        description={locale === 'fr' ? 'Configurez une transaction récurrente' : 'Configure a recurring transaction'}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button>
+          </>
+        }
+      >
+          <div className="space-y-4">
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.description}</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="rounded-xl h-11" /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.amount}</Label><Input type="number" min="1" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className="rounded-xl h-11 text-lg font-bold" /></div>
@@ -472,9 +482,7 @@ const RecurringPage = () => {
               <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0"><Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button><Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveFormDialog>
 
       <ConfirmDeleteDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} onConfirm={handleDelete} title={t.confirmDelete} description={t.confirmDeleteMessage} cancelLabel={t.cancel} confirmLabel={t.delete} />
     </div>
