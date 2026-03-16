@@ -774,57 +774,88 @@ const SavingsPage = () => {
                 <p className="text-sm">{simulation.summary}</p>
               </div>
 
-              {/* Interest income */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-primary/10 rounded-xl p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome1y}</p>
-                  <p className="text-lg font-bold text-primary mt-1">{fmt(simulation.interest_income_1y)}</p>
-                </div>
-                <div className="bg-primary/10 rounded-xl p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome3y}</p>
-                  <p className="text-lg font-bold text-primary mt-1">{fmt(simulation.interest_income_3y)}</p>
-                </div>
-                <div className="bg-primary/10 rounded-xl p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome5y}</p>
-                  <p className="text-lg font-bold text-primary mt-1">{fmt(simulation.interest_income_5y)}</p>
-                </div>
-              </div>
-
-              {simulation.estimated_goal_date && (
-                <div className="bg-secondary/10 rounded-xl p-3 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-secondary" />
-                  <span className="text-sm"><strong>{t.estimatedGoalDate}:</strong> {simulation.estimated_goal_date}</span>
+              {/* Interest lost banner */}
+              {simulation.interest_lost > 0 && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-destructive" />
+                  <span className="text-sm">
+                    <strong>{t.ifYouStopToday}</strong> {fmt(simulation.interest_lost)} {t.inInterest}
+                  </span>
                 </div>
               )}
 
-              {/* Monthly projections table */}
-              {simulation.monthly_projections?.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{t.monthlyProjection}</h4>
-                  <div className="overflow-x-auto rounded-xl border border-border/50">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-muted/50">
-                          <th className="text-left p-2 font-medium">{locale === 'fr' ? 'Mois' : 'Month'}</th>
-                          <th className="text-right p-2 font-medium">{locale === 'fr' ? 'Capital' : 'Capital'}</th>
-                          <th className="text-right p-2 font-medium">{locale === 'fr' ? 'Intérêts' : 'Interest'}</th>
-                          <th className="text-right p-2 font-medium">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {simulation.monthly_projections.map((p) => (
-                          <tr key={p.month} className="border-t border-border/30">
-                            <td className="p-2">{p.month}</td>
-                            <td className="text-right p-2">{fmt(p.capital)}</td>
-                            <td className="text-right p-2 text-secondary">{fmt(p.interest_earned)}</td>
-                            <td className="text-right p-2 font-bold">{fmt(p.total)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+              {/* Dual scenario tabs */}
+              <Tabs defaultValue="continue" className="w-full">
+                <TabsList className="rounded-xl mb-4 w-full">
+                  <TabsTrigger value="continue" className="rounded-lg flex-1 gap-1.5 text-xs">
+                    <TrendingUp className="w-3.5 h-3.5" />{t.scenarioContinue}
+                  </TabsTrigger>
+                  <TabsTrigger value="stop" className="rounded-lg flex-1 gap-1.5 text-xs">
+                    <Lock className="w-3.5 h-3.5" />{t.scenarioStopNow}
+                  </TabsTrigger>
+                </TabsList>
+
+                {(['continue', 'stop'] as const).map(scenario => {
+                  const data = scenario === 'continue' ? simulation.continue : simulation.stop_now;
+                  return (
+                    <TabsContent key={scenario} value={scenario === 'continue' ? 'continue' : 'stop'}>
+                      <div className="space-y-4">
+                        {/* Interest income */}
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-primary/10 rounded-xl p-3 text-center">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome1y}</p>
+                            <p className="text-lg font-bold text-primary mt-1">{fmt(data.interest_income_1y)}</p>
+                          </div>
+                          <div className="bg-primary/10 rounded-xl p-3 text-center">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome3y}</p>
+                            <p className="text-lg font-bold text-primary mt-1">{fmt(data.interest_income_3y)}</p>
+                          </div>
+                          <div className="bg-primary/10 rounded-xl p-3 text-center">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome5y}</p>
+                            <p className="text-lg font-bold text-primary mt-1">{fmt(data.interest_income_5y)}</p>
+                          </div>
+                        </div>
+
+                        {data.estimated_goal_date && (
+                          <div className="bg-secondary/10 rounded-xl p-3 flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-secondary" />
+                            <span className="text-sm"><strong>{t.estimatedGoalDate}:</strong> {data.estimated_goal_date}</span>
+                          </div>
+                        )}
+
+                        {/* Monthly projections table */}
+                        {data.monthly_projections?.length > 0 && (
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{t.monthlyProjection}</h4>
+                            <div className="overflow-x-auto rounded-xl border border-border/50 max-h-64 overflow-y-auto">
+                              <table className="w-full text-sm">
+                                <thead className="sticky top-0">
+                                  <tr className="bg-muted/50">
+                                    <th className="text-left p-2 font-medium">{locale === 'fr' ? 'Mois' : 'Month'}</th>
+                                    <th className="text-right p-2 font-medium">Capital</th>
+                                    <th className="text-right p-2 font-medium">{locale === 'fr' ? 'Intérêts' : 'Interest'}</th>
+                                    <th className="text-right p-2 font-medium">Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {data.monthly_projections.map((p) => (
+                                    <tr key={p.month} className="border-t border-border/30">
+                                      <td className="p-2">{p.month}</td>
+                                      <td className="text-right p-2">{fmt(p.capital)}</td>
+                                      <td className="text-right p-2 text-secondary">{fmt(p.interest_earned)}</td>
+                                      <td className="text-right p-2 font-bold">{fmt(p.total)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
 
               {/* Recommendations */}
               {simulation.recommendations?.length > 0 && (
