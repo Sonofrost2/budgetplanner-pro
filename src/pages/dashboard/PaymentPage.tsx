@@ -58,7 +58,14 @@ const PaymentPage = () => {
 
   const getPrice = (plan: Plan) => {
     const price = plan.currency_prices[currency] ?? plan.base_price;
-    return annual ? Math.round(price * 0.8 * 100) / 100 : price;
+    if (!annual) return price;
+    // Annual: total amount = monthly * 12 * 0.8
+    return Math.round(price * 12 * 0.8);
+  };
+
+  const getMonthlyEquivalent = (plan: Plan) => {
+    const price = plan.currency_prices[currency] ?? plan.base_price;
+    return Math.round(price * 0.8 * 100) / 100;
   };
 
   const handleSubscribe = async (plan: Plan) => {
