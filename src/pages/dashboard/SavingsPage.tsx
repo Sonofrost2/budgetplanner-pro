@@ -512,10 +512,15 @@ const SavingsPage = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="manage">
-        <TabsList className="rounded-xl mb-4">
+        <TabsList className="rounded-xl mb-4 flex-wrap">
           <TabsTrigger value="manage" className="rounded-lg gap-1.5"><PiggyBank className="w-4 h-4" />{t.management}</TabsTrigger>
+          <TabsTrigger value="evolution" className="rounded-lg gap-1.5"><TrendingUp className="w-4 h-4" />{locale === 'fr' ? 'Évolution' : 'Evolution'}</TabsTrigger>
           <TabsTrigger value="projections" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{t.savingsProjections}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="evolution">
+          <SavingsEvolutionTab />
+        </TabsContent>
 
         <TabsContent value="projections">
           <SavingsProjectionsTab goals={goals} fmt={fmt} />
