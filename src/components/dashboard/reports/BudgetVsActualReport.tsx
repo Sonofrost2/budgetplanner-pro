@@ -28,33 +28,6 @@ interface Row {
   period: string;
 }
 
-function getPeriodRange(period: string): { start: string; end: string } {
-  const now = new Date();
-  let start: string, end: string;
-  if (period === 'daily') {
-    start = now.toISOString().split('T')[0]; end = start;
-  } else if (period === 'weekly') {
-    const day = now.getDay();
-    const ws = new Date(now); ws.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-    const we = new Date(ws); we.setDate(ws.getDate() + 6);
-    start = ws.toISOString().split('T')[0]; end = we.toISOString().split('T')[0];
-  } else if (period === 'quarterly') {
-    const q = Math.floor(now.getMonth() / 3);
-    start = new Date(now.getFullYear(), q * 3, 1).toISOString().split('T')[0];
-    end = new Date(now.getFullYear(), q * 3 + 3, 0).toISOString().split('T')[0];
-  } else if (period === 'semi_annual') {
-    const s = now.getMonth() < 6 ? 0 : 6;
-    start = new Date(now.getFullYear(), s, 1).toISOString().split('T')[0];
-    end = new Date(now.getFullYear(), s + 6, 0).toISOString().split('T')[0];
-  } else if (period === 'yearly') {
-    start = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
-    end = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
-  } else {
-    start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-  }
-  return { start, end };
-}
 
 const BudgetVsActualReport = () => {
   const { user } = useAuth();
