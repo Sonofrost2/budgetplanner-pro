@@ -167,22 +167,23 @@ export const useBudgetNotifications = () => {
           });
         }
       } else {
-        if (spent < amount && daysElapsed > daysTotal * 0.5) {
-          notifs.push({
-            id: `budget-below-${budget.id}`,
-            type: 'budget_warning',
-            severity: 'info',
-            title: isFr ? 'Objectif non atteint' : 'Target not reached',
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString()}`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
-          });
-        } else if (spent >= amount) {
+        // Min budget (income target) — respect expected_day before alerting
+        if (spent >= amount) {
           notifs.push({
             id: `budget-target-reached-${budget.id}`,
             type: 'budget_savings',
             severity: 'success',
             title: isFr ? '🎉 Objectif atteint' : '🎉 Target reached',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? 'au-dessus' : 'above'}`,
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
+          });
+        } else if (shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal)) {
+          notifs.push({
+            id: `budget-below-${budget.id}`,
+            type: 'budget_warning',
+            severity: 'info',
+            title: isFr ? 'Objectif non atteint' : 'Target not reached',
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString()}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
           });
         }
