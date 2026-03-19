@@ -120,7 +120,7 @@ const BudgetAnalysisTab = () => {
       const actual = spending[b.id] || 0;
       const amount = Number(b.amount);
       const range = periodRanges.find(r => r.id === b.id);
-      if (!range) return { budget: b, actual, amount, pct: 0, projection: 0, dailyRate: 0, paceLabel: 'on_track' as const, daysLeft: 0, saving: 0 };
+      if (!range) return { budget: b, actual, amount, pct: 0, projection: 0, dailyRate: 0, paceLabel: 'on_track' as const, daysLeft: 0, variance: 0 };
 
       const daysElapsed = Math.max(1, Math.floor((now.getTime() - range.periodStart.getTime()) / 86400000) + 1);
       const daysTotal = Math.max(1, Math.floor((range.periodEnd.getTime() - range.periodStart.getTime()) / 86400000) + 1);
@@ -129,7 +129,10 @@ const BudgetAnalysisTab = () => {
 
       const isMax = (b as any).control_type !== 'min';
       const proj = computeBudgetProjection(actual, daysElapsed, daysLeft, daysTotal, amount, actual, daysElapsed, isMax);
-      const saving = isMax ? amount - proj.projection : proj.projection - amount;
+
+      // Variance = budget - actual (positive = saving, negative = overspend) for max budgets
+      // For min budgets: actual - budget (positive = on track, negative = under target)
+      const variance = isMax ? amount - actual : actual - amount;
 
       return {
         budget: b,
@@ -140,7 +143,7 @@ const BudgetAnalysisTab = () => {
         dailyRate: proj.dailyRate,
         paceLabel: proj.paceLabel,
         daysLeft,
-        saving,
+        variance,
       };
     });
   }, [expenseBudgets, spending, periodRanges, now]);
@@ -149,12 +152,12 @@ const BudgetAnalysisTab = () => {
   const summary = useMemo(() => {
     const totalBudgeted = budgetAnalysis.reduce((s, a) => s + a.amount, 0);
     const totalConsumed = budgetAnalysis.reduce((s, a) => s + a.actual, 0);
-    const totalProjected = budgetAnalysis.reduce((s, a) => s + a.projection, 0);
-    const overBudgetCount = budgetAnalysis.filter(a => a.actual > a.amount).length;
+    const overBudgetCount = budgetAnalysis.filter(a => a.variance < 0).length;
     const onTrackCount = budgetAnalysis.length - overBudgetCount;
-    const totalSavings = budgetAnalysis.filter(a => a.saving > 0).reduce((s, a) => s + a.saving, 0);
-    const totalOverspend = budgetAnalysis.filter(a => a.saving < 0).reduce((s, a) => s + Math.abs(a.saving), 0);
-    return { totalBudgeted, totalConsumed, totalProjected, overBudgetCount, onTrackCount, totalSavings, totalOverspend };
+    const totalSavings = budgetAnalysis.filter(a => a.variance > 0).reduce((s, a) => s + a.variance, 0);
+    const totalOverspend = budgetAnalysis.filter(a => a.variance < 0).reduce((s, a) => s + Math.abs(a.variance), 0);
+    const netVariance = totalSavings - totalOverspend;
+    return { totalBudgeted, totalConsumed, overBudgetCount, onTrackCount, totalSavings, totalOverspend, netVariance };
   }, [budgetAnalysis]);
 
   const chartData = budgetAnalysis.map(a => ({
@@ -267,12 +270,12 @@ const BudgetAnalysisTab = () => {
       </div>
 
       {/* Savings vs overspend summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="border border-border/50 rounded-2xl">
           <CardContent className="p-4 flex items-center gap-3">
             <TrendingDown className="w-5 h-5 text-secondary" />
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.estimatedSaving}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.totalSavings}</p>
               <p className="text-lg font-bold text-secondary">{fmt(Math.round(summary.totalSavings))}</p>
             </div>
           </CardContent>
@@ -281,8 +284,19 @@ const BudgetAnalysisTab = () => {
           <CardContent className="p-4 flex items-center gap-3">
             <TrendingUp className="w-5 h-5 text-destructive" />
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.estimatedOverspend}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.totalOverspend}</p>
               <p className="text-lg font-bold text-destructive">{fmt(Math.round(summary.totalOverspend))}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className={`border border-border/50 rounded-2xl ${summary.netVariance >= 0 ? 'ring-1 ring-secondary/30' : 'ring-1 ring-destructive/30'}`}>
+          <CardContent className="p-4 flex items-center gap-3">
+            {summary.netVariance >= 0 ? <CheckCircle className="w-5 h-5 text-secondary" /> : <AlertTriangle className="w-5 h-5 text-destructive" />}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.netVariance}</p>
+              <p className={`text-lg font-bold ${summary.netVariance >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                {summary.netVariance >= 0 ? '+' : ''}{fmt(Math.round(summary.netVariance))}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -357,9 +371,9 @@ const BudgetAnalysisTab = () => {
                     <p className={`font-bold ${pace.color}`}>{pace.label}</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg px-2 py-1.5">
-                    <p className="text-muted-foreground">{a.saving >= 0 ? t.estimatedSaving : t.estimatedOverspend}</p>
-                    <p className={`font-bold ${a.saving >= 0 ? 'text-secondary' : 'text-destructive'}`}>
-                      {fmt(Math.abs(Math.round(a.saving)))}
+                    <p className="text-muted-foreground">{a.variance >= 0 ? t.estimatedSaving : t.estimatedOverspend}</p>
+                    <p className={`font-bold ${a.variance >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                      {fmt(Math.abs(Math.round(a.variance)))}
                     </p>
                   </div>
                 </div>
