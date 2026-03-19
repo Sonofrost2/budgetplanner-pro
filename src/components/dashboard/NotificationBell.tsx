@@ -123,9 +123,8 @@ export const useBudgetNotifications = () => {
       const recentTxs = periodTxs.filter(tx => tx.date >= sevenDaysAgoStr);
       const spent7 = recentTxs.reduce((sum, tx) => sum + Number(tx.amount), 0);
       const recentDays = Math.min(7, daysElapsed);
-      const dailyRate = recentDays > 0 ? spent7 / recentDays : spent / daysElapsed;
-      const projection = spent + dailyRate * daysRemaining;
-      const daysToExceed = dailyRate > 0 ? Math.round((amount - spent) / dailyRate) : Infinity;
+      const proj = computeBudgetProjection(spent, daysElapsed, daysRemaining, daysTotal, amount, spent7, recentDays, isMax);
+      const { projection, dailyRate, daysToExceed } = proj;
 
       if (isMax) {
         if (spent > amount) {
