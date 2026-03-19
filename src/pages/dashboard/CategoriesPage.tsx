@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2, Inbox } from 'lucide-react';
+import CategoryEvolutionChart from '@/components/dashboard/categories/CategoryEvolutionChart';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
