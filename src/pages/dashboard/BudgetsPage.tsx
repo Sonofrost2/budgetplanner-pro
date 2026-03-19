@@ -557,10 +557,15 @@ const BudgetsPage = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="manage">
-        <TabsList className="rounded-xl mb-4">
+        <TabsList className="rounded-xl mb-4 flex-wrap">
           <TabsTrigger value="manage" className="rounded-lg gap-1.5"><PieChart className="w-4 h-4" />{t.management}</TabsTrigger>
+          <TabsTrigger value="evolution" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{isFr ? 'Évolution' : 'Evolution'}</TabsTrigger>
           <TabsTrigger value="analysis" className="rounded-lg gap-1.5"><TrendingUp className="w-4 h-4" />{t.budgetAnalysis}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="evolution">
+          <BudgetEvolutionTab />
+        </TabsContent>
 
         <TabsContent value="analysis">
           <BudgetAnalysisTab />
