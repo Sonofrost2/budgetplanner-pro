@@ -1,115 +1,85 @@
 
 
-# Plan : Alertes intelligentes, Projections améliorées, Recherche globale et Cartes cliquables
+# Plan : Cohérence des projections, alertes contextuelles, analyse budgétaire renforcée et filtres par période
+
+## Problèmes identifiés
+
+1. **Projections incohérentes** : `NotificationBell` utilise une moyenne pondérée 7j (`spent + dailyRate * daysRemaining`) tandis que `BudgetsPage` utilise un calcul linéaire simple (`(actual / daysElapsed) * daysTotal`). Le `BudgetAnalysisTab` ne calcule aucune projection.
+
+2. **Alertes prématurées** : Les alertes "objectif non atteint" (contrôle `min`) se déclenchent dès 50% de la période sans tenir compte du `expected_day`. Si le budget prévoit un revenu le 25 du mois, l'alerte ne devrait pas se déclencher avant cette date.
+
+3. **Analyse budgétaire limitée** : Le `BudgetAnalysisTab` ne montre que la période courante, sans projection, tempo, ni filtres de période.
+
+4. **Pas de sélection de période** : Les modules Budget (onglet Analyse), Épargne (stats) et Comptes (stats) ne permettent pas de consulter les données sur des périodes passées.
 
 ---
 
-## 1. Refonte des alertes et notifications — Approche "coach bienveillant"
+## 1. Unifier le calcul de projection
 
-### Philosophie
-Remplacer les alertes alarmistes par un système de **coaching financier** avec 3 tons :
-- **Félicitations** (success) : économies réalisées, budget sous contrôle
-- **Rappels proactifs** (info) : échéances imminentes, cotisations à venir  
-- **Alertes ciblées** (warning/critical) : dépassements avec explication et conseil
+**Créer `src/lib/budgetProjection.ts`** — fonction utilitaire partagée :
+- `computeBudgetProjection(spent, daysElapsed, daysRemaining, spent7d, recentDays)` → `{ projection, dailyRate, daysToExceed }`
+- `getBudgetPeriodBounds(period, now, referenceDate?)` (extraire de NotificationBell)
 
-### Nouveaux types de notifications
+**Fichiers modifiés** :
+- `NotificationBell.tsx` : importer depuis `budgetProjection.ts`
+- `BudgetsPage.tsx` (renderBudgetCard, ligne 369) : remplacer `projection = (actual / daysElapsed) * daysTotal` par l'appel à la fonction partagée avec le même calcul 7j
+- `BudgetAnalysisTab.tsx` : ajouter projection + tempo dans chaque carte budget
 
-| Type | Ton | Exemple |
-|---|---|---|
-| `budget_savings` | 🎉 Success | "Bravo ! Vous avez économisé 15 000 sur Alimentation cette semaine" |
-| `budget_upcoming` | 📅 Info | "Loyer prévu dans 3 jours (150 000 FCFA)" |
-| `savings_upcoming` | 🐷 Info | "Cotisation épargne Vacances prévue dans 5 jours" |
-| `budget_exceeded` | ⚠️ Warning | "Alimentation dépassé de 12% — 3 achats hors budget identifiés" |
-| `balance_discrepancy` | 🔍 Warning | "Écart de 5 200 sur Compte Orange — vérifiez vos transactions" |
-| `recurring_upcoming` | 📋 Info | "Abonnement Netflix prévu demain (6 500 FCFA)" |
-| `week_summary` | 📊 Info | "Bilan semaine : 85% budget utilisé, 12 000 économisés" |
+## 2. Alertes respectant les échéances budgétées
 
-### Fichier modifié : `NotificationBell.tsx`
-- Ajouter les types `budget_savings`, `budget_upcoming`, `savings_upcoming`, `balance_discrepancy`, `recurring_upcoming`, `week_summary`
-- Requêter `recurring_transactions` (where `active = true` and `next_date` dans les 7 prochains jours)
-- Requêter `payment_accounts` pour comparer `real_balance` vs `opening_balance + SUM(transactions)`
-- Calculer les économies hebdomadaires (budget - dépensé quand positif)
-- Identifier les dépenses imminentes via `expected_day` et `reference_date` des budgets
+**Dans `NotificationBell.tsx`** — modifier la logique `controlType !== 'max'` (lignes 204-224) :
+- Si `expected_day` existe et `now.getDate() < expected_day` → ne pas alerter "objectif non atteint"
+- Si `expected_day` existe et `now.getDate() >= expected_day` et `spent < amount` → alerter
+- Si pas de `expected_day` → garder le comportement actuel (>50% de la période)
+- Même logique pour les budgets `max` avec `expected_day` : n'alerter "dépassement prévu" qu'après la date prévue
 
-### Fichier modifié : `check-alerts/index.ts` (Edge Function push)
-- Aligner la logique push avec les mêmes nouveaux types
-- Ajouter les rappels d'échéances (budgets avec `expected_day` proche)
-- Ajouter les félicitations hebdomadaires (dimanche soir)
+**Dans `check-alerts/index.ts`** : appliquer la même logique côté push.
 
----
+## 3. Renforcer l'analyse budgétaire (`BudgetAnalysisTab`)
 
-## 2. Amélioration des projections et du tempo budgétaire
+**Ajouter un sélecteur de période** (prédéfini + personnalisé) :
+- Périodes : Mois en cours, Mois dernier, 3 mois, 6 mois, 1 an, Personnalisé
+- Les bornes de période des budgets sont recalculées pour la période sélectionnée (ex: "mois dernier" → `periodStart` = 1er du mois passé)
 
-### Problèmes actuels
-- La projection dans `NotificationBell` est linéaire : `(spent / daysElapsed) * daysTotal` — ne tient pas compte de la fréquence, des jours actifs, ni du `expected_day`
-- Les budgets non-mensuels sont mal gérés (le filtre de transactions est toujours mensuel)
+**Ajouter des indicateurs enrichis par carte budget** :
+- Projection (via la fonction partagée)
+- Tempo (pace label : rapide/normal/lent)
+- Économie ou dépassement estimé
+- Jours restants dans la période
 
-### Corrections dans `NotificationBell.tsx`
-- **Utiliser les vraies bornes de période** : calculer `periodStart`/`periodEnd` selon `budget.period` (déjà fait lignes 88-109) mais aussi filtrer les transactions sur ces bornes au lieu de `monthStart`/`monthEnd`
-- **Projection alignée à la fréquence** : réutiliser la logique de `WeeklyPlannerWidget.computeWeeklyTarget` pour déterminer si une dépense est attendue dans la période restante
-- **Tempo pondéré** : au lieu de `spent/daysElapsed * daysTotal`, calculer le rythme sur les 7 derniers jours et projeter : `(spent7days / 7) * daysRemaining + spentSoFar`
-- **Projection avec deadline** : afficher "Dépassement estimé dans ~X jours" plutôt qu'un simple pourcentage
-- **Budgets daily avec active_days** : diviser le montant par le nombre de jours actifs dans la période, pas par le nombre total de jours
+**Ajouter un résumé global** :
+- Total budgété vs total consommé pour la période sélectionnée
+- Économies totales / dépassements totaux
+- Nombre de budgets en alerte / maîtrisés
 
-### Détail technique
-```text
-Avant:  projection = (spent / daysElapsed) * daysTotal
-Après:  
-  1. txPeriod = transactions filtrées sur [periodStart, periodEnd] (pas monthStart)
-  2. spent7 = dépenses des 7 derniers jours
-  3. dailyRate = spent7 / min(7, daysElapsed)
-  4. projection = spent + dailyRate * daysRemaining
-  5. daysToExceed = (budget - spent) / dailyRate
-  6. Message: "Dépassement estimé dans {daysToExceed}j"
-```
+## 4. Filtres par période dans les modules Épargne et Comptes
+
+### `SavingsPage` — Stats globales filtrables
+- Ajouter un sélecteur de période au-dessus des `SavingsGlobalStats`
+- Recalculer : épargne consommée/ajoutée/progression sur la période sélectionnée
+- Afficher les contributions de la période (pas seulement le cumul actuel)
+
+### `AccountsPage` — Soldes historiques
+- Ajouter un sélecteur de période dans l'onglet principal (pas seulement Recap)
+- Permettre de voir le solde théorique à une date passée : `opening_balance + SUM(tx WHERE date <= period_end)`
+- Afficher revenus/dépenses de la période sélectionnée par compte
+
+### `BudgetsPage` — Onglet Manage avec période
+- Ajouter un sélecteur de période dans l'onglet "Manage" pour voir les consommations des périodes passées
+- Quand "Mois dernier" est sélectionné, recalculer les `budgetPeriodRanges` en décalant d'un mois
 
 ---
 
-## 3. Recherche globale — Command Palette (⌘K)
-
-### Fichier créé : `GlobalSearchCommand.tsx`
-- Utiliser les composants `Command`/`CommandDialog` existants (shadcn)
-- Rechercher dans : Transactions, Comptes, Budgets, Catégories, Objectifs d'épargne, Pages de navigation
-- Résultats groupés par module avec icônes
-- Au clic : naviguer vers la page avec filtre/query activé
-
-### Fichier modifié : `DashboardLayout.tsx`
-- Remplacer le `<form>` + `<Input>` de recherche par le trigger du `CommandDialog`
-- Conserver le raccourci ⌘K existant
-- Le bouton de recherche ouvre le dialog au lieu de soumettre un formulaire
-
----
-
-## 4. Cartes de statistiques cliquables
-
-### `BudgetGlobalStats.tsx`
-- Ajouter un prop `onCardClick?: (action: string) => void`
-- Chaque carte reçoit `onClick` + `cursor-pointer` + hover effect
-- Actions : `'evolution'`, `'consumed'`, `'analysis'`, `'alerts'`
-
-### `SavingsGlobalStats.tsx`  
-- Même pattern avec actions : `'evolution'`, `'locked'`, `'unlocked'`
-
-### `StatsCards.tsx`
-- Balance → naviguer vers `/dashboard/accounts`
-- Stats secondaires → pages correspondantes
-
-### Pages parentes (`BudgetsPage.tsx`, `SavingsPage.tsx`, `DashboardHome.tsx`)
-- Gérer les callbacks `onCardClick` pour changer d'onglet ou activer des filtres
-
----
-
-## Résumé des fichiers
+## Fichiers à modifier/créer
 
 | Fichier | Action |
 |---|---|
-| `src/components/dashboard/NotificationBell.tsx` | Refonte alertes + projections améliorées |
-| `src/components/dashboard/GlobalSearchCommand.tsx` | **Créer** — Command palette multi-module |
-| `src/components/dashboard/DashboardLayout.tsx` | Intégrer GlobalSearchCommand |
-| `src/components/dashboard/budgets/BudgetGlobalStats.tsx` | Cartes cliquables |
-| `src/components/dashboard/savings/SavingsGlobalStats.tsx` | Cartes cliquables |
-| `src/components/dashboard/home/StatsCards.tsx` | Étendre clics stats secondaires |
-| `src/pages/dashboard/BudgetsPage.tsx` | Gérer filtres via clic cartes |
-| `src/pages/dashboard/SavingsPage.tsx` | Gérer filtres via clic cartes |
-| `supabase/functions/check-alerts/index.ts` | Aligner push avec nouveaux types d'alertes |
+| `src/lib/budgetProjection.ts` | **Créer** — fonctions partagées projection + period bounds |
+| `src/components/dashboard/NotificationBell.tsx` | Importer utils, fix alertes avec expected_day |
+| `src/pages/dashboard/BudgetsPage.tsx` | Utiliser projection partagée, ajouter sélecteur période manage |
+| `src/components/dashboard/tabs/BudgetAnalysisTab.tsx` | Refonte : sélecteur période, projection, tempo, résumé |
+| `src/pages/dashboard/SavingsPage.tsx` | Sélecteur période pour stats globales |
+| `src/components/dashboard/savings/SavingsGlobalStats.tsx` | Accepter période en props, recalculer |
+| `src/pages/dashboard/AccountsPage.tsx` | Sélecteur période pour soldes historiques |
+| `supabase/functions/check-alerts/index.ts` | Fix alertes expected_day côté push |
 
