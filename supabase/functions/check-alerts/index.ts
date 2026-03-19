@@ -287,6 +287,26 @@ Deno.serve(async (req) => {
         }
       }
 
+      // ────── Balance discrepancy alerts ──────
+      for (const account of accounts) {
+        const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
+        const txSum = acctTxs.reduce((sum: number, tx: any) => {
+          return sum + (tx.type === "income" ? Number(tx.amount) : -Number(tx.amount));
+        }, 0);
+        const theoreticalBalance = Number(account.opening_balance) + txSum;
+        const realBalance = Number(account.real_balance);
+        const diff = Math.abs(realBalance - theoreticalBalance);
+        const discThreshold = Math.min(500, Math.abs(realBalance) * 0.01 || 500);
+
+        if (diff > discThreshold && diff > 0) {
+          const sign = realBalance > theoreticalBalance ? "+" : "-";
+          alerts.push({
+            title: isFr ? "🔍 Écart de solde détecté" : "🔍 Balance discrepancy",
+            body: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString()} (${isFr ? "réel" : "actual"}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? "théorique" : "calculated"}: ${Math.round(theoreticalBalance).toLocaleString()})`,
+          });
+        }
+      }
+
       // Send push for each alert
       for (const alert of alerts) {
         try {
