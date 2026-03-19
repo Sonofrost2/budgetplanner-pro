@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -7,10 +7,12 @@ import { useBudgets, useCategories } from '@/hooks/useDashboardData';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { PieChart as PieChartIcon, AlertTriangle, CheckCircle } from 'lucide-react';
+import { PieChart as PieChartIcon, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { abbreviateNumber } from '@/lib/utils';
+import { getBudgetPeriodBounds, computeBudgetProjection, formatDateStr } from '@/lib/budgetProjection';
 
 const TOOLTIP_STYLE = {
   borderRadius: '12px',
@@ -21,35 +23,70 @@ const TOOLTIP_STYLE = {
   padding: '8px 12px',
 };
 
+type AnalysisPeriod = 'current' | 'last_month' | 'last_3' | 'last_6' | 'last_year';
+
 const BudgetAnalysisTab = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
+  const isFr = locale === 'fr';
   const { data: budgets = [] } = useBudgets();
-  const { data: categories = [] } = useCategories();
   const fmt = (n: number) => fmtCurrency(n, locale);
 
+  const [analysisPeriod, setAnalysisPeriod] = useState<AnalysisPeriod>('current');
+
+  const periodLabels: Record<AnalysisPeriod, string> = {
+    current: t.currentPeriod,
+    last_month: t.lastMonth,
+    last_3: t.last3Months,
+    last_6: t.last6Months,
+    last_year: t.lastYear,
+  };
+
+  // Compute period ranges for each budget based on analysis period
   const periodRanges = useMemo(() => {
     const now = new Date();
     return budgets.map(b => {
-      let start: string, end: string;
-      if (b.period === 'weekly') {
-        const day = now.getDay();
-        const ws = new Date(now); ws.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-        start = ws.toISOString().split('T')[0]; end = now.toISOString().split('T')[0];
-      } else if (b.period === 'yearly') {
-        start = `${now.getFullYear()}-01-01`; end = `${now.getFullYear()}-12-31`;
-      } else {
-        start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-      }
-      return { id: b.id, category_id: b.category_id, type: (b as any).budget_type === 'income' ? 'income' : 'expense', start, end };
-    });
-  }, [budgets]);
+      let offset = 0;
+      if (analysisPeriod === 'last_month') offset = 1;
+      // For multi-period, we use 1 offset (last period) — for 3/6/year we use different logic below
 
+      const { periodStart, periodEnd } = getBudgetPeriodBounds(
+        b.period || 'monthly', now, b.reference_date, offset
+      );
+
+      // For last_3, last_6, last_year: override to fixed calendar ranges
+      let start = formatDateStr(periodStart);
+      let end = formatDateStr(periodEnd);
+
+      if (analysisPeriod === 'last_3') {
+        const d = new Date(now); d.setMonth(d.getMonth() - 3);
+        start = formatDateStr(new Date(d.getFullYear(), d.getMonth(), 1));
+        end = formatDateStr(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+      } else if (analysisPeriod === 'last_6') {
+        const d = new Date(now); d.setMonth(d.getMonth() - 6);
+        start = formatDateStr(new Date(d.getFullYear(), d.getMonth(), 1));
+        end = formatDateStr(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+      } else if (analysisPeriod === 'last_year') {
+        start = `${now.getFullYear() - 1}-01-01`;
+        end = `${now.getFullYear()}-12-31`;
+      }
+
+      return {
+        id: b.id,
+        category_id: b.category_id,
+        type: (b as any).budget_type === 'income' ? 'income' : 'expense',
+        start, end,
+        periodStart: new Date(start),
+        periodEnd: new Date(end),
+      };
+    });
+  }, [budgets, analysisPeriod]);
+
+  // Fetch spending for each budget
   const { data: spending = {} } = useQuery({
-    queryKey: ['budget-analysis-spending', user?.id, periodRanges.map(r => r.id).join(',')],
+    queryKey: ['budget-analysis-spending', user?.id, analysisPeriod, periodRanges.map(r => r.id).join(',')],
     queryFn: async () => {
       const map: Record<string, number> = {};
       await Promise.all(periodRanges.filter(r => r.category_id).map(async r => {
@@ -66,15 +103,63 @@ const BudgetAnalysisTab = () => {
   });
 
   const expenseBudgets = budgets.filter(b => (b as any).budget_type !== 'income');
+  const now = new Date();
 
-  const chartData = expenseBudgets.map(b => ({
-    name: b.name.length > 12 ? b.name.slice(0, 12) + '…' : b.name,
-    budget: Number(b.amount),
-    actual: spending[b.id] || 0,
+  // Compute projections for each budget
+  const budgetAnalysis = useMemo(() => {
+    return expenseBudgets.map(b => {
+      const actual = spending[b.id] || 0;
+      const amount = Number(b.amount);
+      const range = periodRanges.find(r => r.id === b.id);
+      if (!range) return { budget: b, actual, amount, pct: 0, projection: 0, dailyRate: 0, paceLabel: 'on_track' as const, daysLeft: 0, saving: 0 };
+
+      const daysElapsed = Math.max(1, Math.floor((now.getTime() - range.periodStart.getTime()) / 86400000) + 1);
+      const daysTotal = Math.max(1, Math.floor((range.periodEnd.getTime() - range.periodStart.getTime()) / 86400000) + 1);
+      const daysLeft = Math.max(0, Math.floor((range.periodEnd.getTime() - now.getTime()) / 86400000));
+      const pct = amount > 0 ? Math.min((actual / amount) * 100, 100) : 0;
+
+      const isMax = (b as any).control_type !== 'min';
+      const proj = computeBudgetProjection(actual, daysElapsed, daysLeft, daysTotal, amount, actual, daysElapsed, isMax);
+      const saving = isMax ? amount - proj.projection : proj.projection - amount;
+
+      return {
+        budget: b,
+        actual,
+        amount,
+        pct,
+        projection: proj.projection,
+        dailyRate: proj.dailyRate,
+        paceLabel: proj.paceLabel,
+        daysLeft,
+        saving,
+      };
+    });
+  }, [expenseBudgets, spending, periodRanges, now]);
+
+  // Global summary
+  const summary = useMemo(() => {
+    const totalBudgeted = budgetAnalysis.reduce((s, a) => s + a.amount, 0);
+    const totalConsumed = budgetAnalysis.reduce((s, a) => s + a.actual, 0);
+    const totalProjected = budgetAnalysis.reduce((s, a) => s + a.projection, 0);
+    const overBudgetCount = budgetAnalysis.filter(a => a.actual > a.amount).length;
+    const onTrackCount = budgetAnalysis.length - overBudgetCount;
+    const totalSavings = budgetAnalysis.filter(a => a.saving > 0).reduce((s, a) => s + a.saving, 0);
+    const totalOverspend = budgetAnalysis.filter(a => a.saving < 0).reduce((s, a) => s + Math.abs(a.saving), 0);
+    return { totalBudgeted, totalConsumed, totalProjected, overBudgetCount, onTrackCount, totalSavings, totalOverspend };
+  }, [budgetAnalysis]);
+
+  const chartData = budgetAnalysis.map(a => ({
+    name: a.budget.name.length > 12 ? a.budget.name.slice(0, 12) + '…' : a.budget.name,
+    budget: a.amount,
+    actual: a.actual,
+    projection: Math.round(a.projection),
   }));
 
-  const overBudgetCount = expenseBudgets.filter(b => (spending[b.id] || 0) > Number(b.amount)).length;
-  const onTrackCount = expenseBudgets.length - overBudgetCount;
+  const paceLabels = {
+    fast: { label: t.paceFast, color: 'text-destructive', bg: 'bg-destructive/10' },
+    slow: { label: t.paceSlow, color: 'text-muted-foreground', bg: 'bg-muted/50' },
+    on_track: { label: t.paceOnTrack, color: 'text-secondary', bg: 'bg-secondary/10' },
+  };
 
   if (budgets.length === 0) {
     return (
@@ -89,19 +174,47 @@ const BudgetAnalysisTab = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Period selector */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          {t.budgetAnalysis}
+        </h3>
+        <Select value={analysisPeriod} onValueChange={(v) => setAnalysisPeriod(v as AnalysisPeriod)}>
+          <SelectTrigger className="w-[180px] h-8 rounded-xl text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(periodLabels).map(([key, label]) => (
+              <SelectItem key={key} value={key}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Global summary */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="border border-border/50 rounded-2xl">
           <CardContent className="p-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.budgets}</p>
-            <p className="text-xl font-bold">{expenseBudgets.length}</p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.totalBudgeted}</p>
+            <p className="text-lg font-bold">{fmt(summary.totalBudgeted)}</p>
+          </CardContent>
+        </Card>
+        <Card className="border border-border/50 rounded-2xl">
+          <CardContent className="p-4">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.totalConsumed}</p>
+            <p className="text-lg font-bold">{fmt(summary.totalConsumed)}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {summary.totalBudgeted > 0 ? Math.round((summary.totalConsumed / summary.totalBudgeted) * 100) : 0}%
+            </p>
           </CardContent>
         </Card>
         <Card className="border border-border/50 rounded-2xl">
           <CardContent className="p-4 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-secondary" />
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.onTrack}</p>
-              <p className="text-xl font-bold text-secondary">{onTrackCount}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.onTrack}</p>
+              <p className="text-lg font-bold text-secondary">{summary.onTrackCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -109,13 +222,36 @@ const BudgetAnalysisTab = () => {
           <CardContent className="p-4 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-destructive" />
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.budgetsInAlert}</p>
-              <p className="text-xl font-bold text-destructive">{overBudgetCount}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.budgetsInAlert}</p>
+              <p className="text-lg font-bold text-destructive">{summary.overBudgetCount}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Savings vs overspend summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Card className="border border-border/50 rounded-2xl">
+          <CardContent className="p-4 flex items-center gap-3">
+            <TrendingDown className="w-5 h-5 text-secondary" />
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.estimatedSaving}</p>
+              <p className="text-lg font-bold text-secondary">{fmt(Math.round(summary.totalSavings))}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border border-border/50 rounded-2xl">
+          <CardContent className="p-4 flex items-center gap-3">
+            <TrendingUp className="w-5 h-5 text-destructive" />
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.estimatedOverspend}</p>
+              <p className="text-lg font-bold text-destructive">{fmt(Math.round(summary.totalOverspend))}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Chart */}
       {chartData.length > 0 && (
         <Card className="border border-border/50 rounded-2xl">
           <CardHeader className="pb-2">
@@ -131,6 +267,7 @@ const BudgetAnalysisTab = () => {
                   <Tooltip formatter={(v: number) => fmt(v)} contentStyle={TOOLTIP_STYLE} />
                   <Bar dataKey="budget" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name={t.budgetAmount} />
                   <Bar dataKey="actual" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} name={t.spent} />
+                  <Bar dataKey="projection" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} name={t.projection} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -143,30 +280,57 @@ const BudgetAnalysisTab = () => {
                 <span className="w-3 h-1 rounded-full bg-destructive" />
                 {t.spent}
               </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-3 h-1 rounded-full bg-accent" />
+                {t.projection}
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
+      {/* Detail cards per budget */}
       <div className="space-y-3">
-        {expenseBudgets.map(b => {
-          const actual = spending[b.id] || 0;
-          const amount = Number(b.amount);
-          const pct = amount > 0 ? Math.min((actual / amount) * 100, 100) : 0;
-          const over = actual > amount;
+        {budgetAnalysis.map(a => {
+          const over = a.actual > a.amount;
+          const pace = paceLabels[a.paceLabel];
           return (
-            <Card key={b.id} className={`border border-border/50 rounded-2xl ${over ? 'ring-1 ring-destructive/20' : ''}`}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
+            <Card key={a.budget.id} className={`border border-border/50 rounded-2xl ${over ? 'ring-1 ring-destructive/20' : ''}`}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
                   <span className="font-semibold text-sm flex items-center gap-2">
-                    <span>{b.categories?.icon || '📁'}</span> {b.name}
+                    <span>{a.budget.categories?.icon || '📁'}</span> {a.budget.name}
                   </span>
                   <span className={`text-sm font-bold ${over ? 'text-destructive' : 'text-secondary'}`}>
-                    {fmt(actual)} / {fmt(amount)}
+                    {fmt(a.actual)} / {fmt(a.amount)}
                   </span>
                 </div>
-                <Progress value={pct} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-1">{pct.toFixed(0)}% {locale === 'fr' ? 'consommé' : 'consumed'}</p>
+                <Progress value={a.pct} className="h-2" />
+
+                {/* Enriched indicators */}
+                <div className="grid grid-cols-3 gap-2 text-[11px]">
+                  <div className="bg-muted/50 rounded-lg px-2 py-1.5">
+                    <p className="text-muted-foreground">{t.projection}</p>
+                    <p className={`font-bold ${a.projection > a.amount ? 'text-destructive' : 'text-secondary'}`}>
+                      {fmt(Math.round(a.projection))}
+                    </p>
+                  </div>
+                  <div className={`rounded-lg px-2 py-1.5 ${pace.bg}`}>
+                    <p className="text-muted-foreground">{t.tempo}</p>
+                    <p className={`font-bold ${pace.color}`}>{pace.label}</p>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg px-2 py-1.5">
+                    <p className="text-muted-foreground">{a.saving >= 0 ? t.estimatedSaving : t.estimatedOverspend}</p>
+                    <p className={`font-bold ${a.saving >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                      {fmt(Math.abs(Math.round(a.saving)))}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                  <span>{a.daysLeft} {t.daysRemaining}</span>
+                  <span>{t.dailyPace}: {fmt(Math.round(a.dailyRate))}</span>
+                </div>
               </CardContent>
             </Card>
           );
