@@ -87,6 +87,7 @@ const SavingsPage = () => {
   const [simulation, setSimulation] = useState<SimulationResult | null>(null);
   const [simulating, setSimulating] = useState(false);
   const [customBankMode, setCustomBankMode] = useState(false);
+  const [activeMainTab, setActiveMainTab] = useState('manage');
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const { invalidate } = useInvalidate();
