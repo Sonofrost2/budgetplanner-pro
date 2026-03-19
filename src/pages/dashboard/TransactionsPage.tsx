@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles, ArrowLeftRight, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles, ArrowLeftRight, AlertTriangle, BarChart3, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import TransactionsStatsTab from '@/components/dashboard/tabs/TransactionsStatsTab';
 import { toast } from 'sonner';
@@ -28,6 +28,8 @@ import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useSearchParams } from 'react-router-dom';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
+import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
+import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 
 const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
@@ -633,10 +635,22 @@ const TransactionsPage = () => {
               </div>
               <Input value={form.description} maxLength={200}
                 onChange={e => { setForm(f => ({ ...f, description: e.target.value })); setShowSuggestions(true); }}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onBlur={() => {
+                  setTimeout(() => setShowSuggestions(false), 200);
+                  // Auto AI suggest when description has 3+ chars and category/amount not yet filled
+                  if (canUseAISuggestions && form.description.trim().length >= 3 && !form.category_id && !form.amount && !aiSuggesting) {
+                    handleAISuggest();
+                  }
+                }}
                 onFocus={() => setShowSuggestions(true)}
                 placeholder={locale === 'fr' ? 'Ex: Courses supermarché' : 'E.g: Grocery shopping'}
                 className={`rounded-xl h-11 ${errors.description ? 'border-destructive' : ''}`} />
+              {aiSuggesting && (
+                <div className="absolute right-3 top-[calc(100%-2rem)] flex items-center gap-1 text-xs text-primary">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>{locale === 'fr' ? 'IA...' : 'AI...'}</span>
+                </div>
+              )}
               {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
               {showSuggestions && descriptionSuggestions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-xl shadow-lg overflow-hidden">
@@ -652,17 +666,21 @@ const TransactionsPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
-                <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
-                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir...' : 'Select...'} /></SelectTrigger>
-                  <SelectContent>{filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <CategoryCombobox
+                  categories={filteredCategories}
+                  value={form.category_id}
+                  onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
+                  placeholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
-                <Select value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))}>
-                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir...' : 'Select...'} /></SelectTrigger>
-                  <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <AccountCombobox
+                  accounts={accounts}
+                  value={form.account_id}
+                  onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
+                  placeholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
+                />
               </div>
             </div>
             <div className="space-y-2">
@@ -687,19 +705,24 @@ const TransactionsPage = () => {
             <DialogDescription>{t.selectedCount(selectedIds.size)}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
+             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyCategory}</Label>
-              <Select value={bulkModifyForm.category_id} onValueChange={v => setBulkModifyForm(f => ({ ...f, category_id: v }))}>
-                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger>
-                <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <CategoryCombobox
+                categories={categories}
+                value={bulkModifyForm.category_id}
+                onValueChange={v => setBulkModifyForm(f => ({ ...f, category_id: v }))}
+                placeholder={t.selectCategory}
+                groupByType
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyAccount}</Label>
-              <Select value={bulkModifyForm.account_id} onValueChange={v => setBulkModifyForm(f => ({ ...f, account_id: v }))}>
-                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir...' : 'Select...'} /></SelectTrigger>
-                <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <AccountCombobox
+                accounts={accounts}
+                value={bulkModifyForm.account_id}
+                onValueChange={v => setBulkModifyForm(f => ({ ...f, account_id: v }))}
+                placeholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
+              />
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
