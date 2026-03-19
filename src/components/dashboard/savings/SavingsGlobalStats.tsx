@@ -1,9 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PiggyBank, Building2, TrendingUp, Wallet, Lock, Unlock, ChevronRight } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { PiggyBank, Building2, TrendingUp, Wallet, Lock, Unlock, ChevronRight, CalendarDays } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import type { SavingsGoal } from '@/hooks/useDashboardData';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
@@ -23,9 +29,9 @@ interface SavingsGlobalStatsProps {
   onCardClick?: (action: string) => void;
 }
 
-type PeriodKey = 'monthly' | 'quarterly' | 'semi_annual' | 'yearly' | 'all';
+type PeriodKey = 'monthly' | 'quarterly' | 'semi_annual' | 'yearly' | 'all' | 'custom';
 
-const getDateRangeForPeriod = (period: PeriodKey): { start: Date; end: Date } => {
+const getDateRangeForPeriod = (period: PeriodKey, customFrom?: Date, customTo?: Date): { start: Date; end: Date } => {
   const now = new Date();
   const end = new Date(now);
   let start: Date;
@@ -47,6 +53,10 @@ const getDateRangeForPeriod = (period: PeriodKey): { start: Date; end: Date } =>
     case 'yearly':
       start = new Date(now.getFullYear(), 0, 1);
       break;
+    case 'custom':
+      start = customFrom || new Date(now.getFullYear(), now.getMonth(), 1);
+      if (customTo) end.setTime(customTo.getTime());
+      return { start, end };
     default:
       start = new Date(2000, 0, 1);
   }
@@ -56,9 +66,12 @@ const getDateRangeForPeriod = (period: PeriodKey): { start: Date; end: Date } =>
 
 export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCardClick }: SavingsGlobalStatsProps) => {
   const [period, setPeriod] = useState<PeriodKey>('monthly');
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+  const isFr = locale === 'fr';
 
   const stats = useMemo(() => {
-    const { start, end } = getDateRangeForPeriod(period);
+    const { start, end } = getDateRangeForPeriod(period, customFrom, customTo);
 
     const goalContribsInPeriod: Record<string, number> = {};
     let totalContribsInPeriod = 0;
@@ -93,16 +106,17 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
     }
 
     return { totalSaved, totalTarget, totalMonthlyPlanned, totalContribsInPeriod, lockedAmount, availableAmount, byBank };
-  }, [goals, contributions, period, locale]);
+  }, [goals, contributions, period, customFrom, customTo, locale]);
 
   if (goals.length === 0) return null;
 
   const periodLabels: Record<PeriodKey, string> = {
-    monthly: locale === 'fr' ? 'Ce mois' : 'This month',
-    quarterly: locale === 'fr' ? 'Ce trimestre' : 'This quarter',
-    semi_annual: locale === 'fr' ? 'Ce semestre' : 'This semester',
-    yearly: locale === 'fr' ? 'Cette année' : 'This year',
-    all: locale === 'fr' ? 'Depuis le début' : 'All time',
+    monthly: isFr ? 'Ce mois' : 'This month',
+    quarterly: isFr ? 'Ce trimestre' : 'This quarter',
+    semi_annual: isFr ? 'Ce semestre' : 'This semester',
+    yearly: isFr ? 'Cette année' : 'This year',
+    all: isFr ? 'Depuis le début' : 'All time',
+    custom: isFr ? 'Personnalisé' : 'Custom',
   };
 
   const globalPct = stats.totalTarget > 0 ? Math.round((stats.totalSaved / stats.totalTarget) * 100) : 0;
@@ -119,14 +133,14 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <PiggyBank className="w-4 h-4" />
               <span className="text-[11px] font-semibold uppercase tracking-wider flex-1">
-                {locale === 'fr' ? 'Épargne totale' : 'Total saved'}
+                {isFr ? 'Épargne totale' : 'Total saved'}
               </span>
               {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
             <p className="text-xl font-bold font-display">{fmt(stats.totalSaved)}</p>
             <div className="mt-2">
               <Progress value={Math.min(globalPct, 100)} className="h-1.5 rounded-full [&>div]:bg-primary" />
-              <p className="text-[10px] text-muted-foreground mt-1">{globalPct}% {locale === 'fr' ? 'de' : 'of'} {fmt(stats.totalTarget)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{globalPct}% {isFr ? 'de' : 'of'} {fmt(stats.totalTarget)}</p>
             </div>
           </CardContent>
         </Card>
@@ -136,13 +150,13 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <TrendingUp className="w-4 h-4" />
               <span className="text-[11px] font-semibold uppercase tracking-wider flex-1">
-                {locale === 'fr' ? 'Mensualité prévue' : 'Monthly planned'}
+                {isFr ? 'Mensualité prévue' : 'Monthly planned'}
               </span>
               {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
             <p className="text-xl font-bold font-display">{fmt(stats.totalMonthlyPlanned)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
-              {goals.filter(g => Number(g.monthly_contribution || 0) > 0).length} {locale === 'fr' ? 'objectif(s) actif(s)' : 'active goal(s)'}
+              {goals.filter(g => Number(g.monthly_contribution || 0) > 0).length} {isFr ? 'objectif(s) actif(s)' : 'active goal(s)'}
             </p>
           </CardContent>
         </Card>
@@ -152,13 +166,13 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Unlock className="w-4 h-4 text-secondary" />
               <span className="text-[11px] font-semibold uppercase tracking-wider flex-1">
-                {locale === 'fr' ? 'Disponible' : 'Available'}
+                {isFr ? 'Disponible' : 'Available'}
               </span>
               {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
             <p className="text-xl font-bold font-display text-secondary">{fmt(stats.availableAmount)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
-              {goals.filter(g => !(g as any).is_locked).length} {locale === 'fr' ? 'compte(s)' : 'account(s)'}
+              {goals.filter(g => !(g as any).is_locked).length} {isFr ? 'compte(s)' : 'account(s)'}
             </p>
           </CardContent>
         </Card>
@@ -168,13 +182,13 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Lock className="w-4 h-4 text-destructive" />
               <span className="text-[11px] font-semibold uppercase tracking-wider flex-1">
-                {locale === 'fr' ? 'Bloqué' : 'Locked'}
+                {isFr ? 'Bloqué' : 'Locked'}
               </span>
               {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
             <p className="text-xl font-bold font-display">{fmt(stats.lockedAmount)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
-              {goals.filter(g => (g as any).is_locked).length} {locale === 'fr' ? 'compte(s)' : 'account(s)'}
+              {goals.filter(g => (g as any).is_locked).length} {isFr ? 'compte(s)' : 'account(s)'}
             </p>
           </CardContent>
         </Card>
@@ -183,21 +197,49 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
       {/* Bank breakdown with chart */}
       <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
         <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <h3 className="text-sm font-bold flex items-center gap-2">
               <Building2 className="w-4 h-4 text-muted-foreground" />
-              {locale === 'fr' ? 'Répartition par banque' : 'Breakdown by bank'}
+              {isFr ? 'Répartition par banque' : 'Breakdown by bank'}
             </h3>
-            <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
-              <SelectTrigger className="w-[160px] h-8 rounded-xl text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(periodLabels).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
+                <SelectTrigger className="w-[160px] h-8 rounded-xl text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(periodLabels).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {period === 'custom' && (
+                <>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn('h-8 rounded-xl text-xs gap-1.5', !customFrom && 'text-muted-foreground')}>
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        {customFrom ? format(customFrom, 'dd MMM yyyy', { locale: isFr ? fr : undefined }) : (isFr ? 'Début' : 'Start')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={customFrom} onSelect={setCustomFrom} initialFocus className={cn('p-3 pointer-events-auto')} />
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn('h-8 rounded-xl text-xs gap-1.5', !customTo && 'text-muted-foreground')}>
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        {customTo ? format(customTo, 'dd MMM yyyy', { locale: isFr ? fr : undefined }) : (isFr ? 'Fin' : 'End')}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={customTo} onSelect={setCustomTo} initialFocus className={cn('p-3 pointer-events-auto')} />
+                    </PopoverContent>
+                  </Popover>
+                </>
+              )}
+            </div>
           </div>
 
           {(() => {
@@ -261,20 +303,20 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
                         <div>
                           <p className="text-sm font-bold">{bank}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {data.goals.length} {locale === 'fr' ? 'objectif(s)' : 'goal(s)'} · {shareOfTotal}% {locale === 'fr' ? 'du total' : 'of total'}
+                            {data.goals.length} {isFr ? 'objectif(s)' : 'goal(s)'} · {shareOfTotal}% {isFr ? 'du total' : 'of total'}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold">{fmt(data.totalSaved)}</p>
-                        <p className="text-[10px] text-muted-foreground">{locale === 'fr' ? 'sur' : 'of'} {fmt(data.totalTarget)}</p>
+                        <p className="text-[10px] text-muted-foreground">{isFr ? 'sur' : 'of'} {fmt(data.totalTarget)}</p>
                       </div>
                     </div>
                     <Progress value={Math.min(pct, 100)} className="h-1.5 rounded-full [&>div]:bg-primary mb-2" />
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                       <span>
                         <Wallet className="w-3 h-3 inline mr-1" />
-                        {locale === 'fr' ? 'Mensualité prévue' : 'Monthly planned'}: <span className="font-semibold text-foreground">{fmt(data.monthlyPlanned)}</span>
+                        {isFr ? 'Mensualité prévue' : 'Monthly planned'}: <span className="font-semibold text-foreground">{fmt(data.monthlyPlanned)}</span>
                       </span>
                       <span>
                         {periodLabels[period]}: <span className="font-semibold text-foreground">{fmt(data.contribsInPeriod)}</span>

@@ -9,10 +9,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { PieChart as PieChartIcon, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { PieChart as PieChartIcon, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Calendar as CalendarIcon, CalendarDays } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { abbreviateNumber } from '@/lib/utils';
+import { abbreviateNumber, cn } from '@/lib/utils';
 import { getBudgetPeriodBounds, computeBudgetProjection, formatDateStr } from '@/lib/budgetProjection';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const TOOLTIP_STYLE = {
   borderRadius: '12px',
@@ -23,7 +28,7 @@ const TOOLTIP_STYLE = {
   padding: '8px 12px',
 };
 
-type AnalysisPeriod = 'current' | 'last_month' | 'last_3' | 'last_6' | 'last_year';
+type AnalysisPeriod = 'current' | 'last_month' | 'last_3' | 'last_6' | 'last_year' | 'custom';
 
 const BudgetAnalysisTab = () => {
   const { user } = useAuth();
@@ -35,6 +40,8 @@ const BudgetAnalysisTab = () => {
   const fmt = (n: number) => fmtCurrency(n, locale);
 
   const [analysisPeriod, setAnalysisPeriod] = useState<AnalysisPeriod>('current');
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
 
   const periodLabels: Record<AnalysisPeriod, string> = {
     current: t.currentPeriod,
@@ -42,6 +49,7 @@ const BudgetAnalysisTab = () => {
     last_3: t.last3Months,
     last_6: t.last6Months,
     last_year: t.lastYear,
+    custom: isFr ? 'Personnalisé' : 'Custom',
   };
 
   // Compute period ranges for each budget based on analysis period
@@ -50,13 +58,11 @@ const BudgetAnalysisTab = () => {
     return budgets.map(b => {
       let offset = 0;
       if (analysisPeriod === 'last_month') offset = 1;
-      // For multi-period, we use 1 offset (last period) — for 3/6/year we use different logic below
 
       const { periodStart, periodEnd } = getBudgetPeriodBounds(
         b.period || 'monthly', now, b.reference_date, offset
       );
 
-      // For last_3, last_6, last_year: override to fixed calendar ranges
       let start = formatDateStr(periodStart);
       let end = formatDateStr(periodEnd);
 
@@ -71,6 +77,9 @@ const BudgetAnalysisTab = () => {
       } else if (analysisPeriod === 'last_year') {
         start = `${now.getFullYear() - 1}-01-01`;
         end = `${now.getFullYear()}-12-31`;
+      } else if (analysisPeriod === 'custom' && customFrom && customTo) {
+        start = formatDateStr(customFrom);
+        end = formatDateStr(customTo);
       }
 
       return {
@@ -82,11 +91,11 @@ const BudgetAnalysisTab = () => {
         periodEnd: new Date(end),
       };
     });
-  }, [budgets, analysisPeriod]);
+  }, [budgets, analysisPeriod, customFrom, customTo]);
 
   // Fetch spending for each budget
   const { data: spending = {} } = useQuery({
-    queryKey: ['budget-analysis-spending', user?.id, analysisPeriod, periodRanges.map(r => r.id).join(',')],
+    queryKey: ['budget-analysis-spending', user?.id, analysisPeriod, customFrom?.toISOString(), customTo?.toISOString(), periodRanges.map(r => r.id).join(',')],
     queryFn: async () => {
       const map: Record<string, number> = {};
       await Promise.all(periodRanges.filter(r => r.category_id).map(async r => {
@@ -175,21 +184,49 @@ const BudgetAnalysisTab = () => {
   return (
     <div className="space-y-6">
       {/* Period selector */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-bold flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <CalendarIcon className="w-4 h-4 text-muted-foreground" />
           {t.budgetAnalysis}
         </h3>
-        <Select value={analysisPeriod} onValueChange={(v) => setAnalysisPeriod(v as AnalysisPeriod)}>
-          <SelectTrigger className="w-[180px] h-8 rounded-xl text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(periodLabels).map(([key, label]) => (
-              <SelectItem key={key} value={key}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={analysisPeriod} onValueChange={(v) => setAnalysisPeriod(v as AnalysisPeriod)}>
+            <SelectTrigger className="w-[180px] h-8 rounded-xl text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(periodLabels).map(([key, label]) => (
+                <SelectItem key={key} value={key}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {analysisPeriod === 'custom' && (
+            <>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn('h-8 rounded-xl text-xs gap-1.5', !customFrom && 'text-muted-foreground')}>
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    {customFrom ? format(customFrom, 'dd MMM yyyy', { locale: isFr ? fr : undefined }) : (isFr ? 'Début' : 'Start')}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={customFrom} onSelect={setCustomFrom} initialFocus className={cn('p-3 pointer-events-auto')} />
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn('h-8 rounded-xl text-xs gap-1.5', !customTo && 'text-muted-foreground')}>
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    {customTo ? format(customTo, 'dd MMM yyyy', { locale: isFr ? fr : undefined }) : (isFr ? 'Fin' : 'End')}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={customTo} onSelect={setCustomTo} initialFocus className={cn('p-3 pointer-events-auto')} />
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Global summary */}
