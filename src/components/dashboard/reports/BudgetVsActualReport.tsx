@@ -50,7 +50,10 @@ const BudgetVsActualReport = () => {
         const controlType = (b as any).control_type || 'max';
         const txType = bType === 'income' ? 'income' : 'expense';
         const period = b.period || 'monthly';
-        const { start, end } = getPeriodRange(period);
+        const now = new Date();
+        const { periodStart: ps, periodEnd: pe } = getBudgetPeriodBounds(period, now, (b as any).reference_date);
+        const start = formatDateStr(ps);
+        const end = formatDateStr(pe);
 
         const { data: spendingData } = await supabase.rpc('get_budget_spending', {
           p_user_id: user.id,
