@@ -301,9 +301,6 @@ const BudgetAnalysisTab = () => {
           </CardContent>
         </Card>
       </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Chart */}
       {chartData.length > 0 && (
