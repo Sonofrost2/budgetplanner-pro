@@ -29,6 +29,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import CashCountDialog from '@/components/dashboard/CashCountDialog';
+import { AccountsPeriodStats } from '@/components/dashboard/accounts/AccountsPeriodStats';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { useInvalidate } from '@/hooks/useDashboardData';
