@@ -130,6 +130,7 @@ const AccountsPage = () => {
     ]);
     const accs = accRes.data || [];
     setAccounts(accs);
+    setAllTransactions((txRes.data || []) as Transaction[]);
     // Calculate theoretical balances: opening_balance + income - expense per account
     const balances: Record<string, number> = {};
     for (const acc of accs) {
