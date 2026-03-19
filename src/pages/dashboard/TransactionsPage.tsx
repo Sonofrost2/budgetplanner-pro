@@ -635,10 +635,22 @@ const TransactionsPage = () => {
               </div>
               <Input value={form.description} maxLength={200}
                 onChange={e => { setForm(f => ({ ...f, description: e.target.value })); setShowSuggestions(true); }}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onBlur={() => {
+                  setTimeout(() => setShowSuggestions(false), 200);
+                  // Auto AI suggest when description has 3+ chars and category/amount not yet filled
+                  if (canUseAISuggestions && form.description.trim().length >= 3 && !form.category_id && !form.amount && !aiSuggesting) {
+                    handleAISuggest();
+                  }
+                }}
                 onFocus={() => setShowSuggestions(true)}
                 placeholder={locale === 'fr' ? 'Ex: Courses supermarché' : 'E.g: Grocery shopping'}
                 className={`rounded-xl h-11 ${errors.description ? 'border-destructive' : ''}`} />
+              {aiSuggesting && (
+                <div className="absolute right-3 top-[calc(100%-2rem)] flex items-center gap-1 text-xs text-primary">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>{locale === 'fr' ? 'IA...' : 'AI...'}</span>
+                </div>
+              )}
               {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
               {showSuggestions && descriptionSuggestions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-xl shadow-lg overflow-hidden">
