@@ -200,6 +200,7 @@ export const StatsCards = ({
           label={t.totalBalance} value={fmt(balance)}
           icon={Wallet} iconColor="text-primary" bg="bg-primary/10" color=""
           sparkline={dailyBalanceData} sparklineColor="hsl(250, 85%, 60%)" delay={0}
+          onClick={onBalanceClick}
         />
         <HeroCard
           label={t.income} value={`+${fmt(totalIncome)}`}
