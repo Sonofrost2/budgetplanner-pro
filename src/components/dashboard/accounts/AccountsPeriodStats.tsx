@@ -1,11 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wallet, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { Wallet, TrendingUp, TrendingDown, BarChart3, CalendarDays } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import type { Account, Transaction } from '@/hooks/useDashboardData';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
-type PeriodKey = 'this_month' | 'last_month' | '3m' | '6m' | '1y' | 'all';
+type PeriodKey = 'this_month' | 'last_month' | '3m' | '6m' | '1y' | 'all' | 'custom';
 
 interface AccountsPeriodStatsProps {
   accounts: Account[];
@@ -15,7 +21,7 @@ interface AccountsPeriodStatsProps {
   locale: string;
 }
 
-const getPeriodBounds = (period: PeriodKey): { start: Date; end: Date } => {
+const getPeriodBounds = (period: PeriodKey, customFrom?: Date, customTo?: Date): { start: Date; end: Date } => {
   const now = new Date();
   const end = new Date(now);
   let start: Date;
@@ -36,6 +42,10 @@ const getPeriodBounds = (period: PeriodKey): { start: Date; end: Date } => {
     case '1y':
       start = new Date(now.getFullYear() - 1, now.getMonth(), 1);
       break;
+    case 'custom':
+      start = customFrom || new Date(now.getFullYear(), now.getMonth(), 1);
+      if (customTo) end.setTime(customTo.getTime());
+      return { start, end };
     default:
       start = new Date(2000, 0, 1);
   }
@@ -44,6 +54,8 @@ const getPeriodBounds = (period: PeriodKey): { start: Date; end: Date } => {
 
 export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: AccountsPeriodStatsProps) => {
   const [period, setPeriod] = useState<PeriodKey>('this_month');
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
   const isFr = locale === 'fr';
 
   const periodLabels: Record<PeriodKey, string> = {
@@ -53,10 +65,11 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
     '6m': isFr ? '6 derniers mois' : 'Last 6 months',
     '1y': isFr ? 'Cette année' : 'This year',
     all: isFr ? 'Depuis le début' : 'All time',
+    custom: isFr ? 'Personnalisé' : 'Custom',
   };
 
   const stats = useMemo(() => {
-    const { start, end } = getPeriodBounds(period);
+    const { start, end } = getPeriodBounds(period, customFrom, customTo);
 
     let totalIncome = 0;
     let totalExpense = 0;
@@ -80,14 +93,15 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
       }
     }
 
-    // Theoretical balance at end of period: opening_balance + all tx up to end
+    // Theoretical balance at end of period
     const theoreticalAtEnd: Record<string, number> = {};
+    const { end: periodEnd } = getPeriodBounds(period, customFrom, customTo);
     for (const acc of accounts) {
       let bal = Number(acc.opening_balance);
       for (const tx of transactions) {
         if (tx.account_id !== acc.id) continue;
         const d = new Date(tx.date);
-        if (d > end) continue;
+        if (d > periodEnd) continue;
         if (tx.type === 'income') bal += Number(tx.amount);
         else if (tx.type === 'expense') bal -= Number(tx.amount);
       }
@@ -95,7 +109,7 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
     }
 
     return { totalIncome, totalExpense, byAccount, theoreticalAtEnd };
-  }, [accounts, transactions, period]);
+  }, [accounts, transactions, period, customFrom, customTo]);
 
   if (accounts.length === 0) return null;
 
@@ -104,21 +118,49 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
   return (
     <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
       <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h3 className="text-sm font-bold flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-muted-foreground" />
             {isFr ? 'Statistiques par période' : 'Period statistics'}
           </h3>
-          <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
-            <SelectTrigger className="w-[180px] h-8 rounded-xl text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(periodLabels).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
+              <SelectTrigger className="w-[180px] h-8 rounded-xl text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(periodLabels).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {period === 'custom' && (
+              <>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn('h-8 rounded-xl text-xs gap-1.5', !customFrom && 'text-muted-foreground')}>
+                      <CalendarDays className="w-3.5 h-3.5" />
+                      {customFrom ? format(customFrom, 'dd MMM yyyy', { locale: isFr ? fr : undefined }) : (isFr ? 'Début' : 'Start')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customFrom} onSelect={setCustomFrom} initialFocus className={cn('p-3 pointer-events-auto')} />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn('h-8 rounded-xl text-xs gap-1.5', !customTo && 'text-muted-foreground')}>
+                      <CalendarDays className="w-3.5 h-3.5" />
+                      {customTo ? format(customTo, 'dd MMM yyyy', { locale: isFr ? fr : undefined }) : (isFr ? 'Fin' : 'End')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customTo} onSelect={setCustomTo} initialFocus className={cn('p-3 pointer-events-auto')} />
+                  </PopoverContent>
+                </Popover>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Global summary */}

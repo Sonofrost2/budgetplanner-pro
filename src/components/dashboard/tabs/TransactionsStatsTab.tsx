@@ -1,12 +1,18 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { useAllTransactions, useCategories } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart as PieChartIcon, TrendingUp, TrendingDown, Inbox } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { PieChart as PieChartIcon, TrendingUp, TrendingDown, Inbox, CalendarDays } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { abbreviateNumber, groupTopN } from '@/lib/utils';
+import { abbreviateNumber, groupTopN, cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const COLORS = ['#6C63FF', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#06B6D4'];
 
@@ -19,6 +25,8 @@ const TOOLTIP_STYLE = {
   padding: '8px 12px',
 };
 
+type PeriodKey = 'this_month' | 'last_month' | '3m' | '6m' | '1y' | 'all' | 'custom';
+
 const TransactionsStatsTab = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
@@ -26,44 +34,90 @@ const TransactionsStatsTab = () => {
   const { data: transactions = [] } = useAllTransactions();
   const { data: categories = [] } = useCategories();
   const fmt = (n: number) => fmtCurrency(n, locale);
+  const isFr = locale === 'fr';
 
-  const totalIncome = transactions.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0);
-  const totalExpense = transactions.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
+  const [period, setPeriod] = useState<PeriodKey>('6m');
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+
+  const periodLabels: Record<PeriodKey, string> = {
+    this_month: isFr ? 'Ce mois' : 'This month',
+    last_month: isFr ? 'Mois dernier' : 'Last month',
+    '3m': isFr ? '3 mois' : '3 months',
+    '6m': isFr ? '6 mois' : '6 months',
+    '1y': isFr ? '1 an' : '1 year',
+    all: isFr ? 'Tout' : 'All',
+    custom: isFr ? 'Personnalisé' : 'Custom',
+  };
+
+  const { startDate, endDate } = useMemo(() => {
+    const now = new Date();
+    if (period === 'custom') {
+      return { startDate: customFrom || new Date(now.getFullYear(), now.getMonth(), 1), endDate: customTo || now };
+    }
+    let start: Date;
+    let end = new Date(now);
+    switch (period) {
+      case 'this_month': start = new Date(now.getFullYear(), now.getMonth(), 1); break;
+      case 'last_month':
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+      case '3m': start = new Date(now.getFullYear(), now.getMonth() - 3, 1); break;
+      case '6m': start = new Date(now.getFullYear(), now.getMonth() - 6, 1); break;
+      case '1y': start = new Date(now.getFullYear() - 1, now.getMonth(), 1); break;
+      default: start = new Date(2000, 0, 1);
+    }
+    return { startDate: start, endDate: end };
+  }, [period, customFrom, customTo]);
+
+  const filteredTx = useMemo(() => {
+    return transactions.filter(tx => {
+      const d = new Date(tx.date);
+      return d >= startDate && d <= endDate;
+    });
+  }, [transactions, startDate, endDate]);
+
+  const totalIncome = filteredTx.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0);
+  const totalExpense = filteredTx.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
 
   const categoryData = useMemo(() => {
     const map: Record<string, { name: string; value: number; color: string }> = {};
-    transactions.filter(tx => tx.type === 'expense').forEach(tx => {
+    filteredTx.filter(tx => tx.type === 'expense').forEach(tx => {
       const cat = categories.find(c => c.id === tx.category_id);
-      const name = cat ? `${cat.icon} ${cat.name}` : (locale === 'fr' ? 'Sans catégorie' : 'Uncategorized');
+      const name = cat ? `${cat.icon} ${cat.name}` : (isFr ? 'Sans catégorie' : 'Uncategorized');
       const color = cat?.color || '#94A3B8';
       if (!map[name]) map[name] = { name, value: 0, color };
       map[name].value += Number(tx.amount);
     });
     return Object.values(map).sort((a, b) => b.value - a.value);
-  }, [transactions, categories, locale]);
+  }, [filteredTx, categories, isFr]);
 
   const groupedCategoryData = useMemo(() => groupTopN(categoryData, 5, locale), [categoryData, locale]);
   const totalCat = groupedCategoryData.reduce((s, d) => s + d.value, 0);
 
   const monthlyData = useMemo(() => {
-    const now = new Date();
     const months: { month: string; income: number; expense: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-      const label = d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' });
+    // Determine month range from startDate to endDate
+    const s = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    const e = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+    const d = new Date(s);
+    while (d <= e) {
+      const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      const label = d.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { month: 'short' });
       let income = 0, expense = 0;
-      transactions.forEach(tx => {
+      filteredTx.forEach(tx => {
         const txDate = new Date(tx.date);
-        if (txDate >= d && txDate <= end) {
+        if (txDate >= d && txDate <= mEnd) {
           if (tx.type === 'income') income += Number(tx.amount);
           else expense += Number(tx.amount);
         }
       });
       months.push({ month: label, income, expense });
+      d.setMonth(d.getMonth() + 1);
     }
     return months;
-  }, [transactions, locale]);
+  }, [filteredTx, startDate, endDate, isFr]);
 
   if (transactions.length === 0) {
     return (
@@ -78,6 +132,46 @@ const TransactionsStatsTab = () => {
 
   return (
     <div className="space-y-6">
+      {/* Period selector */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={period} onValueChange={v => setPeriod(v as PeriodKey)}>
+          <SelectTrigger className="h-9 w-[160px] rounded-xl text-xs font-medium">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(periodLabels).map(([key, label]) => (
+              <SelectItem key={key} value={key}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {period === 'custom' && (
+          <>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn('h-9 rounded-xl text-xs gap-1.5', !customFrom && 'text-muted-foreground')}>
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  {customFrom ? format(customFrom, 'dd MMM yyyy', { locale: isFr ? fr : undefined }) : (isFr ? 'Début' : 'Start')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customFrom} onSelect={setCustomFrom} initialFocus className={cn('p-3 pointer-events-auto')} />
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn('h-9 rounded-xl text-xs gap-1.5', !customTo && 'text-muted-foreground')}>
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  {customTo ? format(customTo, 'dd MMM yyyy', { locale: isFr ? fr : undefined }) : (isFr ? 'Fin' : 'End')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customTo} onSelect={setCustomTo} initialFocus className={cn('p-3 pointer-events-auto')} />
+              </PopoverContent>
+            </Popover>
+          </>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border border-border/50 rounded-2xl">
           <CardContent className="p-4">
@@ -93,7 +187,7 @@ const TransactionsStatsTab = () => {
         </Card>
         <Card className="border border-border/50 rounded-2xl">
           <CardContent className="p-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">{locale === 'fr' ? 'Solde net' : 'Net'}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">{isFr ? 'Solde net' : 'Net'}</p>
             <p className={`text-xl font-bold ${totalIncome - totalExpense >= 0 ? 'text-secondary' : 'text-destructive'}`}>{fmt(totalIncome - totalExpense)}</p>
           </CardContent>
         </Card>
