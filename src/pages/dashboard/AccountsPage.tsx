@@ -55,6 +55,7 @@ const AccountsPage = () => {
   const typeFilter = searchParams.get('type') || '';
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [theoreticalBalances, setTheoreticalBalances] = useState<Record<string, number>>({});
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
   const [updateBalanceDialog, setUpdateBalanceDialog] = useState<Account | null>(null);
