@@ -120,13 +120,25 @@ const AccountsPage = () => {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const [accRes, ccRes] = await Promise.all([
+    const [accRes, txRes, ccRes] = await Promise.all([
       supabase.from('payment_accounts').select('*').eq('user_id', user.id).order('created_at'),
+      supabase.from('transactions').select('account_id, amount, type').eq('user_id', user.id),
       supabase.from('cash_counts').select('account_id, counted_at, total_counted').eq('user_id', user.id).order('counted_at', { ascending: false }),
     ]);
     const accs = accRes.data || [];
     setAccounts(accs);
-    setTransactions([]); // No longer needed for theoretical balance - use real_balance directly
+    // Calculate theoretical balances: opening_balance + income - expense per account
+    const balances: Record<string, number> = {};
+    for (const acc of accs) {
+      balances[acc.id] = Number(acc.opening_balance);
+    }
+    for (const tx of (txRes.data || [])) {
+      if (tx.account_id && balances[tx.account_id] !== undefined) {
+        if (tx.type === 'income') balances[tx.account_id] += Number(tx.amount);
+        else if (tx.type === 'expense') balances[tx.account_id] -= Number(tx.amount);
+      }
+    }
+    setTheoreticalBalances(balances);
     // Build map of latest cash count per account
     const latestMap: Record<string, { counted_at: string; total_counted: number }> = {};
     (ccRes.data || []).forEach(cc => {
@@ -140,10 +152,8 @@ const AccountsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Theoretical balance = real_balance (which is calculated server-side via recalculate_account_balance)
   const getTheoreticalBalance = (accountId: string) => {
-    const acc = accounts.find(a => a.id === accountId);
-    return Number(acc?.real_balance || 0);
+    return theoreticalBalances[accountId] ?? Number(accounts.find(a => a.id === accountId)?.opening_balance || 0);
   };
 
   const accountLimitReached = !isPremium && accounts.length >= limits.accounts;
