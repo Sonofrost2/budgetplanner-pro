@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
@@ -199,45 +200,56 @@ const CategoriesPage = () => {
   if (loading) return <div className="space-y-6"><div className="flex items-center justify-between"><Skeleton className="h-8 w-40" /><Skeleton className="h-9 w-36" /></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div></div>;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold font-display">{t.categories}</h2>
         <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addCategory}</Button>
       </div>
 
-      {categories.length > 0 && (
-        <FilterToolbar
-          searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
-          searchPlaceholder={locale === 'fr' ? 'Rechercher une catégorie...' : 'Search categories...'}
-          sortOptions={[
-            { value: 'name', label: locale === 'fr' ? 'Nom' : 'Name' },
-            { value: 'txCount', label: 'Transactions' },
-          ]}
-          sortValue={sortField}
-          onSortChange={v => setSortField(v as any)}
-          sortOrder={sortOrder}
-          onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
-        />
-      )}
+      <Tabs defaultValue="list">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="list">{locale === 'fr' ? 'Gestion' : 'Manage'}</TabsTrigger>
+          <TabsTrigger value="evolution">{locale === 'fr' ? 'Évolution' : 'Evolution'}</TabsTrigger>
+        </TabsList>
 
-      {bulk.hasSelection && (
-        <BulkActionBar
-          count={bulk.count}
-          onDelete={() => setBulkDeleteOpen(true)}
-          onModify={() => { setBulkModifyForm({ type: '' }); setBulkModifyOpen(true); }}
-          onDuplicate={handleBulkDuplicate}
-          onExportCSV={() => handleBulkExport('csv')}
-          onExportExcel={() => handleBulkExport('excel')}
-          onClear={bulk.clear}
-        />
-      )}
+        <TabsContent value="list" className="space-y-6 mt-4">
+          {categories.length > 0 && (
+            <FilterToolbar
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchPlaceholder={locale === 'fr' ? 'Rechercher une catégorie...' : 'Search categories...'}
+              sortOptions={[
+                { value: 'name', label: locale === 'fr' ? 'Nom' : 'Name' },
+                { value: 'txCount', label: 'Transactions' },
+              ]}
+              sortValue={sortField}
+              onSortChange={v => setSortField(v as any)}
+              sortOrder={sortOrder}
+              onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+            />
+          )}
 
-      {categories.length === 0 ? (
-        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><Inbox className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-medium text-muted-foreground mb-2">{t.noCategories}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addCategory}</Button></CardContent></Card>
-      ) : (<>{renderGroup(t.expenseType, expenseCategories)}{renderGroup(t.incomeType, incomeCategories)}</>)}
+          {bulk.hasSelection && (
+            <BulkActionBar
+              count={bulk.count}
+              onDelete={() => setBulkDeleteOpen(true)}
+              onModify={() => { setBulkModifyForm({ type: '' }); setBulkModifyOpen(true); }}
+              onDuplicate={handleBulkDuplicate}
+              onExportCSV={() => handleBulkExport('csv')}
+              onExportExcel={() => handleBulkExport('excel')}
+              onClear={bulk.clear}
+            />
+          )}
 
-      <CategoryEvolutionChart />
+          {categories.length === 0 ? (
+            <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><Inbox className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-medium text-muted-foreground mb-2">{t.noCategories}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addCategory}</Button></CardContent></Card>
+          ) : (<>{renderGroup(t.expenseType, expenseCategories)}{renderGroup(t.incomeType, incomeCategories)}</>)}
+        </TabsContent>
+
+        <TabsContent value="evolution" className="mt-4">
+          <CategoryEvolutionChart />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
