@@ -270,12 +270,12 @@ const BudgetAnalysisTab = () => {
       </div>
 
       {/* Savings vs overspend summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="border border-border/50 rounded-2xl">
           <CardContent className="p-4 flex items-center gap-3">
             <TrendingDown className="w-5 h-5 text-secondary" />
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.estimatedSaving}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.totalSavings}</p>
               <p className="text-lg font-bold text-secondary">{fmt(Math.round(summary.totalSavings))}</p>
             </div>
           </CardContent>
@@ -284,9 +284,23 @@ const BudgetAnalysisTab = () => {
           <CardContent className="p-4 flex items-center gap-3">
             <TrendingUp className="w-5 h-5 text-destructive" />
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.estimatedOverspend}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.totalOverspend}</p>
               <p className="text-lg font-bold text-destructive">{fmt(Math.round(summary.totalOverspend))}</p>
             </div>
+          </CardContent>
+        </Card>
+        <Card className={`border border-border/50 rounded-2xl ${summary.netVariance >= 0 ? 'ring-1 ring-secondary/30' : 'ring-1 ring-destructive/30'}`}>
+          <CardContent className="p-4 flex items-center gap-3">
+            {summary.netVariance >= 0 ? <CheckCircle className="w-5 h-5 text-secondary" /> : <AlertTriangle className="w-5 h-5 text-destructive" />}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.netVariance}</p>
+              <p className={`text-lg font-bold ${summary.netVariance >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                {summary.netVariance >= 0 ? '+' : ''}{fmt(Math.round(summary.netVariance))}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
           </CardContent>
         </Card>
       </div>
