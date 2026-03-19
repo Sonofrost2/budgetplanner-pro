@@ -699,10 +699,12 @@ const BudgetsPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
-                <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
-                  <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={t.selectCategory} /></SelectTrigger>
-                  <SelectContent>{filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <CategoryCombobox
+                  categories={filteredCategories}
+                  value={form.category_id}
+                  onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
+                  placeholder={t.selectCategory}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.alertThreshold}</Label>
