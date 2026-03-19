@@ -4,6 +4,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { getBudgetPeriodBounds, formatDateStr } from '@/lib/budgetProjection';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
@@ -27,33 +28,6 @@ interface Row {
   period: string;
 }
 
-function getPeriodRange(period: string): { start: string; end: string } {
-  const now = new Date();
-  let start: string, end: string;
-  if (period === 'daily') {
-    start = now.toISOString().split('T')[0]; end = start;
-  } else if (period === 'weekly') {
-    const day = now.getDay();
-    const ws = new Date(now); ws.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-    const we = new Date(ws); we.setDate(ws.getDate() + 6);
-    start = ws.toISOString().split('T')[0]; end = we.toISOString().split('T')[0];
-  } else if (period === 'quarterly') {
-    const q = Math.floor(now.getMonth() / 3);
-    start = new Date(now.getFullYear(), q * 3, 1).toISOString().split('T')[0];
-    end = new Date(now.getFullYear(), q * 3 + 3, 0).toISOString().split('T')[0];
-  } else if (period === 'semi_annual') {
-    const s = now.getMonth() < 6 ? 0 : 6;
-    start = new Date(now.getFullYear(), s, 1).toISOString().split('T')[0];
-    end = new Date(now.getFullYear(), s + 6, 0).toISOString().split('T')[0];
-  } else if (period === 'yearly') {
-    start = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
-    end = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
-  } else {
-    start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-  }
-  return { start, end };
-}
 
 const BudgetVsActualReport = () => {
   const { user } = useAuth();
@@ -76,7 +50,10 @@ const BudgetVsActualReport = () => {
         const controlType = (b as any).control_type || 'max';
         const txType = bType === 'income' ? 'income' : 'expense';
         const period = b.period || 'monthly';
-        const { start, end } = getPeriodRange(period);
+        const now = new Date();
+        const { periodStart: ps, periodEnd: pe } = getBudgetPeriodBounds(period, now, (b as any).reference_date);
+        const start = formatDateStr(ps);
+        const end = formatDateStr(pe);
 
         const { data: spendingData } = await supabase.rpc('get_budget_spending', {
           p_user_id: user.id,
