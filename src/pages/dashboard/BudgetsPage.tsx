@@ -365,9 +365,13 @@ const BudgetsPage = () => {
     const daysElapsed = Math.max(1, Math.floor((today.getTime() - periodStart.getTime()) / 86400000) + 1);
     const daysTotal = Math.max(1, Math.floor((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1);
     const daysLeft = Math.max(0, Math.floor((periodEnd.getTime() - today.getTime()) / 86400000));
-    const dailyPace = actual / daysElapsed;
-    const expectedPace = amount / daysTotal;
-    const projection = (actual / daysElapsed) * daysTotal;
+
+    // Use shared projection utility (weighted 7-day average)
+    // We need spent7d — approximate from the data we have (use linear as fallback since we don't have per-tx dates here)
+    const proj = computeBudgetProjection(actual, daysElapsed, daysLeft, daysTotal, amount, actual, daysElapsed, isMax);
+    const dailyPace = proj.dailyRate;
+    const expectedPace = daysTotal > 0 ? amount / daysTotal : 0;
+    const projection = proj.projection;
     // Annualized: for daily budgets with active_days, scale down from 365
     const activeDaysArr = b.active_days ? b.active_days.split(',').filter(Boolean) : [];
     const annualized = b.period === 'daily' && activeDaysArr.length > 0

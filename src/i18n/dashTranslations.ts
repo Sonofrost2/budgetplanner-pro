@@ -1110,6 +1110,22 @@ export const dashT = {
     nextOccurrence: 'Next occurrence',
     allDays: 'Every day',
     weekdays: 'Weekdays',
+    // Period selector for analysis
+    lastMonth: 'Last month',
+    last3Months: 'Last 3 months',
+    last6Months: 'Last 6 months',
+    lastYear: 'Last year',
+    currentPeriod: 'Current period',
+    totalBudgeted: 'Total budgeted',
+    totalConsumed: 'Total consumed',
+    totalSavings: 'Total savings',
+    totalOverspend: 'Total overspend',
+    tempo: 'Tempo',
+    estimatedSaving: 'Estimated saving',
+    estimatedOverspend: 'Estimated overspend',
+    historicalBalance: 'Historical balance',
+    periodRevenue: 'Period revenue',
+    periodExpenses: 'Period expenses',
   },
 } as const;
 
