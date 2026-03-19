@@ -41,6 +41,7 @@ const BudgetsPage = () => {
   const { fmt: fmtCurrency } = useProfile();
   const { limits, isPremium, canExportAdvanced } = useSubscription();
   const t = dashT[locale];
+  const isFr = locale === 'fr';
   const { invalidate } = useInvalidate();
 
   const { data: budgets = [], isLoading: budLoading } = useBudgets();
