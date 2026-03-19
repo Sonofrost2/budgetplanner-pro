@@ -654,17 +654,21 @@ const TransactionsPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
-                <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
-                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir...' : 'Select...'} /></SelectTrigger>
-                  <SelectContent>{filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <CategoryCombobox
+                  categories={filteredCategories}
+                  value={form.category_id}
+                  onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
+                  placeholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
-                <Select value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))}>
-                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Choisir...' : 'Select...'} /></SelectTrigger>
-                  <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <AccountCombobox
+                  accounts={accounts}
+                  value={form.account_id}
+                  onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
+                  placeholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
+                />
               </div>
             </div>
             <div className="space-y-2">
