@@ -876,10 +876,12 @@ const BudgetsPage = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyCategory}</Label>
-              <Select value={bulkModifyForm.category_id} onValueChange={v => setBulkModifyForm(f => ({ ...f, category_id: v }))}>
-                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Ne pas changer' : 'No change'} /></SelectTrigger>
-                <SelectContent>{allCategories.filter(c => c.type === activeTab).map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <CategoryCombobox
+                categories={allCategories.filter(c => c.type === activeTab)}
+                value={bulkModifyForm.category_id}
+                onValueChange={v => setBulkModifyForm(f => ({ ...f, category_id: v }))}
+                placeholder={locale === 'fr' ? 'Ne pas changer' : 'No change'}
+              />
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
