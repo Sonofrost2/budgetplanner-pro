@@ -21,6 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat, BarChart3 } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
+import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -698,10 +699,12 @@ const BudgetsPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
-                <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
-                  <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={t.selectCategory} /></SelectTrigger>
-                  <SelectContent>{filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <CategoryCombobox
+                  categories={filteredCategories}
+                  value={form.category_id}
+                  onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
+                  placeholder={t.selectCategory}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.alertThreshold}</Label>
@@ -873,10 +876,12 @@ const BudgetsPage = () => {
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyCategory}</Label>
-              <Select value={bulkModifyForm.category_id} onValueChange={v => setBulkModifyForm(f => ({ ...f, category_id: v }))}>
-                <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Ne pas changer' : 'No change'} /></SelectTrigger>
-                <SelectContent>{allCategories.filter(c => c.type === activeTab).map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <CategoryCombobox
+                categories={allCategories.filter(c => c.type === activeTab)}
+                value={bulkModifyForm.category_id}
+                onValueChange={v => setBulkModifyForm(f => ({ ...f, category_id: v }))}
+                placeholder={locale === 'fr' ? 'Ne pas changer' : 'No change'}
+              />
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">

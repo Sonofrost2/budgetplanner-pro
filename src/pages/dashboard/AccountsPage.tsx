@@ -29,6 +29,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import CashCountDialog from '@/components/dashboard/CashCountDialog';
+import { AccountsPeriodStats } from '@/components/dashboard/accounts/AccountsPeriodStats';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { useInvalidate } from '@/hooks/useDashboardData';
@@ -54,6 +55,7 @@ const AccountsPage = () => {
   const typeFilter = searchParams.get('type') || '';
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [theoreticalBalances, setTheoreticalBalances] = useState<Record<string, number>>({});
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
   const [updateBalanceDialog, setUpdateBalanceDialog] = useState<Account | null>(null);
@@ -123,11 +125,12 @@ const AccountsPage = () => {
     if (!user) return;
     const [accRes, txRes, ccRes] = await Promise.all([
       supabase.from('payment_accounts').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.from('transactions').select('account_id, amount, type').eq('user_id', user.id).limit(100000),
+      supabase.from('transactions').select('account_id, amount, type, date').eq('user_id', user.id).limit(100000),
       supabase.from('cash_counts').select('account_id, counted_at, total_counted').eq('user_id', user.id).order('counted_at', { ascending: false }),
     ]);
     const accs = accRes.data || [];
     setAccounts(accs);
+    setAllTransactions((txRes.data || []) as Transaction[]);
     // Calculate theoretical balances: opening_balance + income - expense per account
     const balances: Record<string, number> = {};
     for (const acc of accs) {
@@ -307,6 +310,10 @@ const AccountsPage = () => {
           allLabel={locale === 'fr' ? 'Tous' : 'All'}
           totalCount={accounts.length}
         />
+      )}
+
+      {accounts.length > 0 && (
+        <AccountsPeriodStats accounts={accounts} transactions={allTransactions} fmt={fmt} t={t} locale={locale} />
       )}
 
       {bulk.hasSelection && (
