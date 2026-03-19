@@ -122,6 +122,8 @@ Deno.serve(async (req) => {
       const savingsTxs = savingsTxRes.data || [];
       const importedSavingsTxs = importedSavingsTxRes.data || [];
       const recurringTxs = recurringRes.data || [];
+      const accounts = accountsRes.data || [];
+      const accountTxs = accountTxRes.data || [];
 
       // ────── Budget alerts with improved projections ──────
       for (const budget of budgets) {
