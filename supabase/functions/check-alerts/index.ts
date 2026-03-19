@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       const alerts: { title: string; body: string }[] = [];
 
       // Fetch all data needed in parallel
-      const [budgetsRes, allTxRes, savingsRes, savingsTxRes, importedSavingsTxRes, recurringRes, profileRes] = await Promise.all([
+      const [budgetsRes, allTxRes, savingsRes, savingsTxRes, importedSavingsTxRes, recurringRes, profileRes, accountsRes, accountTxRes] = await Promise.all([
         supabase.from("budgets").select("*, categories(name, icon)").eq("user_id", userId),
         supabase.from("transactions").select("category_id, amount, type, date")
           .eq("user_id", userId).gte("date", yearStart).lte("date", todayStr),
@@ -109,6 +109,9 @@ Deno.serve(async (req) => {
           .eq("user_id", userId).eq("active", true)
           .lte("next_date", sevenDaysLaterStr),
         supabase.from("profiles").select("locale").eq("user_id", userId).single(),
+        supabase.from("payment_accounts").select("id, name, icon, real_balance, opening_balance").eq("user_id", userId),
+        supabase.from("transactions").select("account_id, amount, type")
+          .eq("user_id", userId).not("account_id", "is", null).limit(100000),
       ]);
 
       const locale = profileRes.data?.locale || "fr";
