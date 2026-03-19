@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       const alerts: { title: string; body: string }[] = [];
 
       // Fetch all data needed in parallel
-      const [budgetsRes, allTxRes, savingsRes, savingsTxRes, importedSavingsTxRes, recurringRes, profileRes] = await Promise.all([
+      const [budgetsRes, allTxRes, savingsRes, savingsTxRes, importedSavingsTxRes, recurringRes, profileRes, accountsRes, accountTxRes] = await Promise.all([
         supabase.from("budgets").select("*, categories(name, icon)").eq("user_id", userId),
         supabase.from("transactions").select("category_id, amount, type, date")
           .eq("user_id", userId).gte("date", yearStart).lte("date", todayStr),
@@ -109,6 +109,9 @@ Deno.serve(async (req) => {
           .eq("user_id", userId).eq("active", true)
           .lte("next_date", sevenDaysLaterStr),
         supabase.from("profiles").select("locale").eq("user_id", userId).single(),
+        supabase.from("payment_accounts").select("id, name, icon, real_balance, opening_balance").eq("user_id", userId),
+        supabase.from("transactions").select("account_id, amount, type")
+          .eq("user_id", userId).not("account_id", "is", null).limit(100000),
       ]);
 
       const locale = profileRes.data?.locale || "fr";
@@ -119,6 +122,8 @@ Deno.serve(async (req) => {
       const savingsTxs = savingsTxRes.data || [];
       const importedSavingsTxs = importedSavingsTxRes.data || [];
       const recurringTxs = recurringRes.data || [];
+      const accounts = accountsRes.data || [];
+      const accountTxs = accountTxRes.data || [];
 
       // ────── Budget alerts with improved projections ──────
       for (const budget of budgets) {
@@ -278,6 +283,26 @@ Deno.serve(async (req) => {
           alerts.push({
             title: isFr ? `🐷 Épargne insuffisante (${pct}%)` : `🐷 Insufficient savings (${pct}%)`,
             body: `${goal.icon} ${goal.name}: ${Math.round(totalContributed)} / ${Math.round(monthlyNeeded)}`,
+          });
+        }
+      }
+
+      // ────── Balance discrepancy alerts ──────
+      for (const account of accounts) {
+        const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
+        const txSum = acctTxs.reduce((sum: number, tx: any) => {
+          return sum + (tx.type === "income" ? Number(tx.amount) : -Number(tx.amount));
+        }, 0);
+        const theoreticalBalance = Number(account.opening_balance) + txSum;
+        const realBalance = Number(account.real_balance);
+        const diff = Math.abs(realBalance - theoreticalBalance);
+        const discThreshold = Math.min(500, Math.abs(realBalance) * 0.01 || 500);
+
+        if (diff > discThreshold && diff > 0) {
+          const sign = realBalance > theoreticalBalance ? "+" : "-";
+          alerts.push({
+            title: isFr ? "🔍 Écart de solde détecté" : "🔍 Balance discrepancy",
+            body: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString()} (${isFr ? "réel" : "actual"}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? "théorique" : "calculated"}: ${Math.round(theoreticalBalance).toLocaleString()})`,
           });
         }
       }
