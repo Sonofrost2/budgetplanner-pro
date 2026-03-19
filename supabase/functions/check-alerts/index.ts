@@ -186,13 +186,16 @@ Deno.serve(async (req) => {
             });
           }
         } else {
-          // Min budget (income target)
+          // Min budget (income target) — respect expected_day
+          const expDay = budget.expected_day ? Number(budget.expected_day) : null;
+          const pastExpectedDay = expDay ? now.getDate() >= expDay : daysElapsed > daysTotal * 0.5;
+
           if (spent >= amount) {
             alerts.push({
               title: isFr ? "🎉 Objectif atteint !" : "🎉 Target reached!",
               body: `${catIcon} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? "au-dessus" : "above"}`,
             });
-          } else if (daysElapsed > daysTotal * 0.5) {
+          } else if (pastExpectedDay) {
             alerts.push({
               title: isFr ? `📊 Objectif à ${Math.round(pct)}%` : `📊 Target at ${Math.round(pct)}%`,
               body: `${catIcon} ${budget.name}: ${isFr ? "manque" : "missing"} ${Math.round(amount - spent).toLocaleString()}`,
