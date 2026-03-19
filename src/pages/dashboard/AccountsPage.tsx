@@ -17,7 +17,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins, History, BarChart3 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins, History, BarChart3, Eye, Printer } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import AccountsRecapTab from '@/components/dashboard/tabs/AccountsRecapTab';
 import { toast } from 'sonner';
@@ -69,6 +69,7 @@ const AccountsPage = () => {
   const [cashCounts, setCashCounts] = useState<Record<string, { counted_at: string; total_counted: number }>>({});
   const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
+  const [previewCashCount, setPreviewCashCount] = useState<any | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type'>('name');
@@ -548,7 +549,7 @@ const AccountsPage = () => {
       )}
 
       {/* Cash Count History Sheet */}
-      <Sheet open={!!historyAccountId} onOpenChange={v => { if (!v) setHistoryAccountId(null); }}>
+      <Sheet open={!!historyAccountId} onOpenChange={v => { if (!v) { setHistoryAccountId(null); setPreviewCashCount(null); } }}>
         <SheetContent className="sm:max-w-lg overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
@@ -570,8 +571,8 @@ const AccountsPage = () => {
                   <TableRow>
                     <TableHead>{t.date}</TableHead>
                     <TableHead className="text-right">{t.counted}</TableHead>
-                    <TableHead className="text-right">{t.expected}</TableHead>
                     <TableHead className="text-right">{t.discrepancy}</TableHead>
+                    <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -579,9 +580,13 @@ const AccountsPage = () => {
                     <TableRow key={c.id}>
                       <TableCell className="text-sm">{new Date(c.counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</TableCell>
                       <TableCell className="text-right text-sm font-medium">{fmt(Number(c.total_counted))}</TableCell>
-                      <TableCell className="text-right text-sm">{fmt(Number(c.expected_balance))}</TableCell>
                       <TableCell className={`text-right text-sm font-bold ${Number(c.discrepancy) === 0 ? 'text-secondary' : 'text-destructive'}`}>
                         {Number(c.discrepancy) >= 0 ? '+' : ''}{fmt(Number(c.discrepancy))}
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => setPreviewCashCount(c)}>
+                          <Eye className="w-3.5 h-3.5" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -591,6 +596,134 @@ const AccountsPage = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Cash Count Preview Dialog */}
+      <Dialog open={!!previewCashCount} onOpenChange={v => { if (!v) setPreviewCashCount(null); }}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Coins className="w-5 h-5 text-accent" />
+              {locale === 'fr' ? 'Procès-Verbal d\'Espèces' : 'Cash Count Report'}
+            </DialogTitle>
+            <DialogDescription>
+              {accounts.find(a => a.id === historyAccountId)?.icon} {accounts.find(a => a.id === historyAccountId)?.name}
+              {' — '}
+              {previewCashCount && new Date(previewCashCount.counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </DialogDescription>
+          </DialogHeader>
+
+          {previewCashCount && (() => {
+            const denoms = typeof previewCashCount.denominations === 'string'
+              ? JSON.parse(previewCashCount.denominations)
+              : previewCashCount.denominations;
+            const entries = Object.entries(denoms || {})
+              .map(([d, q]) => ({ denomination: Number(d), quantity: Number(q) }))
+              .filter(e => e.quantity > 0)
+              .sort((a, b) => b.denomination - a.denomination);
+            const disc = Number(previewCashCount.discrepancy);
+
+            return (
+              <div id="cash-count-preview" className="space-y-4">
+                {/* Denominations table */}
+                {entries.length > 0 && (
+                  <div className="rounded-xl border border-border/50 overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/30">
+                          <TableHead className="text-xs">{locale === 'fr' ? 'Coupure' : 'Denomination'}</TableHead>
+                          <TableHead className="text-xs text-center">{locale === 'fr' ? 'Quantité' : 'Quantity'}</TableHead>
+                          <TableHead className="text-xs text-right">{locale === 'fr' ? 'Sous-total' : 'Subtotal'}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {entries.map(e => (
+                          <TableRow key={e.denomination}>
+                            <TableCell className="text-sm font-medium">{fmt(e.denomination)}</TableCell>
+                            <TableCell className="text-sm text-center">{e.quantity}</TableCell>
+                            <TableCell className="text-sm text-right font-semibold">{fmt(e.denomination * e.quantity)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Summary */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.counted}</p>
+                    <p className="text-base font-bold">{fmt(Number(previewCashCount.total_counted))}</p>
+                  </div>
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.expected}</p>
+                    <p className="text-base font-bold">{fmt(Number(previewCashCount.expected_balance))}</p>
+                  </div>
+                  <div className={`rounded-xl p-3 col-span-2 ${Math.abs(disc) > 0.01 ? 'bg-destructive/5 border border-destructive/10' : 'bg-secondary/5 border border-secondary/10'}`}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.discrepancy}</p>
+                    <p className={`text-lg font-bold ${Math.abs(disc) > 0.01 ? 'text-destructive' : 'text-secondary'}`}>
+                      {disc >= 0 ? '+' : ''}{fmt(disc)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                {previewCashCount.notes && (
+                  <div className="rounded-xl bg-muted/30 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.notes}</p>
+                    <p className="text-sm">{previewCashCount.notes}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" onClick={() => setPreviewCashCount(null)}>{t.cancel}</Button>
+            <Button
+              className="rounded-xl gap-1.5"
+              style={{ background: 'var(--gradient-primary)' }}
+              onClick={() => {
+                const el = document.getElementById('cash-count-preview');
+                if (!el) return;
+                const acc = accounts.find(a => a.id === historyAccountId);
+                const date = previewCashCount ? new Date(previewCashCount.counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US') : '';
+                const printWin = window.open('', '_blank', 'width=600,height=800');
+                if (!printWin) return;
+                printWin.document.write(`<!DOCTYPE html><html><head><title>PV Espèces - ${acc?.name || ''} - ${date}</title>
+                  <style>
+                    body { font-family: system-ui, sans-serif; padding: 32px; max-width: 500px; margin: 0 auto; color: #111; }
+                    h1 { font-size: 18px; margin-bottom: 4px; }
+                    h2 { font-size: 13px; color: #666; font-weight: normal; margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+                    th, td { padding: 6px 10px; border: 1px solid #ddd; font-size: 13px; }
+                    th { background: #f5f5f5; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 11px; }
+                    td.num { text-align: right; }
+                    td.center { text-align: center; }
+                    .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+                    .summary-item { padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+                    .summary-item.full { grid-column: span 2; }
+                    .summary-label { font-size: 10px; text-transform: uppercase; color: #666; font-weight: 700; }
+                    .summary-value { font-size: 16px; font-weight: 700; margin-top: 2px; }
+                    .positive { color: #16a34a; }
+                    .negative { color: #dc2626; }
+                    .notes { padding: 10px; background: #f9f9f9; border-radius: 8px; margin-top: 12px; }
+                    .notes-label { font-size: 10px; text-transform: uppercase; color: #666; font-weight: 700; }
+                    @media print { body { padding: 16px; } }
+                  </style></head><body>
+                  <h1>📝 ${locale === 'fr' ? 'Procès-Verbal d\'Espèces' : 'Cash Count Report'}</h1>
+                  <h2>${acc?.icon || ''} ${acc?.name || ''} — ${date}</h2>
+                  ${el.innerHTML}
+                  </body></html>`);
+                printWin.document.close();
+                setTimeout(() => { printWin.print(); }, 300);
+              }}
+            >
+              <Printer className="w-3.5 h-3.5" />
+              {locale === 'fr' ? 'Imprimer' : 'Print'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
         </TabsContent>
       </Tabs>
     </div>
