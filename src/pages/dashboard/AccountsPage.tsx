@@ -312,6 +312,10 @@ const AccountsPage = () => {
         />
       )}
 
+      {accounts.length > 0 && (
+        <AccountsPeriodStats accounts={accounts} transactions={allTransactions} fmt={fmt} t={t} locale={locale} />
+      )}
+
       {bulk.hasSelection && (
         <BulkActionBar
           count={bulk.count}
