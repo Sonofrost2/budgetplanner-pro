@@ -125,7 +125,7 @@ const AccountsPage = () => {
     if (!user) return;
     const [accRes, txRes, ccRes] = await Promise.all([
       supabase.from('payment_accounts').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.from('transactions').select('account_id, amount, type').eq('user_id', user.id).limit(100000),
+      supabase.from('transactions').select('account_id, amount, type, date').eq('user_id', user.id).limit(100000),
       supabase.from('cash_counts').select('account_id, counted_at, total_counted').eq('user_id', user.id).order('counted_at', { ascending: false }),
     ]);
     const accs = accRes.data || [];
