@@ -18,7 +18,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { ScrollReveal } from '@/hooks/useScrollReveal';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat, BarChart3 } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,6 +29,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import BudgetGlobalStats from '@/components/dashboard/budgets/BudgetGlobalStats';
 import BudgetAnalysisTab from '@/components/dashboard/tabs/BudgetAnalysisTab';
+import BudgetEvolutionTab from '@/components/dashboard/tabs/BudgetEvolutionTab';
 
 const PERIOD_MULTIPLIER: Record<string, number> = {
   daily: 365, weekly: 52, monthly: 12, quarterly: 4, semi_annual: 2, yearly: 1,
@@ -40,6 +41,7 @@ const BudgetsPage = () => {
   const { fmt: fmtCurrency } = useProfile();
   const { limits, isPremium, canExportAdvanced } = useSubscription();
   const t = dashT[locale];
+  const isFr = locale === 'fr';
   const { invalidate } = useInvalidate();
 
   const { data: budgets = [], isLoading: budLoading } = useBudgets();
@@ -556,10 +558,15 @@ const BudgetsPage = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="manage">
-        <TabsList className="rounded-xl mb-4">
+        <TabsList className="rounded-xl mb-4 flex-wrap">
           <TabsTrigger value="manage" className="rounded-lg gap-1.5"><PieChart className="w-4 h-4" />{t.management}</TabsTrigger>
+          <TabsTrigger value="evolution" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{isFr ? 'Évolution' : 'Evolution'}</TabsTrigger>
           <TabsTrigger value="analysis" className="rounded-lg gap-1.5"><TrendingUp className="w-4 h-4" />{t.budgetAnalysis}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="evolution">
+          <BudgetEvolutionTab />
+        </TabsContent>
 
         <TabsContent value="analysis">
           <BudgetAnalysisTab />

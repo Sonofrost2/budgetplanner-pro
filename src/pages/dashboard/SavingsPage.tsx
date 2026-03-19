@@ -27,6 +27,7 @@ import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbu
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjectionsTab';
+import SavingsEvolutionTab from '@/components/dashboard/tabs/SavingsEvolutionTab';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -511,10 +512,15 @@ const SavingsPage = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="manage">
-        <TabsList className="rounded-xl mb-4">
+        <TabsList className="rounded-xl mb-4 flex-wrap">
           <TabsTrigger value="manage" className="rounded-lg gap-1.5"><PiggyBank className="w-4 h-4" />{t.management}</TabsTrigger>
+          <TabsTrigger value="evolution" className="rounded-lg gap-1.5"><TrendingUp className="w-4 h-4" />{locale === 'fr' ? 'Évolution' : 'Evolution'}</TabsTrigger>
           <TabsTrigger value="projections" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{t.savingsProjections}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="evolution">
+          <SavingsEvolutionTab />
+        </TabsContent>
 
         <TabsContent value="projections">
           <SavingsProjectionsTab goals={goals} fmt={fmt} />
