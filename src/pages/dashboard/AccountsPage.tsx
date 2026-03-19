@@ -69,6 +69,7 @@ const AccountsPage = () => {
   const [cashCounts, setCashCounts] = useState<Record<string, { counted_at: string; total_counted: number }>>({});
   const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
+  const [previewCashCount, setPreviewCashCount] = useState<any | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type'>('name');
