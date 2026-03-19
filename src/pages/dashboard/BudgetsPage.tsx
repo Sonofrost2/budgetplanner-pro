@@ -21,6 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat, BarChart3 } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
+import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
