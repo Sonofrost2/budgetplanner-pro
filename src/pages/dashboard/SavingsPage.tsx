@@ -87,6 +87,7 @@ const SavingsPage = () => {
   const [simulation, setSimulation] = useState<SimulationResult | null>(null);
   const [simulating, setSimulating] = useState(false);
   const [customBankMode, setCustomBankMode] = useState(false);
+  const [activeMainTab, setActiveMainTab] = useState('manage');
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const { invalidate } = useInvalidate();
@@ -511,7 +512,7 @@ const SavingsPage = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="manage">
+      <Tabs defaultValue="manage" value={activeMainTab} onValueChange={setActiveMainTab}>
         <TabsList className="rounded-xl mb-4 flex-wrap">
           <TabsTrigger value="manage" className="rounded-lg gap-1.5"><PiggyBank className="w-4 h-4" />{t.management}</TabsTrigger>
           <TabsTrigger value="evolution" className="rounded-lg gap-1.5"><TrendingUp className="w-4 h-4" />{locale === 'fr' ? 'Évolution' : 'Evolution'}</TabsTrigger>
@@ -551,7 +552,10 @@ const SavingsPage = () => {
         </div>
       </div>
 
-      <SavingsGlobalStats goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
+      <SavingsGlobalStats goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} onCardClick={(action) => {
+        if (action === 'evolution') setActiveMainTab('evolution');
+        else if (action === 'locked' || action === 'unlocked') { /* could filter goals */ }
+      }} />
       <SavingsSummaryTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
       <SavingsControlTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
 

@@ -14,6 +14,7 @@ interface StatsCardsProps {
   t: DashTranslations;
   onIncomeClick?: () => void;
   onExpenseClick?: () => void;
+  onBalanceClick?: () => void;
   savingsRate?: number;
   netCashFlow?: number;
   transactionCount?: number;
@@ -146,7 +147,7 @@ const SecondaryStatRow = ({ label, value, icon: Icon, iconColor, bg, color, tren
 
 export const StatsCards = ({
   balance, totalIncome, totalExpenses, fmt, t,
-  onIncomeClick, onExpenseClick,
+  onIncomeClick, onExpenseClick, onBalanceClick,
   savingsRate, netCashFlow, transactionCount, dailyAverage,
   topExpense, topIncome,
   prevIncome, prevExpenses, prevNetCashFlow, prevTransactionCount, prevDailyAverage, prevSavingsRate,
@@ -200,6 +201,7 @@ export const StatsCards = ({
           label={t.totalBalance} value={fmt(balance)}
           icon={Wallet} iconColor="text-primary" bg="bg-primary/10" color=""
           sparkline={dailyBalanceData} sparklineColor="hsl(250, 85%, 60%)" delay={0}
+          onClick={onBalanceClick}
         />
         <HeroCard
           label={t.income} value={`+${fmt(totalIncome)}`}

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { Card, CardContent } from '@/components/ui/card';
-import { TrendingUp, AlertTriangle, PieChart, Calendar } from 'lucide-react';
+import { TrendingUp, AlertTriangle, PieChart, Calendar, ChevronRight } from 'lucide-react';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 
 const PERIOD_MULTIPLIER: Record<string, number> = {
@@ -18,9 +18,10 @@ interface BudgetGlobalStatsProps {
   budgets: any[];
   spending: Record<string, number>;
   fmt: (n: number) => string;
+  onCardClick?: (action: string) => void;
 }
 
-const BudgetGlobalStats = ({ budgets, spending, fmt }: BudgetGlobalStatsProps) => {
+const BudgetGlobalStats = ({ budgets, spending, fmt, onCardClick }: BudgetGlobalStatsProps) => {
   const { locale } = useLanguage();
   const t = dashT[locale];
 
@@ -32,7 +33,6 @@ const BudgetGlobalStats = ({ budgets, spending, fmt }: BudgetGlobalStatsProps) =
 
     for (const b of budgets) {
       const amount = Number(b.amount);
-      // For daily budgets with active_days, scale down from 365
       const activeDaysArr = b.active_days ? String(b.active_days).split(',').filter(Boolean) : [];
       const multiplier = b.period === 'daily' && activeDaysArr.length > 0
         ? Math.round((activeDaysArr.length / 7) * 365)
@@ -66,6 +66,7 @@ const BudgetGlobalStats = ({ budgets, spending, fmt }: BudgetGlobalStatsProps) =
       icon: <Calendar className="w-4 h-4" />,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
+      action: 'evolution',
     },
     {
       label: t.consumedPeriod,
@@ -74,6 +75,7 @@ const BudgetGlobalStats = ({ budgets, spending, fmt }: BudgetGlobalStatsProps) =
       color: 'text-secondary',
       bgColor: 'bg-secondary/10',
       suffix: ` / ${fmt(stats.totalBudgetPeriod)}`,
+      action: 'consumed',
     },
     {
       label: t.globalConsumption,
@@ -81,6 +83,7 @@ const BudgetGlobalStats = ({ budgets, spending, fmt }: BudgetGlobalStatsProps) =
       icon: <TrendingUp className="w-4 h-4" />,
       color: stats.globalPct > 100 ? 'text-destructive' : stats.globalPct >= 80 ? 'text-accent' : 'text-secondary',
       bgColor: stats.globalPct > 100 ? 'bg-destructive/10' : stats.globalPct >= 80 ? 'bg-accent/10' : 'bg-secondary/10',
+      action: 'analysis',
     },
     {
       label: t.budgetsInAlert,
@@ -88,19 +91,25 @@ const BudgetGlobalStats = ({ budgets, spending, fmt }: BudgetGlobalStatsProps) =
       icon: <AlertTriangle className="w-4 h-4" />,
       color: stats.alertCount > 0 ? 'text-destructive' : 'text-muted-foreground',
       bgColor: stats.alertCount > 0 ? 'bg-destructive/10' : 'bg-muted',
+      action: 'alerts',
     },
   ];
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {cards.map((c, i) => (
-        <Card key={i} className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+        <Card
+          key={i}
+          className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl transition-all duration-200 ${onCardClick ? 'cursor-pointer hover:shadow-[var(--shadow-soft)] hover:-translate-y-0.5 group' : ''}`}
+          onClick={() => onCardClick?.(c.action)}
+        >
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${c.bgColor} ${c.color}`}>
                 {c.icon}
               </div>
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{c.label}</span>
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex-1">{c.label}</span>
+              {onCardClick && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
             <div className="flex items-baseline gap-1">
               {c.valueRaw ? (

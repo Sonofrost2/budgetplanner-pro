@@ -12,7 +12,6 @@ import {
   Tag, Receipt, Search, Crown, Users, Landmark, RefreshCw, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TopLoadingBar } from '@/components/ui/top-loading-bar';
@@ -20,6 +19,7 @@ import { NotificationBell } from '@/components/dashboard/NotificationBell';
 import { OfflineBanner } from '@/components/dashboard/OfflineBanner';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import AIChatWidget from '@/components/dashboard/AIChatWidget';
+import GlobalSearchCommand from '@/components/dashboard/GlobalSearchCommand';
 
 const DashboardLayout = () => {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -32,7 +32,7 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean } | null>(null);
-  const [globalSearch, setGlobalSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [userPlan, setUserPlan] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(false);
 
@@ -64,32 +64,23 @@ const DashboardLayout = () => {
     navigate('/');
   };
 
-  // Show loading bar on route change
   useEffect(() => {
     setPageLoading(true);
     const timer = setTimeout(() => setPageLoading(false), 600);
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
+  // ⌘K shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        const searchInput = document.querySelector<HTMLInputElement>('[data-global-search]');
-        searchInput?.focus();
+        setSearchOpen(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  const handleGlobalSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (globalSearch.trim()) {
-      navigate(`/dashboard/transactions?q=${encodeURIComponent(globalSearch.trim())}`);
-      setGlobalSearch('');
-    }
-  };
 
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center mesh-bg">
@@ -139,7 +130,6 @@ const DashboardLayout = () => {
       label: locale === 'fr' ? 'Gestion' : 'Management',
       items: [
         { key: 'savings', icon: Target, path: '/dashboard/savings' },
-        
         { key: 'categories', icon: Tag, path: '/dashboard/categories' },
       ],
     },
@@ -163,7 +153,6 @@ const DashboardLayout = () => {
   ];
 
   const renderNavItem = (item: { key: string; icon: any; path: string }) => {
-    const active = location.pathname === item.path || (item.path === '/dashboard' && location.pathname === '/dashboard');
     const isExactDashboard = item.key === 'dashboard';
     const isActive = isExactDashboard ? location.pathname === '/dashboard' : location.pathname === item.path;
 
@@ -250,16 +239,23 @@ const DashboardLayout = () => {
             {t.welcome}, {profile?.display_name?.split(' ')[0] || 'User'} 👋
           </h1>
           <div className="flex-1" />
-          <form onSubmit={handleGlobalSearch} className="hidden sm:flex relative max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              data-global-search
-              value={globalSearch}
-              onChange={e => setGlobalSearch(e.target.value)}
-              placeholder={`${t.searchGlobal} (⌘K)`}
-              className="pl-9 h-8 w-52 rounded-xl border-glass-border bg-glass text-xs focus:bg-background"
-            />
-          </form>
+
+          {/* Search trigger — Command Palette */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="hidden sm:flex items-center gap-2 px-3 h-8 rounded-xl border border-glass-border bg-glass text-xs text-muted-foreground hover:bg-background transition-colors w-52"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span className="flex-1 text-left truncate">{locale === 'fr' ? 'Rechercher...' : 'Search...'}</span>
+            <kbd className="hidden md:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+              ⌘K
+            </kbd>
+          </button>
+          {/* Mobile search icon */}
+          <Button variant="ghost" size="icon" className="sm:hidden rounded-xl h-8 w-8" onClick={() => setSearchOpen(true)}>
+            <Search className="w-4 h-4" />
+          </Button>
+
           <NotificationBell />
         </header>
 
@@ -280,6 +276,7 @@ const DashboardLayout = () => {
 
       <OfflineBanner />
       <AIChatWidget />
+      <GlobalSearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
 
       <ConfirmDeleteDialog
         open={logoutDialogOpen}

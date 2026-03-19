@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PiggyBank, Building2, TrendingUp, Wallet, Lock, Unlock } from 'lucide-react';
+import { PiggyBank, Building2, TrendingUp, Wallet, Lock, Unlock, ChevronRight } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { SavingsGoal } from '@/hooks/useDashboardData';
@@ -20,6 +20,7 @@ interface SavingsGlobalStatsProps {
   fmt: (n: number) => string;
   t: DashTranslations;
   locale: string;
+  onCardClick?: (action: string) => void;
 }
 
 type PeriodKey = 'monthly' | 'quarterly' | 'semi_annual' | 'yearly' | 'all';
@@ -53,13 +54,12 @@ const getDateRangeForPeriod = (period: PeriodKey): { start: Date; end: Date } =>
   return { start, end };
 };
 
-export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale }: SavingsGlobalStatsProps) => {
+export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCardClick }: SavingsGlobalStatsProps) => {
   const [period, setPeriod] = useState<PeriodKey>('monthly');
 
   const stats = useMemo(() => {
     const { start, end } = getDateRangeForPeriod(period);
 
-    // Per-goal contributions in period
     const goalContribsInPeriod: Record<string, number> = {};
     let totalContribsInPeriod = 0;
 
@@ -75,14 +75,12 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale }: Sav
       totalContribsInPeriod += periodContribs;
     }
 
-    // Global totals
     const totalSaved = goals.reduce((s, g) => s + Number(g.current_amount), 0);
     const totalTarget = goals.reduce((s, g) => s + Number(g.target_amount), 0);
     const totalMonthlyPlanned = goals.reduce((s, g) => s + Number(g.monthly_contribution || 0), 0);
     const lockedAmount = goals.filter(g => (g as any).is_locked).reduce((s, g) => s + Number(g.current_amount), 0);
     const availableAmount = totalSaved - lockedAmount;
 
-    // Group by bank
     const byBank: Record<string, { goals: SavingsGoal[]; totalSaved: number; totalTarget: number; monthlyPlanned: number; contribsInPeriod: number }> = {};
     for (const goal of goals) {
       const bank = (goal as any).bank_name || (locale === 'fr' ? 'Non précisé' : 'Unspecified');
@@ -109,17 +107,21 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale }: Sav
 
   const globalPct = stats.totalTarget > 0 ? Math.round((stats.totalSaved / stats.totalTarget) * 100) : 0;
 
+  const clickable = !!onCardClick;
+  const cardClass = clickable ? 'cursor-pointer hover:shadow-[var(--shadow-soft)] hover:-translate-y-0.5 group transition-all duration-200' : '';
+
   return (
     <div className="space-y-4">
       {/* Top stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+        <Card className={`border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${cardClass}`} onClick={() => onCardClick?.('evolution')}>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <PiggyBank className="w-4 h-4" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider">
+              <span className="text-[11px] font-semibold uppercase tracking-wider flex-1">
                 {locale === 'fr' ? 'Épargne totale' : 'Total saved'}
               </span>
+              {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
             <p className="text-xl font-bold font-display">{fmt(stats.totalSaved)}</p>
             <div className="mt-2">
@@ -129,13 +131,14 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale }: Sav
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+        <Card className={`border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${cardClass}`} onClick={() => onCardClick?.('monthly')}>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <TrendingUp className="w-4 h-4" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider">
+              <span className="text-[11px] font-semibold uppercase tracking-wider flex-1">
                 {locale === 'fr' ? 'Mensualité prévue' : 'Monthly planned'}
               </span>
+              {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
             <p className="text-xl font-bold font-display">{fmt(stats.totalMonthlyPlanned)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
@@ -144,13 +147,14 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale }: Sav
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+        <Card className={`border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${cardClass}`} onClick={() => onCardClick?.('unlocked')}>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Unlock className="w-4 h-4 text-secondary" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider">
+              <span className="text-[11px] font-semibold uppercase tracking-wider flex-1">
                 {locale === 'fr' ? 'Disponible' : 'Available'}
               </span>
+              {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
             <p className="text-xl font-bold font-display text-secondary">{fmt(stats.availableAmount)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
@@ -159,13 +163,14 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale }: Sav
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+        <Card className={`border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${cardClass}`} onClick={() => onCardClick?.('locked')}>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Lock className="w-4 h-4 text-destructive" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider">
+              <span className="text-[11px] font-semibold uppercase tracking-wider flex-1">
                 {locale === 'fr' ? 'Bloqué' : 'Locked'}
               </span>
+              {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
             <p className="text-xl font-bold font-display">{fmt(stats.lockedAmount)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
@@ -195,7 +200,6 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale }: Sav
             </Select>
           </div>
 
-          {/* Pie chart + legend */}
           {(() => {
             const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444', '#10B981'];
             const bankEntries = Object.entries(stats.byBank).sort(([, a], [, b]) => b.totalSaved - a.totalSaved);
