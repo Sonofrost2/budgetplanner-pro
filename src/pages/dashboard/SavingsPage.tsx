@@ -511,7 +511,7 @@ const SavingsPage = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="manage">
+      <Tabs defaultValue="manage" value={activeMainTab} onValueChange={setActiveMainTab}>
         <TabsList className="rounded-xl mb-4 flex-wrap">
           <TabsTrigger value="manage" className="rounded-lg gap-1.5"><PiggyBank className="w-4 h-4" />{t.management}</TabsTrigger>
           <TabsTrigger value="evolution" className="rounded-lg gap-1.5"><TrendingUp className="w-4 h-4" />{locale === 'fr' ? 'Évolution' : 'Evolution'}</TabsTrigger>
