@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertTriangle, CheckCircle2, Bell, PiggyBank, X, TrendingDown, ChevronDown, ChevronUp, Calendar, Search, Trophy, Clock } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Bell, PiggyBank, X, TrendingDown, ChevronDown, ChevronUp, Calendar, Search, Trophy, Clock, ExternalLink } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,7 @@ interface Notification {
   title: string;
   message: string;
   severity: 'critical' | 'warning' | 'success' | 'info';
+  action?: { label: string; path: string };
 }
 
 const DISMISSED_KEY = 'notif_dismissed';
@@ -96,7 +98,7 @@ export const useBudgetNotifications = () => {
     const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0];
     const yearStart = `${now.getFullYear()}-01-01`;
 
-    const [budgetsRes, allTxRes, savingsRes, savingsTxRes, importedSavingsTxRes, accountsRes, recurringRes] = await Promise.all([
+    const [budgetsRes, allTxRes, savingsRes, savingsTxRes, importedSavingsTxRes, accountsRes, recurringRes, accountTxRes] = await Promise.all([
       supabase.from('budgets').select('*, categories(name, icon)').eq('user_id', user.id),
       supabase.from('transactions').select('category_id, amount, type, date').eq('user_id', user.id)
         .gte('date', yearStart).lte('date', todayStr),
@@ -114,6 +116,9 @@ export const useBudgetNotifications = () => {
       supabase.from('payment_accounts').select('id, name, icon, real_balance, opening_balance').eq('user_id', user.id),
       supabase.from('recurring_transactions').select('*').eq('user_id', user.id).eq('active', true)
         .lte('next_date', sevenDaysLaterStr),
+      // Fetch ALL transactions with account_id for balance discrepancy calculation
+      supabase.from('transactions').select('account_id, amount, type').eq('user_id', user.id)
+        .not('account_id', 'is', null).limit(100000),
     ]);
 
     const budgets = budgetsRes.data || [];
@@ -123,6 +128,7 @@ export const useBudgetNotifications = () => {
     const importedSavingsTxs = importedSavingsTxRes.data || [];
     const accounts = accountsRes.data || [];
     const recurringTxs = recurringRes.data || [];
+    const accountTxs = accountTxRes.data || [];
     const notifs: Notification[] = [];
 
     // ────── Budget alerts with improved projections ──────
@@ -131,7 +137,6 @@ export const useBudgetNotifications = () => {
       const periodStartStr = periodStart.toISOString().split('T')[0];
       const periodEndStr = periodEnd.toISOString().split('T')[0];
 
-      // Filter transactions for THIS budget's actual period
       const budgetType = budget.budget_type || 'expense';
       const periodTxs = allTxs.filter(tx =>
         tx.category_id === budget.category_id &&
@@ -145,12 +150,10 @@ export const useBudgetNotifications = () => {
       const controlType = budget.control_type || 'max';
       const isMax = controlType === 'max';
 
-      // Improved projection: weighted on last 7 days
       const daysElapsed = Math.max(1, Math.floor((now.getTime() - periodStart.getTime()) / 86400000) + 1);
       const daysTotal = Math.max(1, Math.floor((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1);
       const daysRemaining = Math.max(0, Math.floor((periodEnd.getTime() - now.getTime()) / 86400000));
 
-      // Last 7 days spending for weighted projection
       const recentTxs = periodTxs.filter(tx => tx.date >= sevenDaysAgoStr);
       const spent7 = recentTxs.reduce((sum, tx) => sum + Number(tx.amount), 0);
       const recentDays = Math.min(7, daysElapsed);
@@ -160,7 +163,6 @@ export const useBudgetNotifications = () => {
 
       if (isMax) {
         if (spent > amount) {
-          // Over budget — explain why
           const topTxs = periodTxs.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 3);
           const topDesc = topTxs.length > 0 ? ` — ${topTxs.length} ${isFr ? 'plus grosses dépenses identifiées' : 'top expenses identified'}` : '';
           notifs.push({
@@ -169,6 +171,7 @@ export const useBudgetNotifications = () => {
             severity: 'critical',
             title: isFr ? 'Budget dépassé' : 'Budget exceeded',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}${topDesc}`,
+            action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}` },
           });
         } else if (pct >= threshold) {
           notifs.push({
@@ -177,28 +180,28 @@ export const useBudgetNotifications = () => {
             severity: 'warning',
             title: isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`,
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
           });
         } else if (projection > amount && pct >= 40 && daysToExceed < daysRemaining && daysToExceed > 0) {
-          // Predictive alert with days to exceed
           notifs.push({
             id: `budget-pace-${budget.id}`,
             type: 'budget_warning',
             severity: 'info',
             title: isFr ? `Dépassement estimé dans ~${daysToExceed}j` : `Projected to exceed in ~${daysToExceed}d`,
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'projection' : 'projection'} ${Math.round(projection).toLocaleString()} (${Math.round((projection / amount) * 100)}%)`,
+            action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}` },
           });
         } else if (pct < 50 && daysElapsed > daysTotal * 0.7) {
-          // Congratulate: under control near end of period
           notifs.push({
             id: `budget-savings-${budget.id}`,
             type: 'budget_savings',
             severity: 'success',
             title: isFr ? '🎉 Budget maîtrisé' : '🎉 Budget under control',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(amount - spent).toLocaleString()} ${isFr ? 'économisés' : 'saved'}`,
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
           });
         }
       } else {
-        // Min budget (income target)
         if (spent < amount && daysElapsed > daysTotal * 0.5) {
           notifs.push({
             id: `budget-below-${budget.id}`,
@@ -206,6 +209,7 @@ export const useBudgetNotifications = () => {
             severity: 'info',
             title: isFr ? 'Objectif non atteint' : 'Target not reached',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString()}`,
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
           });
         } else if (spent >= amount) {
           notifs.push({
@@ -214,11 +218,11 @@ export const useBudgetNotifications = () => {
             severity: 'success',
             title: isFr ? '🎉 Objectif atteint' : '🎉 Target reached',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? 'au-dessus' : 'above'}`,
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
           });
         }
       }
 
-      // Upcoming budget expense reminder via expected_day
       if (budget.expected_day && isMax) {
         const expDay = Number(budget.expected_day);
         const todayDay = now.getDate();
@@ -230,6 +234,7 @@ export const useBudgetNotifications = () => {
             severity: 'info',
             title: isFr ? `📅 Dépense prévue dans ${daysUntil}j` : `📅 Expense due in ${daysUntil}d`,
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(amount).toLocaleString()}`,
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
           });
         }
       }
@@ -248,6 +253,7 @@ export const useBudgetNotifications = () => {
             ? (isFr ? "📋 Échéance aujourd'hui" : '📋 Due today')
             : (isFr ? `📋 Échéance dans ${daysUntil}j` : `📋 Due in ${daysUntil}d`),
           message: `${rec.description}: ${Math.round(Number(rec.amount)).toLocaleString()} (${rec.type === 'income' ? (isFr ? 'revenu' : 'income') : (isFr ? 'dépense' : 'expense')})`,
+          action: { label: isFr ? 'Voir récurrences' : 'View recurring', path: '/dashboard/recurring' },
         });
       }
     }
@@ -261,11 +267,11 @@ export const useBudgetNotifications = () => {
           severity: 'success',
           title: isFr ? 'Objectif atteint !' : 'Goal reached!',
           message: `${goal.icon} ${goal.name}`,
+          action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
         });
         continue;
       }
 
-      // Savings upcoming contribution reminder
       const contribDay = (goal as any).contribution_day;
       if (contribDay) {
         const todayDay = now.getDate();
@@ -277,6 +283,7 @@ export const useBudgetNotifications = () => {
             severity: 'info',
             title: isFr ? `🐷 Cotisation dans ${daysUntil}j` : `🐷 Contribution in ${daysUntil}d`,
             message: `${goal.icon} ${goal.name}: ${Math.round(Number(goal.monthly_contribution || 0)).toLocaleString()}`,
+            action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
           });
         }
       }
@@ -308,6 +315,7 @@ export const useBudgetNotifications = () => {
           severity: 'warning',
           title: isFr ? 'Rappel épargne' : 'Savings reminder',
           message: `${goal.icon} ${isFr ? 'Aucun versement ce mois pour' : 'No contribution this month for'} ${goal.name}`,
+          action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
         });
       } else if (monthlyActual < monthlyNeeded * 0.9) {
         notifs.push({
@@ -316,23 +324,35 @@ export const useBudgetNotifications = () => {
           severity: 'info',
           title: isFr ? 'Versement insuffisant' : 'Insufficient contribution',
           message: `${goal.icon} ${goal.name}: ${Math.round(monthlyActual).toLocaleString()} / ${Math.round(monthlyNeeded).toLocaleString()}`,
+          action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
         });
       }
     }
 
     // ────── Balance discrepancy alerts ──────
     for (const account of accounts) {
-      // Calculate theoretical balance from transactions
-      const accountTxs = allTxs.filter(tx => (tx as any).account_id === account.id);
-      // We can't filter by account_id from our allTxRes query (we only selected category_id, amount, type, date)
-      // So we'll just compare real_balance with a simple check
-      // Actually we need account_id in the query - for now, skip if we don't have enough data
-      // We'll use a simpler heuristic: compare real_balance with opening_balance
+      // Compute theoretical balance: opening_balance + income - expenses for this account
+      const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
+      const txSum = acctTxs.reduce((sum: number, tx: any) => {
+        return sum + (tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount));
+      }, 0);
+      const theoreticalBalance = Number(account.opening_balance) + txSum;
       const realBalance = Number(account.real_balance);
-      const openingBalance = Number(account.opening_balance);
-      const diff = Math.abs(realBalance - openingBalance);
-      // Only alert if account has opening balance set and there's a significant mismatch
-      // This is a simplified version - the full version would need account-level tx sums
+      const diff = Math.abs(realBalance - theoreticalBalance);
+      // Alert if discrepancy > 500 or > 1% of real balance (whichever is smaller)
+      const threshold = Math.min(500, Math.abs(realBalance) * 0.01 || 500);
+
+      if (diff > threshold && diff > 0) {
+        const sign = realBalance > theoreticalBalance ? '+' : '-';
+        notifs.push({
+          id: `balance-discrepancy-${account.id}`,
+          type: 'balance_discrepancy',
+          severity: 'warning',
+          title: isFr ? `🔍 Écart de solde détecté` : `🔍 Balance discrepancy`,
+          message: `${account.icon} ${account.name}: ${isFr ? 'écart de' : 'difference of'} ${sign}${Math.round(diff).toLocaleString()} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? 'théorique' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString()})`,
+          action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts` },
+        });
+      }
     }
 
     // ────── Sort by severity ──────
@@ -369,13 +389,13 @@ const iconMap: Record<Notification['type'], React.ReactNode> = {
 const severityStyles: Record<Notification['severity'], string> = {
   critical: 'border-l-destructive bg-destructive/5',
   warning: 'border-l-amber-500 bg-amber-500/5',
-  info: 'border-l-primary bg-primary/5',
   success: 'border-l-secondary bg-secondary/5',
+  info: 'border-l-primary bg-primary/5',
 };
 
 const GROUP_THRESHOLD = 3;
 
-const groupLabels: Record<string, Record<string, string>> = {
+const groupLabels: Record<string, Record<Notification['type'], string>> = {
   fr: {
     budget_exceeded: 'budgets dépassés',
     budget_warning: 'budgets en alerte',
@@ -408,11 +428,25 @@ interface NotifGroup {
   severity: Notification['severity'];
 }
 
-const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup }: {
+const ActionLink = ({ action, onNavigate }: { action: Notification['action']; onNavigate: (path: string) => void }) => {
+  if (!action) return null;
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onNavigate(action.path); }}
+      className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-primary hover:text-primary/80 hover:underline transition-colors"
+    >
+      {action.label}
+      <ExternalLink className="w-3 h-3" />
+    </button>
+  );
+};
+
+const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate }: {
   group: NotifGroup;
   locale: string;
   onDismiss: (id: string) => void;
   onDismissGroup: (ids: string[]) => void;
+  onNavigate: (path: string) => void;
 }) => {
   const [expanded, setExpanded] = useState(false);
   const labels = groupLabels[locale] || groupLabels.en;
@@ -449,6 +483,7 @@ const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup }: {
               <div className="min-w-0 flex-1 pl-6">
                 <p className="text-xs font-medium leading-tight">{n.title}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{n.message}</p>
+                <ActionLink action={n.action} onNavigate={onNavigate} />
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); onDismiss(n.id); }}
@@ -474,6 +509,7 @@ const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup }: {
 export const NotificationBell = () => {
   const { notifications, refresh } = useBudgetNotifications();
   const { locale } = useLanguage();
+  const navigate = useNavigate();
   const [dismissed, setDismissed] = useState<Set<string>>(() => getDismissedIds());
 
   const visible = notifications.filter(n => !dismissed.has(n.id));
@@ -499,6 +535,10 @@ export const NotificationBell = () => {
     const next = new Set(notifications.map(n => n.id));
     saveDismissedIds(next);
     setDismissed(next);
+  };
+
+  const handleNavigate = (path: string) => {
+    navigate(path);
   };
 
   // Group notifications by type
@@ -573,6 +613,7 @@ export const NotificationBell = () => {
                     locale={locale}
                     onDismiss={handleDismiss}
                     onDismissGroup={handleDismissGroup}
+                    onNavigate={handleNavigate}
                   />
                 ) : (
                   <div
@@ -583,6 +624,7 @@ export const NotificationBell = () => {
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold leading-tight">{item.notif.title}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{item.notif.message}</p>
+                      <ActionLink action={item.notif.action} onNavigate={handleNavigate} />
                     </div>
                     <button
                       onClick={() => handleDismiss(item.notif.id)}
