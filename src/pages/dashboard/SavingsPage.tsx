@@ -552,7 +552,10 @@ const SavingsPage = () => {
         </div>
       </div>
 
-      <SavingsGlobalStats goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
+      <SavingsGlobalStats goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} onCardClick={(action) => {
+        if (action === 'evolution') setActiveMainTab('evolution');
+        else if (action === 'locked' || action === 'unlocked') { /* could filter goals */ }
+      }} />
       <SavingsSummaryTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
       <SavingsControlTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
 

@@ -584,7 +584,10 @@ const BudgetsPage = () => {
         </Button>
       </div>
 
-      {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} fmt={fmt} />}
+      {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} fmt={fmt} onCardClick={(action) => {
+        if (action === 'evolution') setActiveMainTab('evolution');
+        else if (action === 'analysis') setActiveMainTab('analysis');
+      }} />}
 
       {budgets.length > 0 && (
         <FilterToolbar
