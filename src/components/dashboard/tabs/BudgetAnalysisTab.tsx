@@ -120,7 +120,7 @@ const BudgetAnalysisTab = () => {
       const actual = spending[b.id] || 0;
       const amount = Number(b.amount);
       const range = periodRanges.find(r => r.id === b.id);
-      if (!range) return { budget: b, actual, amount, pct: 0, projection: 0, dailyRate: 0, paceLabel: 'on_track' as const, daysLeft: 0, saving: 0 };
+      if (!range) return { budget: b, actual, amount, pct: 0, projection: 0, dailyRate: 0, paceLabel: 'on_track' as const, daysLeft: 0, variance: 0 };
 
       const daysElapsed = Math.max(1, Math.floor((now.getTime() - range.periodStart.getTime()) / 86400000) + 1);
       const daysTotal = Math.max(1, Math.floor((range.periodEnd.getTime() - range.periodStart.getTime()) / 86400000) + 1);
@@ -129,7 +129,10 @@ const BudgetAnalysisTab = () => {
 
       const isMax = (b as any).control_type !== 'min';
       const proj = computeBudgetProjection(actual, daysElapsed, daysLeft, daysTotal, amount, actual, daysElapsed, isMax);
-      const saving = isMax ? amount - proj.projection : proj.projection - amount;
+
+      // Variance = budget - actual (positive = saving, negative = overspend) for max budgets
+      // For min budgets: actual - budget (positive = on track, negative = under target)
+      const variance = isMax ? amount - actual : actual - amount;
 
       return {
         budget: b,
@@ -140,7 +143,7 @@ const BudgetAnalysisTab = () => {
         dailyRate: proj.dailyRate,
         paceLabel: proj.paceLabel,
         daysLeft,
-        saving,
+        variance,
       };
     });
   }, [expenseBudgets, spending, periodRanges, now]);
@@ -149,12 +152,12 @@ const BudgetAnalysisTab = () => {
   const summary = useMemo(() => {
     const totalBudgeted = budgetAnalysis.reduce((s, a) => s + a.amount, 0);
     const totalConsumed = budgetAnalysis.reduce((s, a) => s + a.actual, 0);
-    const totalProjected = budgetAnalysis.reduce((s, a) => s + a.projection, 0);
-    const overBudgetCount = budgetAnalysis.filter(a => a.actual > a.amount).length;
+    const overBudgetCount = budgetAnalysis.filter(a => a.variance < 0).length;
     const onTrackCount = budgetAnalysis.length - overBudgetCount;
-    const totalSavings = budgetAnalysis.filter(a => a.saving > 0).reduce((s, a) => s + a.saving, 0);
-    const totalOverspend = budgetAnalysis.filter(a => a.saving < 0).reduce((s, a) => s + Math.abs(a.saving), 0);
-    return { totalBudgeted, totalConsumed, totalProjected, overBudgetCount, onTrackCount, totalSavings, totalOverspend };
+    const totalSavings = budgetAnalysis.filter(a => a.variance > 0).reduce((s, a) => s + a.variance, 0);
+    const totalOverspend = budgetAnalysis.filter(a => a.variance < 0).reduce((s, a) => s + Math.abs(a.variance), 0);
+    const netVariance = totalSavings - totalOverspend;
+    return { totalBudgeted, totalConsumed, overBudgetCount, onTrackCount, totalSavings, totalOverspend, netVariance };
   }, [budgetAnalysis]);
 
   const chartData = budgetAnalysis.map(a => ({
