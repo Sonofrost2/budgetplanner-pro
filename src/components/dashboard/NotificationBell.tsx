@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { getBudgetPeriodBounds, computeBudgetProjection, shouldAlertForExpectedDay, formatDateStr } from '@/lib/budgetProjection';
 import { AlertTriangle, CheckCircle2, Bell, PiggyBank, X, TrendingDown, ChevronDown, ChevronUp, Calendar, Search, Trophy, Clock, ExternalLink } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -41,42 +42,7 @@ const saveDismissedIds = (ids: Set<string>) => {
   }));
 };
 
-/** Compute period boundaries for a budget */
-const getBudgetPeriodBounds = (period: string, now: Date, referenceDate?: string | null) => {
-  let periodStart: Date, periodEnd: Date;
-  if (period === 'daily') {
-    periodStart = periodEnd = new Date(now);
-  } else if (period === 'weekly') {
-    const day = now.getDay();
-    periodStart = new Date(now); periodStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-    periodEnd = new Date(periodStart); periodEnd.setDate(periodStart.getDate() + 6);
-  } else if (period === 'quarterly') {
-    if (referenceDate) {
-      const ref = new Date(referenceDate);
-      periodStart = new Date(ref);
-      while (periodStart > now) periodStart.setMonth(periodStart.getMonth() - 3);
-      while (new Date(periodStart.getFullYear(), periodStart.getMonth() + 3, periodStart.getDate()) <= now) {
-        periodStart.setMonth(periodStart.getMonth() + 3);
-      }
-      periodEnd = new Date(periodStart); periodEnd.setMonth(periodEnd.getMonth() + 3); periodEnd.setDate(periodEnd.getDate() - 1);
-    } else {
-      const q = Math.floor(now.getMonth() / 3);
-      periodStart = new Date(now.getFullYear(), q * 3, 1);
-      periodEnd = new Date(now.getFullYear(), q * 3 + 3, 0);
-    }
-  } else if (period === 'semi_annual') {
-    const s = now.getMonth() < 6 ? 0 : 6;
-    periodStart = new Date(now.getFullYear(), s, 1);
-    periodEnd = new Date(now.getFullYear(), s + 6, 0);
-  } else if (period === 'yearly') {
-    periodStart = new Date(now.getFullYear(), 0, 1);
-    periodEnd = new Date(now.getFullYear(), 11, 31);
-  } else {
-    periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  }
-  return { periodStart, periodEnd };
-};
+// getBudgetPeriodBounds is now imported from @/lib/budgetProjection
 
 export const useBudgetNotifications = () => {
   const { user } = useAuth();
@@ -157,9 +123,8 @@ export const useBudgetNotifications = () => {
       const recentTxs = periodTxs.filter(tx => tx.date >= sevenDaysAgoStr);
       const spent7 = recentTxs.reduce((sum, tx) => sum + Number(tx.amount), 0);
       const recentDays = Math.min(7, daysElapsed);
-      const dailyRate = recentDays > 0 ? spent7 / recentDays : spent / daysElapsed;
-      const projection = spent + dailyRate * daysRemaining;
-      const daysToExceed = dailyRate > 0 ? Math.round((amount - spent) / dailyRate) : Infinity;
+      const proj = computeBudgetProjection(spent, daysElapsed, daysRemaining, daysTotal, amount, spent7, recentDays, isMax);
+      const { projection, dailyRate, daysToExceed } = proj;
 
       if (isMax) {
         if (spent > amount) {
@@ -202,22 +167,23 @@ export const useBudgetNotifications = () => {
           });
         }
       } else {
-        if (spent < amount && daysElapsed > daysTotal * 0.5) {
-          notifs.push({
-            id: `budget-below-${budget.id}`,
-            type: 'budget_warning',
-            severity: 'info',
-            title: isFr ? 'Objectif non atteint' : 'Target not reached',
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString()}`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
-          });
-        } else if (spent >= amount) {
+        // Min budget (income target) — respect expected_day before alerting
+        if (spent >= amount) {
           notifs.push({
             id: `budget-target-reached-${budget.id}`,
             type: 'budget_savings',
             severity: 'success',
             title: isFr ? '🎉 Objectif atteint' : '🎉 Target reached',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? 'au-dessus' : 'above'}`,
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
+          });
+        } else if (shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal)) {
+          notifs.push({
+            id: `budget-below-${budget.id}`,
+            type: 'budget_warning',
+            severity: 'info',
+            title: isFr ? 'Objectif non atteint' : 'Target not reached',
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString()}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
           });
         }
