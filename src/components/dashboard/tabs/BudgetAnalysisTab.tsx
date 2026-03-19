@@ -371,9 +371,9 @@ const BudgetAnalysisTab = () => {
                     <p className={`font-bold ${pace.color}`}>{pace.label}</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg px-2 py-1.5">
-                    <p className="text-muted-foreground">{a.saving >= 0 ? t.estimatedSaving : t.estimatedOverspend}</p>
-                    <p className={`font-bold ${a.saving >= 0 ? 'text-secondary' : 'text-destructive'}`}>
-                      {fmt(Math.abs(Math.round(a.saving)))}
+                    <p className="text-muted-foreground">{a.variance >= 0 ? t.estimatedSaving : t.estimatedOverspend}</p>
+                    <p className={`font-bold ${a.variance >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                      {fmt(Math.abs(Math.round(a.variance)))}
                     </p>
                   </div>
                 </div>
