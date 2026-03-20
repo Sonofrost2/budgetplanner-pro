@@ -258,6 +258,31 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Amount display system */
+  .amount-display {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .amount-digits {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .amount-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .amount-glow-green {
+    text-shadow: 0 0 20px hsl(var(--secondary) / 0.25);
+  }
+
+  .amount-glow-red {
+    text-shadow: 0 0 20px hsl(var(--destructive) / 0.2);
+  }
 }
 
 @keyframes shimmer {
