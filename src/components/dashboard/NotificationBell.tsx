@@ -378,7 +378,7 @@ const notifItemVariants = {
   hidden: { opacity: 0, x: -12, scale: 0.96 },
   visible: (i: number) => ({
     opacity: 1, x: 0, scale: 1,
-    transition: { delay: i * 0.04, duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { delay: i * 0.04, duration: 0.25, ease: 'easeOut' as const },
   }),
   exit: { opacity: 0, x: 12, scale: 0.96, transition: { duration: 0.2 } },
 };
