@@ -4,15 +4,7 @@ import { dashT } from '@/i18n/dashTranslations';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, AlertTriangle, PieChart, Calendar, ChevronRight } from 'lucide-react';
 import { AnimatedNumber } from '@/components/ui/animated-number';
-
-const PERIOD_MULTIPLIER: Record<string, number> = {
-  daily: 365,
-  weekly: 52,
-  monthly: 12,
-  quarterly: 4,
-  semi_annual: 2,
-  yearly: 1,
-};
+import { computeAnnualizedAmount } from '@/lib/budgetProjection';
 
 interface BudgetGlobalStatsProps {
   budgets: any[];
