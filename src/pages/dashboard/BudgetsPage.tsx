@@ -415,7 +415,12 @@ const BudgetsPage = () => {
 
           <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
             <span className="font-semibold">{Math.round(pct)}% {isMax ? (isFr ? 'consommé' : 'consumed') : (isFr ? 'atteint' : 'reached')}</span>
-            <span>{daysLeft} {t.daysRemaining}</span>
+            <span>
+              {daysLabel === 'today' ? (isFr ? "📍 Aujourd'hui" : '📍 Today')
+                : daysLabel === 'passed' ? (isFr ? '✅ Échéance passée' : '✅ Due date passed')
+                : daysLabel === 'thisWeek' ? (isFr ? '📅 Cette semaine' : '📅 This week')
+                : `${daysLeft} ${t.daysRemaining}`}
+            </span>
           </div>
 
           {/* Annualized summary — secondary display */}
