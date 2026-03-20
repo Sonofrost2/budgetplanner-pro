@@ -441,7 +441,7 @@ const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
             className="overflow-hidden border-t border-border/50"
           >
             {group.items.map((n, i) => (
