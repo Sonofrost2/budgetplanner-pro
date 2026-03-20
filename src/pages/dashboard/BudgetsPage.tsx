@@ -76,7 +76,7 @@ const BudgetsPage = () => {
     [allCategories, form.budget_type]
   );
 
-  // Server-side spending calculation using RPC
+  // Server-side spending calculation using RPC — period + annual
   const budgetPeriodRanges = useMemo(() => {
     const now = new Date();
     return budgets.map(b => {
@@ -87,6 +87,9 @@ const BudgetsPage = () => {
       return { id: b.id, category_id: b.category_id, type: bType === 'income' ? 'income' : 'expense', start, end };
     });
   }, [budgets]);
+
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+  const yearEnd = `${new Date().getFullYear()}-12-31`;
 
   const { data: spending = {} } = useQuery({
     queryKey: ['budget-spending', user?.id, budgetPeriodRanges.map(r => `${r.id}-${r.start}-${r.end}`).join(',')],
@@ -111,6 +114,25 @@ const BudgetsPage = () => {
     },
     enabled: !!user && budgetPeriodRanges.length > 0,
     staleTime: 30_000,
+  });
+
+  // Annual spending per category (Jan 1 → Dec 31 of current year)
+  const { data: annualSpending = {} } = useQuery({
+    queryKey: ['budget-annual-spending', user?.id, yearStart, yearEnd],
+    queryFn: async () => {
+      const uniqueCats = [...new Set(budgetPeriodRanges.filter(r => r.category_id).map(r => ({ cid: r.category_id!, type: r.type })))];
+      const map: Record<string, number> = {};
+      await Promise.all(uniqueCats.map(async ({ cid, type }) => {
+        const { data } = await supabase.rpc('get_budget_spending', {
+          p_user_id: user!.id, p_category_id: cid, p_type: type,
+          p_start_date: yearStart, p_end_date: yearEnd,
+        });
+        if (data !== null) map[cid] = Number(data);
+      }));
+      return map;
+    },
+    enabled: !!user && budgetPeriodRanges.length > 0,
+    staleTime: 60_000,
   });
 
   const expenseBudgets = useMemo(() => {
