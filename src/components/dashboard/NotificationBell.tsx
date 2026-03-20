@@ -171,7 +171,6 @@ export const useBudgetNotifications = () => {
         }
       }
     }
-    }
 
     // ────── Recurring transaction reminders ──────
     for (const rec of recurringTxs) {
