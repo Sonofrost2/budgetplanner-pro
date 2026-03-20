@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { getBudgetPeriodBounds, formatDateStr } from '@/lib/budgetProjection';
+import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount } from '@/lib/budgetProjection';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
