@@ -83,3 +83,42 @@ export function shouldAlertForExpectedDay(
 export function formatDateStr(d: Date): string {
   return d.toISOString().split('T')[0];
 }
+
+/**
+ * Compute the precise annualized budget amount.
+ *
+ * Rules:
+ * - daily:  amount × active_days_per_week × 52.18 (or × 365 if 7 days)
+ * - weekly: amount × 52
+ * - monthly: amount × 12
+ * - quarterly: amount × 4
+ * - semi_annual: amount × 2
+ * - yearly: amount × 1
+ *
+ * If occurrence_frequency is set:
+ * - The `amount` field is the budget for the PERIOD.
+ *   occurrence_frequency tells how it's distributed but does NOT change the total.
+ *   e.g. monthly budget of 500k with freq=once → 500k/month → 6M/year
+ *   e.g. monthly budget of 500k with freq=weekly → still 500k/month → 6M/year
+ */
+export function computeAnnualizedAmount(
+  amount: number,
+  period: string,
+  activeDays?: string | null,
+): number {
+  if (period === 'daily') {
+    const activeDaysArr = activeDays ? String(activeDays).split(',').filter(Boolean) : [];
+    if (activeDaysArr.length > 0 && activeDaysArr.length < 7) {
+      return Math.round(amount * activeDaysArr.length * 52.18);
+    }
+    return Math.round(amount * 365);
+  }
+  const multipliers: Record<string, number> = {
+    weekly: 52,
+    monthly: 12,
+    quarterly: 4,
+    semi_annual: 2,
+    yearly: 1,
+  };
+  return Math.round(amount * (multipliers[period] || 12));
+}
