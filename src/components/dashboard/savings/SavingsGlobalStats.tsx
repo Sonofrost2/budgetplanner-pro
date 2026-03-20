@@ -154,7 +154,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
               </span>
               {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
-            <p className="text-xl font-bold font-display">{fmt(stats.totalMonthlyPlanned)}</p>
+            <p className="text-xl font-bold font-display amount-display">{fmt(stats.totalMonthlyPlanned)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
               {goals.filter(g => Number(g.monthly_contribution || 0) > 0).length} {isFr ? 'objectif(s) actif(s)' : 'active goal(s)'}
             </p>
