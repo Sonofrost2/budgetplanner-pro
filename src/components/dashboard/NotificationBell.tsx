@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { getBudgetPeriodBounds, computeBudgetProjection, shouldAlertForExpectedDay, formatDateStr } from '@/lib/budgetProjection';
+import { getBudgetPeriodBounds, shouldAlertForExpectedDay } from '@/lib/budgetProjection';
 import { AlertTriangle, CheckCircle2, Bell, PiggyBank, X, TrendingDown, ChevronDown, ChevronUp, Calendar, Search, Trophy, Clock, ExternalLink } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -97,7 +97,7 @@ export const useBudgetNotifications = () => {
     const accountTxs = accountTxRes.data || [];
     const notifs: Notification[] = [];
 
-    // ────── Budget alerts with improved projections ──────
+    // ────── Budget alerts (simplified — no projections) ──────
     for (const budget of budgets) {
       const { periodStart, periodEnd } = getBudgetPeriodBounds(budget.period || 'monthly', now, budget.reference_date);
       const periodStartStr = periodStart.toISOString().split('T')[0];
@@ -118,24 +118,15 @@ export const useBudgetNotifications = () => {
 
       const daysElapsed = Math.max(1, Math.floor((now.getTime() - periodStart.getTime()) / 86400000) + 1);
       const daysTotal = Math.max(1, Math.floor((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1);
-      const daysRemaining = Math.max(0, Math.floor((periodEnd.getTime() - now.getTime()) / 86400000));
-
-      const recentTxs = periodTxs.filter(tx => tx.date >= sevenDaysAgoStr);
-      const spent7 = recentTxs.reduce((sum, tx) => sum + Number(tx.amount), 0);
-      const recentDays = Math.min(7, daysElapsed);
-      const proj = computeBudgetProjection(spent, daysElapsed, daysRemaining, daysTotal, amount, spent7, recentDays, isMax);
-      const { projection, dailyRate, daysToExceed } = proj;
 
       if (isMax) {
         if (spent > amount) {
-          const topTxs = periodTxs.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 3);
-          const topDesc = topTxs.length > 0 ? ` — ${topTxs.length} ${isFr ? 'plus grosses dépenses identifiées' : 'top expenses identified'}` : '';
           notifs.push({
             id: `budget-exceeded-${budget.id}`,
             type: 'budget_exceeded',
             severity: 'critical',
             title: isFr ? 'Budget dépassé' : 'Budget exceeded',
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}${topDesc}`,
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}`,
             action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}` },
           });
         } else if (pct >= threshold) {
@@ -146,15 +137,6 @@ export const useBudgetNotifications = () => {
             title: isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`,
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
-          });
-        } else if (projection > amount && pct >= 40 && daysToExceed < daysRemaining && daysToExceed > 0) {
-          notifs.push({
-            id: `budget-pace-${budget.id}`,
-            type: 'budget_warning',
-            severity: 'info',
-            title: isFr ? `Dépassement estimé dans ~${daysToExceed}j` : `Projected to exceed in ~${daysToExceed}d`,
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'projection' : 'projection'} ${Math.round(projection).toLocaleString()} (${Math.round((projection / amount) * 100)}%)`,
-            action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}` },
           });
         } else if (pct < 50 && daysElapsed > daysTotal * 0.7) {
           notifs.push({
@@ -167,7 +149,7 @@ export const useBudgetNotifications = () => {
           });
         }
       } else {
-        // Min budget (income target) — respect expected_day before alerting
+        // Min budget (income target)
         if (spent >= amount) {
           notifs.push({
             id: `budget-target-reached-${budget.id}`,
@@ -184,22 +166,6 @@ export const useBudgetNotifications = () => {
             severity: 'info',
             title: isFr ? 'Objectif non atteint' : 'Target not reached',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString()}`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
-          });
-        }
-      }
-
-      if (budget.expected_day && isMax) {
-        const expDay = Number(budget.expected_day);
-        const todayDay = now.getDate();
-        const daysUntil = expDay >= todayDay ? expDay - todayDay : 0;
-        if (daysUntil > 0 && daysUntil <= 5) {
-          notifs.push({
-            id: `budget-upcoming-${budget.id}`,
-            type: 'budget_upcoming',
-            severity: 'info',
-            title: isFr ? `📅 Dépense prévue dans ${daysUntil}j` : `📅 Expense due in ${daysUntil}d`,
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(amount).toLocaleString()}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
           });
         }
