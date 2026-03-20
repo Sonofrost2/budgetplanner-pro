@@ -54,7 +54,7 @@ const ReportsPage = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="monthly">
+      <Tabs defaultValue="ai-insights">
         <TabsList className="flex-wrap">
           <TabsTrigger value="ai-insights" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />{locale === 'fr' ? 'Insights IA' : 'AI Insights'}</TabsTrigger>
           <TabsTrigger value="monthly">{t.monthlyReport}</TabsTrigger>
