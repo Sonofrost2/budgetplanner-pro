@@ -83,7 +83,7 @@ export const AccountsWidget = ({ accounts, fmt, t }: AccountsWidgetProps) => {
                       <p className="text-[10px] text-muted-foreground capitalize">{acc.type.replace('_', ' ')}</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold tabular-nums">{fmt(acc.real_balance)}</span>
+                  <span className="text-xs font-bold tabular-nums amount-display">{fmt(acc.real_balance)}</span>
                 </motion.div>
               ))}
             </div>

@@ -95,8 +95,8 @@ export const SavingsWidget = ({ goals, fmt, t }: SavingsWidgetProps) => {
                       </motion.span>
                     </div>
                     <Progress value={pct} className="h-1.5 rounded-full [&>div]:bg-secondary" />
-                    <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
-                      <span>{fmt(goal.current_amount)}</span>
+                    <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums amount-display">
+                      <span className="text-secondary font-semibold">{fmt(goal.current_amount)}</span>
                       <span>{fmt(goal.target_amount)}</span>
                     </div>
                   </motion.div>

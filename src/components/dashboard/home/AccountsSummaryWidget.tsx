@@ -88,7 +88,7 @@ export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSumm
           className="flex items-center justify-between pt-2.5 mt-1.5 border-t border-glass-border"
         >
           <span className="text-xs font-bold">{t.savingsTotal}</span>
-          <span className="text-sm font-extrabold tabular-nums">{fmt(total)}</span>
+          <span className="text-sm font-extrabold tabular-nums amount-display amount-gradient">{fmt(total)}</span>
         </motion.div>
       </div>
     </motion.div>
