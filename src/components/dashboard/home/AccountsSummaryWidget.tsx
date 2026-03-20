@@ -78,7 +78,7 @@ export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSumm
                 <p className="text-[10px] text-muted-foreground">{count} {locale === 'fr' ? 'compte(s)' : 'account(s)'}</p>
               </div>
             </div>
-            <span className="text-xs font-bold tabular-nums">{fmt(subtotal)}</span>
+            <span className="text-xs font-bold tabular-nums amount-display">{fmt(subtotal)}</span>
           </motion.div>
         ))}
         <motion.div
@@ -88,7 +88,7 @@ export const AccountsSummaryWidget = ({ accounts, fmt, t, locale }: AccountsSumm
           className="flex items-center justify-between pt-2.5 mt-1.5 border-t border-glass-border"
         >
           <span className="text-xs font-bold">{t.savingsTotal}</span>
-          <span className="text-sm font-extrabold tabular-nums">{fmt(total)}</span>
+          <span className="text-sm font-extrabold tabular-nums amount-display amount-gradient">{fmt(total)}</span>
         </motion.div>
       </div>
     </motion.div>

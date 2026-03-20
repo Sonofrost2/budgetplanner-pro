@@ -113,9 +113,9 @@ const BudgetGlobalStats = ({ budgets, spending, fmt, onCardClick }: BudgetGlobal
             </div>
             <div className="flex items-baseline gap-1">
               {c.valueRaw ? (
-                <span className={`text-xl font-extrabold ${c.color}`}>{c.valueRaw}</span>
+                <span className={`text-xl font-extrabold tabular-nums amount-display ${c.color}`}>{c.valueRaw}</span>
               ) : (
-                <AnimatedNumber value={c.value!} format={fmt} className={`text-xl font-extrabold ${c.color}`} />
+                <AnimatedNumber value={c.value!} format={fmt} className={`text-xl font-extrabold amount-display ${c.color}`} />
               )}
               {c.suffix && <span className="text-xs text-muted-foreground">{c.suffix}</span>}
             </div>

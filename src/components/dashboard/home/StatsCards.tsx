@@ -113,7 +113,7 @@ const HeroCard = ({ label, value, icon: Icon, iconColor, bg, color, trend, inver
     <div className="flex items-end justify-between gap-2">
       <div className="min-w-0 flex-1">
         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-        <p className={`text-lg sm:text-xl font-extrabold ${color} truncate leading-tight`}>{value}</p>
+        <p className={`text-lg sm:text-xl font-extrabold ${color} truncate leading-tight tabular-nums amount-display`}>{value}</p>
       </div>
       {sparkline && sparkline.length >= 2 && (
         <Sparkline data={sparkline} color={sparklineColor} className="opacity-70 group-hover:opacity-100 transition-opacity duration-300" />
@@ -138,7 +138,7 @@ const SecondaryStatRow = ({ label, value, icon: Icon, iconColor, bg, color, tren
       </div>
       <div>
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className={`text-sm font-bold ${color}`}>{value}</p>
+        <p className={`text-sm font-bold ${color} tabular-nums amount-display`}>{value}</p>
       </div>
     </div>
     <TrendBadge trend={trend} invertColor={invertTrend} />

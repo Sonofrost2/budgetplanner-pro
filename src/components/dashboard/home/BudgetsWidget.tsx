@@ -85,9 +85,9 @@ export const BudgetsWidget = ({ budgets, fmt, t }: BudgetsWidgetProps) => {
                       </motion.span>
                     </div>
                     <Progress value={pct} className={`h-1.5 rounded-full ${over ? '[&>div]:bg-destructive' : ''}`} />
-                    <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
+                    <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums amount-display">
                       <span>{fmt(b.spent)}</span>
-                      <span>{fmt(b.amount)}</span>
+                      <span className="font-semibold">{fmt(b.amount)}</span>
                     </div>
                   </motion.div>
                 );

@@ -88,8 +88,8 @@ export const TransactionList = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`text-sm font-bold ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
-                      {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
+                    <span className={`text-sm font-bold tabular-nums amount-display ${tx.type === 'income' ? 'text-secondary amount-glow-green' : 'text-destructive amount-glow-red'}`}>
+                      <span className="text-[0.85em] opacity-70 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>{fmt(Number(tx.amount))}
                     </span>
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => onEdit(tx)}>
                       <Pencil className="w-3.5 h-3.5" />

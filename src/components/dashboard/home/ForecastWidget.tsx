@@ -45,17 +45,17 @@ export const ForecastWidget = ({ monthlyData, fmt, t }: ForecastWidgetProps) => 
               <div className="rounded-xl bg-secondary/5 border border-secondary/10 p-3 text-center">
                 <TrendingUp className="w-4 h-4 text-secondary mx-auto mb-1.5" />
                 <p className="text-[10px] text-muted-foreground mb-0.5">{t.avgIncome}</p>
-                <p className="text-xs font-bold text-secondary">+{fmt(avgIncome)}</p>
+                <p className="text-xs font-bold text-secondary amount-display"><span className="text-[0.85em] opacity-70">+</span>{fmt(avgIncome)}</p>
               </div>
               <div className="rounded-xl bg-destructive/5 border border-destructive/10 p-3 text-center">
                 <TrendingDown className="w-4 h-4 text-destructive mx-auto mb-1.5" />
                 <p className="text-[10px] text-muted-foreground mb-0.5">{t.avgExpenses}</p>
-                <p className="text-xs font-bold text-destructive">-{fmt(avgExpenses)}</p>
+                <p className="text-xs font-bold text-destructive amount-display"><span className="text-[0.85em] opacity-70">-</span>{fmt(avgExpenses)}</p>
               </div>
               <div className="rounded-xl bg-primary/5 border border-primary/10 p-3 text-center">
                 <BarChart3 className="w-4 h-4 text-primary mx-auto mb-1.5" />
                 <p className="text-[10px] text-muted-foreground mb-0.5">{t.savingsRate}</p>
-                <p className={`text-xs font-bold ${savingsRate >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                <p className={`text-xs font-bold amount-display ${savingsRate >= 0 ? 'text-secondary' : 'text-destructive'}`}>
                   {savingsRate.toFixed(1)}%
                 </p>
               </div>

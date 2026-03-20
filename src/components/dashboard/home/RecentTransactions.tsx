@@ -82,9 +82,9 @@ export const RecentTransactions = ({ transactions, fmt, t, locale }: RecentTrans
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.05 + 0.2 }}
-                  className={`text-xs font-bold tabular-nums ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}
+                  className={`text-xs font-bold tabular-nums amount-display ${tx.type === 'income' ? 'text-secondary amount-glow-green' : 'text-destructive amount-glow-red'}`}
                 >
-                  {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
+                  <span className="text-[0.85em] opacity-70 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>{fmt(Number(tx.amount))}
                 </motion.span>
               </motion.div>
             ))}

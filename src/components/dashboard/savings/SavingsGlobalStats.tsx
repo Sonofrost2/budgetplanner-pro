@@ -137,7 +137,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
               </span>
               {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
-            <p className="text-xl font-bold font-display">{fmt(stats.totalSaved)}</p>
+            <p className="text-xl font-bold font-display amount-display">{fmt(stats.totalSaved)}</p>
             <div className="mt-2">
               <Progress value={Math.min(globalPct, 100)} className="h-1.5 rounded-full [&>div]:bg-primary" />
               <p className="text-[10px] text-muted-foreground mt-1">{globalPct}% {isFr ? 'de' : 'of'} {fmt(stats.totalTarget)}</p>
@@ -154,7 +154,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
               </span>
               {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
-            <p className="text-xl font-bold font-display">{fmt(stats.totalMonthlyPlanned)}</p>
+            <p className="text-xl font-bold font-display amount-display">{fmt(stats.totalMonthlyPlanned)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
               {goals.filter(g => Number(g.monthly_contribution || 0) > 0).length} {isFr ? 'objectif(s) actif(s)' : 'active goal(s)'}
             </p>
@@ -170,7 +170,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
               </span>
               {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
-            <p className="text-xl font-bold font-display text-secondary">{fmt(stats.availableAmount)}</p>
+            <p className="text-xl font-bold font-display amount-display text-secondary">{fmt(stats.availableAmount)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
               {goals.filter(g => !(g as any).is_locked).length} {isFr ? 'compte(s)' : 'account(s)'}
             </p>
@@ -186,7 +186,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
               </span>
               {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
-            <p className="text-xl font-bold font-display">{fmt(stats.lockedAmount)}</p>
+            <p className="text-xl font-bold font-display amount-display">{fmt(stats.lockedAmount)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
               {goals.filter(g => (g as any).is_locked).length} {isFr ? 'compte(s)' : 'account(s)'}
             </p>
@@ -308,7 +308,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold">{fmt(data.totalSaved)}</p>
+                        <p className="text-sm font-bold amount-display">{fmt(data.totalSaved)}</p>
                         <p className="text-[10px] text-muted-foreground">{isFr ? 'sur' : 'of'} {fmt(data.totalTarget)}</p>
                       </div>
                     </div>
