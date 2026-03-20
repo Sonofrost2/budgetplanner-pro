@@ -1,51 +1,7 @@
 /**
- * Shared budget projection and period calculation utilities.
+ * Budget period calculation utilities.
  * Used by NotificationBell, BudgetsPage, BudgetAnalysisTab, and check-alerts edge function.
  */
-
-export interface ProjectionResult {
-  projection: number;
-  dailyRate: number;
-  daysToExceed: number;
-  paceRatio: number;
-  paceLabel: 'fast' | 'slow' | 'on_track';
-}
-
-/**
- * Compute budget projection using weighted 7-day average.
- */
-export function computeBudgetProjection(
-  spent: number,
-  daysElapsed: number,
-  daysRemaining: number,
-  daysTotal: number,
-  amount: number,
-  spent7d: number,
-  recentDays: number,
-  isMax: boolean
-): ProjectionResult {
-  const safeDaysElapsed = Math.max(1, daysElapsed);
-  const safeRecentDays = Math.max(1, Math.min(recentDays, safeDaysElapsed));
-
-  const dailyRate = safeRecentDays > 0 ? spent7d / safeRecentDays : spent / safeDaysElapsed;
-  const projection = spent + dailyRate * daysRemaining;
-  const daysToExceed = dailyRate > 0 ? Math.round((amount - spent) / dailyRate) : Infinity;
-
-  const expectedPace = daysTotal > 0 ? amount / daysTotal : 0;
-  const actualPace = spent / safeDaysElapsed;
-  const paceRatio = expectedPace > 0 ? actualPace / expectedPace : 0;
-
-  let paceLabel: 'fast' | 'slow' | 'on_track' = 'on_track';
-  if (isMax) {
-    if (paceRatio > 1.15) paceLabel = 'fast';
-    else if (paceRatio < 0.85) paceLabel = 'slow';
-  } else {
-    if (paceRatio < 0.85) paceLabel = 'slow';
-    else if (paceRatio > 1.15) paceLabel = 'on_track';
-  }
-
-  return { projection, dailyRate, daysToExceed, paceRatio, paceLabel };
-}
 
 /**
  * Compute period boundaries for a budget.
@@ -77,15 +33,11 @@ export function getBudgetPeriodBounds(
       while (new Date(periodStart.getFullYear(), periodStart.getMonth() + 3, periodStart.getDate()) <= now) {
         periodStart.setMonth(periodStart.getMonth() + 3);
       }
-      // Apply offset
       periodStart.setMonth(periodStart.getMonth() - offset * 3);
       periodEnd = new Date(periodStart);
       periodEnd.setMonth(periodEnd.getMonth() + 3);
       periodEnd.setDate(periodEnd.getDate() - 1);
     } else {
-      const q = Math.floor(now.getMonth() / 3) - offset;
-      const adjustedYear = now.getFullYear() + Math.floor(q / 4) * (q < 0 ? 1 : 0);
-      const adjustedQ = ((q % 4) + 4) % 4;
       const year = now.getFullYear() + Math.floor((Math.floor(now.getMonth() / 3) - offset) / 4);
       const qIdx = (((Math.floor(now.getMonth() / 3) - offset) % 4) + 4) % 4;
       periodStart = new Date(year, qIdx * 3, 1);
@@ -115,7 +67,6 @@ export function getBudgetPeriodBounds(
 
 /**
  * Check if an alert should fire based on expected_day.
- * Returns true if we are past the expected day or no expected day is set.
  */
 export function shouldAlertForExpectedDay(
   expectedDay: number | null | undefined,
@@ -124,10 +75,8 @@ export function shouldAlertForExpectedDay(
   daysTotal: number
 ): boolean {
   if (!expectedDay) {
-    // No expected day: use the old >50% rule
     return daysElapsed > daysTotal * 0.5;
   }
-  // Alert only if we have passed the expected day in the current period
   return now.getDate() >= expectedDay;
 }
 

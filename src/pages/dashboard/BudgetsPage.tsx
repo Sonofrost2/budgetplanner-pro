@@ -344,33 +344,7 @@ const BudgetsPage = () => {
     const periodStart = range ? new Date(range.start) : new Date();
     const periodEnd = range ? new Date(range.end) : new Date();
     const today = new Date();
-    const daysElapsed = Math.max(1, Math.floor((today.getTime() - periodStart.getTime()) / 86400000) + 1);
-    const daysTotal = Math.max(1, Math.floor((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1);
     const daysLeft = Math.max(0, Math.floor((periodEnd.getTime() - today.getTime()) / 86400000));
-
-    // Use shared projection utility (weighted 7-day average)
-    // We need spent7d — approximate from the data we have (use linear as fallback since we don't have per-tx dates here)
-    const proj = computeBudgetProjection(actual, daysElapsed, daysLeft, daysTotal, amount, actual, daysElapsed, isMax);
-    const dailyPace = proj.dailyRate;
-    const expectedPace = daysTotal > 0 ? amount / daysTotal : 0;
-    const projection = proj.projection;
-    // Annualized: for daily budgets with active_days, scale down from 365
-    const activeDaysArr = b.active_days ? b.active_days.split(',').filter(Boolean) : [];
-    const annualized = b.period === 'daily' && activeDaysArr.length > 0
-      ? amount * Math.round((activeDaysArr.length / 7) * 365)
-      : amount * (PERIOD_MULTIPLIER[b.period] || 12);
-
-    // Pace status
-    const paceRatio = expectedPace > 0 ? dailyPace / expectedPace : 0;
-    let paceLabel: string = t.paceOnTrack;
-    let paceColor = 'text-secondary';
-    if (isMax) {
-      if (paceRatio > 1.15) { paceLabel = t.paceFast; paceColor = 'text-destructive'; }
-      else if (paceRatio < 0.85) { paceLabel = t.paceSlow; paceColor = 'text-muted-foreground'; }
-    } else {
-      if (paceRatio < 0.85) { paceLabel = t.paceSlow; paceColor = 'text-destructive'; }
-      else if (paceRatio > 1.15) { paceLabel = t.paceOnTrack; paceColor = 'text-secondary'; }
-    }
 
     const occFreqLabels: Record<string, string> = { once: t.occurrenceOnce, daily: t.daily, weekly: t.weekly, biweekly: t.occurrenceBiweekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
 
@@ -399,30 +373,14 @@ const BudgetsPage = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between items-baseline">
-            <span className="text-2xl font-extrabold">{fmt(actual)}</span>
-            <span className="text-sm text-muted-foreground">/ {fmt(amount)}</span>
+            <span className="text-2xl font-extrabold amount-display">{fmt(actual)}</span>
+            <span className="text-sm text-muted-foreground amount-display">/ {fmt(amount)}</span>
           </div>
           <Progress value={pct} className={`h-3 rounded-full ${isAlert ? '[&>div]:bg-destructive' : pct >= (b.alert_threshold ?? 80) ? (isMax ? '[&>div]:bg-accent' : '[&>div]:bg-secondary') : (isMax ? '[&>div]:bg-secondary' : '[&>div]:bg-accent')}`} />
 
-          {/* New indicators row */}
-          <div className="grid grid-cols-3 gap-2 text-[11px]">
-            <div className="bg-muted/50 rounded-lg px-2 py-1.5">
-              <p className="text-muted-foreground">{t.annualized}</p>
-              <p className="font-bold">{fmt(annualized)}</p>
-            </div>
-            <div className="bg-muted/50 rounded-lg px-2 py-1.5">
-              <p className="text-muted-foreground">{t.projection}</p>
-              <p className={`font-bold ${isMax && projection > amount ? 'text-destructive' : ''}`}>{fmt(Math.round(projection))}</p>
-            </div>
-            <div className="bg-muted/50 rounded-lg px-2 py-1.5">
-              <p className="text-muted-foreground">{t.paceStatus}</p>
-              <p className={`font-bold ${paceColor}`}>{paceLabel}</p>
-            </div>
-          </div>
-
           <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+            <span>{Math.round(pct)}% {isMax ? (locale === 'fr' ? 'consommé' : 'consumed') : (locale === 'fr' ? 'atteint' : 'reached')}</span>
             <span>{daysLeft} {t.daysRemaining}</span>
-            <span>{t.dailyPace}: {fmt(Math.round(dailyPace))} / {fmt(Math.round(expectedPace))}</span>
           </div>
 
           {isAlert ? (
@@ -432,11 +390,11 @@ const BudgetsPage = () => {
                 {isMax ? `${t.overBudget} — ${t.exceeded} ${fmt(actual - amount)}` : `${t.belowTarget} — ${locale === 'fr' ? 'Manque' : 'Missing'} ${fmt(amount - actual)}`}
               </p>
             </div>
-          ) : isMax && projection > amount ? (
+          ) : pct >= (b.alert_threshold ?? 80) && isMax ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent/5 border border-accent/10">
               <AlertTriangle className="w-4 h-4 text-accent flex-shrink-0" />
               <p className="text-xs font-semibold text-accent">
-                {t.paceAlert} — {t.paceAlertMsg}
+                {locale === 'fr' ? `Seuil d'alerte atteint (${Math.round(pct)}%)` : `Alert threshold reached (${Math.round(pct)}%)`}
               </p>
             </div>
           ) : (
