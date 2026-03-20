@@ -1,8 +1,9 @@
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { Button } from '@/components/ui/button';
-import { BarChart3, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, ArrowRight, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 interface ForecastWidgetProps {
   monthlyData: { name: string; income: number; expenses: number }[];
@@ -12,11 +13,24 @@ interface ForecastWidgetProps {
 
 export const ForecastWidget = ({ monthlyData, fmt, t }: ForecastWidgetProps) => {
   const navigate = useNavigate();
+  const [healthScore, setHealthScore] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('forecast_data');
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data?.analysis?.health_score) setHealthScore(data.analysis.health_score);
+      }
+    } catch {}
+  }, []);
 
   const recent = monthlyData.slice(-3);
   const avgIncome = recent.length > 0 ? recent.reduce((s, m) => s + m.income, 0) / recent.length : 0;
   const avgExpenses = recent.length > 0 ? recent.reduce((s, m) => s + m.expenses, 0) / recent.length : 0;
   const savingsRate = avgIncome > 0 ? (((avgIncome - avgExpenses) / avgIncome) * 100) : 0;
+
+  const scoreColor = healthScore && healthScore >= 75 ? 'text-secondary' : healthScore && healthScore >= 50 ? 'text-primary' : healthScore && healthScore >= 25 ? 'text-amber-500' : 'text-destructive';
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
@@ -28,9 +42,17 @@ export const ForecastWidget = ({ monthlyData, fmt, t }: ForecastWidgetProps) => 
             </div>
             {t.forecasts}
           </h3>
-          <Button variant="ghost" size="sm" className="text-[10px] h-6 px-2 text-muted-foreground" onClick={() => navigate('/dashboard/forecasts')}>
-            {t.detailed || 'Détaillé'} <ArrowRight className="w-3 h-3 ml-0.5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {healthScore !== null && (
+              <div className={`flex items-center gap-1 text-xs font-bold ${scoreColor}`}>
+                <Heart className="w-3 h-3" />
+                {healthScore}
+              </div>
+            )}
+            <Button variant="ghost" size="sm" className="text-[10px] h-6 px-2 text-muted-foreground" onClick={() => navigate('/dashboard/forecasts')}>
+              {t.detailed || 'Détaillé'} <ArrowRight className="w-3 h-3 ml-0.5" />
+            </Button>
+          </div>
         </div>
         <div className="px-4 pb-4">
           {recent.length === 0 ? (

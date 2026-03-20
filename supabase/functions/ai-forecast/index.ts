@@ -10,7 +10,6 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // JWT validation
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -32,7 +31,6 @@ serve(async (req) => {
 
     const { transactions, categories, locale } = await req.json();
 
-    // Anonymize transaction descriptions before sending to AI
     const anonymizedTransactions = (transactions || []).map((tx: any) => ({
       type: tx.type,
       amount: tx.amount,
@@ -42,15 +40,31 @@ serve(async (req) => {
     }));
 
     const systemPrompt = locale === 'fr'
-      ? `Tu es un expert en finances personnelles. Analyse les transactions fournies et génère des prévisions financières détaillées et globales sur 6 mois. Sois précis, pragmatique et adapté au contexte africain/francophone si les montants sont en CFA.`
-      : `You are a personal finance expert. Analyze the provided transactions and generate detailed and global financial forecasts for 6 months. Be precise, pragmatic, and adapted to the user's context.`;
+      ? `Tu es un expert en finances personnelles africaines/francophones. Analyse les transactions et génère :
+1. Un score de santé financière (0-100) avec label
+2. Des prévisions détaillées par catégorie avec tendances et conseils
+3. Des projections globales sur 6 mois (3 scénarios)
+4. Des alertes de risque hiérarchisées
+5. Un plan d'action concret avec impact chiffré
+6. Le potentiel d'épargne mensuel identifié
 
-    const userPrompt = `Here is the user's transaction data (last 6 months):
+Sois précis, pragmatique et adapté au contexte africain/UEMOA si les montants sont en CFA. Donne des conseils actionnables et culturellement pertinents.`
+      : `You are a personal finance expert. Analyze the provided transactions and generate:
+1. A financial health score (0-100) with label
+2. Detailed per-category forecasts with trends and advice
+3. Global 6-month projections (3 scenarios)
+4. Prioritized risk alerts
+5. A concrete action plan with estimated impact
+6. Monthly savings potential
+
+Be precise, pragmatic, and adapted to the user's context. Give actionable advice.`;
+
+    const userPrompt = `Transaction data (last 6 months):
 ${JSON.stringify(anonymizedTransactions, null, 2)}
 
 Categories: ${JSON.stringify(categories)}
 
-Please analyze and provide forecasts.`;
+Analyze thoroughly and provide comprehensive forecasts with health score, risk alerts, and action plan.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -68,7 +82,7 @@ Please analyze and provide forecasts.`;
           type: "function",
           function: {
             name: "generate_forecast",
-            description: "Generate financial forecasts with analysis, detailed per-category projections, and global projections",
+            description: "Generate comprehensive financial forecasts with health score, risk alerts, category insights, and action plan",
             parameters: {
               type: "object",
               properties: {
@@ -78,22 +92,64 @@ Please analyze and provide forecasts.`;
                     avg_monthly_income: { type: "number" },
                     avg_monthly_expenses: { type: "number" },
                     savings_rate: { type: "number", description: "Percentage 0-100" },
-                    top_expense_categories: { type: "array", items: { type: "object", properties: { name: { type: "string" }, amount: { type: "number" }, percentage: { type: "number" } }, required: ["name", "amount", "percentage"] } },
+                    health_score: { type: "number", description: "Financial health score 0-100" },
+                    health_label: { type: "string", enum: ["Excellent", "Bon", "Fragile", "Critique"], description: "Health label" },
+                    monthly_savings_potential: { type: "number", description: "Identified monthly savings potential amount" },
+                    top_expense_categories: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string" },
+                          amount: { type: "number" },
+                          percentage: { type: "number" },
+                        },
+                        required: ["name", "amount", "percentage"],
+                      },
+                    },
                     trends: { type: "string", description: "Brief analysis of spending trends" },
                     recommendations: { type: "array", items: { type: "string" } },
                   },
-                  required: ["avg_monthly_income", "avg_monthly_expenses", "savings_rate", "top_expense_categories", "trends", "recommendations"],
+                  required: ["avg_monthly_income", "avg_monthly_expenses", "savings_rate", "health_score", "health_label", "monthly_savings_potential", "top_expense_categories", "trends", "recommendations"],
+                },
+                risk_alerts: {
+                  type: "array",
+                  description: "Prioritized risk alerts",
+                  items: {
+                    type: "object",
+                    properties: {
+                      message: { type: "string" },
+                      severity: { type: "string", enum: ["high", "medium", "low"] },
+                    },
+                    required: ["message", "severity"],
+                  },
                 },
                 detailed_forecasts: {
                   type: "array",
-                  description: "Per-category monthly forecasts for next 6 months",
+                  description: "Per-category monthly forecasts with insights",
                   items: {
                     type: "object",
                     properties: {
                       category: { type: "string" },
-                      monthly_projections: { type: "array", items: { type: "object", properties: { month: { type: "string" }, optimistic: { type: "number" }, realistic: { type: "number" }, pessimistic: { type: "number" } }, required: ["month", "optimistic", "realistic", "pessimistic"] } },
+                      trend: { type: "string", enum: ["up", "down", "stable"] },
+                      advice: { type: "string", description: "Personalized advice for this category" },
+                      avg_last_3m: { type: "number", description: "Average spending last 3 months" },
+                      projected_next_month: { type: "number", description: "Projected amount next month" },
+                      monthly_projections: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            month: { type: "string" },
+                            optimistic: { type: "number" },
+                            realistic: { type: "number" },
+                            pessimistic: { type: "number" },
+                          },
+                          required: ["month", "optimistic", "realistic", "pessimistic"],
+                        },
+                      },
                     },
-                    required: ["category", "monthly_projections"],
+                    required: ["category", "trend", "advice", "avg_last_3m", "projected_next_month", "monthly_projections"],
                   },
                 },
                 global_forecasts: {
@@ -116,8 +172,22 @@ Please analyze and provide forecasts.`;
                     required: ["month", "optimistic_balance", "realistic_balance", "pessimistic_balance"],
                   },
                 },
+                action_plan: {
+                  type: "array",
+                  description: "3-5 concrete actions with estimated impact",
+                  items: {
+                    type: "object",
+                    properties: {
+                      title: { type: "string" },
+                      description: { type: "string" },
+                      impact_amount: { type: "number", description: "Estimated monthly savings/gain" },
+                      difficulty: { type: "string", enum: ["easy", "medium", "hard"] },
+                    },
+                    required: ["title", "description", "impact_amount", "difficulty"],
+                  },
+                },
               },
-              required: ["analysis", "detailed_forecasts", "global_forecasts"],
+              required: ["analysis", "risk_alerts", "detailed_forecasts", "global_forecasts", "action_plan"],
               additionalProperties: false,
             },
           },
