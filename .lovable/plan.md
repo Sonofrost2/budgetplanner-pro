@@ -1,85 +1,85 @@
 
 
-# Plan : Cohérence des projections, alertes contextuelles, analyse budgétaire renforcée et filtres par période
+## Refonte complète du module Prévisions Financières
 
-## Problèmes identifiés
+### Objectif
+Transformer la page `/dashboard/forecasts` d'une page basique avec 3 onglets plats en un module premium riche, animé et visuellement impressionnant avec plus de données AI.
 
-1. **Projections incohérentes** : `NotificationBell` utilise une moyenne pondérée 7j (`spent + dailyRate * daysRemaining`) tandis que `BudgetsPage` utilise un calcul linéaire simple (`(actual / daysElapsed) * daysTotal`). Le `BudgetAnalysisTab` ne calcule aucune projection.
+### 1. Enrichir le schéma AI (Edge Function)
 
-2. **Alertes prématurées** : Les alertes "objectif non atteint" (contrôle `min`) se déclenchent dès 50% de la période sans tenir compte du `expected_day`. Si le budget prévoit un revenu le 25 du mois, l'alerte ne devrait pas se déclencher avant cette date.
+**Fichier**: `supabase/functions/ai-forecast/index.ts`
 
-3. **Analyse budgétaire limitée** : Le `BudgetAnalysisTab` ne montre que la période courante, sans projection, tempo, ni filtres de période.
+Ajouter au tool schema :
+- `health_score` (0-100) : score de santé financière global
+- `health_label` : "Excellent" / "Bon" / "Fragile" / "Critique"
+- `monthly_savings_potential` : montant d'économies potentielles identifiées
+- `risk_alerts` : tableau d'alertes (texte + sévérité high/medium/low)
+- `category_insights` : pour chaque catégorie dans detailed_forecasts, ajouter `trend` ("up"/"down"/"stable"), `advice` (conseil IA), `avg_last_3m`, `projected_next_month`
+- `action_plan` : liste de 3-5 actions concrètes avec `title`, `impact_amount`, `difficulty` (easy/medium/hard), `description`
 
-4. **Pas de sélection de période** : Les modules Budget (onglet Analyse), Épargne (stats) et Comptes (stats) ne permettent pas de consulter les données sur des périodes passées.
+Enrichir le system prompt pour demander des conseils financiers actionnables et un score de santé.
 
----
+### 2. Refonte complète de la page ForecastsPage
 
-## 1. Unifier le calcul de projection
+**Fichier**: `src/pages/dashboard/ForecastsPage.tsx` (réécriture)
 
-**Créer `src/lib/budgetProjection.ts`** — fonction utilitaire partagée :
-- `computeBudgetProjection(spent, daysElapsed, daysRemaining, spent7d, recentDays)` → `{ projection, dailyRate, daysToExceed }`
-- `getBudgetPeriodBounds(period, now, referenceDate?)` (extraire de NotificationBell)
+**Structure en sections au lieu d'onglets** avec scroll vertical :
 
-**Fichiers modifiés** :
-- `NotificationBell.tsx` : importer depuis `budgetProjection.ts`
-- `BudgetsPage.tsx` (renderBudgetCard, ligne 369) : remplacer `projection = (actual / daysElapsed) * daysTotal` par l'appel à la fonction partagée avec le même calcul 7j
-- `BudgetAnalysisTab.tsx` : ajouter projection + tempo dans chaque carte budget
+**a) Hero Section** — Score de santé financière
+- Grand cercle animé (gauge circulaire) avec le score 0-100
+- Label coloré (vert/jaune/orange/rouge) 
+- 3 mini-cartes glassmorphism : revenu moyen, dépenses moyennes, taux d'épargne
+- Bouton "Générer les prévisions IA" avec animation pulse quand pas encore généré
 
-## 2. Alertes respectant les échéances budgétées
+**b) Section Alertes & Risques**
+- Cards avec icônes colorées selon la sévérité
+- Animation d'entrée staggered (framer-motion)
 
-**Dans `NotificationBell.tsx`** — modifier la logique `controlType !== 'max'` (lignes 204-224) :
-- Si `expected_day` existe et `now.getDate() < expected_day` → ne pas alerter "objectif non atteint"
-- Si `expected_day` existe et `now.getDate() >= expected_day` et `spent < amount` → alerter
-- Si pas de `expected_day` → garder le comportement actuel (>50% de la période)
-- Même logique pour les budgets `max` avec `expected_day` : n'alerter "dépassement prévu" qu'après la date prévue
+**c) Section Projections Globales** (graphique principal)
+- Area chart (au lieu de LineChart) avec gradient fill pour les 3 scénarios
+- Toggle entre vue "Balance", "Revenus", "Dépenses"
+- Tooltip custom glassmorphism
 
-**Dans `check-alerts/index.ts`** : appliquer la même logique côté push.
+**d) Section Détail par Catégorie** 
+- Cards pliables (Collapsible) avec icône catégorie, trend arrow, montant projeté
+- Mini sparkline chart inline dans chaque card header
+- Au clic : graphique détaillé + conseil IA personnalisé
 
-## 3. Renforcer l'analyse budgétaire (`BudgetAnalysisTab`)
+**e) Section Plan d'Action**
+- Cards avec badge difficulté, montant d'impact estimé
+- Icônes visuelles par type d'action
 
-**Ajouter un sélecteur de période** (prédéfini + personnalisé) :
-- Périodes : Mois en cours, Mois dernier, 3 mois, 6 mois, 1 an, Personnalisé
-- Les bornes de période des budgets sont recalculées pour la période sélectionnée (ex: "mois dernier" → `periodStart` = 1er du mois passé)
+**f) Section Tendances & Recommandations**
+- Texte de tendances dans une card glassmorphism
+- Liste de recommandations avec puces animées
 
-**Ajouter des indicateurs enrichis par carte budget** :
-- Projection (via la fonction partagée)
-- Tempo (pace label : rapide/normal/lent)
-- Économie ou dépassement estimé
-- Jours restants dans la période
+### 3. Animations & UX
 
-**Ajouter un résumé global** :
-- Total budgété vs total consommé pour la période sélectionnée
-- Économies totales / dépassements totaux
-- Nombre de budgets en alerte / maîtrisés
+- `framer-motion` pour toutes les sections : fade-in + slide-up staggered
+- `AnimatedNumber` pour les KPI
+- Skeleton loaders pendant la génération AI
+- Area charts avec gradients translucides
+- Gauge circulaire animée (SVG avec motion)
+- Loading state : animation de "cerveau qui réfléchit" avec texte progressif ("Analyse des revenus...", "Calcul des projections...", etc.)
 
-## 4. Filtres par période dans les modules Épargne et Comptes
+### 4. Widget Dashboard (ForecastWidget)
 
-### `SavingsPage` — Stats globales filtrables
-- Ajouter un sélecteur de période au-dessus des `SavingsGlobalStats`
-- Recalculer : épargne consommée/ajoutée/progression sur la période sélectionnée
-- Afficher les contributions de la période (pas seulement le cumul actuel)
+**Fichier**: `src/components/dashboard/home/ForecastWidget.tsx`
 
-### `AccountsPage` — Soldes historiques
-- Ajouter un sélecteur de période dans l'onglet principal (pas seulement Recap)
-- Permettre de voir le solde théorique à une date passée : `opening_balance + SUM(tx WHERE date <= period_end)`
-- Afficher revenus/dépenses de la période sélectionnée par compte
+Ajouter un mini indicateur de score de santé si un forecast a été généré (stocké en state/localStorage).
 
-### `BudgetsPage` — Onglet Manage avec période
-- Ajouter un sélecteur de période dans l'onglet "Manage" pour voir les consommations des périodes passées
-- Quand "Mois dernier" est sélectionné, recalculer les `budgetPeriodRanges` en décalant d'un mois
+### 5. Traductions
 
----
+**Fichier**: `src/i18n/dashTranslations.ts`
 
-## Fichiers à modifier/créer
+Ajouter les clés fr/en : `healthScore`, `healthExcellent/Good/Fragile/Critical`, `riskAlerts`, `actionPlan`, `impactAmount`, `difficulty`, `categoryInsight`, `projectedBalance`, `savingsPotential`, `loadingStep1/2/3/4`.
 
-| Fichier | Action |
-|---|---|
-| `src/lib/budgetProjection.ts` | **Créer** — fonctions partagées projection + period bounds |
-| `src/components/dashboard/NotificationBell.tsx` | Importer utils, fix alertes avec expected_day |
-| `src/pages/dashboard/BudgetsPage.tsx` | Utiliser projection partagée, ajouter sélecteur période manage |
-| `src/components/dashboard/tabs/BudgetAnalysisTab.tsx` | Refonte : sélecteur période, projection, tempo, résumé |
-| `src/pages/dashboard/SavingsPage.tsx` | Sélecteur période pour stats globales |
-| `src/components/dashboard/savings/SavingsGlobalStats.tsx` | Accepter période en props, recalculer |
-| `src/pages/dashboard/AccountsPage.tsx` | Sélecteur période pour soldes historiques |
-| `supabase/functions/check-alerts/index.ts` | Fix alertes expected_day côté push |
+### Détails techniques
+
+- Aucune modification de table DB requise
+- La page reste gated par `canUseForecast` (Premium)
+- Le forecast est stocké en state React (pas persisté en DB)
+- Charts : recharts AreaChart avec `<defs>` pour les gradients SVG
+- Gauge : SVG `<circle>` animé avec `motion` de framer-motion
+- Loading steps : `useEffect` avec `setInterval` pour cycler les messages
 
