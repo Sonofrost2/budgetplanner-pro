@@ -138,7 +138,7 @@ const SecondaryStatRow = ({ label, value, icon: Icon, iconColor, bg, color, tren
       </div>
       <div>
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className={`text-sm font-bold ${color}`}>{value}</p>
+        <p className={`text-sm font-bold ${color} tabular-nums amount-display`}>{value}</p>
       </div>
     </div>
     <TrendBadge trend={trend} invertColor={invertTrend} />

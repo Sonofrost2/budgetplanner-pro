@@ -35,10 +35,10 @@ export const AnimatedNumber = ({ value, format, className, duration = 0.8 }: Ani
 
   return (
     <motion.span
-      className={`tabular-nums ${className || ''}`}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      className={`tabular-nums amount-display ${className || ''}`}
+      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
     >
       {display}
     </motion.span>
