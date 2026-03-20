@@ -361,6 +361,11 @@ const BudgetsPage = () => {
     const remaining = isMax ? amount - actual : actual - amount;
     const isSelected = bulk.selectedIds.has(b.id);
 
+    // Annualized calculation
+    const annualized = computeAnnualizedAmount(amount, b.period, b.active_days);
+    const annualActual = annualSpending[b.category_id || ''] || 0;
+    const annualPct = annualized > 0 ? Math.min((annualActual / annualized) * 100, 150) : 0;
+
     // Period calculations
     const range = budgetPeriodRanges.find(r => r.id === b.id);
     const periodStart = range ? new Date(range.start) : new Date();
@@ -383,7 +388,7 @@ const BudgetsPage = () => {
                 <p className="text-[11px] font-normal text-muted-foreground">
                   {b.categories?.name || '-'} · {periodLabels[b.period] || b.period}
                   {isIncome && <span className="ml-1 text-secondary">↗</span>}
-                  {' · '}{isMax ? (locale === 'fr' ? 'Plafond' : 'Cap') : (locale === 'fr' ? 'Objectif' : 'Target')}
+                  {' · '}{isMax ? (isFr ? 'Plafond' : 'Cap') : (isFr ? 'Objectif' : 'Target')}
                 </p>
               </div>
             </CardTitle>
@@ -394,6 +399,7 @@ const BudgetsPage = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Period budget — main display */}
           <div className="flex justify-between items-baseline">
             <span className="text-2xl font-extrabold amount-display">{fmt(actual)}</span>
             <span className="text-sm text-muted-foreground amount-display">/ {fmt(amount)}</span>
@@ -401,22 +407,38 @@ const BudgetsPage = () => {
           <Progress value={pct} className={`h-3 rounded-full ${isAlert ? '[&>div]:bg-destructive' : pct >= (b.alert_threshold ?? 80) ? (isMax ? '[&>div]:bg-accent' : '[&>div]:bg-secondary') : (isMax ? '[&>div]:bg-secondary' : '[&>div]:bg-accent')}`} />
 
           <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-            <span>{Math.round(pct)}% {isMax ? (locale === 'fr' ? 'consommé' : 'consumed') : (locale === 'fr' ? 'atteint' : 'reached')}</span>
+            <span className="font-semibold">{Math.round(pct)}% {isMax ? (isFr ? 'consommé' : 'consumed') : (isFr ? 'atteint' : 'reached')}</span>
             <span>{daysLeft} {t.daysRemaining}</span>
+          </div>
+
+          {/* Annualized summary — secondary display */}
+          <div className="rounded-xl bg-muted/30 border border-border/30 px-3 py-2 space-y-1.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground font-medium flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                {isFr ? 'Annualisé' : 'Annualized'}
+              </span>
+              <span className="font-bold amount-display text-primary">{fmt(annualized)}{isFr ? '/an' : '/yr'}</span>
+            </div>
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-muted-foreground">{isFr ? 'Consommé cette année' : 'Consumed this year'}</span>
+              <span className="font-semibold amount-display">{fmt(annualActual)} <span className={`${annualPct > 100 ? 'text-destructive' : annualPct > 75 ? 'text-accent' : 'text-secondary'}`}>({Math.round(annualPct)}%)</span></span>
+            </div>
+            <Progress value={Math.min(annualPct, 100)} className="h-1.5 rounded-full" />
           </div>
 
           {isAlert ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/5 border border-destructive/10">
               {isMax ? <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" /> : <TrendingDown className="w-4 h-4 text-destructive flex-shrink-0" />}
               <p className="text-xs font-semibold text-destructive">
-                {isMax ? `${t.overBudget} — ${t.exceeded} ${fmt(actual - amount)}` : `${t.belowTarget} — ${locale === 'fr' ? 'Manque' : 'Missing'} ${fmt(amount - actual)}`}
+                {isMax ? `${t.overBudget} — ${t.exceeded} ${fmt(actual - amount)}` : `${t.belowTarget} — ${isFr ? 'Manque' : 'Missing'} ${fmt(amount - actual)}`}
               </p>
             </div>
           ) : pct >= (b.alert_threshold ?? 80) && isMax ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent/5 border border-accent/10">
               <AlertTriangle className="w-4 h-4 text-accent flex-shrink-0" />
               <p className="text-xs font-semibold text-accent">
-                {locale === 'fr' ? `Seuil d'alerte atteint (${Math.round(pct)}%)` : `Alert threshold reached (${Math.round(pct)}%)`}
+                {isFr ? `Seuil d'alerte atteint (${Math.round(pct)}%)` : `Alert threshold reached (${Math.round(pct)}%)`}
               </p>
             </div>
           ) : (
