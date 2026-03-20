@@ -366,20 +366,30 @@ const ActionLink = ({ action, onNavigate }: { action: Notification['action']; on
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onNavigate(action.path); }}
-      className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-primary hover:text-primary/80 hover:underline transition-colors"
+      className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors group"
     >
       {action.label}
-      <ExternalLink className="w-3 h-3" />
+      <ExternalLink className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
     </button>
   );
 };
 
-const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate }: {
+const notifItemVariants = {
+  hidden: { opacity: 0, x: -12, scale: 0.96 },
+  visible: (i: number) => ({
+    opacity: 1, x: 0, scale: 1,
+    transition: { delay: i * 0.04, duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] },
+  }),
+  exit: { opacity: 0, x: 12, scale: 0.96, transition: { duration: 0.2 } },
+};
+
+const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate, index }: {
   group: NotifGroup;
   locale: string;
   onDismiss: (id: string) => void;
   onDismissGroup: (ids: string[]) => void;
   onNavigate: (path: string) => void;
+  index: number;
 }) => {
   const [expanded, setExpanded] = useState(false);
   const labels = groupLabels[locale] || groupLabels.en;
@@ -389,53 +399,83 @@ const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate
   }, 'success' as Notification['severity']);
 
   return (
-    <div className={`rounded-lg border-l-[3px] overflow-hidden ${severityStyles[worstSeverity]}`}>
+    <motion.div
+      custom={index}
+      variants={notifItemVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      layout
+      className={`rounded-xl border-l-[3px] overflow-hidden backdrop-blur-sm ${severityStyles[worstSeverity]} shadow-sm`}
+    >
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-3 py-2.5 flex items-center gap-2.5 hover:bg-muted/40 transition-colors"
+        className="w-full px-3 py-2.5 flex items-center gap-2.5 hover:bg-muted/40 transition-all duration-200"
       >
-        <div className="flex-shrink-0">{iconMap[group.type]}</div>
+        <motion.div
+          className="flex-shrink-0"
+          animate={{ rotate: expanded ? 10 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {iconMap[group.type]}
+        </motion.div>
         <div className="min-w-0 flex-1 text-left">
           <p className="text-xs font-semibold leading-tight">
             {group.items.length} {labels[group.type] || group.type}
           </p>
         </div>
-        <Badge variant="outline" className="text-[10px] h-5 px-1.5 flex-shrink-0">
+        <Badge variant="outline" className="text-[10px] h-5 px-1.5 flex-shrink-0 rounded-full">
           {group.items.length}
         </Badge>
-        {expanded ? (
-          <ChevronUp className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-        ) : (
-          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-        )}
+        <motion.div
+          animate={{ rotate: expanded ? 180 : 0 }}
+          transition={{ duration: 0.25, ease: 'easeInOut' }}
+          className="flex-shrink-0"
+        >
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+        </motion.div>
       </button>
-      {expanded && (
-        <div className="border-t border-border/50">
-          {group.items.map(n => (
-            <div key={n.id} className="px-3 py-2 flex items-start gap-2.5 border-b border-border/30 last:border-b-0">
-              <div className="min-w-0 flex-1 pl-6">
-                <p className="text-xs font-medium leading-tight">{n.title}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{n.message}</p>
-                <ActionLink action={n.action} onNavigate={onNavigate} />
-              </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); onDismiss(n.id); }}
-                className="flex-shrink-0 p-1 rounded-md hover:bg-muted/80 transition-colors"
-                aria-label="Dismiss"
-              >
-                <X className="w-3 h-3 text-muted-foreground" />
-              </button>
-            </div>
-          ))}
-          <button
-            onClick={(e) => { e.stopPropagation(); onDismissGroup(group.items.map(n => n.id)); }}
-            className="w-full px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors text-center"
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="overflow-hidden border-t border-border/50"
           >
-            {locale === 'fr' ? 'Tout effacer ce groupe' : 'Clear this group'}
-          </button>
-        </div>
-      )}
-    </div>
+            {group.items.map((n, i) => (
+              <motion.div
+                key={n.id}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04, duration: 0.2 }}
+                className="px-3 py-2.5 flex items-start gap-2.5 border-b border-border/20 last:border-b-0 hover:bg-muted/20 transition-colors"
+              >
+                <div className="min-w-0 flex-1 pl-6">
+                  <p className="text-xs font-medium leading-tight">{n.title}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{n.message}</p>
+                  <ActionLink action={n.action} onNavigate={onNavigate} />
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDismiss(n.id); }}
+                  className="flex-shrink-0 p-1 rounded-lg hover:bg-muted transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-3 h-3 text-muted-foreground" />
+                </button>
+              </motion.div>
+            ))}
+            <button
+              onClick={(e) => { e.stopPropagation(); onDismissGroup(group.items.map(n => n.id)); }}
+              className="w-full px-3 py-2 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors text-center"
+            >
+              {locale === 'fr' ? 'Tout effacer ce groupe' : 'Clear this group'}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
@@ -444,6 +484,7 @@ export const NotificationBell = () => {
   const { locale } = useLanguage();
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState<Set<string>>(() => getDismissedIds());
+  const [isOpen, setIsOpen] = useState(false);
 
   const visible = notifications.filter(n => !dismissed.has(n.id));
   const criticalCount = visible.filter(n => n.severity === 'critical' || n.severity === 'warning').length;
@@ -471,6 +512,7 @@ export const NotificationBell = () => {
   };
 
   const handleNavigate = (path: string) => {
+    setIsOpen(false);
     navigate(path);
   };
 
@@ -502,73 +544,117 @@ export const NotificationBell = () => {
   }
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <button className="relative p-2 rounded-xl hover:bg-muted transition-colors">
-          <Bell className={`w-5 h-5 ${visible.length > 0 ? 'text-foreground' : 'text-muted-foreground'}`} />
-          {visible.length > 0 && (
-            <span className={`absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 ${criticalCount > 0 ? 'bg-destructive' : 'bg-primary'} text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center`}>
-              {visible.length}
-            </span>
-          )}
+        <button className="relative p-2 rounded-xl hover:bg-muted transition-colors group">
+          <Bell className={`w-5 h-5 transition-transform duration-300 group-hover:rotate-12 ${visible.length > 0 ? 'text-foreground' : 'text-muted-foreground'}`} />
+          <AnimatePresence>
+            {visible.length > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                className={`absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 ${criticalCount > 0 ? 'bg-destructive' : 'bg-primary'} text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center`}
+              >
+                {visible.length}
+              </motion.span>
+            )}
+          </AnimatePresence>
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[calc(100vw-2rem)] max-w-sm p-0" align="end" sideOffset={8}>
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+      <PopoverContent
+        className="w-[calc(100vw-2rem)] max-w-sm p-0 rounded-2xl border border-border/60 shadow-[var(--shadow-soft)] overflow-hidden"
+        align="end"
+        sideOffset={8}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/30">
           <div className="flex items-center gap-2">
             <p className="text-sm font-bold">Notifications</p>
-            {visible.length > 0 && (
-              <Badge variant="secondary" className="text-[10px] h-5 px-1.5">{visible.length}</Badge>
-            )}
+            <AnimatePresence>
+              {visible.length > 0 && (
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 rounded-full">{visible.length}</Badge>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           {visible.length > 0 && (
-            <Button variant="ghost" size="sm" className="text-xs h-7 text-muted-foreground" onClick={handleDismissAll}>
+            <Button variant="ghost" size="sm" className="text-xs h-7 text-muted-foreground hover:text-destructive" onClick={handleDismissAll}>
               {locale === 'fr' ? 'Tout effacer' : 'Clear all'}
             </Button>
           )}
         </div>
 
+        {/* Body */}
         {visible.length === 0 ? (
-          <div className="px-4 py-8 text-center">
-            <Bell className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="px-4 py-10 text-center"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+              <Bell className="w-6 h-6 text-muted-foreground/30" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground">
               {locale === 'fr' ? 'Aucune notification' : 'No notifications'}
             </p>
-          </div>
+            <p className="text-[11px] text-muted-foreground/60 mt-1">
+              {locale === 'fr' ? 'Tout est en ordre 👍' : 'Everything looks good 👍'}
+            </p>
+          </motion.div>
         ) : (
-          <ScrollArea className="max-h-[60vh]">
+          <ScrollArea className="max-h-[65vh] overflow-y-auto">
             <div className="p-2 space-y-1.5">
-              {renderItems.map((item, i) =>
-                item.kind === 'group' ? (
-                  <GroupedNotifCard
-                    key={`group-${item.group.type}`}
-                    group={item.group}
-                    locale={locale}
-                    onDismiss={handleDismiss}
-                    onDismissGroup={handleDismissGroup}
-                    onNavigate={handleNavigate}
-                  />
-                ) : (
-                  <div
-                    key={item.notif.id}
-                    className={`relative px-3 py-2.5 rounded-lg border-l-[3px] flex items-start gap-2.5 transition-colors ${severityStyles[item.notif.severity]}`}
-                  >
-                    <div className="mt-0.5 flex-shrink-0">{iconMap[item.notif.type]}</div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold leading-tight">{item.notif.title}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{item.notif.message}</p>
-                      <ActionLink action={item.notif.action} onNavigate={handleNavigate} />
-                    </div>
-                    <button
-                      onClick={() => handleDismiss(item.notif.id)}
-                      className="flex-shrink-0 p-1 rounded-md hover:bg-muted/80 transition-colors"
-                      aria-label="Dismiss"
+              <AnimatePresence mode="popLayout">
+                {renderItems.map((item, i) =>
+                  item.kind === 'group' ? (
+                    <GroupedNotifCard
+                      key={`group-${item.group.type}`}
+                      group={item.group}
+                      locale={locale}
+                      onDismiss={handleDismiss}
+                      onDismissGroup={handleDismissGroup}
+                      onNavigate={handleNavigate}
+                      index={i}
+                    />
+                  ) : (
+                    <motion.div
+                      key={item.notif.id}
+                      custom={i}
+                      variants={notifItemVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      layout
+                      className={`relative px-3 py-2.5 rounded-xl border-l-[3px] flex items-start gap-2.5 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow duration-200 ${severityStyles[item.notif.severity]}`}
                     >
-                      <X className="w-3 h-3 text-muted-foreground" />
-                    </button>
-                  </div>
-                ),
-              )}
+                      <motion.div
+                        className="mt-0.5 flex-shrink-0"
+                        whileHover={{ scale: 1.15, rotate: 5 }}
+                        transition={{ type: 'spring', stiffness: 400 }}
+                      >
+                        {iconMap[item.notif.type]}
+                      </motion.div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold leading-tight">{item.notif.title}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{item.notif.message}</p>
+                        <ActionLink action={item.notif.action} onNavigate={handleNavigate} />
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleDismiss(item.notif.id)}
+                        className="flex-shrink-0 p-1 rounded-lg hover:bg-muted transition-colors"
+                        aria-label="Dismiss"
+                      >
+                        <X className="w-3 h-3 text-muted-foreground" />
+                      </motion.button>
+                    </motion.div>
+                  ),
+                )}
+              </AnimatePresence>
             </div>
           </ScrollArea>
         )}
