@@ -186,7 +186,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
               </span>
               {clickable && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />}
             </div>
-            <p className="text-xl font-bold font-display">{fmt(stats.lockedAmount)}</p>
+            <p className="text-xl font-bold font-display amount-display">{fmt(stats.lockedAmount)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
               {goals.filter(g => (g as any).is_locked).length} {isFr ? 'compte(s)' : 'account(s)'}
             </p>
