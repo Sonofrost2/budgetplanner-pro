@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { getBudgetPeriodBounds, formatDateStr } from '@/lib/budgetProjection';
+import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount } from '@/lib/budgetProjection';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -76,7 +76,7 @@ const BudgetsPage = () => {
     [allCategories, form.budget_type]
   );
 
-  // Server-side spending calculation using RPC
+  // Server-side spending calculation using RPC — period + annual
   const budgetPeriodRanges = useMemo(() => {
     const now = new Date();
     return budgets.map(b => {
@@ -87,6 +87,9 @@ const BudgetsPage = () => {
       return { id: b.id, category_id: b.category_id, type: bType === 'income' ? 'income' : 'expense', start, end };
     });
   }, [budgets]);
+
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+  const yearEnd = `${new Date().getFullYear()}-12-31`;
 
   const { data: spending = {} } = useQuery({
     queryKey: ['budget-spending', user?.id, budgetPeriodRanges.map(r => `${r.id}-${r.start}-${r.end}`).join(',')],
@@ -111,6 +114,25 @@ const BudgetsPage = () => {
     },
     enabled: !!user && budgetPeriodRanges.length > 0,
     staleTime: 30_000,
+  });
+
+  // Annual spending per category (Jan 1 → Dec 31 of current year)
+  const { data: annualSpending = {} } = useQuery({
+    queryKey: ['budget-annual-spending', user?.id, yearStart, yearEnd],
+    queryFn: async () => {
+      const uniqueCats = [...new Set(budgetPeriodRanges.filter(r => r.category_id).map(r => ({ cid: r.category_id!, type: r.type })))];
+      const map: Record<string, number> = {};
+      await Promise.all(uniqueCats.map(async ({ cid, type }) => {
+        const { data } = await supabase.rpc('get_budget_spending', {
+          p_user_id: user!.id, p_category_id: cid, p_type: type,
+          p_start_date: yearStart, p_end_date: yearEnd,
+        });
+        if (data !== null) map[cid] = Number(data);
+      }));
+      return map;
+    },
+    enabled: !!user && budgetPeriodRanges.length > 0,
+    staleTime: 60_000,
   });
 
   const expenseBudgets = useMemo(() => {
@@ -339,6 +361,11 @@ const BudgetsPage = () => {
     const remaining = isMax ? amount - actual : actual - amount;
     const isSelected = bulk.selectedIds.has(b.id);
 
+    // Annualized calculation
+    const annualized = computeAnnualizedAmount(amount, b.period, b.active_days);
+    const annualActual = annualSpending[b.category_id || ''] || 0;
+    const annualPct = annualized > 0 ? Math.min((annualActual / annualized) * 100, 150) : 0;
+
     // Period calculations
     const range = budgetPeriodRanges.find(r => r.id === b.id);
     const periodStart = range ? new Date(range.start) : new Date();
@@ -361,7 +388,7 @@ const BudgetsPage = () => {
                 <p className="text-[11px] font-normal text-muted-foreground">
                   {b.categories?.name || '-'} · {periodLabels[b.period] || b.period}
                   {isIncome && <span className="ml-1 text-secondary">↗</span>}
-                  {' · '}{isMax ? (locale === 'fr' ? 'Plafond' : 'Cap') : (locale === 'fr' ? 'Objectif' : 'Target')}
+                  {' · '}{isMax ? (isFr ? 'Plafond' : 'Cap') : (isFr ? 'Objectif' : 'Target')}
                 </p>
               </div>
             </CardTitle>
@@ -372,6 +399,7 @@ const BudgetsPage = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Period budget — main display */}
           <div className="flex justify-between items-baseline">
             <span className="text-2xl font-extrabold amount-display">{fmt(actual)}</span>
             <span className="text-sm text-muted-foreground amount-display">/ {fmt(amount)}</span>
@@ -379,22 +407,38 @@ const BudgetsPage = () => {
           <Progress value={pct} className={`h-3 rounded-full ${isAlert ? '[&>div]:bg-destructive' : pct >= (b.alert_threshold ?? 80) ? (isMax ? '[&>div]:bg-accent' : '[&>div]:bg-secondary') : (isMax ? '[&>div]:bg-secondary' : '[&>div]:bg-accent')}`} />
 
           <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-            <span>{Math.round(pct)}% {isMax ? (locale === 'fr' ? 'consommé' : 'consumed') : (locale === 'fr' ? 'atteint' : 'reached')}</span>
+            <span className="font-semibold">{Math.round(pct)}% {isMax ? (isFr ? 'consommé' : 'consumed') : (isFr ? 'atteint' : 'reached')}</span>
             <span>{daysLeft} {t.daysRemaining}</span>
+          </div>
+
+          {/* Annualized summary — secondary display */}
+          <div className="rounded-xl bg-muted/30 border border-border/30 px-3 py-2 space-y-1.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-muted-foreground font-medium flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                {isFr ? 'Annualisé' : 'Annualized'}
+              </span>
+              <span className="font-bold amount-display text-primary">{fmt(annualized)}{isFr ? '/an' : '/yr'}</span>
+            </div>
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-muted-foreground">{isFr ? 'Consommé cette année' : 'Consumed this year'}</span>
+              <span className="font-semibold amount-display">{fmt(annualActual)} <span className={`${annualPct > 100 ? 'text-destructive' : annualPct > 75 ? 'text-accent' : 'text-secondary'}`}>({Math.round(annualPct)}%)</span></span>
+            </div>
+            <Progress value={Math.min(annualPct, 100)} className="h-1.5 rounded-full" />
           </div>
 
           {isAlert ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/5 border border-destructive/10">
               {isMax ? <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" /> : <TrendingDown className="w-4 h-4 text-destructive flex-shrink-0" />}
               <p className="text-xs font-semibold text-destructive">
-                {isMax ? `${t.overBudget} — ${t.exceeded} ${fmt(actual - amount)}` : `${t.belowTarget} — ${locale === 'fr' ? 'Manque' : 'Missing'} ${fmt(amount - actual)}`}
+                {isMax ? `${t.overBudget} — ${t.exceeded} ${fmt(actual - amount)}` : `${t.belowTarget} — ${isFr ? 'Manque' : 'Missing'} ${fmt(amount - actual)}`}
               </p>
             </div>
           ) : pct >= (b.alert_threshold ?? 80) && isMax ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent/5 border border-accent/10">
               <AlertTriangle className="w-4 h-4 text-accent flex-shrink-0" />
               <p className="text-xs font-semibold text-accent">
-                {locale === 'fr' ? `Seuil d'alerte atteint (${Math.round(pct)}%)` : `Alert threshold reached (${Math.round(pct)}%)`}
+                {isFr ? `Seuil d'alerte atteint (${Math.round(pct)}%)` : `Alert threshold reached (${Math.round(pct)}%)`}
               </p>
             </div>
           ) : (
@@ -620,6 +664,9 @@ const BudgetsPage = () => {
                     </button>
                   ))}
                 </div>
+                <p className="text-[10px] text-muted-foreground italic">
+                  💡 {isFr ? 'Dépense = surveiller un plafond. Revenu = suivre un objectif minimum.' : 'Expense = monitor a cap. Income = track a minimum target.'}
+                </p>
               </div>
             )}
 
@@ -633,6 +680,11 @@ const BudgetsPage = () => {
                   </button>
                 ))}
               </div>
+              <p className="text-[10px] text-muted-foreground italic">
+                💡 {form.control_type === 'max'
+                  ? (isFr ? 'Plafond : alerte si vous dépassez le montant défini.' : 'Cap: alerts if you exceed the set amount.')
+                  : (isFr ? 'Objectif : alerte si vous n\'atteignez pas le montant défini.' : 'Target: alerts if you don\'t reach the set amount.')}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -648,6 +700,9 @@ const BudgetsPage = () => {
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.alertThreshold}</Label>
                 <Input type="number" min="1" max="100" value={form.alert_threshold} onChange={e => setForm(f => ({ ...f, alert_threshold: e.target.value }))} className="rounded-xl h-10" />
+                <p className="text-[10px] text-muted-foreground italic">
+                  💡 {isFr ? `Alerte déclenchée à ${form.alert_threshold || 80}% du montant.` : `Alert triggered at ${form.alert_threshold || 80}% of the amount.`}
+                </p>
               </div>
             </div>
 
@@ -671,6 +726,51 @@ const BudgetsPage = () => {
               </div>
             </div>
 
+            {/* Period impact explanation */}
+            <div className="rounded-xl bg-primary/5 border border-primary/10 px-3 py-2.5 space-y-1">
+              <p className="text-[11px] font-bold text-primary flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5" />
+                {isFr ? 'Impact du paramétrage' : 'Configuration impact'}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {(() => {
+                  const amt = Number(form.amount) || 0;
+                  const p = form.period;
+                  const annualized = computeAnnualizedAmount(amt, p, form.active_days);
+                  const activeDaysArr = form.active_days ? form.active_days.split(',').filter(Boolean) : [];
+                  const activeDaysCount = p === 'daily' && activeDaysArr.length > 0 ? activeDaysArr.length : (p === 'daily' ? 7 : 0);
+
+                  if (amt <= 0) return isFr ? 'Saisissez un montant pour voir l\'impact.' : 'Enter an amount to see the impact.';
+
+                  const periodDesc: Record<string, string> = isFr ? {
+                    daily: activeDaysCount < 7 && activeDaysCount > 0
+                      ? `${fmt(amt)} × ${activeDaysCount} jours/sem × 52 sem = ${fmt(annualized)}/an`
+                      : `${fmt(amt)} × 365 jours = ${fmt(annualized)}/an`,
+                    weekly: `${fmt(amt)} × 52 semaines = ${fmt(annualized)}/an`,
+                    monthly: `${fmt(amt)} × 12 mois = ${fmt(annualized)}/an`,
+                    quarterly: `${fmt(amt)} × 4 trimestres = ${fmt(annualized)}/an`,
+                    semi_annual: `${fmt(amt)} × 2 semestres = ${fmt(annualized)}/an`,
+                    yearly: `${fmt(amt)}/an (budget annuel)`,
+                  } : {
+                    daily: activeDaysCount < 7 && activeDaysCount > 0
+                      ? `${fmt(amt)} × ${activeDaysCount} days/wk × 52 wks = ${fmt(annualized)}/yr`
+                      : `${fmt(amt)} × 365 days = ${fmt(annualized)}/yr`,
+                    weekly: `${fmt(amt)} × 52 weeks = ${fmt(annualized)}/yr`,
+                    monthly: `${fmt(amt)} × 12 months = ${fmt(annualized)}/yr`,
+                    quarterly: `${fmt(amt)} × 4 quarters = ${fmt(annualized)}/yr`,
+                    semi_annual: `${fmt(amt)} × 2 semesters = ${fmt(annualized)}/yr`,
+                    yearly: `${fmt(amt)}/yr (annual budget)`,
+                  };
+                  return periodDesc[p] || '';
+                })()}
+              </p>
+              {Number(form.amount) > 0 && (
+                <p className="text-[11px] font-bold text-primary amount-display mt-1">
+                  → {isFr ? 'Coût annuel' : 'Annual cost'}: {fmt(computeAnnualizedAmount(Number(form.amount), form.period, form.active_days))}
+                </p>
+              )}
+            </div>
+
             {/* Expected day & occurrence frequency */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -689,6 +789,11 @@ const BudgetsPage = () => {
                 <p className="text-[10px] text-muted-foreground">
                   {form.period === 'weekly' ? t.expectedDayWeekHint : t.expectedDayMonthHint}
                 </p>
+                <p className="text-[10px] text-muted-foreground italic">
+                  💡 {isFr
+                    ? 'Indique QUAND la transaction est attendue. Le planificateur hebdomadaire placera le montant dans la bonne semaine.'
+                    : 'Indicates WHEN the transaction is expected. The weekly planner will place the amount in the right week.'}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.occurrenceFrequency}</Label>
@@ -705,7 +810,36 @@ const BudgetsPage = () => {
                     <SelectItem value="yearly">{t.yearly}</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground">{t.occurrenceHint}</p>
+                <p className="text-[10px] text-muted-foreground italic">
+                  💡 {(() => {
+                    const freq = form.occurrence_frequency;
+                    const p = form.period;
+                    if (!freq) return isFr ? 'Définit COMMENT le budget est réparti dans la période. Laissez vide pour une répartition proportionnelle.' : 'Defines HOW the budget is spread within the period. Leave empty for proportional distribution.';
+                    const descs: Record<string, Record<string, string>> = {
+                      fr: {
+                        once: `Le montant total arrive en une seule fois dans la période ${periodLabels[p]?.toLowerCase() || p}.`,
+                        daily: 'Le montant est prévu chaque jour actif.',
+                        weekly: `Le montant ${periodLabels[p]?.toLowerCase() || p} est réparti sur chaque semaine.`,
+                        biweekly: 'Le montant est réparti toutes les 2 semaines.',
+                        monthly: 'Une occurrence par mois.',
+                        quarterly: 'Une occurrence par trimestre.',
+                        semi_annual: 'Une occurrence par semestre.',
+                        yearly: 'Une occurrence par an.',
+                      },
+                      en: {
+                        once: `The total amount arrives once in the ${periodLabels[p]?.toLowerCase() || p} period.`,
+                        daily: 'The amount is expected each active day.',
+                        weekly: `The ${periodLabels[p]?.toLowerCase() || p} amount is spread across each week.`,
+                        biweekly: 'The amount is spread every 2 weeks.',
+                        monthly: 'One occurrence per month.',
+                        quarterly: 'One occurrence per quarter.',
+                        semi_annual: 'One occurrence per semester.',
+                        yearly: 'One occurrence per year.',
+                      },
+                    };
+                    return (descs[isFr ? 'fr' : 'en'][freq] || '');
+                  })()}
+                </p>
               </div>
             </div>
 
@@ -722,11 +856,10 @@ const BudgetsPage = () => {
                   className="rounded-xl h-10"
                 />
                 {errors.reference_date && <p className="text-xs text-destructive">{errors.reference_date}</p>}
-                <p className="text-[10px] text-muted-foreground">
-                  {t.referenceDateHint}
-                  {['quarterly', 'semi_annual', 'yearly'].includes(form.period) && (
-                    <span className="block mt-0.5 text-primary/80">{t.referenceDateQuarterlyHint}</span>
-                  )}
+                <p className="text-[10px] text-muted-foreground italic">
+                  💡 {isFr
+                    ? 'Point d\'ancrage pour calculer les cycles budgétaires. Ex: si vous mettez le 15/01, les trimestres seront 15/01, 15/04, 15/07, 15/10.'
+                    : 'Anchor point for budget cycles. E.g. if you set Jan 15, quarters will be Jan 15, Apr 15, Jul 15, Oct 15.'}
                 </p>
                 {form.reference_date && ['quarterly', 'semi_annual', 'yearly'].includes(form.period) && (
                   <div className="bg-muted/50 rounded-lg px-3 py-2 text-[10px] space-y-0.5">
@@ -785,7 +918,11 @@ const BudgetsPage = () => {
                   <button type="button" className="text-[10px] text-primary underline" onClick={() => setForm(f => ({ ...f, active_days: '1,2,3,4,5' }))}>{t.weekdays}</button>
                 </div>
                 {errors.active_days && <p className="text-xs text-destructive">{errors.active_days}</p>}
-                <p className="text-[10px] text-muted-foreground">{t.activeDaysHint}</p>
+                <p className="text-[10px] text-muted-foreground italic">
+                  💡 {isFr
+                    ? `Le montant de ${fmt(Number(form.amount) || 0)} s'applique CHAQUE jour sélectionné. ${form.active_days ? `${form.active_days.split(',').filter(Boolean).length} jours × ${fmt(Number(form.amount) || 0)} = ${fmt((Number(form.amount) || 0) * form.active_days.split(',').filter(Boolean).length)}/semaine` : ''}`
+                    : `The amount of ${fmt(Number(form.amount) || 0)} applies EACH selected day. ${form.active_days ? `${form.active_days.split(',').filter(Boolean).length} days × ${fmt(Number(form.amount) || 0)} = ${fmt((Number(form.amount) || 0) * form.active_days.split(',').filter(Boolean).length)}/week` : ''}`}
+                </p>
               </div>
             )}
           </div>

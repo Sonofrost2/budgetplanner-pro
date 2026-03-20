@@ -4,15 +4,7 @@ import { dashT } from '@/i18n/dashTranslations';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, AlertTriangle, PieChart, Calendar, ChevronRight } from 'lucide-react';
 import { AnimatedNumber } from '@/components/ui/animated-number';
-
-const PERIOD_MULTIPLIER: Record<string, number> = {
-  daily: 365,
-  weekly: 52,
-  monthly: 12,
-  quarterly: 4,
-  semi_annual: 2,
-  yearly: 1,
-};
+import { computeAnnualizedAmount } from '@/lib/budgetProjection';
 
 interface BudgetGlobalStatsProps {
   budgets: any[];
@@ -33,11 +25,7 @@ const BudgetGlobalStats = ({ budgets, spending, fmt, onCardClick }: BudgetGlobal
 
     for (const b of budgets) {
       const amount = Number(b.amount);
-      const activeDaysArr = b.active_days ? String(b.active_days).split(',').filter(Boolean) : [];
-      const multiplier = b.period === 'daily' && activeDaysArr.length > 0
-        ? Math.round((activeDaysArr.length / 7) * 365)
-        : (PERIOD_MULTIPLIER[b.period] || 12);
-      totalAnnualized += amount * multiplier;
+      totalAnnualized += computeAnnualizedAmount(amount, b.period, b.active_days);
       totalBudgetPeriod += amount;
 
       const actual = spending[b.category_id || ''] || 0;
