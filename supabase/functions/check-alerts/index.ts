@@ -290,6 +290,38 @@ Deno.serve(async (req) => {
         }
       }
 
+      // ────── Debt alerts ──────
+      const { data: debtsData } = await supabase.from("debts").select("*").eq("user_id", userId);
+      const userDebts = debtsData || [];
+      for (const debt of userDebts) {
+        const remaining = Number(debt.total_amount) - Number(debt.paid_amount);
+        if (remaining <= 0) continue;
+
+        if (debt.due_date) {
+          const dueDate = new Date(debt.due_date);
+          const daysUntilDue = Math.floor((dueDate.getTime() - now.getTime()) / 86400000);
+
+          if (daysUntilDue < 0) {
+            alerts.push({
+              title: isFr ? "🚨 Dette en retard" : "🚨 Overdue debt",
+              body: `${debt.creditor_name}: ${Math.round(remaining).toLocaleString()} ${isFr ? "en retard de" : "overdue by"} ${Math.abs(daysUntilDue)} ${isFr ? "jours" : "days"}`,
+            });
+          } else if (daysUntilDue <= 7) {
+            alerts.push({
+              title: daysUntilDue === 0
+                ? (isFr ? "⚠️ Dette due aujourd'hui" : "⚠️ Debt due today")
+                : (isFr ? `⚠️ Échéance dette dans ${daysUntilDue}j` : `⚠️ Debt due in ${daysUntilDue}d`),
+              body: `${debt.creditor_name}: ${Math.round(remaining).toLocaleString()}`,
+            });
+          } else if (daysUntilDue <= 30) {
+            alerts.push({
+              title: isFr ? `📋 Échéance dette dans ${daysUntilDue}j` : `📋 Debt due in ${daysUntilDue}d`,
+              body: `${debt.creditor_name}: ${Math.round(remaining).toLocaleString()}`,
+            });
+          }
+        }
+      }
+
       // ────── Balance discrepancy alerts ──────
       for (const account of accounts) {
         const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);

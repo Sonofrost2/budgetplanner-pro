@@ -12,10 +12,11 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Landmark, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Landmark, Pencil, Trash2, Sparkles, Loader2, TrendingDown, Target, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import ReactMarkdown from 'react-markdown';
 
 const DebtsPage = () => {
   const { user } = useAuth();
@@ -32,6 +33,9 @@ const DebtsPage = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payDialog, setPayDialog] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState('');
+  const [aiPlan, setAiPlan] = useState<any>(null);
+  const [aiPlanLoading, setAiPlanLoading] = useState(false);
+  const [aiPlanOpen, setAiPlanOpen] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const refreshData = () => invalidate('debts');
@@ -66,22 +70,75 @@ const DebtsPage = () => {
     refreshData();
   };
 
+  const handleAIPlan = async () => {
+    if (!user || debts.length === 0) return;
+    setAiPlanLoading(true);
+    setAiPlanOpen(true);
+    try {
+      // Fetch monthly income/expenses
+      const now = new Date();
+      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().split('T')[0];
+      const { data: txs } = await supabase.from('transactions').select('type, amount, date').eq('user_id', user.id).gte('date', threeMonthsAgo);
+      
+      const allTxs = txs || [];
+      const monthCount = 3;
+      const monthlyIncome = Math.round(allTxs.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0) / monthCount);
+      const monthlyExpenses = Math.round(allTxs.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0) / monthCount);
+
+      const { data, error } = await supabase.functions.invoke('ai-debt-plan', {
+        body: {
+          debts: debts.map(d => ({
+            creditor: d.creditor_name,
+            total: Number(d.total_amount),
+            paid: Number(d.paid_amount),
+            remaining: Number(d.total_amount) - Number(d.paid_amount),
+            dueDate: d.due_date,
+            notes: d.notes,
+          })),
+          monthlyIncome,
+          monthlyExpenses,
+          locale,
+        },
+      });
+      if (error) throw error;
+      setAiPlan(data);
+    } catch (e: any) {
+      toast.error(e.message || 'AI error');
+    } finally {
+      setAiPlanLoading(false);
+    }
+  };
+
   const openNew = () => { setEditId(null); setForm({ creditor_name: '', total_amount: '', paid_amount: '', due_date: '', notes: '' }); setDialogOpen(true); };
   const openEdit = (d: any) => { setEditId(d.id); setForm({ creditor_name: d.creditor_name, total_amount: String(d.total_amount), paid_amount: String(d.paid_amount), due_date: d.due_date || '', notes: d.notes || '' }); setDialogOpen(true); };
 
   const totalDebt = debts.reduce((s, d) => s + Number(d.total_amount), 0);
   const totalPaid = debts.reduce((s, d) => s + Number(d.paid_amount), 0);
+  const totalRemaining = totalDebt - totalPaid;
 
   if (loading) return <div className="space-y-6"><div className="flex items-center justify-between"><Skeleton className="h-8 w-32" /><Skeleton className="h-9 w-36" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}</div></div>;
 
+  const methodLabels: Record<string, string> = {
+    snowball: locale === 'fr' ? '❄️ Boule de neige' : '❄️ Snowball',
+    avalanche: locale === 'fr' ? '🏔️ Avalanche' : '🏔️ Avalanche',
+    hybrid: locale === 'fr' ? '🔄 Hybride' : '🔄 Hybrid',
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold font-display">{t.debts}</h2>
-          {debts.length > 0 && <p className="text-sm text-muted-foreground mt-1">{fmt(totalPaid)} / {fmt(totalDebt)} {locale === 'fr' ? 'remboursé' : 'repaid'}</p>}
+          {debts.length > 0 && <p className="text-sm text-muted-foreground mt-1">{fmt(totalPaid)} / {fmt(totalDebt)} {locale === 'fr' ? 'remboursé' : 'repaid'} — {locale === 'fr' ? 'Reste' : 'Remaining'}: <span className="font-semibold text-destructive">{fmt(totalRemaining)}</span></p>}
         </div>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button>
+        <div className="flex gap-2">
+          {debts.length > 0 && debts.some(d => Number(d.total_amount) - Number(d.paid_amount) > 0) && (
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={handleAIPlan} disabled={aiPlanLoading}>
+              <Sparkles className="w-4 h-4 mr-1" />{locale === 'fr' ? 'Plan IA' : 'AI Plan'}
+            </Button>
+          )}
+          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button>
+        </div>
       </div>
 
       {debts.length === 0 ? (
@@ -121,6 +178,89 @@ const DebtsPage = () => {
           })}
         </div>
       )}
+
+      {/* AI Debt Plan Dialog */}
+      <Dialog open={aiPlanOpen} onOpenChange={setAiPlanOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              {locale === 'fr' ? 'Plan de remboursement IA' : 'AI Repayment Plan'}
+            </DialogTitle>
+            <DialogDescription>
+              {locale === 'fr' ? 'Analyse et recommandations personnalisées' : 'Personalized analysis and recommendations'}
+            </DialogDescription>
+          </DialogHeader>
+          {aiPlanLoading ? (
+            <div className="flex flex-col items-center py-12 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">{locale === 'fr' ? 'Analyse en cours...' : 'Analyzing...'}</p>
+            </div>
+          ) : aiPlan && !aiPlan.error ? (
+            <div className="space-y-5">
+              {/* Summary */}
+              <div className="bg-muted/30 rounded-xl p-4">
+                <p className="text-sm">{aiPlan.summary}</p>
+              </div>
+
+              {/* Key metrics */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-primary/10 rounded-xl p-3 text-center">
+                  <Target className="w-5 h-5 text-primary mx-auto mb-1" />
+                  <p className="text-lg font-bold">{methodLabels[aiPlan.recommended_method] || aiPlan.recommended_method}</p>
+                  <p className="text-[11px] text-muted-foreground">{locale === 'fr' ? 'Méthode recommandée' : 'Recommended method'}</p>
+                </div>
+                <div className="bg-secondary/10 rounded-xl p-3 text-center">
+                  <TrendingDown className="w-5 h-5 text-secondary mx-auto mb-1" />
+                  <p className="text-lg font-bold">{fmt(aiPlan.monthly_payment)}</p>
+                  <p className="text-[11px] text-muted-foreground">{locale === 'fr' ? 'Paiement mensuel' : 'Monthly payment'}</p>
+                </div>
+                <div className="bg-accent/20 rounded-xl p-3 text-center">
+                  <Landmark className="w-5 h-5 text-accent-foreground mx-auto mb-1" />
+                  <p className="text-lg font-bold">{aiPlan.total_months} {locale === 'fr' ? 'mois' : 'months'}</p>
+                  <p className="text-[11px] text-muted-foreground">{locale === 'fr' ? 'Fin estimée' : 'Est. completion'}: {aiPlan.estimated_completion}</p>
+                </div>
+              </div>
+
+              {/* Priority order */}
+              {aiPlan.priority_order && aiPlan.priority_order.length > 0 && (
+                <div>
+                  <h4 className="font-bold text-sm mb-2">{locale === 'fr' ? 'Ordre de priorité' : 'Priority Order'}</h4>
+                  <div className="space-y-2">
+                    {aiPlan.priority_order.map((item: any, i: number) => (
+                      <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/20 border border-border/30">
+                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">{item.priority}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">{item.creditor}</p>
+                          <p className="text-xs text-muted-foreground">{locale === 'fr' ? 'Reste' : 'Remaining'}: {fmt(item.remaining)} — {item.months_to_payoff} {locale === 'fr' ? 'mois' : 'months'}</p>
+                        </div>
+                        <p className="text-sm font-bold text-primary">{fmt(item.monthly_payment)}/{locale === 'fr' ? 'mois' : 'mo'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tips */}
+              {aiPlan.tips && aiPlan.tips.length > 0 && (
+                <div>
+                  <h4 className="font-bold text-sm mb-2 flex items-center gap-1.5"><Lightbulb className="w-4 h-4 text-yellow-500" />{locale === 'fr' ? 'Conseils pratiques' : 'Practical Tips'}</h4>
+                  <ul className="space-y-1.5">
+                    {aiPlan.tips.map((tip: string, i: number) => (
+                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                        <span className="text-primary mt-0.5">•</span>
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ) : aiPlan?.error ? (
+            <p className="text-center text-destructive py-8">{aiPlan.error}</p>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <ResponsiveFormDialog
         open={dialogOpen}
