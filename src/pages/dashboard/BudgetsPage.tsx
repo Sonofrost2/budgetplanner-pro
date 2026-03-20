@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount } from '@/lib/budgetProjection';
+import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount, computeDaysRemaining } from '@/lib/budgetProjection';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -366,12 +366,19 @@ const BudgetsPage = () => {
     const annualActual = annualSpending[b.category_id || ''] || 0;
     const annualPct = annualized > 0 ? Math.min((annualActual / annualized) * 100, 150) : 0;
 
-    // Period calculations
+    // Period calculations — smart days remaining
     const range = budgetPeriodRanges.find(r => r.id === b.id);
     const periodStart = range ? new Date(range.start) : new Date();
     const periodEnd = range ? new Date(range.end) : new Date();
     const today = new Date();
-    const daysLeft = Math.max(0, Math.floor((periodEnd.getTime() - today.getTime()) / 86400000));
+    const { daysLeft, label: daysLabel } = computeDaysRemaining(b.period, today, {
+      expectedDay: b.expected_day,
+      occurrenceFrequency: b.occurrence_frequency,
+      referenceDate: b.reference_date,
+      activeDays: b.active_days,
+      periodStart,
+      periodEnd,
+    });
 
     const occFreqLabels: Record<string, string> = { once: t.occurrenceOnce, daily: t.daily, weekly: t.weekly, biweekly: t.occurrenceBiweekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
 
@@ -408,7 +415,12 @@ const BudgetsPage = () => {
 
           <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
             <span className="font-semibold">{Math.round(pct)}% {isMax ? (isFr ? 'consommé' : 'consumed') : (isFr ? 'atteint' : 'reached')}</span>
-            <span>{daysLeft} {t.daysRemaining}</span>
+            <span>
+              {daysLabel === 'today' ? (isFr ? "📍 Aujourd'hui" : '📍 Today')
+                : daysLabel === 'passed' ? (isFr ? '✅ Échéance passée' : '✅ Due date passed')
+                : daysLabel === 'thisWeek' ? (isFr ? '📅 Cette semaine' : '📅 This week')
+                : `${daysLeft} ${t.daysRemaining}`}
+            </span>
           </div>
 
           {/* Annualized summary — secondary display */}
