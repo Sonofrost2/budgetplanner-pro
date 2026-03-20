@@ -56,12 +56,15 @@ const ReportsPage = () => {
 
       <Tabs defaultValue="monthly">
         <TabsList className="flex-wrap">
+          <TabsTrigger value="ai-insights" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />{locale === 'fr' ? 'Insights IA' : 'AI Insights'}</TabsTrigger>
           <TabsTrigger value="monthly">{t.monthlyReport}</TabsTrigger>
           <TabsTrigger value="categories">{t.topExpenses}</TabsTrigger>
           <TabsTrigger value="cashflow">{t.cashFlow}</TabsTrigger>
           <TabsTrigger value="budgetvsactual">{t.budgetVsActual}</TabsTrigger>
           <TabsTrigger value="journal">{t.dailyJournal}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="ai-insights"><AIInsightsReport /></TabsContent>
 
         <TabsContent value="monthly">
           <Card className="border-none shadow-[var(--shadow-card)]">
