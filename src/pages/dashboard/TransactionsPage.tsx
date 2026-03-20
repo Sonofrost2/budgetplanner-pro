@@ -637,8 +637,32 @@ const TransactionsPage = () => {
                 onChange={e => { setForm(f => ({ ...f, description: e.target.value })); setShowSuggestions(true); }}
                 onBlur={() => {
                   setTimeout(() => setShowSuggestions(false), 200);
-                  // Auto AI suggest when description has 3+ chars and category/amount not yet filled
-                  if (canUseAISuggestions && form.description.trim().length >= 3 && !form.category_id && !form.amount && !aiSuggesting) {
+                  // Auto-categorize via AI when description has 3+ chars and no category selected
+                  if (canUseAISuggestions && form.description.trim().length >= 3 && !form.category_id && !aiSuggesting) {
+                    // Use lightweight auto-categorize
+                    (async () => {
+                      try {
+                        const { data } = await supabase.functions.invoke('ai-categorize', {
+                          body: {
+                            description: form.description.trim(),
+                            type: form.type,
+                            categories: categories.filter(c => c.type === form.type).map(c => ({ id: c.id, name: c.name })),
+                            recentTransactions: recentDescriptions.slice(0, 30).map(tx => ({
+                              description: tx.description,
+                              category_name: categories.find(c => c.id === tx.category_id)?.name || null,
+                            })),
+                            locale,
+                          },
+                        });
+                        if (data?.category_id && data.confidence >= 0.5) {
+                          setForm(f => ({ ...f, category_id: data.category_id }));
+                          toast.success(locale === 'fr' ? '🏷️ Catégorie détectée automatiquement' : '🏷️ Category auto-detected', { duration: 2000 });
+                        }
+                      } catch { /* silent */ }
+                    })();
+                  }
+                  // Also trigger full AI suggest if no amount
+                  if (canUseAISuggestions && form.description.trim().length >= 3 && !form.amount && !aiSuggesting) {
                     handleAISuggest();
                   }
                 }}
