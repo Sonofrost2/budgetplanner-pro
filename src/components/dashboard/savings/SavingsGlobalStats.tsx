@@ -308,7 +308,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold">{fmt(data.totalSaved)}</p>
+                        <p className="text-sm font-bold amount-display">{fmt(data.totalSaved)}</p>
                         <p className="text-[10px] text-muted-foreground">{isFr ? 'sur' : 'of'} {fmt(data.totalTarget)}</p>
                       </div>
                     </div>

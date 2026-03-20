@@ -55,7 +55,7 @@ export const ForecastWidget = ({ monthlyData, fmt, t }: ForecastWidgetProps) => 
               <div className="rounded-xl bg-primary/5 border border-primary/10 p-3 text-center">
                 <BarChart3 className="w-4 h-4 text-primary mx-auto mb-1.5" />
                 <p className="text-[10px] text-muted-foreground mb-0.5">{t.savingsRate}</p>
-                <p className={`text-xs font-bold ${savingsRate >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                <p className={`text-xs font-bold amount-display ${savingsRate >= 0 ? 'text-secondary' : 'text-destructive'}`}>
                   {savingsRate.toFixed(1)}%
                 </p>
               </div>
