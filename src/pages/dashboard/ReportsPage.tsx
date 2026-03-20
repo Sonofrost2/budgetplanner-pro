@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Download, Lock } from 'lucide-react';
+import { Download, Lock, Sparkles } from 'lucide-react';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { Skeleton } from '@/components/ui/skeleton';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import CashFlowReport from '@/components/dashboard/reports/CashFlowReport';
 import BudgetVsActualReport from '@/components/dashboard/reports/BudgetVsActualReport';
 import DailyJournalReport from '@/components/dashboard/reports/DailyJournalReport';
+import AIInsightsReport from '@/components/dashboard/reports/AIInsightsReport';
 
 const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899'];
 
