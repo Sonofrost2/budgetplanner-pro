@@ -511,7 +511,7 @@ const AccountsPage = () => {
             <DialogDescription>{t.updateBalanceDesc}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.realBalance}</Label>
+            <Label className="form-label">{t.realBalance}</Label>
             <Input type="number" step="0.01" value={newRealBalance} onChange={e => setNewRealBalance(e.target.value)} className="rounded-xl h-11 text-lg font-bold" />
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
