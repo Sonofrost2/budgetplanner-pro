@@ -367,7 +367,6 @@ const TransactionsPage = () => {
     };
     const { error } = await supabase.from('transactions').insert(payload);
     if (error) { toast.error(error.message); setSaving(false); return; }
-    if (payload.account_id) await supabase.rpc('recalculate_account_balance', { p_account_id: payload.account_id });
     setSaving(false);
     setDialogOpen(false);
     refreshData();
