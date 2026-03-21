@@ -250,11 +250,16 @@ const AccountsPage = () => {
       <Tabs defaultValue="manage">
         <TabsList className="rounded-xl mb-4">
           <TabsTrigger value="manage" className="rounded-lg gap-1.5"><Wallet className="w-4 h-4" />{t.management}</TabsTrigger>
-          <TabsTrigger value="recap" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{t.accountsRecap}</TabsTrigger>
+          <TabsTrigger value="stats" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{locale === 'fr' ? 'Stats période' : 'Period stats'}</TabsTrigger>
+          <TabsTrigger value="recap" className="rounded-lg gap-1.5"><Eye className="w-4 h-4" />{t.accountsRecap}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="recap">
           <AccountsRecapTab />
+        </TabsContent>
+
+        <TabsContent value="stats">
+          <AccountsPeriodStats accounts={accounts} transactions={allTransactions} fmt={fmt} t={t} locale={locale} />
         </TabsContent>
 
         <TabsContent value="manage">
@@ -312,9 +317,6 @@ const AccountsPage = () => {
         />
       )}
 
-      {accounts.length > 0 && (
-        <AccountsPeriodStats accounts={accounts} transactions={allTransactions} fmt={fmt} t={t} locale={locale} />
-      )}
 
       {bulk.hasSelection && (
         <BulkActionBar

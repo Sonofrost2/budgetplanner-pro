@@ -53,12 +53,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Recalculate account balance if linked
-      if (item.account_id) {
-        await supabase.rpc("recalculate_account_balance", {
-          p_account_id: item.account_id,
-        });
-      }
+      // real_balance is no longer auto-updated
 
       // Advance next_date
       const nextDate = computeNextDate(item.next_date, item.frequency || "monthly");

@@ -515,17 +515,12 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Recalculate all account balances
-  const accountIds = Object.values(A);
-  for (const accId of accountIds) {
-    await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
-  }
+  // real_balance is no longer auto-updated; user manages it manually
 
   return new Response(JSON.stringify({
     total_rows: ROWS.length,
     transactions_created: inserted,
     errors,
-    accounts_recalculated: accountIds.length,
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

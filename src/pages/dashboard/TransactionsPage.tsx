@@ -213,7 +213,6 @@ const TransactionsPage = () => {
     });
     const { error } = await supabase.from('transactions').delete().in('id', ids);
     if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
-    for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
     setSelectedIds(new Set());
     setBulkDeleteOpen(false);
     refreshData();
@@ -249,9 +248,6 @@ const TransactionsPage = () => {
     }));
     const { error } = await supabase.from('transactions').insert(inserts);
     if (error) { toast.error(error.message); return; }
-    const affectedAccounts = new Set<string>();
-    selectedTxs.forEach(tx => { if (tx.account_id) affectedAccounts.add(tx.account_id); });
-    for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
     setSelectedIds(new Set()); refreshData();
     toast.success(t.bulkDuplicated(inserts.length));
   };
@@ -350,12 +346,9 @@ const TransactionsPage = () => {
     if (editing) {
       const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      const affectedAccounts = new Set([editing.account_id, payload.account_id].filter(Boolean));
-      for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
     } else {
       const { error } = await supabase.from('transactions').insert(payload);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      if (payload.account_id) await supabase.rpc('recalculate_account_balance', { p_account_id: payload.account_id });
     }
     setSaving(false);
     setDialogOpen(false);
@@ -374,7 +367,6 @@ const TransactionsPage = () => {
     };
     const { error } = await supabase.from('transactions').insert(payload);
     if (error) { toast.error(error.message); setSaving(false); return; }
-    if (payload.account_id) await supabase.rpc('recalculate_account_balance', { p_account_id: payload.account_id });
     setSaving(false);
     setDialogOpen(false);
     refreshData();
@@ -386,7 +378,6 @@ const TransactionsPage = () => {
     const txToDelete = transactions.find(tx => tx.id === deleteId);
     const { error } = await supabase.from('transactions').delete().eq('id', deleteId);
     if (error) { toast.error(error.message); setDeleteId(null); return; }
-    if (txToDelete?.account_id) await supabase.rpc('recalculate_account_balance', { p_account_id: txToDelete.account_id });
     setDeleteId(null);
     refreshData();
     toast.success(t.delete + ' ✓');

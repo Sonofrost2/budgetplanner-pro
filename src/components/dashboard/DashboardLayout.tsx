@@ -20,8 +20,11 @@ import { OfflineBanner } from '@/components/dashboard/OfflineBanner';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import AIChatWidget from '@/components/dashboard/AIChatWidget';
 import GlobalSearchCommand from '@/components/dashboard/GlobalSearchCommand';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { PWAUpdatePrompt } from '@/components/dashboard/PWAUpdatePrompt';
 
 const DashboardLayout = () => {
+  useRealtimeSync();
   const { user, signOut, loading: authLoading } = useAuth();
   const { locale, toggleLocale } = useLanguage();
   const { theme, toggleTheme } = useTheme();
@@ -275,6 +278,7 @@ const DashboardLayout = () => {
       </main>
 
       <OfflineBanner />
+      <PWAUpdatePrompt />
       <AIChatWidget />
       <GlobalSearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
 
