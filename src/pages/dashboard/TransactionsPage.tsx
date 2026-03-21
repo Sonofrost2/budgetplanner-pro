@@ -538,7 +538,7 @@ const TransactionsPage = () => {
       )}
 
       {/* Transactions list */}
-      <Card className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden ${txFetching && !txLoading ? 'opacity-70 transition-opacity' : ''}`}>
+      <Card className={`card-interactive overflow-hidden ${txFetching && !txLoading ? 'opacity-70 transition-opacity' : ''}`}>
         <CardContent className="p-0">
           {transactions.length === 0 ? (
             <div className="py-16 text-center">
