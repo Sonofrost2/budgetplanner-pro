@@ -178,7 +178,20 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
     return result;
   }, [accounts, debouncedSearch, selectedAccountIds, sortKey, sortOrder, stats]);
 
-  const net = stats.totalIncome - stats.totalExpense;
+  // Compute filtered totals based on displayed accounts
+  const filteredTotals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const acc of displayedAccounts) {
+      const s = stats.byAccount[acc.id];
+      if (s) {
+        income += s.income;
+        expense += s.expense;
+      }
+    }
+    return { income, expense, net: income - expense };
+  }, [displayedAccounts, stats]);
+
   const activeFiltersCount = (debouncedSearch ? 1 : 0) + (selectedAccountIds.size > 0 ? 1 : 0);
 
   const clearAllFilters = () => {
@@ -322,22 +335,22 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
           <CardContent className="p-4 text-center">
             <TrendingUp className="w-5 h-5 text-secondary mx-auto mb-1.5" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t.income}</p>
-            <p className="text-base font-bold text-secondary">{fmt(stats.totalIncome)}</p>
+            <p className="text-base font-bold text-secondary">{fmt(filteredTotals.income)}</p>
           </CardContent>
         </Card>
         <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
           <CardContent className="p-4 text-center">
             <TrendingDown className="w-5 h-5 text-destructive mx-auto mb-1.5" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t.expenses}</p>
-            <p className="text-base font-bold text-destructive">{fmt(stats.totalExpense)}</p>
+            <p className="text-base font-bold text-destructive">{fmt(filteredTotals.expense)}</p>
           </CardContent>
         </Card>
         <Card className={cn("border-border/50 shadow-[var(--shadow-card)] rounded-2xl")}>
           <CardContent className="p-4 text-center">
             <Wallet className="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{isFr ? 'Solde net' : 'Net balance'}</p>
-            <p className={cn("text-base font-bold", net >= 0 ? 'text-secondary' : 'text-destructive')}>
-              {net >= 0 ? '+' : ''}{fmt(net)}
+            <p className={cn("text-base font-bold", filteredTotals.net >= 0 ? 'text-secondary' : 'text-destructive')}>
+              {filteredTotals.net >= 0 ? '+' : ''}{fmt(filteredTotals.net)}
             </p>
           </CardContent>
         </Card>
