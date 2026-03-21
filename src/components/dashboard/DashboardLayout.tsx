@@ -20,6 +20,8 @@ import { OfflineBanner } from '@/components/dashboard/OfflineBanner';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import AIChatWidget from '@/components/dashboard/AIChatWidget';
 import GlobalSearchCommand from '@/components/dashboard/GlobalSearchCommand';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { PWAUpdatePrompt } from '@/components/dashboard/PWAUpdatePrompt';
 
 const DashboardLayout = () => {
   const { user, signOut, loading: authLoading } = useAuth();
