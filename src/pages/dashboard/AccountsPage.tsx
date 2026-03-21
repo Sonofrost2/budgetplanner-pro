@@ -496,7 +496,7 @@ const AccountsPage = () => {
             </div>
             {/* Opening balance */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.openingBalance}</Label>
+              <Label className="form-label">{t.openingBalance}</Label>
               <Input type="number" step="0.01" value={form.opening_balance} onChange={e => setForm(f => ({ ...f, opening_balance: e.target.value }))} className={`rounded-xl h-11 text-lg font-bold ${errors.opening_balance ? 'border-destructive' : ''}`} />
               {errors.opening_balance && <p className="text-xs text-destructive">{errors.opening_balance}</p>}
             </div>
