@@ -335,7 +335,7 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
           <CardContent className="p-4 text-center">
             <TrendingUp className="w-5 h-5 text-secondary mx-auto mb-1.5" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t.income}</p>
-            <p className="text-base font-bold text-secondary">{fmt(stats.totalIncome)}</p>
+            <p className="text-base font-bold text-secondary">{fmt(filteredTotals.income)}</p>
           </CardContent>
         </Card>
         <Card className="border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
