@@ -458,51 +458,71 @@ const TransactionsPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder={t.search + '...'} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 rounded-xl" />
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1 min-w-[200px] group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Input
+              placeholder={t.search + '...'}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-10 pr-9 rounded-xl h-11 bg-background/60 border-border/40 transition-all duration-300 focus:bg-background focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.08)] hover:border-border/60 hover:bg-background/80"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded-full hover:bg-muted/50">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-36 rounded-xl h-11 border-border/40 bg-background/60 hover:bg-background/80 transition-colors text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.all}</SelectItem>
+              <SelectItem value="income">📈 {t.incomeType}</SelectItem>
+              <SelectItem value="expense">📉 {t.expenseType}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-44 rounded-xl h-11 border-border/40 bg-background/60 hover:bg-background/80 transition-colors text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.all} {t.category}</SelectItem>
+              {categories.filter(c => c.type === 'income').length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">📈 {t.incomeType}</div>
+                  {categories.filter(c => c.type === 'income').map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
+                </>
+              )}
+              {categories.filter(c => c.type === 'expense').length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">📉 {t.expenseType}</div>
+                  {categories.filter(c => c.type === 'expense').map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
+                </>
+              )}
+            </SelectContent>
+          </Select>
+          <Select value={filterAccount} onValueChange={setFilterAccount}>
+            <SelectTrigger className="w-44 rounded-xl h-11 border-border/40 bg-background/60 hover:bg-background/80 transition-colors text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.allAccounts}</SelectItem>
+              {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-36 rounded-xl"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t.all}</SelectItem>
-            <SelectItem value="income">{t.incomeType}</SelectItem>
-            <SelectItem value="expense">{t.expenseType}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-44 rounded-xl"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t.all} {t.category}</SelectItem>
-            {categories.filter(c => c.type === 'income').length > 0 && (
-              <>
-                <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">📈 {t.incomeType}</div>
-                {categories.filter(c => c.type === 'income').map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
-              </>
-            )}
-            {categories.filter(c => c.type === 'expense').length > 0 && (
-              <>
-                <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">📉 {t.expenseType}</div>
-                {categories.filter(c => c.type === 'expense').map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
-              </>
-            )}
-          </SelectContent>
-        </Select>
-        <Select value={filterAccount} onValueChange={setFilterAccount}>
-          <SelectTrigger className="w-44 rounded-xl"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t.allAccounts}</SelectItem>
-            {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40 rounded-xl" />
-        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 rounded-xl" />
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" className="rounded-xl text-muted-foreground" onClick={clearFilters}>
-            <X className="w-3.5 h-3.5 mr-1" />{t.clearFilters}
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2 items-center">
+          <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40 rounded-xl h-10 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
+          <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 rounded-xl h-10 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-destructive gap-1 transition-all" onClick={clearFilters}>
+              <X className="w-3.5 h-3.5" />{t.clearFilters}
+            </Button>
+          )}
+        </div>
       </div>
 
       {someSelected && (
