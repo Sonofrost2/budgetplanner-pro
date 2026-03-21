@@ -619,7 +619,7 @@ const TransactionsPage = () => {
           </>
         }
       >
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 form-animate">
             <div className="space-y-2">
               <Label className="form-label">{t.type}</Label>
               <div className="grid grid-cols-2 gap-2">

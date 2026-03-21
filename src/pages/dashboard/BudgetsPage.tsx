@@ -654,7 +654,7 @@ const BudgetsPage = () => {
           </>
         }
       >
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 form-animate">
             <div className="space-y-1.5">
               <Label className="form-label">{t.budgetName}</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} placeholder={t.budgetPlaceholder} className={`rounded-xl h-10 ${errors.name ? 'border-destructive' : ''}`} />
