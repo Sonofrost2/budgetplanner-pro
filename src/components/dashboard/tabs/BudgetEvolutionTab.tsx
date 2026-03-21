@@ -132,18 +132,23 @@ const BudgetEvolutionTab = () => {
       <Card className="border border-border/50 rounded-2xl">
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-wrap items-center gap-2">
+            {/* Period */}
             <Select value={period} onValueChange={v => setPeriod(v as PeriodKey)}>
-              <SelectTrigger className="h-9 w-36 rounded-xl text-xs font-medium"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 w-40 rounded-xl text-sm font-medium border-border/40 bg-background/60 hover:bg-background/80 transition-colors">
+                <CalendarDays className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {Object.entries(periodLabels).map(([k, label]) => <SelectItem key={k} value={k}>{label}</SelectItem>)}
               </SelectContent>
             </Select>
 
+            {/* Custom dates */}
             {period === 'custom' && (
               <>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className={cn("h-9 rounded-xl text-xs gap-1.5 min-w-[120px]", !customFrom && "text-muted-foreground")}>
+                    <Button variant="outline" size="sm" className={cn("h-10 rounded-xl text-xs gap-1.5 min-w-[130px]", !customFrom && "text-muted-foreground")}>
                       <CalendarDays className="w-3.5 h-3.5" />
                       {customFrom ? format(customFrom, 'dd MMM yyyy', { locale: isFr ? fr : undefined }) : (isFr ? 'Du...' : 'From...')}
                     </Button>
@@ -154,7 +159,7 @@ const BudgetEvolutionTab = () => {
                 </Popover>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className={cn("h-9 rounded-xl text-xs gap-1.5 min-w-[120px]", !customTo && "text-muted-foreground")}>
+                    <Button variant="outline" size="sm" className={cn("h-10 rounded-xl text-xs gap-1.5 min-w-[130px]", !customTo && "text-muted-foreground")}>
                       <CalendarDays className="w-3.5 h-3.5" />
                       {customTo ? format(customTo, 'dd MMM yyyy', { locale: isFr ? fr : undefined }) : (isFr ? 'Au...' : 'To...')}
                     </Button>
@@ -166,45 +171,49 @@ const BudgetEvolutionTab = () => {
               </>
             )}
 
+            {/* Type filter */}
             <Select value={typeFilter} onValueChange={v => { setTypeFilter(v as TypeFilter); setSelectedBudgetIds(new Set()); }}>
-              <SelectTrigger className="h-9 w-28 rounded-xl text-xs font-medium"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 w-36 rounded-xl text-sm font-medium border-border/40 bg-background/60 hover:bg-background/80 transition-colors">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="expense">{t.expenseType}</SelectItem>
-                <SelectItem value="income">{t.incomeType}</SelectItem>
-                <SelectItem value="all">{t.all}</SelectItem>
+                <SelectItem value="expense">📉 {t.expenseType}</SelectItem>
+                <SelectItem value="income">📈 {t.incomeType}</SelectItem>
+                <SelectItem value="all">📊 {t.all}</SelectItem>
               </SelectContent>
             </Select>
 
+            {/* Budget filter popover */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs gap-1.5">
-                  <Filter className="w-3.5 h-3.5" />
+                <Button variant="outline" className="h-10 rounded-xl text-xs gap-1.5 min-w-[140px] font-medium border-border/40 bg-background/60 hover:bg-background/80 transition-colors">
+                  <Filter className="w-3.5 h-3.5 text-muted-foreground" />
                   {isFr ? 'Budgets' : 'Budgets'}
                   {selectedCount > 0 && <span className="ml-1 bg-primary/20 text-primary rounded-full px-1.5 py-0.5 text-[10px] font-bold">{selectedCount}</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-72 p-0" align="end">
-                <div className="p-2 border-b border-border space-y-2">
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="p-3 border-b border-border space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground">{isFr ? 'Filtrer les budgets' : 'Filter budgets'}</span>
                     <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setSelectedBudgetIds(new Set())}>{isFr ? 'Tout' : 'All'}</Button>
                   </div>
                   <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                    <Input value={budgetSearch} onChange={e => setBudgetSearch(e.target.value)} placeholder={isFr ? 'Rechercher...' : 'Search...'} className="h-8 pl-8 text-xs rounded-lg" />
+                    <Input value={budgetSearch} onChange={e => setBudgetSearch(e.target.value)} placeholder={isFr ? 'Rechercher...' : 'Search...'} className="h-9 pl-8 text-sm rounded-lg" />
                   </div>
                 </div>
-                <ScrollArea className="max-h-64">
+                <ScrollArea className="h-72">
                   <div className="p-2 space-y-0.5">
                     {searchedBudgets.length === 0 ? (
                       <p className="text-xs text-muted-foreground text-center py-4">{isFr ? 'Aucun résultat' : 'No results'}</p>
                     ) : searchedBudgets.map(b => {
                       const cat = categories.find(c => c.id === b.category_id);
                       return (
-                        <label key={b.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+                        <label key={b.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
                           <Checkbox checked={effectiveIds.has(b.id)} onCheckedChange={() => toggleBudget(b.id)} />
-                          <span className="text-sm">{cat?.icon || '📊'}</span>
-                          <span className="text-xs truncate flex-1">{b.name}</span>
+                          <span className="text-base">{cat?.icon || '📊'}</span>
+                          <span className="text-sm truncate flex-1">{b.name}</span>
                         </label>
                       );
                     })}
