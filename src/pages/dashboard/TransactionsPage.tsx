@@ -248,9 +248,6 @@ const TransactionsPage = () => {
     }));
     const { error } = await supabase.from('transactions').insert(inserts);
     if (error) { toast.error(error.message); return; }
-    const affectedAccounts = new Set<string>();
-    selectedTxs.forEach(tx => { if (tx.account_id) affectedAccounts.add(tx.account_id); });
-    for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
     setSelectedIds(new Set()); refreshData();
     toast.success(t.bulkDuplicated(inserts.length));
   };
