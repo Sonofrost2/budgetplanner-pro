@@ -346,12 +346,9 @@ const TransactionsPage = () => {
     if (editing) {
       const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      const affectedAccounts = new Set([editing.account_id, payload.account_id].filter(Boolean));
-      for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
     } else {
       const { error } = await supabase.from('transactions').insert(payload);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      if (payload.account_id) await supabase.rpc('recalculate_account_balance', { p_account_id: payload.account_id });
     }
     setSaving(false);
     setDialogOpen(false);
