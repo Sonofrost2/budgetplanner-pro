@@ -53,7 +53,18 @@ export const TransactionFilters = ({
         <SelectTrigger className="w-44 rounded-xl"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{t.all} {t.category}</SelectItem>
-          {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
+          {categories.filter(c => c.type === 'income').length > 0 && (
+            <>
+              <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{t.incomeType}</div>
+              {categories.filter(c => c.type === 'income').map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
+            </>
+          )}
+          {categories.filter(c => c.type === 'expense').length > 0 && (
+            <>
+              <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{t.expenseType}</div>
+              {categories.filter(c => c.type === 'expense').map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
+            </>
+          )}
         </SelectContent>
       </Select>
       <Select value={filterAccount} onValueChange={onFilterAccountChange}>
