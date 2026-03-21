@@ -178,7 +178,20 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
     return result;
   }, [accounts, debouncedSearch, selectedAccountIds, sortKey, sortOrder, stats]);
 
-  const net = stats.totalIncome - stats.totalExpense;
+  // Compute filtered totals based on displayed accounts
+  const filteredTotals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const acc of displayedAccounts) {
+      const s = stats.byAccount[acc.id];
+      if (s) {
+        income += s.income;
+        expense += s.expense;
+      }
+    }
+    return { income, expense, net: income - expense };
+  }, [displayedAccounts, stats]);
+
   const activeFiltersCount = (debouncedSearch ? 1 : 0) + (selectedAccountIds.size > 0 ? 1 : 0);
 
   const clearAllFilters = () => {
