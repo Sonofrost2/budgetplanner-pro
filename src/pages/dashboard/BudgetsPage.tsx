@@ -384,7 +384,7 @@ const BudgetsPage = () => {
 
     return (
       <ScrollReveal key={b.id}>
-      <Card className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl hover:shadow-[var(--shadow-soft)] hover:-translate-y-1 transition-all duration-300 ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
+      <Card className={`card-interactive hover:-translate-y-1 ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-bold flex items-center gap-2.5">
@@ -654,16 +654,16 @@ const BudgetsPage = () => {
           </>
         }
       >
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 form-animate">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.budgetName}</Label>
+              <Label className="form-label">{t.budgetName}</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} placeholder={t.budgetPlaceholder} className={`rounded-xl h-10 ${errors.name ? 'border-destructive' : ''}`} />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
 
             {!editId && (
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.budgetType}</Label>
+                <Label className="form-label">{t.budgetType}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {['expense', 'income'].map(bt => (
                     <button key={bt} type="button" onClick={() => {
@@ -683,7 +683,7 @@ const BudgetsPage = () => {
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.controlType}</Label>
+              <Label className="form-label">{t.controlType}</Label>
               <div className="grid grid-cols-2 gap-2">
                 {['max', 'min'].map(ct => (
                   <button key={ct} type="button" onClick={() => setForm(f => ({ ...f, control_type: ct }))}
@@ -701,7 +701,7 @@ const BudgetsPage = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
+                <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
                 <CategoryCombobox
                   categories={filteredCategories}
                   value={form.category_id}
@@ -710,7 +710,7 @@ const BudgetsPage = () => {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.alertThreshold}</Label>
+                <Label className="form-label">{t.alertThreshold}</Label>
                 <Input type="number" min="1" max="100" value={form.alert_threshold} onChange={e => setForm(f => ({ ...f, alert_threshold: e.target.value }))} className="rounded-xl h-10" />
                 <p className="text-[10px] text-muted-foreground italic">
                   💡 {isFr ? `Alerte déclenchée à ${form.alert_threshold || 80}% du montant.` : `Alert triggered at ${form.alert_threshold || 80}% of the amount.`}
@@ -720,12 +720,12 @@ const BudgetsPage = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{form.control_type === 'min' ? t.target : t.budgetAmount}</Label>
+                <Label className="form-label">{form.control_type === 'min' ? t.target : t.budgetAmount}</Label>
                 <Input type="number" min="1" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0" className={`rounded-xl h-10 text-lg font-bold ${errors.amount ? 'border-destructive' : ''}`} />
                 {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.period}</Label>
+                <Label className="form-label flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.period}</Label>
                 <Select value={form.period} onValueChange={v => setForm(f => ({ ...f, period: v }))}>
                   <SelectTrigger className={`rounded-xl h-10 ${errors.period ? 'border-destructive' : ''}`}><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -786,7 +786,7 @@ const BudgetsPage = () => {
             {/* Expected day & occurrence frequency */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Label className="form-label flex items-center gap-1.5">
                   <Calendar className="w-3 h-3" />{t.expectedDay}
                 </Label>
                 <Input
@@ -808,7 +808,7 @@ const BudgetsPage = () => {
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.occurrenceFrequency}</Label>
+                <Label className="form-label">{t.occurrenceFrequency}</Label>
                 <Select value={form.occurrence_frequency} onValueChange={v => setForm(f => ({ ...f, occurrence_frequency: v }))}>
                   <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={t.occurrenceAuto} /></SelectTrigger>
                   <SelectContent>
@@ -858,7 +858,7 @@ const BudgetsPage = () => {
             {/* Reference date for periodic budgets */}
             {['quarterly', 'semi_annual', 'yearly', 'monthly'].includes(form.period) && (
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Label className="form-label flex items-center gap-1.5">
                   <Calendar className="w-3 h-3" />{t.referenceDate}
                 </Label>
                 <Input
@@ -897,7 +897,7 @@ const BudgetsPage = () => {
             {/* Active days for daily budgets */}
             {form.period === 'daily' && (
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.activeDays}</Label>
+                <Label className="form-label">{t.activeDays}</Label>
                 <div className="flex gap-1.5">
                   {[
                     { key: '1', label: t.activeDaysMon },
@@ -949,7 +949,7 @@ const BudgetsPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyPeriod}</Label>
+              <Label className="form-label">{t.bulkModifyPeriod}</Label>
               <Select value={bulkModifyForm.period} onValueChange={v => setBulkModifyForm(f => ({ ...f, period: v }))}>
                 <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={locale === 'fr' ? 'Ne pas changer' : 'No change'} /></SelectTrigger>
                 <SelectContent>
@@ -963,7 +963,7 @@ const BudgetsPage = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyCategory}</Label>
+              <Label className="form-label">{t.bulkModifyCategory}</Label>
               <CategoryCombobox
                 categories={allCategories.filter(c => c.type === activeTab)}
                 value={bulkModifyForm.category_id}

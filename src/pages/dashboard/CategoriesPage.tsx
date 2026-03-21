@@ -177,7 +177,7 @@ const CategoriesPage = () => {
           {cats.map(cat => {
             const isSelected = bulk.selectedIds.has(cat.id);
             return (
-              <Card key={cat.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
+              <Card key={cat.id} className={`card-interactive ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
                 <CardContent className="flex items-center justify-between py-4 px-4">
                   <div className="flex items-center gap-3">
                     <Checkbox checked={isSelected} onCheckedChange={() => bulk.toggle(cat.id)} />
@@ -255,12 +255,12 @@ const CategoriesPage = () => {
         <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader><DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addCategory}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Configurez votre catégorie' : 'Configure your category'}</DialogDescription></DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 pr-1 form-animate">
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.categoryName}</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={50} className="rounded-xl h-11" /></div>
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.type}</Label>
-              <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="expense">{t.expenseType}</SelectItem><SelectItem value="income">{t.incomeType}</SelectItem></SelectContent></Select>
+            <div className="space-y-2"><Label className="form-label">{t.categoryName}</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={50} className="rounded-xl h-11" /></div>
+            <div className="space-y-2"><Label className="form-label">{t.type}</Label>
+              <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="expense">📉 {t.expenseType}</SelectItem><SelectItem value="income">📈 {t.incomeType}</SelectItem></SelectContent></Select>
             </div>
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.iconLabel}</Label><div className="flex flex-wrap gap-2">{ICONS.map(ic => (<button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))} className={`text-xl p-1.5 rounded-lg border-2 transition-colors ${form.icon === ic ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'}`}>{ic}</button>))}</div></div>
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.colorLabel}</Label><div className="flex flex-wrap gap-2">{COLORS.map(c => (<button key={c} onClick={() => setForm(f => ({ ...f, color: c }))} className={`w-8 h-8 rounded-full border-2 transition-transform ${form.color === c ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'}`} style={{ background: c }} />))}</div><Input type="color" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className="w-16 h-8 p-0 border-none" /></div>
+            <div className="space-y-2"><Label className="form-label">{t.iconLabel}</Label><div className="flex flex-wrap gap-2">{ICONS.map(ic => (<button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))} className={`text-xl p-1.5 rounded-lg border-2 transition-all ${form.icon === ic ? 'border-primary bg-primary/10 scale-110' : 'border-border hover:bg-muted'}`}>{ic}</button>))}</div></div>
+            <div className="space-y-2"><Label className="form-label">{t.colorLabel}</Label><div className="flex flex-wrap gap-2">{COLORS.map(c => (<button key={c} onClick={() => setForm(f => ({ ...f, color: c }))} className={`w-8 h-8 rounded-full border-2 transition-transform ${form.color === c ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'}`} style={{ background: c }} />))}</div><Input type="color" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className="w-16 h-8 p-0 border-none" /></div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0"><Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button><Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button></DialogFooter>
         </DialogContent>
