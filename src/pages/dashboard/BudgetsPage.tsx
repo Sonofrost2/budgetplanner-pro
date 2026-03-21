@@ -701,7 +701,7 @@ const BudgetsPage = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
+                <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
                 <CategoryCombobox
                   categories={filteredCategories}
                   value={form.category_id}
@@ -725,7 +725,7 @@ const BudgetsPage = () => {
                 {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.period}</Label>
+                <Label className="form-label flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.period}</Label>
                 <Select value={form.period} onValueChange={v => setForm(f => ({ ...f, period: v }))}>
                   <SelectTrigger className={`rounded-xl h-10 ${errors.period ? 'border-destructive' : ''}`}><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -786,7 +786,7 @@ const BudgetsPage = () => {
             {/* Expected day & occurrence frequency */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Label className="form-label flex items-center gap-1.5">
                   <Calendar className="w-3 h-3" />{t.expectedDay}
                 </Label>
                 <Input
@@ -858,7 +858,7 @@ const BudgetsPage = () => {
             {/* Reference date for periodic budgets */}
             {['quarterly', 'semi_annual', 'yearly', 'monthly'].includes(form.period) && (
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Label className="form-label flex items-center gap-1.5">
                   <Calendar className="w-3 h-3" />{t.referenceDate}
                 </Label>
                 <Input

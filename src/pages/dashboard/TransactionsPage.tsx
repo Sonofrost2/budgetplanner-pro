@@ -641,14 +641,14 @@ const TransactionsPage = () => {
                 {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.date}</Label>
+                <Label className="form-label flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.date}</Label>
                 <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className={`rounded-xl h-11 ${errors.date ? 'border-destructive' : ''}`} />
                 {errors.date && <p className="text-xs text-destructive">{errors.date}</p>}
               </div>
             </div>
             <div className="space-y-2 relative">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><FileText className="w-3 h-3" />{t.description}</Label>
+                <Label className="form-label flex items-center gap-1.5"><FileText className="w-3 h-3" />{t.description}</Label>
                 {canUseAISuggestions && (
                   <Button type="button" variant="ghost" size="sm" className="h-7 text-xs rounded-lg text-primary" onClick={handleAISuggest} disabled={aiSuggesting}>
                     <Sparkles className="w-3 h-3 mr-1" />{aiSuggesting ? t.aiSuggesting : t.aiSuggest}
@@ -711,7 +711,7 @@ const TransactionsPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
+                <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
                 <CategoryCombobox
                   categories={filteredCategories}
                   value={form.category_id}
@@ -720,7 +720,7 @@ const TransactionsPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
+                <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
                 <AccountCombobox
                   accounts={accounts}
                   value={form.account_id}
