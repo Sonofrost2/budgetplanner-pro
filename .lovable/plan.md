@@ -1,85 +1,130 @@
 
-
-## Refonte complète du module Prévisions Financières
-
 ### Objectif
-Transformer la page `/dashboard/forecasts` d'une page basique avec 3 onglets plats en un module premium riche, animé et visuellement impressionnant avec plus de données AI.
+Corriger durablement les 3 points :
+1) synchronisation globale (plus besoin de 3-4 reload),  
+2) déplacer et améliorer fortement les stats comptes par période dans un onglet dédié,  
+3) arrêter tout calcul automatique du solde réel (saisie utilisateur uniquement).
 
-### 1. Enrichir le schéma AI (Edge Function)
+### Constat actuel (code lu)
+- La synchro temps réel est quasi absente (seule la partie famille écoute les changements backend), donc certaines vues restent figées jusqu’au reload.
+- Le service worker est bien actif mais sans gestion UX explicite de “nouvelle version dispo” (pas de prompt de refresh contrôlé).
+- La carte `AccountsPeriodStats` est dans l’onglet “Gestion” de `AccountsPage`, avec filtres limités.
+- Le solde réel est recalculé automatiquement via `recalculate_account_balance` dans plusieurs flux :
+  - `TransactionsPage.tsx`
+  - `SavingsPage.tsx`
+  - `CashCountDialog.tsx`
+  - backend functions `process-recurring` et `import-journal`
+  - fonction SQL `perform_transfer` met aussi à jour `payment_accounts.real_balance`
 
-**Fichier**: `supabase/functions/ai-forecast/index.ts`
+---
 
-Ajouter au tool schema :
-- `health_score` (0-100) : score de santé financière global
-- `health_label` : "Excellent" / "Bon" / "Fragile" / "Critique"
-- `monthly_savings_potential` : montant d'économies potentielles identifiées
-- `risk_alerts` : tableau d'alertes (texte + sévérité high/medium/low)
-- `category_insights` : pour chaque catégorie dans detailed_forecasts, ajouter `trend` ("up"/"down"/"stable"), `advice` (conseil IA), `avg_last_3m`, `projected_next_month`
-- `action_plan` : liste de 3-5 actions concrètes avec `title`, `impact_amount`, `difficulty` (easy/medium/hard), `description`
+### Plan d’implémentation
 
-Enrichir le system prompt pour demander des conseils financiers actionnables et un score de santé.
+## 1) Synchronisation fiable sans rechargements multiples
 
-### 2. Refonte complète de la page ForecastsPage
+1. **Mettre en place une synchronisation live centralisée côté dashboard**
+   - Créer un hook global de sync (ex. `useRealtimeSync`) branché dans `DashboardLayout`.
+   - S’abonner aux changements backend des tables clés (transactions, comptes, budgets, catégories, épargne, dettes, cash_counts, recurring).
+   - À chaque événement, invalider les query keys impactées (au lieu d’attendre un reload).
 
-**Fichier**: `src/pages/dashboard/ForecastsPage.tsx` (réécriture)
+2. **Activer la publication realtime des tables nécessaires**
+   - Migration backend pour ajouter ces tables à la publication realtime (actuellement quasi vide).
+   - Garder les politiques RLS existantes (pas d’ouverture de droits).
 
-**Structure en sections au lieu d'onglets** avec scroll vertical :
+3. **Améliorer la synchro “retour au premier plan / reconnexion”**
+   - À `window focus`, `visibilitychange`, `online`, forcer un `invalidateAll` léger pour recoller immédiatement à l’état serveur.
 
-**a) Hero Section** — Score de santé financière
-- Grand cercle animé (gauge circulaire) avec le score 0-100
-- Label coloré (vert/jaune/orange/rouge) 
-- 3 mini-cartes glassmorphism : revenu moyen, dépenses moyennes, taux d'épargne
-- Bouton "Générer les prévisions IA" avec animation pulse quand pas encore généré
+4. **Fiabiliser les mises à jour d’application (nouveau build)**
+   - Remplacer l’enregistrement SW passif par un enregistrement contrôlé (`virtual:pwa-register`) avec prompt “Nouvelle version disponible”.
+   - Bouton “Mettre à jour maintenant” => 1 seul refresh propre (pas de refresh manuel répété).
 
-**b) Section Alertes & Risques**
-- Cards avec icônes colorées selon la sévérité
-- Animation d'entrée staggered (framer-motion)
+---
 
-**c) Section Projections Globales** (graphique principal)
-- Area chart (au lieu de LineChart) avec gradient fill pour les 3 scénarios
-- Toggle entre vue "Balance", "Revenus", "Dépenses"
-- Tooltip custom glassmorphism
+## 2) Refonte de la carte “stats comptes par période” en onglet dédié
 
-**d) Section Détail par Catégorie** 
-- Cards pliables (Collapsible) avec icône catégorie, trend arrow, montant projeté
-- Mini sparkline chart inline dans chaque card header
-- Au clic : graphique détaillé + conseil IA personnalisé
+1. **Créer un onglet dédié dans `AccountsPage`**
+   - Passer à 3 onglets : `Gestion`, `Stats période`, `Récapitulatif`.
+   - Retirer `AccountsPeriodStats` de l’onglet gestion et l’afficher uniquement dans ce nouvel onglet dédié.
 
-**e) Section Plan d'Action**
-- Cards avec badge difficulté, montant d'impact estimé
-- Icônes visuelles par type d'action
+2. **Refondre `AccountsPeriodStats`**
+   - **Afficher tous les comptes** (même sans mouvement, valeurs à 0).
+   - Ajouter des filtres avancés :
+     - recherche compte améliorée (debounce),
+     - multi-sélection comptes (avec reset clair),
+     - tri (nom, net, revenu, dépense, écart).
+   - Périodes améliorées :
+     - aujourd’hui, semaine, mois, trimestre, semestre, année, tout, personnalisé.
+   - Garder datepicker interactif en popover/dialog (`pointer-events-auto`).
 
-**f) Section Tendances & Recommandations**
-- Texte de tendances dans une card glassmorphism
-- Liste de recommandations avec puces animées
+3. **UX/UI améliorée**
+   - barre de filtres claire (compacte desktop/mobile),
+   - badges de filtres actifs,
+   - état vide explicite,
+   - lisibilité renforcée des indicateurs (revenus/dépenses/net/théorique).
 
-### 3. Animations & UX
+---
 
-- `framer-motion` pour toutes les sections : fade-in + slide-up staggered
-- `AnimatedNumber` pour les KPI
-- Skeleton loaders pendant la génération AI
-- Area charts avec gradients translucides
-- Gauge circulaire animée (SVG avec motion)
-- Loading state : animation de "cerveau qui réfléchit" avec texte progressif ("Analyse des revenus...", "Calcul des projections...", etc.)
+## 3) Solde réel = uniquement saisi par l’utilisateur
 
-### 4. Widget Dashboard (ForecastWidget)
+1. **Supprimer toute mise à jour automatique du solde réel après transaction**
+   - Enlever les appels `recalculate_account_balance` dans :
+     - `TransactionsPage.tsx` (create/edit/delete/bulk)
+     - `SavingsPage.tsx` (dépôt/retrait)
+     - `CashCountDialog.tsx` (après PV espèces)
+     - `process-recurring`
+     - `import-journal`
 
-**Fichier**: `src/components/dashboard/home/ForecastWidget.tsx`
+2. **Adapter les fonctions backend**
+   - Migration SQL :
+     - `perform_transfer` : ne plus toucher `payment_accounts.real_balance`.
+     - `recalculate_account_balance` : neutraliser (no-op) ou marquer fonction legacy sans effet.
+   - Ainsi, même si un appel persiste, le solde réel ne bouge plus automatiquement.
 
-Ajouter un mini indicateur de score de santé si un forecast a été généré (stocké en state/localStorage).
+3. **Conserver la saisie manuelle comme source unique du réel**
+   - Le dialogue “Mettre à jour solde réel” reste l’action manuelle officielle.
+   - Le PV espèces mettra à jour explicitement le `real_balance` saisi par l’utilisateur (pas via recalcul auto).
 
-### 5. Traductions
+4. **Préserver la cohérence métier dans l’app**
+   - Utiliser le **solde théorique calculé** (opening + transactions) pour les vues opérationnelles (cartes/global).
+   - Garder `solde réel` et `écart` pour la réconciliation (module comptes).
 
-**Fichier**: `src/i18n/dashTranslations.ts`
+---
 
-Ajouter les clés fr/en : `healthScore`, `healthExcellent/Good/Fragile/Critical`, `riskAlerts`, `actionPlan`, `impactAmount`, `difficulty`, `categoryInsight`, `projectedBalance`, `savingsPotential`, `loadingStep1/2/3/4`.
+### Fichiers principalement impactés
+- `src/App.tsx` / `src/main.tsx` (gestion update SW + sync globale)
+- `vite.config.ts` (enregistrement PWA contrôlé)
+- `src/components/dashboard/DashboardLayout.tsx` (hook sync)
+- `src/pages/dashboard/AccountsPage.tsx`
+- `src/components/dashboard/accounts/AccountsPeriodStats.tsx`
+- `src/pages/dashboard/TransactionsPage.tsx`
+- `src/pages/dashboard/SavingsPage.tsx`
+- `src/components/dashboard/CashCountDialog.tsx`
+- `src/pages/dashboard/DashboardHome.tsx`
+- `src/components/dashboard/home/AccountsWidget.tsx`
+- `src/components/dashboard/home/AccountsSummaryWidget.tsx`
+- `supabase/functions/process-recurring/index.ts`
+- `supabase/functions/import-journal/index.ts`
+- nouvelle migration SQL (fonctions + publication realtime)
+
+---
+
+### Validation prévue (E2E)
+1. Créer/éditer/supprimer transactions :  
+   - théorique change immédiatement,  
+   - réel ne change pas automatiquement.
+2. Mettre à jour solde réel manuellement : écart recalculé correctement.
+3. Effectuer transfert et récurrents : aucun auto-update du réel.
+4. Ouvrir l’onglet “Stats période” :
+   - tous les comptes visibles,
+   - recherche/filtre/tri/période OK.
+5. Déployer une modif de test :
+   - apparition du prompt de nouvelle version,
+   - refresh unique,
+   - app synchronisée immédiatement après reprise de focus/reconnexion.
+
+---
 
 ### Détails techniques
-
-- Aucune modification de table DB requise
-- La page reste gated par `canUseForecast` (Premium)
-- Le forecast est stocké en state React (pas persisté en DB)
-- Charts : recharts AreaChart avec `<defs>` pour les gradients SVG
-- Gauge : SVG `<circle>` animé avec `motion` de framer-motion
-- Loading steps : `useEffect` avec `setInterval` pour cycler les messages
-
+- **Sécurité/RLS** : pas de relâchement des politiques; on ajoute uniquement publication realtime + refetch ciblé.
+- **Compatibilité** : on garde les schémas métiers existants; changement principal = suppression des effets automatiques sur `real_balance`.
+- **Performance** : invalidation ciblée + throttle sur événements realtime pour éviter surcharge de requêtes.
