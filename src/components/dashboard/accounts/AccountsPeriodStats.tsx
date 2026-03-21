@@ -342,15 +342,15 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
           <CardContent className="p-4 text-center">
             <TrendingDown className="w-5 h-5 text-destructive mx-auto mb-1.5" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t.expenses}</p>
-            <p className="text-base font-bold text-destructive">{fmt(stats.totalExpense)}</p>
+            <p className="text-base font-bold text-destructive">{fmt(filteredTotals.expense)}</p>
           </CardContent>
         </Card>
         <Card className={cn("border-border/50 shadow-[var(--shadow-card)] rounded-2xl")}>
           <CardContent className="p-4 text-center">
             <Wallet className="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{isFr ? 'Solde net' : 'Net balance'}</p>
-            <p className={cn("text-base font-bold", net >= 0 ? 'text-secondary' : 'text-destructive')}>
-              {net >= 0 ? '+' : ''}{fmt(net)}
+            <p className={cn("text-base font-bold", filteredTotals.net >= 0 ? 'text-secondary' : 'text-destructive')}>
+              {filteredTotals.net >= 0 ? '+' : ''}{fmt(filteredTotals.net)}
             </p>
           </CardContent>
         </Card>
