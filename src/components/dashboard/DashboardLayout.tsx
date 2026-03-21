@@ -24,6 +24,7 @@ import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { PWAUpdatePrompt } from '@/components/dashboard/PWAUpdatePrompt';
 
 const DashboardLayout = () => {
+  useRealtimeSync();
   const { user, signOut, loading: authLoading } = useAuth();
   const { locale, toggleLocale } = useLanguage();
   const { theme, toggleTheme } = useTheme();
