@@ -456,7 +456,7 @@ const AccountsPage = () => {
           <div className="space-y-4 py-2 form-animate">
             {/* Account name */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.accountName}</Label>
+              <Label className="form-label">{t.accountName}</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} placeholder={t.accountNamePlaceholder} className={`rounded-xl h-11 ${errors.name ? 'border-destructive' : ''}`} />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
