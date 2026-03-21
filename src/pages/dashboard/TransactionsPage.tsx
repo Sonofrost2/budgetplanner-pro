@@ -213,7 +213,6 @@ const TransactionsPage = () => {
     });
     const { error } = await supabase.from('transactions').delete().in('id', ids);
     if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
-    for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
     setSelectedIds(new Set());
     setBulkDeleteOpen(false);
     refreshData();
