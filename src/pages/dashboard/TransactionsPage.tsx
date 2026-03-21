@@ -17,7 +17,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles, ArrowLeftRight, AlertTriangle, BarChart3, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles, ArrowLeftRight, AlertTriangle, BarChart3, Loader2, Filter } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import TransactionsStatsTab from '@/components/dashboard/tabs/TransactionsStatsTab';
 import { toast } from 'sonner';
