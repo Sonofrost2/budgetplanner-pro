@@ -233,7 +233,7 @@ const AccountsRecapTab = () => {
             {/* Account filter */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs gap-1.5">
+                <Button variant="outline" size="sm" className="h-9 rounded-xl text-xs gap-1.5 min-w-[140px]">
                   <Filter className="w-3.5 h-3.5" />
                   {isFr ? 'Comptes' : 'Accounts'}
                   {selectedAccountIds.size > 0 && (
@@ -241,8 +241,8 @@ const AccountsRecapTab = () => {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-72 p-0" align="end">
-                <div className="p-2 border-b border-border space-y-2">
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="p-3 border-b border-border space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground">{isFr ? 'Filtrer les comptes' : 'Filter accounts'}</span>
                     <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setSelectedAccountIds(new Set())}>
@@ -251,18 +251,21 @@ const AccountsRecapTab = () => {
                   </div>
                   <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                    <Input value={accountSearch} onChange={e => setAccountSearch(e.target.value)} placeholder={isFr ? 'Rechercher...' : 'Search...'} className="h-8 pl-8 text-xs rounded-lg" />
+                    <Input value={accountSearch} onChange={e => setAccountSearch(e.target.value)} placeholder={isFr ? 'Rechercher...' : 'Search...'} className="h-9 pl-8 text-sm rounded-lg" />
                   </div>
                 </div>
-                <ScrollArea className="max-h-64">
+                <ScrollArea className="h-72">
                   <div className="p-2 space-y-0.5">
                     {searchedAccounts.map(acc => (
-                      <label key={acc.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+                      <label key={acc.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
                         <Checkbox checked={activeAccountIds.has(acc.id)} onCheckedChange={() => toggleAccount(acc.id)} />
-                        <span className="text-sm">{acc.icon}</span>
-                        <span className="text-xs truncate flex-1">{acc.name}</span>
+                        <span className="text-base">{acc.icon}</span>
+                        <span className="text-sm truncate flex-1">{acc.name}</span>
                       </label>
                     ))}
+                    {searchedAccounts.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-4">{isFr ? 'Aucun résultat' : 'No results'}</p>
+                    )}
                   </div>
                 </ScrollArea>
               </PopoverContent>

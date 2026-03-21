@@ -17,7 +17,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles, ArrowLeftRight, AlertTriangle, BarChart3, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles, ArrowLeftRight, AlertTriangle, BarChart3, Loader2, Filter } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import TransactionsStatsTab from '@/components/dashboard/tabs/TransactionsStatsTab';
 import { toast } from 'sonner';
@@ -458,72 +460,170 @@ const TransactionsPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1 min-w-[200px] group">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-            <Input
-              placeholder={t.search + '...'}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10 pr-9 rounded-xl h-11 bg-background/60 border-border/40 transition-all duration-300 focus:bg-background focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.08)] hover:border-border/60 hover:bg-background/80"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded-full hover:bg-muted/50">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+      <Card className="border border-border/50 rounded-2xl">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              {/* Search */}
+              <div className="relative flex-1 min-w-[200px] group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  placeholder={t.search + '...'}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-9 rounded-xl h-10 bg-background/60 border-border/40 transition-all duration-300 focus:bg-background focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.08)] hover:border-border/60 hover:bg-background/80 text-sm"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded-full hover:bg-muted/50">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Type filter */}
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="h-10 w-36 rounded-xl text-xs font-medium border-border/40 bg-background/60 hover:bg-background/80 transition-colors">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t.all}</SelectItem>
+                  <SelectItem value="income">📈 {t.incomeType}</SelectItem>
+                  <SelectItem value="expense">📉 {t.expenseType}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Category popover */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-colors min-w-[160px] justify-start font-medium">
+                    <Tag className="w-3.5 h-3.5 text-muted-foreground" />
+                    {filterCategory !== 'all'
+                      ? (() => { const cat = categories.find(c => c.id === filterCategory); return cat ? `${cat.icon} ${cat.name}` : t.category; })()
+                      : `${t.all} ${t.category}`
+                    }
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start">
+                  <div className="p-2.5 border-b border-border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-muted-foreground">{locale === 'fr' ? 'Filtrer par catégorie' : 'Filter by category'}</span>
+                      {filterCategory !== 'all' && (
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive" onClick={() => setFilterCategory('all')}>
+                          <X className="w-3 h-3 mr-0.5" />{locale === 'fr' ? 'Réinitialiser' : 'Reset'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <ScrollArea className="h-72">
+                    <div className="p-2">
+                      {/* All option */}
+                      <button
+                        onClick={() => setFilterCategory('all')}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${filterCategory === 'all' ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted/50'}`}
+                      >
+                        <span className="text-base">📋</span>
+                        <span>{t.all} {t.category}</span>
+                      </button>
+
+                      {/* Income categories */}
+                      {categories.filter(c => c.type === 'income').length > 0 && (
+                        <>
+                          <div className="px-3 py-2 mt-2 text-[10px] font-bold uppercase tracking-wider text-secondary flex items-center gap-1.5">
+                            <TrendingUp className="w-3 h-3" /> {t.incomeType}
+                          </div>
+                          {categories.filter(c => c.type === 'income').map(c => (
+                            <button
+                              key={c.id}
+                              onClick={() => setFilterCategory(filterCategory === c.id ? 'all' : c.id)}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${filterCategory === c.id ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted/50'}`}
+                            >
+                              <span className="text-base">{c.icon}</span>
+                              <span className="truncate">{c.name}</span>
+                            </button>
+                          ))}
+                        </>
+                      )}
+
+                      {/* Expense categories */}
+                      {categories.filter(c => c.type === 'expense').length > 0 && (
+                        <>
+                          <div className="px-3 py-2 mt-2 text-[10px] font-bold uppercase tracking-wider text-destructive flex items-center gap-1.5">
+                            <TrendingDown className="w-3 h-3" /> {t.expenseType}
+                          </div>
+                          {categories.filter(c => c.type === 'expense').map(c => (
+                            <button
+                              key={c.id}
+                              onClick={() => setFilterCategory(filterCategory === c.id ? 'all' : c.id)}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${filterCategory === c.id ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted/50'}`}
+                            >
+                              <span className="text-base">{c.icon}</span>
+                              <span className="truncate">{c.name}</span>
+                            </button>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+
+              {/* Account popover */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-colors min-w-[160px] justify-start font-medium">
+                    <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                    {filterAccount !== 'all'
+                      ? (() => { const acc = accounts.find(a => a.id === filterAccount); return acc ? `${acc.icon} ${acc.name}` : t.allAccounts; })()
+                      : t.allAccounts
+                    }
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-0" align="start">
+                  <div className="p-2.5 border-b border-border">
+                    <span className="text-xs font-semibold text-muted-foreground">{locale === 'fr' ? 'Filtrer par compte' : 'Filter by account'}</span>
+                  </div>
+                  <ScrollArea className="h-64">
+                    <div className="p-2">
+                      <button
+                        onClick={() => setFilterAccount('all')}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${filterAccount === 'all' ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted/50'}`}
+                      >
+                        <span className="text-base">🏦</span>
+                        <span>{t.allAccounts}</span>
+                      </button>
+                      {accounts.map(a => (
+                        <button
+                          key={a.id}
+                          onClick={() => setFilterAccount(filterAccount === a.id ? 'all' : a.id)}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${filterAccount === a.id ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted/50'}`}
+                        >
+                          <span className="text-base">{a.icon}</span>
+                          <span className="truncate">{a.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Date range + clear */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
+                <span className="text-xs text-muted-foreground">→</span>
+                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
+              </div>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-destructive gap-1 transition-all" onClick={clearFilters}>
+                  <X className="w-3.5 h-3.5" />{t.clearFilters}
+                </Button>
+              )}
+            </div>
           </div>
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-36 rounded-xl h-11 border-border/40 bg-background/60 hover:bg-background/80 transition-colors text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t.all}</SelectItem>
-              <SelectItem value="income">📈 {t.incomeType}</SelectItem>
-              <SelectItem value="expense">📉 {t.expenseType}</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-44 rounded-xl h-11 border-border/40 bg-background/60 hover:bg-background/80 transition-colors text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t.all} {t.category}</SelectItem>
-              {categories.filter(c => c.type === 'income').length > 0 && (
-                <>
-                  <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">📈 {t.incomeType}</div>
-                  {categories.filter(c => c.type === 'income').map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
-                </>
-              )}
-              {categories.filter(c => c.type === 'expense').length > 0 && (
-                <>
-                  <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">📉 {t.expenseType}</div>
-                  {categories.filter(c => c.type === 'expense').map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
-                </>
-              )}
-            </SelectContent>
-          </Select>
-          <Select value={filterAccount} onValueChange={setFilterAccount}>
-            <SelectTrigger className="w-44 rounded-xl h-11 border-border/40 bg-background/60 hover:bg-background/80 transition-colors text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t.allAccounts}</SelectItem>
-              {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.icon} {a.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-wrap gap-2 items-center">
-          <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40 rounded-xl h-10 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
-          <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 rounded-xl h-10 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-destructive gap-1 transition-all" onClick={clearFilters}>
-              <X className="w-3.5 h-3.5" />{t.clearFilters}
-            </Button>
-          )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {someSelected && (
         <BulkActionBar
