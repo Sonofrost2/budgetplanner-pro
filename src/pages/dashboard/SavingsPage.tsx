@@ -275,7 +275,6 @@ const SavingsPage = () => {
           description: `${t.savings}: ${goal.name}`, account_id: sourceAccountId,
           date: today, notes: `🎯 ${goal.name}`,
         });
-        await recalculateAccountBalance(sourceAccountId);
       }
 
       if (goal.account_id) {
@@ -284,7 +283,6 @@ const SavingsPage = () => {
           description: `${t.savings}: ${goal.name}`, account_id: goal.account_id,
           date: today, notes: `🎯 ${goal.name}`,
         });
-        await recalculateAccountBalance(goal.account_id);
       }
 
       await supabase.from('savings_goals').update({
