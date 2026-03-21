@@ -278,6 +278,7 @@ const DashboardLayout = () => {
       </main>
 
       <OfflineBanner />
+      <PWAUpdatePrompt />
       <AIChatWidget />
       <GlobalSearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
 

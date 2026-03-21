@@ -378,7 +378,6 @@ const TransactionsPage = () => {
     const txToDelete = transactions.find(tx => tx.id === deleteId);
     const { error } = await supabase.from('transactions').delete().eq('id', deleteId);
     if (error) { toast.error(error.message); setDeleteId(null); return; }
-    if (txToDelete?.account_id) await supabase.rpc('recalculate_account_balance', { p_account_id: txToDelete.account_id });
     setDeleteId(null);
     refreshData();
     toast.success(t.delete + ' ✓');

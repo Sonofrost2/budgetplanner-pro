@@ -88,8 +88,7 @@ const CashCountDialog = ({ open, onOpenChange, account, userId, currency, locale
       }
     }
 
-    // 3. Recalculate balance via server function (uses opening_balance + transactions)
-    await recalculateAccountBalance(account.id);
+    // real_balance is no longer auto-updated; user manages it manually
 
     setSaving(false);
     onOpenChange(false);
