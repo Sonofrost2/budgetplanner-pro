@@ -453,7 +453,7 @@ const AccountsPage = () => {
           </>
         }
       >
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 form-animate">
             {/* Account name */}
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.accountName}</Label>
