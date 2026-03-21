@@ -177,7 +177,7 @@ const CategoriesPage = () => {
           {cats.map(cat => {
             const isSelected = bulk.selectedIds.has(cat.id);
             return (
-              <Card key={cat.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
+              <Card key={cat.id} className={`card-interactive ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
                 <CardContent className="flex items-center justify-between py-4 px-4">
                   <div className="flex items-center gap-3">
                     <Checkbox checked={isSelected} onCheckedChange={() => bulk.toggle(cat.id)} />
