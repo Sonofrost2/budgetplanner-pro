@@ -621,11 +621,11 @@ const SavingsPage = () => {
           </DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 pr-1 form-animate">
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.goalName}</Label>
+              <Label className="form-label">{t.goalName}</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} className="rounded-xl h-11" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.iconLabel}</Label>
+              <Label className="form-label">{t.iconLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {icons.map(ic => (
                   <button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))}
@@ -636,24 +636,24 @@ const SavingsPage = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Label className="form-label">
                 {t.savingsTargetAccount} ({t.optional})
               </Label>
               <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.targetAmount}</Label>
+                <Label className="form-label">{t.targetAmount}</Label>
                 <Input type="number" min="1" step="0.01" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} className="rounded-xl h-11" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.savingsMonthlyContribution}</Label>
+                <Label className="form-label">{t.savingsMonthlyContribution}</Label>
                 <Input type="number" min="0" step="0.01" value={form.monthly_contribution} onChange={e => setForm(f => ({ ...f, monthly_contribution: e.target.value }))} className="rounded-xl h-11" placeholder={locale === 'fr' ? 'Ex: 50 000' : 'E.g. 500'} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.contributionDay}</Label>
+                <Label className="form-label">{t.contributionDay}</Label>
                 <Select value={form.contribution_day || '__none__'} onValueChange={v => setForm(f => ({ ...f, contribution_day: v === '__none__' ? '' : v }))}>
                   <SelectTrigger className="rounded-xl h-11">
                     <SelectValue placeholder="—" />
@@ -667,11 +667,11 @@ const SavingsPage = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.startDate}</Label>
+                <Label className="form-label">{t.startDate}</Label>
                 <Input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} className="rounded-xl h-11" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{locale === 'fr' ? 'Date de fin' : 'End date'}</Label>
+                <Label className="form-label">{locale === 'fr' ? 'Date de fin' : 'End date'}</Label>
                 <Input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} className="rounded-xl h-11" />
               </div>
             </div>
@@ -690,7 +690,7 @@ const SavingsPage = () => {
 
             {/* Bank */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bankName} ({t.optional})</Label>
+              <Label className="form-label">{t.bankName} ({t.optional})</Label>
               {(() => {
                 const bankOptions = [
                   'SGCI', 'BICICI', 'CORIS BANK', 'BOA', 'NSIA Banque', 'SIB', 'BDU',
@@ -733,11 +733,11 @@ const SavingsPage = () => {
             {/* Interest rate & frequency */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.interestRate}</Label>
+                <Label className="form-label">{t.interestRate}</Label>
                 <Input type="number" min="0" step="0.01" value={form.interest_rate} onChange={e => setForm(f => ({ ...f, interest_rate: e.target.value }))} className="rounded-xl h-11" placeholder="Ex: 3.5" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.interestFrequency}</Label>
+                <Label className="form-label">{t.interestFrequency}</Label>
                 <Select value={form.interest_frequency} onValueChange={v => setForm(f => ({ ...f, interest_frequency: v }))}>
                   <SelectTrigger className="rounded-xl h-11">
                     <SelectValue />
@@ -770,11 +770,11 @@ const SavingsPage = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.amount}</Label>
+              <Label className="form-label">{t.amount}</Label>
               <Input type="number" min="0.01" step="0.01" value={addAmount} onChange={e => setAddAmount(e.target.value)} className="rounded-xl h-11 text-lg font-bold" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Label className="form-label">
                 {t.savingsSourceAccount} ({t.optional})
               </Label>
               <AccountCombobox
@@ -817,7 +817,7 @@ const SavingsPage = () => {
               <span className="font-bold">{fmt(Number(currentGoalForWithdraw?.current_amount || 0))}</span>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.withdrawAmount}</Label>
+              <Label className="form-label">{t.withdrawAmount}</Label>
               <Input
                 type="number" min="0.01" step="0.01"
                 max={currentGoalForWithdraw?.current_amount || 0}
@@ -827,7 +827,7 @@ const SavingsPage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Label className="form-label">
                 {t.savingsTargetAccount} ({t.optional})
               </Label>
               <AccountCombobox

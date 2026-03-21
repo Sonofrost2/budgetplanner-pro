@@ -621,7 +621,7 @@ const TransactionsPage = () => {
       >
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.type}</Label>
+              <Label className="form-label">{t.type}</Label>
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => setForm(f => ({ ...f, type: 'expense', category_id: '' }))}
                   className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'expense' ? 'border-destructive bg-destructive/10 text-destructive' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
@@ -635,7 +635,7 @@ const TransactionsPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.amount}</Label>
+                <Label className="form-label">{t.amount}</Label>
                 <Input type="number" min="0.01" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                   className={`rounded-xl h-11 text-lg font-bold pl-4 ${errors.amount ? 'border-destructive' : ''}`} placeholder="0" />
                 {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
@@ -730,7 +730,7 @@ const TransactionsPage = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.notes} <span className="text-muted-foreground/50 font-normal normal-case">({locale === 'fr' ? 'optionnel' : 'optional'})</span></Label>
+              <Label className="form-label">{t.notes} <span className="text-muted-foreground/50 font-normal normal-case">({locale === 'fr' ? 'optionnel' : 'optional'})</span></Label>
               <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} maxLength={500} rows={2}
                 className={`rounded-xl resize-none ${errors.notes ? 'border-destructive' : ''}`} placeholder={locale === 'fr' ? 'Ajoutez une note...' : 'Add a note...'} />
               {errors.notes && <p className="text-xs text-destructive">{errors.notes}</p>}
@@ -752,7 +752,7 @@ const TransactionsPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-2">
              <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyCategory}</Label>
+              <Label className="form-label">{t.bulkModifyCategory}</Label>
               <CategoryCombobox
                 categories={categories}
                 value={bulkModifyForm.category_id}
@@ -762,7 +762,7 @@ const TransactionsPage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.bulkModifyAccount}</Label>
+              <Label className="form-label">{t.bulkModifyAccount}</Label>
               <AccountCombobox
                 accounts={accounts}
                 value={bulkModifyForm.account_id}
