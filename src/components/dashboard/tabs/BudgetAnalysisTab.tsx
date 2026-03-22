@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -12,12 +12,13 @@ import { Progress } from '@/components/ui/progress';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import { PieChart as PieChartIcon, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Calendar as CalendarIcon, CalendarDays } from 'lucide-react';
+import { PieChart as PieChartIcon, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Calendar as CalendarIcon, CalendarDays, Download, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { abbreviateNumber, cn } from '@/lib/utils';
 import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount } from '@/lib/budgetProjection';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 const TOOLTIP_STYLE = {
   borderRadius: '12px',
