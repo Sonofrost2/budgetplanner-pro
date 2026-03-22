@@ -984,10 +984,10 @@ const TransactionsPage = () => {
                     initial={{ opacity: 0, y: -4, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                    className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-xl shadow-lg overflow-hidden"
+                    className="absolute top-full left-0 right-0 z-[60] mt-1 bg-popover border border-border rounded-xl shadow-xl max-h-48 overflow-y-auto"
                   >
                     {descriptionSuggestions.map((s, i) => (
-                      <button key={i} type="button" className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors"
+                      <button key={i} type="button" className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors truncate"
                         onMouseDown={(e) => { e.preventDefault(); setForm(f => ({ ...f, description: s.description, category_id: s.category_id || f.category_id, account_id: s.account_id || f.account_id })); setShowSuggestions(false); }}>
                         {s.description}
                       </button>
