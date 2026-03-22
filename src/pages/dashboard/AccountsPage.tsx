@@ -548,6 +548,7 @@ const AccountsPage = () => {
           open={!!cashCountAccount}
           onOpenChange={v => { if (!v) setCashCountAccount(null); }}
           account={cashCountAccount}
+          theoreticalBalance={cashCountAccount ? getTheoreticalBalance(cashCountAccount.id) : 0}
           userId={user.id}
           currency={currency}
           locale={locale}
