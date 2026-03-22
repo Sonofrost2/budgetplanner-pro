@@ -115,47 +115,114 @@ const SavingsPage = () => {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const [goalsRes, accRes, txRes] = await Promise.all([
+    const [goalsRes, accRes] = await Promise.all([
       supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('payment_accounts').select('*').eq('user_id', user.id),
-      supabase.from('transactions').select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
-        .eq('user_id', user.id)
-        .like('notes', '🎯 %')
-        .order('date', { ascending: false })
-        .limit(500),
     ]);
 
     const goalsData = goalsRes.data || [];
     setGoals(goalsData);
     setAccounts(accRes.data || []);
 
-    const contribMap: Record<string, any[]> = {};
+    // Collect all account_ids linked to savings goals
+    const savingsAccountIds = goalsData
+      .map((g: any) => g.account_id)
+      .filter((id: string | null): id is string => !!id);
+
+    // Fetch transactions: those with 🎯 notes OR on savings-linked accounts
+    const txPromises: PromiseLike<any>[] = [];
+
+    // 1) Transactions with 🎯 pattern (legacy / explicit savings transactions)
+    txPromises.push(
+      supabase.from('transactions')
+        .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
+        .eq('user_id', user.id)
+        .like('notes', '🎯 %')
+        .order('date', { ascending: false })
+        .limit(500)
+        .then(r => r)
+    );
+
+    // 2) All transactions on savings-linked accounts (transfers, imports, etc.)
+    if (savingsAccountIds.length > 0) {
+      txPromises.push(
+        supabase.from('transactions')
+          .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
+          .eq('user_id', user.id)
+          .in('account_id', savingsAccountIds)
+          .order('date', { ascending: false })
+          .limit(1000)
+          .then(r => r)
+      );
+    }
+
+    const txResults = await Promise.all(txPromises);
+    
+    // Merge & deduplicate transactions
+    const allTxMap = new Map<string, any>();
+    for (const res of txResults) {
+      for (const tx of (res.data || [])) {
+        allTxMap.set(tx.id, tx);
+      }
+    }
+
+    const contribMap: Record<string, SavingsContribution[]> = {};
     for (const goal of goalsData) {
       contribMap[goal.id] = [];
     }
-    for (const tx of (txRes.data || [])) {
-      const goalName = tx.notes?.replace('🎯 ', '') || '';
-      const matchedGoal = goalsData.find((g: any) => g.name === goalName);
-      if (matchedGoal) {
-        contribMap[matchedGoal.id] = contribMap[matchedGoal.id] || [];
-        const desc = tx.description || '';
-        const isSavingsTx = desc.startsWith(`${t.savings}:`);
-        if (isSavingsTx) {
-          const isWithdrawal = desc.includes('↩');
-          contribMap[matchedGoal.id].push({
-            id: tx.id,
-            amount: tx.amount,
-            date: tx.date,
-            type: isWithdrawal ? 'withdrawal' : 'deposit',
-            account_name: (tx.payment_accounts as any)?.name,
-            account_icon: (tx.payment_accounts as any)?.icon,
-          });
+
+    for (const tx of allTxMap.values()) {
+      // Strategy 1: Match by 🎯 notes pattern (explicit savings tx)
+      if (tx.notes?.startsWith('🎯 ')) {
+        const goalName = tx.notes.replace('🎯 ', '');
+        const matchedGoal = goalsData.find((g: any) => g.name === goalName);
+        if (matchedGoal) {
+          const desc = tx.description || '';
+          const isWithdrawal = desc.includes('↩') || tx.type === 'expense';
+          const isDeposit = !desc.includes('↩') && tx.type === 'income';
+          if (isDeposit || isWithdrawal) {
+            contribMap[matchedGoal.id].push({
+              id: tx.id,
+              amount: tx.amount,
+              date: tx.date,
+              type: isWithdrawal ? 'withdrawal' : 'deposit',
+              account_name: (tx.payment_accounts as any)?.name,
+              account_icon: (tx.payment_accounts as any)?.icon,
+              description: tx.description,
+            });
+          }
+          continue;
+        }
+      }
+
+      // Strategy 2: Match by account_id (any tx on savings-linked account)
+      if (tx.account_id) {
+        const matchedGoal = goalsData.find((g: any) => g.account_id === tx.account_id);
+        if (matchedGoal) {
+          // Avoid duplicates (already added via strategy 1)
+          if (!contribMap[matchedGoal.id].some(c => c.id === tx.id)) {
+            contribMap[matchedGoal.id].push({
+              id: tx.id,
+              amount: tx.amount,
+              date: tx.date,
+              type: tx.type === 'expense' ? 'withdrawal' : 'deposit',
+              account_name: (tx.payment_accounts as any)?.name,
+              account_icon: (tx.payment_accounts as any)?.icon,
+              description: tx.description,
+            });
+          }
         }
       }
     }
+
+    // Sort each goal's contributions by date desc
+    for (const goalId of Object.keys(contribMap)) {
+      contribMap[goalId].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }
+
     setContributions(contribMap);
     setLoading(false);
-  }, [user, t.savings]);
+  }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
