@@ -39,7 +39,7 @@ const DashboardLayout = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('display_name, onboarding_completed').eq('user_id', user.id).single()
+    supabase.from('profiles').select('display_name, onboarding_completed, avatar_url').eq('user_id', user.id).single()
       .then(({ data }) => {
         setProfile(data);
         if (data && !data.onboarding_completed) navigate('/onboarding');
