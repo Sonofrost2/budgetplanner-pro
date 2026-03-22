@@ -27,7 +27,7 @@ const DashboardLayout = () => {
   useRealtimeSync();
   const { user, signOut, loading: authLoading } = useAuth();
   const { locale, toggleLocale } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
+  const { mode, setMode } = useTheme();
   const { isAdmin } = useRole();
   const navigate = useNavigate();
   const location = useLocation();
