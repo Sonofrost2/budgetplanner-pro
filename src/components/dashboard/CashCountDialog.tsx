@@ -42,7 +42,7 @@ const CashCountDialog = ({ open, onOpenChange, account, theoreticalBalance, user
     [quantities, denoms]
   );
 
-  const expected = account ? Number(account.real_balance) : 0;
+  const expected = theoreticalBalance;
   const discrepancy = totalCounted - expected;
 
   const handleSave = async () => {
