@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -183,11 +183,16 @@ const BudgetAnalysisTab = () => {
     return periodLabels[analysisPeriod];
   }, [analysisPeriod, customFrom, customTo, periodLabels]);
 
+  const chartRef = useRef<HTMLDivElement>(null);
+
   const handleExportPDF = useCallback(async () => {
     setExporting(true);
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const { default: autoTable } = await import('jspdf-autotable');
+      const [{ default: jsPDF }, { default: autoTable }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+        import('html2canvas'),
+      ]);
 
       const pdfFmt = (n: number) => {
         const parts = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -234,6 +239,31 @@ const BudgetAnalysisTab = () => {
       });
 
       y = (doc as any).lastAutoTable.finalY + 12;
+
+      // Chart capture
+      if (chartRef.current) {
+        try {
+          const canvas = await html2canvas(chartRef.current, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            logging: false,
+          });
+          const imgData = canvas.toDataURL('image/png');
+          const imgW = 182;
+          const imgH = (canvas.height / canvas.width) * imgW;
+
+          if (y + imgH + 10 > doc.internal.pageSize.height - 20) {
+            doc.addPage();
+            y = 20;
+          }
+
+          doc.setFontSize(13);
+          doc.text(isFr ? 'Graphique Budget vs Réalisé' : 'Budget vs Actual Chart', 14, y);
+          y += 6;
+          doc.addImage(imgData, 'PNG', 14, y, imgW, imgH);
+          y += imgH + 10;
+        } catch {}
+      }
 
       // Detail table
       doc.setFontSize(13);
@@ -468,7 +498,7 @@ const BudgetAnalysisTab = () => {
             <CardTitle className="text-base font-bold">{t.budgetVsActual}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
+            <div className="h-72" ref={chartRef}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
