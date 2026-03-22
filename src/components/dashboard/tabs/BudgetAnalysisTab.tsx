@@ -340,11 +340,16 @@ const BudgetAnalysisTab = () => {
         {budgetAnalysis.map(a => {
           const over = a.actual > a.amount;
           return (
-            <Card key={a.budget.id} className={`border border-border/50 rounded-2xl ${over ? 'ring-1 ring-destructive/20' : ''}`}>
+            <Card key={a.budget.id} className={`border border-border/50 rounded-2xl glow-primary ${over ? 'ring-1 ring-destructive/20' : ''}`}>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-sm flex items-center gap-2">
                     <span>{a.budget.categories?.icon || '📁'}</span> {a.budget.name}
+                    {a.rawAmount !== a.amount && (
+                      <span className="text-[10px] font-normal text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-md">
+                        {isFr ? 'normalisé' : 'normalized'}
+                      </span>
+                    )}
                   </span>
                   <span className={`text-sm font-bold amount-display ${over ? 'text-destructive' : 'text-secondary'}`}>
                     {fmt(a.actual)} / {fmt(a.amount)}
