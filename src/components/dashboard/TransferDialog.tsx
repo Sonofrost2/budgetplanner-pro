@@ -88,7 +88,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">{t.transfer}</DialogTitle>
           <DialogDescription>{t.transferDesc}</DialogDescription>

@@ -996,25 +996,23 @@ const TransactionsPage = () => {
                 )}
               </AnimatePresence>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
-                <CategoryCombobox
-                  categories={filteredCategories}
-                  value={form.category_id}
-                  onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
-                  placeholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
-                <AccountCombobox
-                  accounts={accounts}
-                  value={form.account_id}
-                  onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
-                  placeholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><    Tag className="w-3 h-3" />{t.category}</Label>
+              <CategoryCombobox
+                categories={filteredCategories}
+                value={form.category_id}
+                onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
+                placeholder={locale === 'fr' ? 'Rechercher une catégorie...' : 'Search category...'}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={form.account_id}
+                onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
+                placeholder={locale === 'fr' ? 'Rechercher un compte...' : 'Search account...'}
+              />
             </div>
             <div className="space-y-2">
               <Label className="form-label">{t.notes} <span className="text-muted-foreground/50 font-normal normal-case">({locale === 'fr' ? 'optionnel' : 'optional'})</span></Label>
