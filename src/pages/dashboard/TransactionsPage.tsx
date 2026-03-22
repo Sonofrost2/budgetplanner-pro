@@ -929,7 +929,7 @@ const TransactionsPage = () => {
                 {errors.date && <p className="text-xs text-destructive">{errors.date}</p>}
               </div>
             </div>
-            <div className="space-y-2 relative">
+            <div className="space-y-2 relative z-30">
               <div className="flex items-center justify-between">
                 <Label className="form-label flex items-center gap-1.5"><FileText className="w-3 h-3" />{t.description}</Label>
                 {canUseAISuggestions && (
@@ -984,7 +984,7 @@ const TransactionsPage = () => {
                     initial={{ opacity: 0, y: -4, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                    className="absolute top-full left-0 right-0 z-[60] mt-1 bg-popover border border-border rounded-xl shadow-xl max-h-48 overflow-y-auto"
+                    className="relative z-10 mt-1 bg-popover border border-border rounded-xl shadow-xl max-h-48 overflow-y-auto"
                   >
                     {descriptionSuggestions.map((s, i) => {
                       const cat = categories.find(c => c.id === s.category_id);
