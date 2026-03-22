@@ -328,6 +328,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
   const [editValue, setEditValue] = useState('');
   const [customTargets, setCustomTargets] = useState<Record<string, number>>(loadTargets);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [showComparison, setShowComparison] = useState(false);
 
   const isFr = locale === 'fr';
 
