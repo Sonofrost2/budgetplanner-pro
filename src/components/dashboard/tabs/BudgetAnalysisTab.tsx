@@ -240,6 +240,31 @@ const BudgetAnalysisTab = () => {
 
       y = (doc as any).lastAutoTable.finalY + 12;
 
+      // Chart capture
+      if (chartRef.current) {
+        try {
+          const canvas = await html2canvas(chartRef.current, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            logging: false,
+          });
+          const imgData = canvas.toDataURL('image/png');
+          const imgW = 182;
+          const imgH = (canvas.height / canvas.width) * imgW;
+
+          if (y + imgH + 10 > doc.internal.pageSize.height - 20) {
+            doc.addPage();
+            y = 20;
+          }
+
+          doc.setFontSize(13);
+          doc.text(isFr ? 'Graphique Budget vs Réalisé' : 'Budget vs Actual Chart', 14, y);
+          y += 6;
+          doc.addImage(imgData, 'PNG', 14, y, imgW, imgH);
+          y += imgH + 10;
+        } catch {}
+      }
+
       // Detail table
       doc.setFontSize(13);
       doc.text(isFr ? 'Detail par Budget' : 'Budget Details', 14, y);
