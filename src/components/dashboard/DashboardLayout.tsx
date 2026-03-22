@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useTheme } from '@/hooks/useTheme';
+import type { } from '@/hooks/useTheme';
 import { useRole } from '@/hooks/useRole';
 import { supabase } from '@/integrations/supabase/client';
 import { dashT } from '@/i18n/dashTranslations';
