@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { dashT } from '@/i18n/dashTranslations';
 import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
-  Settings, LogOut, Menu, X, Sun, Moon, CreditCard, Shield,
+  Settings, LogOut, Menu, X, Sun, Moon, Monitor, CreditCard, Shield,
   Tag, Receipt, Search, Crown, Users, Landmark, RefreshCw, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ const DashboardLayout = () => {
   useRealtimeSync();
   const { user, signOut, loading: authLoading } = useAuth();
   const { locale, toggleLocale } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
+  const { mode, setMode } = useTheme();
   const { isAdmin } = useRole();
   const navigate = useNavigate();
   const location = useLocation();
@@ -215,10 +215,26 @@ const DashboardLayout = () => {
             </Badge>
           </div>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="sm" className="flex-1 justify-start gap-2 text-muted-foreground rounded-xl h-8 text-xs" onClick={toggleTheme}>
-              {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
-              <span>{theme === 'light' ? 'Sombre' : 'Clair'}</span>
-            </Button>
+            <div className="flex-1 flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40">
+              <button
+                onClick={() => setMode('light')}
+                className={`flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-medium transition-all ${mode === 'light' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <Sun className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setMode('dark')}
+                className={`flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-medium transition-all ${mode === 'dark' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <Moon className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setMode('auto')}
+                className={`flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-medium transition-all ${mode === 'auto' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <Monitor className="w-3 h-3" />
+              </button>
+            </div>
             <Button variant="ghost" size="icon" className="text-muted-foreground rounded-xl h-8 w-8" onClick={toggleLocale}>
               <Globe className="w-3.5 h-3.5" />
             </Button>
