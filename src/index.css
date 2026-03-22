@@ -356,6 +356,59 @@
   transform: translateY(-2px);
 }
 
+/* Dark mode glow utilities */
+.dark .card-interactive:hover {
+  box-shadow: var(--shadow-soft), var(--glow-primary);
+}
+
+.dark .glow-primary {
+  box-shadow: var(--glow-primary);
+}
+.dark .glow-secondary {
+  box-shadow: var(--glow-secondary);
+}
+.dark .glow-accent {
+  box-shadow: var(--glow-accent);
+}
+.dark .glow-destructive {
+  box-shadow: var(--glow-destructive);
+}
+
+/* Dark mode enhanced borders */
+.dark .glass {
+  border-color: hsl(250 80% 68% / 0.08);
+}
+.dark .glass:hover {
+  border-color: hsl(250 80% 68% / 0.15);
+}
+
+/* Dark mode sidebar glow */
+.dark .sidebar-glow {
+  box-shadow: inset -1px 0 0 0 hsl(250 80% 68% / 0.08), 4px 0 24px -4px hsl(250 80% 68% / 0.06);
+}
+
+/* Dark mode button glows */
+.dark .btn-glow-primary:hover {
+  box-shadow: 0 0 16px hsl(250 80% 68% / 0.3), 0 4px 12px -2px hsl(250 80% 68% / 0.2);
+}
+.dark .btn-glow-secondary:hover {
+  box-shadow: 0 0 16px hsl(165 60% 50% / 0.3), 0 4px 12px -2px hsl(165 60% 50% / 0.2);
+}
+.dark .btn-glow-destructive:hover {
+  box-shadow: 0 0 16px hsl(0 68% 52% / 0.3), 0 4px 12px -2px hsl(0 68% 52% / 0.2);
+}
+
+/* Dark mode focus rings */
+.dark *:focus-visible {
+  outline-color: hsl(250 80% 68% / 0.5);
+  box-shadow: 0 0 0 3px hsl(250 80% 68% / 0.15);
+}
+
+/* Dark mode text glow for headings */
+.dark .text-glow {
+  text-shadow: 0 0 24px hsl(250 80% 68% / 0.2);
+}
+
 /* Scroll area smooth */
 .scroll-smooth-touch {
   -webkit-overflow-scrolling: touch;
@@ -366,4 +419,19 @@
 .dialog-overlay-enhanced {
   backdrop-filter: blur(8px) saturate(1.2);
   -webkit-backdrop-filter: blur(8px) saturate(1.2);
+}
+.dark .dialog-overlay-enhanced {
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  background: hsl(230 25% 5% / 0.7);
+}
+
+/* Dark mode smooth transitions */
+*, *::before, *::after {
+  transition-property: color, background-color, border-color, box-shadow, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0ms;
+}
+.theme-transition, .theme-transition *, .theme-transition *::before, .theme-transition *::after {
+  transition-duration: 300ms !important;
 }
