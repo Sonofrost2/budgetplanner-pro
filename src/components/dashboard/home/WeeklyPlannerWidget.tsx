@@ -367,6 +367,32 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
     return d === 0 ? 6 : d - 1;
   }, [weekOffset]);
 
+  // Daily budget target (total weekly target / 7)
+  const dailyBudgetTarget = useMemo(() => {
+    return expenseRows.reduce((s, r) => s + r.weeklyTarget, 0) / 7;
+  }, [expenseRows]);
+
+  // Previous week data for comparison
+  const prevWeek = useMemo(() => getWeekRange(weekOffset - 1), [weekOffset]);
+  const prevWeekExpenseTxs = useMemo(() =>
+    transactions.filter(tx => tx.type === 'expense' && tx.date >= prevWeek.start && tx.date <= prevWeek.end),
+    [transactions, prevWeek]);
+  const prevWeekIncomeTxs = useMemo(() =>
+    transactions.filter(tx => tx.type === 'income' && tx.date >= prevWeek.start && tx.date <= prevWeek.end),
+    [transactions, prevWeek]);
+  const prevDailySpending = useMemo(() => {
+    const days = [0, 0, 0, 0, 0, 0, 0];
+    const ws = new Date(prevWeek.start);
+    prevWeekExpenseTxs.forEach(tx => {
+      const txDate = new Date(tx.date);
+      const diff = Math.floor((txDate.getTime() - ws.getTime()) / 86400000);
+      if (diff >= 0 && diff < 7) days[diff] += Number(tx.amount);
+    });
+    return days;
+  }, [prevWeekExpenseTxs, prevWeek.start]);
+  const prevTotalExpense = prevWeekExpenseTxs.reduce((s, tx) => s + Number(tx.amount), 0);
+  const prevTotalIncome = prevWeekIncomeTxs.reduce((s, tx) => s + Number(tx.amount), 0);
+
   // Build expense rows
   const expenseRows = useMemo(() => {
     return expenseBudgets.map(b => {
