@@ -355,7 +355,7 @@ const AccountsPage = () => {
             const discrepancy = real - theoretical;
             const isSelected = bulk.selectedIds.has(acc.id);
             return (
-              <Card key={acc.id} className={`card-interactive hover:-translate-y-1 ${Math.abs(discrepancy) > 0.01 ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
+              <Card key={acc.id} className={`card-interactive hover:-translate-y-1 glow-primary ${Math.abs(discrepancy) > 0.01 ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-bold flex items-center gap-2.5">
