@@ -367,10 +367,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
     return d === 0 ? 6 : d - 1;
   }, [weekOffset]);
 
-  // Daily budget target (total weekly target / 7)
-  const dailyBudgetTarget = useMemo(() => {
-    return expenseRows.reduce((s, r) => s + r.weeklyTarget, 0) / 7;
-  }, [expenseRows]);
+  // Daily budget target - computed after expenseRows (see below)
 
   // Previous week data for comparison
   const prevWeek = useMemo(() => getWeekRange(weekOffset - 1), [weekOffset]);
