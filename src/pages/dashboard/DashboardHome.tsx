@@ -98,7 +98,7 @@ const fadeUp = {
 const DashboardHome = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { profile, fmt: fmtCurrency } = useProfile();
+  const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodKey>('today');
