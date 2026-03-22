@@ -2,11 +2,11 @@ import { useMemo, useState, useCallback } from 'react';
 import {
   CalendarClock, TrendingDown, TrendingUp, PiggyBank,
   ChevronRight, ChevronLeft, Pencil, Check, X, Target,
-  AlertTriangle, CheckCircle2, ArrowRight, Wallet
+  AlertTriangle, CheckCircle2, ArrowRight, Wallet, Compass,
+  Flame, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import type { DashTranslations } from '@/i18n/dashTranslations';
@@ -60,7 +60,6 @@ function weekLabel(startStr: string, locale: string = 'fr') {
   return d.toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', opts);
 }
 
-/** Get the start/end of the period containing refDate */
 function getPeriodRange(period: string, refDate: Date): { start: Date; end: Date } {
   const y = refDate.getFullYear();
   const m = refDate.getMonth();
@@ -94,7 +93,6 @@ function getPeriodRange(period: string, refDate: Date): { start: Date; end: Date
   }
 }
 
-/** Check if a specific day-of-month falls within a week range */
 function dayOfMonthFallsInWeek(dayOfMonth: number, weekStart: Date, weekEnd: Date): boolean {
   for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
     if (d.getDate() === dayOfMonth) return true;
@@ -102,39 +100,27 @@ function dayOfMonthFallsInWeek(dayOfMonth: number, weekStart: Date, weekEnd: Dat
   return false;
 }
 
-/** Number of weeks in a budget period */
 function weeksInPeriod(period: string): number {
   switch (period) {
     case 'daily': return 1 / 7;
     case 'weekly': return 1;
-    case 'monthly': return 30.44 / 7; // ~4.35
-    case 'quarterly': return 91.31 / 7; // ~13.04
-    case 'semi_annual': return 182.62 / 7; // ~26.09
-    case 'yearly': return 365.25 / 7; // ~52.18
+    case 'monthly': return 30.44 / 7;
+    case 'quarterly': return 91.31 / 7;
+    case 'semi_annual': return 182.62 / 7;
+    case 'yearly': return 365.25 / 7;
     default: return 30.44 / 7;
   }
 }
 
-/**
- * Determine if a budget occurrence falls in a given week, and how many times.
- * Returns: number of occurrences (0 = not this week), or -1 = use proportional fallback.
- */
-function getOccurrencesInWeek(
-  budget: Budget,
-  weekStart: Date,
-  weekEnd: Date
-): number {
+function getOccurrencesInWeek(budget: Budget, weekStart: Date, weekEnd: Date): number {
   const freq = budget.occurrence_frequency;
   const expectedDay = budget.expected_day;
   const refDateStr = budget.reference_date;
   const activeDays = budget.active_days;
 
-  // ── If no frequency is set, check if we have an expected_day ──
   if (!freq) {
     if (expectedDay) {
-      // Treat as "once per period" at this day-of-month
       if (budget.period === 'weekly') {
-        // expectedDay is ISO weekday (1=Mon..7=Sun)
         for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
           const jsDay = d.getDay();
           const isoDay = jsDay === 0 ? 7 : jsDay;
@@ -142,14 +128,11 @@ function getOccurrencesInWeek(
         }
         return 0;
       }
-      // For monthly+ periods, expectedDay is day of month
       return dayOfMonthFallsInWeek(expectedDay, weekStart, weekEnd) ? 1 : 0;
     }
-    // No frequency, no expected_day → proportional fallback
     return -1;
   }
 
-  // ── freq = 'daily' ──
   if (freq === 'daily') {
     if (activeDays) {
       const activeDayNums = activeDays.split(',').filter(Boolean).map(Number);
@@ -164,7 +147,6 @@ function getOccurrencesInWeek(
     return 7;
   }
 
-  // ── freq = 'once' ──
   if (freq === 'once') {
     if (refDateStr) {
       const refDate = new Date(refDateStr);
@@ -182,11 +164,9 @@ function getOccurrencesInWeek(
       }
       return dayOfMonthFallsInWeek(expectedDay, weekStart, weekEnd) ? 1 : 0;
     }
-    // "once" but no date info → proportional (shouldn't happen much)
     return -1;
   }
 
-  // ── freq = 'weekly' ──
   if (freq === 'weekly') {
     if (expectedDay) {
       for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
@@ -196,10 +176,9 @@ function getOccurrencesInWeek(
       }
       return 0;
     }
-    return 1; // always 1 per week
+    return 1;
   }
 
-  // ── freq = 'biweekly' ──
   if (freq === 'biweekly') {
     if (refDateStr) {
       const refDate = new Date(refDateStr);
@@ -213,12 +192,10 @@ function getOccurrencesInWeek(
     return -1;
   }
 
-  // ── freq = 'monthly', 'quarterly', 'semi_annual', 'yearly' ──
   if (['monthly', 'quarterly', 'semi_annual', 'yearly'].includes(freq)) {
     if (refDateStr) {
       const refDate = new Date(refDateStr);
       const increment = freq === 'monthly' ? 1 : freq === 'quarterly' ? 3 : freq === 'semi_annual' ? 6 : 12;
-      // Walk from refDate to find occurrences near this week
       let d = new Date(refDate);
       const twoYearsAgo = new Date(weekStart);
       twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
@@ -233,7 +210,6 @@ function getOccurrencesInWeek(
       return 0;
     }
     if (expectedDay) {
-      // Check if the expected day of month falls in this week AND we're in the right period cycle
       if (freq === 'monthly') {
         return dayOfMonthFallsInWeek(expectedDay, weekStart, weekEnd) ? 1 : 0;
       }
@@ -264,79 +240,38 @@ function getOccurrencesInWeek(
   return -1;
 }
 
-/**
- * Compute the weekly target for a budget.
- *
- * Key rules:
- * - `budget.amount` is the TOTAL for the budget's `period` (e.g. monthly=500k)
- * - `occurrence_frequency` tells HOW the amount is distributed within the period:
- *   - 'once': full amount in the occurrence week, 0 otherwise
- *   - 'daily': amount × active_days_this_week
- *   - 'weekly': amount ÷ weeks_in_period each week
- *   - 'biweekly': amount ÷ (weeks_in_period/2) on active weeks
- *   - 'monthly'+'quarterly' etc.: amount ÷ months_in_period on occurrence weeks
- * - If no frequency: expected_day acts as 'once per period'; else proportional fallback
- */
 function computeWeeklyTarget(
   budget: Budget,
   periodSpent: number,
   weekStart: Date,
   weekEnd: Date
 ): number {
-  const { period, amount, occurrence_frequency: freq, expected_day } = budget;
+  const { period, amount, occurrence_frequency: freq } = budget;
   const occurrences = getOccurrencesInWeek(budget, weekStart, weekEnd);
 
-  // ── Occurrence is 0 → nothing expected this week ──
   if (occurrences === 0) return 0;
 
-  // ── We have a definite occurrence count ──
   if (occurrences > 0) {
-    if (freq === 'daily') {
-      // Daily budget: amount is per-day, multiply by active days this week
-      return amount * occurrences;
-    }
-
-    if (freq === 'once' || !freq) {
-      // Lump-sum: the full period amount lands this week
-      return amount;
-    }
-
-    if (freq === 'weekly') {
-      // Budget amount covers the whole period, each week gets a proportional share
-      return Math.round(amount / weeksInPeriod(period));
-    }
-
-    if (freq === 'biweekly') {
-      // Occurs every 2 weeks → total occurrences in period = weeksInPeriod/2
-      return Math.round(amount / (weeksInPeriod(period) / 2));
-    }
-
+    if (freq === 'daily') return amount * occurrences;
+    if (freq === 'once' || !freq) return amount;
+    if (freq === 'weekly') return Math.round(amount / weeksInPeriod(period));
+    if (freq === 'biweekly') return Math.round(amount / (weeksInPeriod(period) / 2));
     if (freq === 'monthly') {
-      // Occurs once per month; period amount ÷ months in period
       const monthsInPeriod = period === 'monthly' ? 1 : period === 'quarterly' ? 3 : period === 'semi_annual' ? 6 : period === 'yearly' ? 12 : 1;
       return Math.round(amount / monthsInPeriod);
     }
-
     if (freq === 'quarterly') {
       const quartersInPeriod = period === 'quarterly' ? 1 : period === 'semi_annual' ? 2 : period === 'yearly' ? 4 : 1;
       return Math.round(amount / quartersInPeriod);
     }
-
     if (freq === 'semi_annual') {
       const halves = period === 'semi_annual' ? 1 : period === 'yearly' ? 2 : 1;
       return Math.round(amount / halves);
     }
-
-    if (freq === 'yearly') {
-      return amount; // once per year
-    }
-
-    // Unknown freq with occurrences
+    if (freq === 'yearly') return amount;
     return amount;
   }
 
-  // ── Proportional fallback (occurrences === -1) ──
-  // Spread remaining budget evenly across remaining weeks in the period
   if (period === 'daily') return amount * 7;
   if (period === 'weekly') return amount;
 
@@ -347,18 +282,38 @@ function computeWeeklyTarget(
   return Math.round(remaining / wLeft);
 }
 
-/* ── localStorage helpers for custom weekly targets ───────── */
+/* ── localStorage helpers ─────────────────────────────────── */
 const STORAGE_KEY = 'weekly-planner-targets';
-
 function loadTargets(): Record<string, number> {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
 }
-
 function saveTargets(targets: Record<string, number>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(targets));
 }
+
+/* ── Progress Ring SVG ────────────────────────────────────── */
+const ProgressRing = ({ pct, size = 100, stroke = 8, color }: { pct: number; size?: number; stroke?: number; color: string }) => {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c - (Math.min(pct, 100) / 100) * c;
+  return (
+    <svg width={size} height={size} className="transform -rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} opacity={0.3} />
+      <motion.circle
+        cx={size / 2} cy={size / 2} r={r} fill="none"
+        stroke={color} strokeWidth={stroke} strokeLinecap="round"
+        strokeDasharray={c}
+        initial={{ strokeDashoffset: c }}
+        animate={{ strokeDashoffset: offset }}
+        transition={{ duration: 1, ease: 'easeOut' }}
+      />
+    </svg>
+  );
+};
+
+/* ── Day labels ───────────────────────────────────────────── */
+const DAY_LABELS_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const DAY_LABELS_EN = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 /* ── Component ─────────────────────────────────────────────── */
 export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPlannerWidgetProps) => {
@@ -370,24 +325,42 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
   const [customTargets, setCustomTargets] = useState<Record<string, number>>(loadTargets);
   const [weekOffset, setWeekOffset] = useState(0);
 
+  const isFr = (t as any).expenses === 'Dépenses' || (t as any).weeklyPlanner?.includes?.('Planificateur');
+
   const thisWeek = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
   const weekStartDate = useMemo(() => new Date(thisWeek.start), [thisWeek.start]);
   const weekEndDate = useMemo(() => new Date(thisWeek.end), [thisWeek.end]);
 
-  const expenseBudgets = useMemo(() =>
-    budgets.filter(b => b.budget_type === 'expense'), [budgets]);
+  const expenseBudgets = useMemo(() => budgets.filter(b => b.budget_type === 'expense'), [budgets]);
+  const incomeBudgets = useMemo(() => budgets.filter(b => b.budget_type === 'income'), [budgets]);
 
-  const incomeBudgets = useMemo(() =>
-    budgets.filter(b => b.budget_type === 'income'), [budgets]);
-
-  // Filter transactions for displayed week
   const weekExpenseTxs = useMemo(() =>
     transactions.filter(tx => tx.type === 'expense' && tx.date >= thisWeek.start && tx.date <= thisWeek.end),
     [transactions, thisWeek]);
-
   const weekIncomeTxs = useMemo(() =>
     transactions.filter(tx => tx.type === 'income' && tx.date >= thisWeek.start && tx.date <= thisWeek.end),
     [transactions, thisWeek]);
+
+  // Daily spending per day of week (Mon=0..Sun=6)
+  const dailySpending = useMemo(() => {
+    const days = [0, 0, 0, 0, 0, 0, 0];
+    const ws = new Date(thisWeek.start);
+    weekExpenseTxs.forEach(tx => {
+      const txDate = new Date(tx.date);
+      const diff = Math.floor((txDate.getTime() - ws.getTime()) / 86400000);
+      if (diff >= 0 && diff < 7) days[diff] += Number(tx.amount);
+    });
+    return days;
+  }, [weekExpenseTxs, thisWeek.start]);
+
+  const maxDailySpending = Math.max(...dailySpending, 1);
+
+  // Today's day index (0=Mon..6=Sun)
+  const todayIndex = useMemo(() => {
+    if (weekOffset !== 0) return -1;
+    const d = new Date().getDay();
+    return d === 0 ? 6 : d - 1;
+  }, [weekOffset]);
 
   // Build expense rows
   const expenseRows = useMemo(() => {
@@ -395,106 +368,75 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
       const range = getPeriodRange(b.period, weekStartDate);
       const rangeStart = range.start.toISOString().split('T')[0];
       const rangeEnd = range.end.toISOString().split('T')[0];
-
       const periodSpent = transactions
         .filter(tx => tx.type === 'expense' && tx.category_id === b.category_id && tx.date >= rangeStart && tx.date <= rangeEnd)
         .reduce((s, tx) => s + Number(tx.amount), 0);
-
       const autoTarget = computeWeeklyTarget(b, periodSpent, weekStartDate, weekEndDate);
       const customTarget = customTargets[b.id];
       const weeklyTarget = customTarget ?? autoTarget;
-
       const weekSpent = weekExpenseTxs
         .filter(tx => tx.category_id === b.category_id)
         .reduce((s, tx) => s + Number(tx.amount), 0);
-
       const delta = weeklyTarget - weekSpent;
       const pct = weeklyTarget > 0 ? Math.min(100, (weekSpent / weeklyTarget) * 100) : (weekSpent > 0 ? 100 : 0);
-
       return {
-        id: b.id,
-        name: b.categories?.name || b.name,
-        icon: b.categories?.icon || '📁',
-        color: b.categories?.color || '#6C63FF',
-        period: b.period,
-        budgetAmount: b.amount,
-        periodSpent,
-        autoTarget,
-        weeklyTarget,
-        isCustom: customTarget !== undefined,
-        weekSpent: Math.round(weekSpent),
-        delta: Math.round(delta),
-        pct,
+        id: b.id, name: b.categories?.name || b.name, icon: b.categories?.icon || '📁',
+        color: b.categories?.color || '#6C63FF', period: b.period, budgetAmount: b.amount,
+        periodSpent, autoTarget, weeklyTarget, isCustom: customTarget !== undefined,
+        weekSpent: Math.round(weekSpent), delta: Math.round(delta), pct,
       };
     }).filter(c => c.budgetAmount > 0);
   }, [expenseBudgets, transactions, weekExpenseTxs, weekStartDate, customTargets]);
 
-  // Build income rows
   const incomeRows = useMemo(() => {
     return incomeBudgets.map(b => {
       const range = getPeriodRange(b.period, weekStartDate);
       const rangeStart = range.start.toISOString().split('T')[0];
       const rangeEnd = range.end.toISOString().split('T')[0];
-
       const periodReceived = transactions
         .filter(tx => tx.type === 'income' && tx.category_id === b.category_id && tx.date >= rangeStart && tx.date <= rangeEnd)
         .reduce((s, tx) => s + Number(tx.amount), 0);
-
       const autoTarget = computeWeeklyTarget(b, periodReceived, weekStartDate, weekEndDate);
       const weekReceived = weekIncomeTxs
         .filter(tx => tx.category_id === b.category_id)
         .reduce((s, tx) => s + Number(tx.amount), 0);
-
       return {
-        id: b.id,
-        name: b.categories?.name || b.name,
-        icon: b.categories?.icon || '💰',
-        period: b.period,
-        weeklyTarget: autoTarget,
-        weekReceived: Math.round(weekReceived),
-        delta: Math.round(weekReceived - autoTarget),
+        id: b.id, name: b.categories?.name || b.name, icon: b.categories?.icon || '💰',
+        period: b.period, weeklyTarget: autoTarget,
+        weekReceived: Math.round(weekReceived), delta: Math.round(weekReceived - autoTarget),
       };
     }).filter(c => c.weeklyTarget > 0 || c.weekReceived > 0);
   }, [incomeBudgets, transactions, weekIncomeTxs, weekStartDate]);
 
-  // Totals
   const totalExpenseTarget = expenseRows.reduce((s, r) => s + r.weeklyTarget, 0);
   const totalExpenseSpent = expenseRows.reduce((s, r) => s + r.weekSpent, 0);
   const totalIncomeTarget = incomeRows.reduce((s, r) => s + r.weeklyTarget, 0);
   const totalIncomeReceived = incomeRows.reduce((s, r) => s + r.weekReceived, 0);
-  const netBalance = (totalIncomeReceived - totalExpenseSpent);
-  const netTarget = (totalIncomeTarget - totalExpenseTarget);
-  const totalDelta = totalExpenseTarget - totalExpenseSpent; // positive = savings
+  const netBalance = totalIncomeReceived - totalExpenseSpent;
+  const netTarget = totalIncomeTarget - totalExpenseTarget;
+  const totalDelta = totalExpenseTarget - totalExpenseSpent;
   const totalPct = totalExpenseTarget > 0 ? Math.min(100, (totalExpenseSpent / totalExpenseTarget) * 100) : 0;
 
-  // Status
-  const statusColor = totalPct < 70 ? 'text-emerald-500' : totalPct < 90 ? 'text-amber-500' : 'text-destructive';
-  const StatusIcon = totalPct < 70 ? CheckCircle2 : totalPct < 90 ? AlertTriangle : TrendingDown;
+  const ringColor = totalPct < 70 ? 'hsl(var(--secondary))' : totalPct < 90 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
+  const statusColor = totalPct < 70 ? 'text-secondary' : totalPct < 90 ? 'text-warning' : 'text-destructive';
+  const StatusIcon = totalPct < 70 ? CheckCircle2 : totalPct < 90 ? AlertTriangle : Flame;
   const statusLabel = totalPct < 70 ? t.weeklyOnTrack : totalPct < 90 ? t.weeklyAtRisk : t.weeklyOver;
 
-  // Edit handlers
   const startEdit = useCallback((id: string, current: number) => {
-    setEditingId(id);
-    setEditValue(String(current));
+    setEditingId(id); setEditValue(String(current));
   }, []);
-
   const confirmEdit = useCallback(() => {
     if (editingId && editValue) {
       const val = Math.max(0, parseInt(editValue) || 0);
       const updated = { ...customTargets, [editingId]: val };
-      setCustomTargets(updated);
-      saveTargets(updated);
+      setCustomTargets(updated); saveTargets(updated);
     }
     setEditingId(null);
   }, [editingId, editValue, customTargets]);
-
   const cancelEdit = useCallback(() => setEditingId(null), []);
-
   const resetTarget = useCallback((id: string) => {
-    const updated = { ...customTargets };
-    delete updated[id];
-    setCustomTargets(updated);
-    saveTargets(updated);
+    const updated = { ...customTargets }; delete updated[id];
+    setCustomTargets(updated); saveTargets(updated);
   }, [customTargets]);
 
   const isCurrentWeek = weekOffset === 0;
@@ -508,18 +450,20 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
     return map[p] || p;
   };
 
+  const dayLabels = isFr ? DAY_LABELS_FR : DAY_LABELS_EN;
+
   if (expenseBudgets.length === 0 && incomeBudgets.length === 0) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-        <div className="glass rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-              <CalendarClock className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <h3 className="text-sm font-bold">{t.weeklyPlanner}</h3>
+        <div className="glass rounded-2xl p-5 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+            <Compass className="w-6 h-6 text-primary" />
           </div>
-          <p className="text-xs text-muted-foreground text-center py-4">{t.weeklyNoBudgets}</p>
-          <Button size="sm" variant="outline" className="w-full rounded-xl text-xs" onClick={() => navigate('/dashboard/budgets')}>
+          <div>
+            <h3 className="text-sm font-bold">{t.weeklyPlanner}</h3>
+            <p className="text-xs text-muted-foreground mt-1">{t.weeklyNoBudgets}</p>
+          </div>
+          <Button size="sm" variant="outline" className="rounded-xl text-xs" onClick={() => navigate('/dashboard/budgets')}>
             {t.addBudget}
           </Button>
         </div>
@@ -527,286 +471,330 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
     );
   }
 
-  const renderCategoryRow = (r: typeof expenseRows[0], i: number) => {
-    const over = r.weekSpent > r.weeklyTarget;
-    const isEditing = editingId === r.id;
-
-    return (
-      <motion.div
-        key={r.id}
-        initial={{ opacity: 0, x: -6 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: i * 0.03 }}
-        className="space-y-0.5 p-1.5 rounded-lg hover:bg-muted/20 transition-colors"
-      >
-        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-1 items-center">
-          <span className="text-[11px] font-medium flex items-center gap-1 truncate">
-            <span>{r.icon}</span>
-            <span className="truncate">{r.name}</span>
-            <span className="text-[8px] text-muted-foreground/60 font-normal">({periodLabel(r.period)})</span>
-          </span>
-          <div className="w-16 flex items-center justify-end gap-0.5">
-            {isEditing ? (
-              <div className="flex items-center gap-0.5">
-                <Input
-                  type="number"
-                  value={editValue}
-                  onChange={e => setEditValue(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && confirmEdit()}
-                  className="h-5 w-14 text-[10px] px-1 text-right"
-                  autoFocus
-                />
-                <button onClick={confirmEdit} className="text-emerald-500"><Check className="w-3 h-3" /></button>
-                <button onClick={cancelEdit} className="text-muted-foreground"><X className="w-3 h-3" /></button>
-              </div>
-            ) : (
-              <button
-                onClick={() => startEdit(r.id, r.weeklyTarget)}
-                className="text-[10px] tabular-nums font-semibold text-right hover:text-primary transition-colors flex items-center gap-0.5 group"
-              >
-                {fmt(r.weeklyTarget)}
-                <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
-              </button>
-            )}
-          </div>
-          <span className={`text-[10px] tabular-nums font-semibold text-right w-16 ${over ? 'text-destructive' : ''}`}>
-            {fmt(r.weekSpent)}
-          </span>
-          <span className={`text-[10px] tabular-nums font-bold text-right w-14 flex items-center justify-end gap-0.5 ${
-            r.delta > 0 ? 'text-emerald-500' : r.delta < 0 ? 'text-destructive' : 'text-muted-foreground'
-          }`}>
-            {r.delta > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : r.delta < 0 ? <TrendingDown className="w-2.5 h-2.5" /> : null}
-            {r.delta >= 0 ? '+' : ''}{fmt(r.delta)}
-          </span>
-        </div>
-        <Progress value={r.pct} className={`h-1 rounded-full ${over ? '[&>div]:bg-destructive' : ''}`} />
-        {r.isCustom && (
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] text-muted-foreground italic">auto: {fmt(r.autoTarget)}</span>
-            <button onClick={() => resetTarget(r.id)} className="text-[9px] text-muted-foreground hover:text-foreground underline">reset</button>
-          </div>
-        )}
-      </motion.div>
-    );
-  };
-
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-      <div className="glass rounded-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 pb-2">
+      <div className="glass rounded-2xl overflow-hidden">
+        {/* ── Header with week navigation ── */}
+        <div className="flex items-center justify-between p-4 pb-0">
           <h3 className="text-sm font-bold flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-              <CalendarClock className="w-3.5 h-3.5 text-primary" />
+            <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
+              <Compass className="w-3.5 h-3.5 text-primary-foreground" />
             </div>
             {t.weeklyPlanner}
           </h3>
-          <div className="flex items-center gap-1">
-            <StatusIcon className={`w-3.5 h-3.5 ${statusColor}`} />
-            <span className={`text-[10px] font-bold ${statusColor}`}>{statusLabel}</span>
+          <div className="flex items-center gap-0.5 glass rounded-full px-1 py-0.5 border border-glass-border">
+            <button onClick={() => setWeekOffset(o => o - 1)} className="p-1 rounded-full hover:bg-muted/40 transition-colors">
+              <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+            <span className="text-[10px] font-semibold tabular-nums px-1.5 whitespace-nowrap">
+              {weekLabel(thisWeek.start)} — {weekLabel(thisWeek.end)}
+              {isCurrentWeek && <span className="ml-1 text-primary">●</span>}
+            </span>
+            <button
+              onClick={() => setWeekOffset(o => Math.min(0, o + 1))}
+              disabled={weekOffset >= 0}
+              className="p-1 rounded-full hover:bg-muted/40 transition-colors disabled:opacity-30"
+            >
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
           </div>
         </div>
 
-        {/* Week navigation */}
-        <div className="flex items-center justify-between px-4 pb-3">
-          <button onClick={() => setWeekOffset(o => o - 1)} className="p-1 rounded-lg hover:bg-muted/30 transition-colors">
-            <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
-          </button>
-          <span className="text-[11px] font-medium text-muted-foreground">
-            {weekLabel(thisWeek.start)} — {weekLabel(thisWeek.end)}
-            {isCurrentWeek && <span className="ml-1 text-primary font-bold">●</span>}
-          </span>
-          <button
-            onClick={() => setWeekOffset(o => Math.min(0, o + 1))}
-            disabled={weekOffset >= 0}
-            className="p-1 rounded-lg hover:bg-muted/30 transition-colors disabled:opacity-30"
-          >
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-          </button>
+        {/* ── Hero: Ring + Stats ── */}
+        <div className="px-4 pt-4 pb-3">
+          <div className="flex items-center gap-4">
+            {/* Progress Ring */}
+            <div className="relative shrink-0">
+              <ProgressRing pct={totalPct} size={88} stroke={7} color={ringColor} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-lg font-bold tabular-nums leading-none">{Math.round(totalPct)}%</span>
+                <span className="text-[8px] text-muted-foreground font-medium mt-0.5">
+                  {isFr ? 'utilisé' : 'used'}
+                </span>
+              </div>
+            </div>
+
+            {/* Key metrics */}
+            <div className="flex-1 min-w-0 space-y-2">
+              {/* Status badge */}
+              <div className="flex items-center gap-1.5">
+                <StatusIcon className={`w-3.5 h-3.5 ${statusColor}`} />
+                <span className={`text-[11px] font-bold ${statusColor}`}>{statusLabel}</span>
+              </div>
+
+              {/* Spent / Target */}
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base font-bold tabular-nums">{fmt(totalExpenseSpent)}</span>
+                  <span className="text-[10px] text-muted-foreground">/ {fmt(totalExpenseTarget)}</span>
+                </div>
+              </div>
+
+              {/* Delta chip */}
+              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                totalDelta >= 0
+                  ? 'bg-secondary/10 text-secondary'
+                  : 'bg-destructive/10 text-destructive'
+              }`}>
+                {totalDelta >= 0 ? <PiggyBank className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {totalDelta >= 0 ? '+' : ''}{fmt(totalDelta)}
+                <span className="font-medium opacity-70">
+                  {totalDelta >= 0 ? (isFr ? 'restant' : 'left') : (isFr ? 'dépassé' : 'over')}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="px-4 pb-4 space-y-3">
-          {/* Global expense progress */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">{t.weeklySpent}</span>
-              <span className="font-semibold tabular-nums">{fmt(totalExpenseSpent)} / {fmt(totalExpenseTarget)}</span>
-            </div>
-            <Progress
-              value={totalPct}
-              className={`h-2.5 rounded-full ${totalPct > 90 ? '[&>div]:bg-destructive' : totalPct > 70 ? '[&>div]:bg-amber-500' : ''}`}
-            />
+        {/* ── Daily spending timeline ── */}
+        <div className="px-4 pb-3">
+          <div className="flex items-end gap-1 h-10">
+            {dailySpending.map((amount, i) => {
+              const h = maxDailySpending > 0 ? Math.max(3, (amount / maxDailySpending) * 100) : 3;
+              const isToday = i === todayIndex;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                  <motion.div
+                    className="w-full rounded-t-sm"
+                    style={{
+                      background: isToday ? 'var(--gradient-primary)' : amount > 0 ? 'hsl(var(--primary) / 0.25)' : 'hsl(var(--muted) / 0.4)',
+                      minHeight: 3,
+                    }}
+                    initial={{ height: 0 }}
+                    animate={{ height: `${h}%` }}
+                    transition={{ duration: 0.5, delay: i * 0.05 }}
+                  />
+                </div>
+              );
+            })}
           </div>
-
-          {/* Delta banner */}
-          <div className={`rounded-xl p-3 flex items-center gap-3 ${
-            totalDelta >= 0
-              ? 'bg-emerald-500/10 border border-emerald-500/20'
-              : 'bg-destructive/10 border border-destructive/20'
-          }`}>
-            {totalDelta >= 0 ? (
-              <PiggyBank className="w-5 h-5 text-emerald-500 shrink-0" />
-            ) : (
-              <TrendingDown className="w-5 h-5 text-destructive shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className={`text-xs font-bold ${totalDelta >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-destructive'}`}>
-                {totalDelta >= 0 ? t.weeklySaved : t.weeklyOverspent}: {fmt(Math.abs(totalDelta))}
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {totalDelta >= 0
-                  ? (t.weeklySuggestionText as string).replace('{amount}', fmt(totalDelta))
-                  : `${t.weeklyOver} — ${t.weeklyAtRisk}`}
-              </p>
-            </div>
+          <div className="flex gap-1 mt-1">
+            {dayLabels.map((label, i) => (
+              <span key={i} className={`flex-1 text-center text-[8px] font-semibold ${
+                i === todayIndex ? 'text-primary' : 'text-muted-foreground/60'
+              }`}>
+                {label}
+              </span>
+            ))}
           </div>
+        </div>
 
-          {/* Savings action buttons */}
-          {totalDelta > 0 && isPastWeek && (
-            <div className="flex gap-2">
-              <Button
-                size="sm" variant="outline"
-                className="flex-1 h-7 text-[10px] rounded-lg border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
-                onClick={() => navigate('/dashboard/savings')}
-              >
-                <PiggyBank className="w-3 h-3 mr-1" />{t.weeklyReinvestSavings}
-              </Button>
-              <Button size="sm" variant="ghost" className="h-7 text-[10px] rounded-lg text-muted-foreground">
-                {t.weeklyKeepForLater}
-              </Button>
-            </div>
-          )}
+        {/* ── Savings action ── */}
+        {totalDelta > 0 && isPastWeek && (
+          <div className="px-4 pb-3">
+            <Button
+              size="sm" variant="outline"
+              className="w-full h-8 text-[10px] rounded-xl border-secondary/30 text-secondary hover:bg-secondary/10 gap-1.5"
+              onClick={() => navigate('/dashboard/savings')}
+            >
+              <PiggyBank className="w-3.5 h-3.5" />{t.weeklyReinvestSavings}
+            </Button>
+          </div>
+        )}
 
-          {/* ── EXPENSES section ────────────────────────── */}
+        {/* ── EXPENSE details ── */}
+        <div className="px-4 pb-1">
           <button
             onClick={() => setShowExpenseDetails(!showExpenseDetails)}
-            className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+            className="w-full flex items-center justify-between py-2 border-t border-border/30"
           >
-            <span className="font-medium flex items-center gap-1.5">
-              <Target className="w-3 h-3" />
-              {t.expenses} ({expenseRows.length})
+            <span className="text-[11px] font-bold flex items-center gap-1.5 text-foreground">
+              <Target className="w-3.5 h-3.5 text-primary" />
+              {t.expenses}
+              <span className="text-[9px] font-medium text-muted-foreground bg-muted/40 rounded-full px-1.5 py-0.5">{expenseRows.length}</span>
             </span>
-            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showExpenseDetails ? 'rotate-90' : ''}`} />
+            <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${showExpenseDetails ? 'rotate-90' : ''}`} />
           </button>
+        </div>
 
-          <AnimatePresence>
-            {showExpenseDetails && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-1 overflow-hidden"
-              >
-                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-1 px-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
-                  <span>Cat.</span>
-                  <span className="text-right w-16">{t.target}</span>
-                  <span className="text-right w-16">{t.spent}</span>
-                  <span className="text-right w-14">+/-</span>
+        <AnimatePresence>
+          {showExpenseDetails && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="px-4 pb-3 space-y-1">
+                {/* Column headers */}
+                <div className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 px-2 pb-1">
+                  <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{isFr ? 'Cat.' : 'Cat.'}</span>
+                  <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">{t.target}</span>
+                  <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">{t.spent}</span>
+                  <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">+/-</span>
                 </div>
-                {expenseRows.map(renderCategoryRow)}
+                {expenseRows.map((r, i) => {
+                  const over = r.weekSpent > r.weeklyTarget;
+                  const isEditing = editingId === r.id;
+                  return (
+                    <motion.div
+                      key={r.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className="rounded-xl hover:bg-muted/20 transition-colors p-2"
+                    >
+                      <div className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 items-center">
+                        <span className="text-[11px] font-medium flex items-center gap-1.5 truncate">
+                          <span className="w-5 h-5 rounded-lg flex items-center justify-center text-[11px] shrink-0"
+                            style={{ background: `${r.color}15` }}>{r.icon}</span>
+                          <span className="truncate">{r.name}</span>
+                        </span>
+                        <div className="flex items-center justify-end">
+                          {isEditing ? (
+                            <div className="flex items-center gap-0.5">
+                              <Input type="number" value={editValue} onChange={e => setEditValue(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && confirmEdit()}
+                                className="h-5 w-14 text-[10px] px-1 text-right" autoFocus />
+                              <button onClick={confirmEdit} className="text-secondary"><Check className="w-3 h-3" /></button>
+                              <button onClick={cancelEdit} className="text-muted-foreground"><X className="w-3 h-3" /></button>
+                            </div>
+                          ) : (
+                            <button onClick={() => startEdit(r.id, r.weeklyTarget)}
+                              className="text-[10px] tabular-nums font-semibold text-right hover:text-primary transition-colors flex items-center gap-0.5 group">
+                              {fmt(r.weeklyTarget)}
+                              <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+                            </button>
+                          )}
+                        </div>
+                        <span className={`text-[10px] tabular-nums font-semibold text-right ${over ? 'text-destructive' : ''}`}>
+                          {fmt(r.weekSpent)}
+                        </span>
+                        <span className={`text-[10px] tabular-nums font-bold text-right flex items-center justify-end gap-0.5 ${
+                          r.delta > 0 ? 'text-secondary' : r.delta < 0 ? 'text-destructive' : 'text-muted-foreground'
+                        }`}>
+                          {r.delta > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : r.delta < 0 ? <TrendingDown className="w-2.5 h-2.5" /> : null}
+                          {r.delta >= 0 ? '+' : ''}{fmt(r.delta)}
+                        </span>
+                      </div>
+                      {/* Mini progress bar */}
+                      <div className="mt-1.5 h-1 rounded-full bg-muted/30 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ background: over ? 'hsl(var(--destructive))' : r.color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(r.pct, 100)}%` }}
+                          transition={{ duration: 0.6, delay: i * 0.04 }}
+                        />
+                      </div>
+                      {r.isCustom && (
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[9px] text-muted-foreground italic">auto: {fmt(r.autoTarget)}</span>
+                          <button onClick={() => resetTarget(r.id)} className="text-[9px] text-muted-foreground hover:text-foreground underline">reset</button>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
                 {/* Totals */}
-                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-1 px-1.5 pt-2 border-t border-border/50">
+                <div className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 px-2 pt-2 border-t border-border/30">
                   <span className="text-[10px] font-bold">Total</span>
-                  <span className="text-[10px] font-bold tabular-nums text-right w-16">{fmt(totalExpenseTarget)}</span>
-                  <span className="text-[10px] font-bold tabular-nums text-right w-16">{fmt(totalExpenseSpent)}</span>
-                  <span className={`text-[10px] font-bold tabular-nums text-right w-14 ${totalDelta >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
+                  <span className="text-[10px] font-bold tabular-nums text-right">{fmt(totalExpenseTarget)}</span>
+                  <span className="text-[10px] font-bold tabular-nums text-right">{fmt(totalExpenseSpent)}</span>
+                  <span className={`text-[10px] font-bold tabular-nums text-right ${totalDelta >= 0 ? 'text-secondary' : 'text-destructive'}`}>
                     {totalDelta >= 0 ? '+' : ''}{fmt(totalDelta)}
                   </span>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          {/* ── INCOME section ──────────────────────────── */}
-          {incomeRows.length > 0 && (
-            <>
+        {/* ── INCOME details ── */}
+        {incomeRows.length > 0 && (
+          <>
+            <div className="px-4 pb-1">
               <button
                 onClick={() => setShowIncomeDetails(!showIncomeDetails)}
-                className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+                className="w-full flex items-center justify-between py-2 border-t border-border/30"
               >
-                <span className="font-medium flex items-center gap-1.5">
-                  <Wallet className="w-3 h-3" />
-                  {t.weeklyIncomeExpected} ({incomeRows.length})
+                <span className="text-[11px] font-bold flex items-center gap-1.5 text-foreground">
+                  <Wallet className="w-3.5 h-3.5 text-secondary" />
+                  {t.weeklyIncomeExpected}
+                  <span className="text-[9px] font-medium text-muted-foreground bg-muted/40 rounded-full px-1.5 py-0.5">{incomeRows.length}</span>
                 </span>
-                <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showIncomeDetails ? 'rotate-90' : ''}`} />
+                <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${showIncomeDetails ? 'rotate-90' : ''}`} />
               </button>
+            </div>
 
-              <AnimatePresence>
-                {showIncomeDetails && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-1 overflow-hidden"
-                  >
-                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-1 px-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
-                      <span>Cat.</span>
-                      <span className="text-right w-16">{t.target}</span>
-                      <span className="text-right w-16">{t.received}</span>
-                      <span className="text-right w-14">+/-</span>
+            <AnimatePresence>
+              {showIncomeDetails && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-3 space-y-1">
+                    <div className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 px-2 pb-1">
+                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{isFr ? 'Cat.' : 'Cat.'}</span>
+                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">{t.target}</span>
+                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">{t.received}</span>
+                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">+/-</span>
                     </div>
                     {incomeRows.map((r, i) => (
                       <motion.div
                         key={r.id}
-                        initial={{ opacity: 0, x: -6 }}
+                        initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.03 }}
-                        className="grid grid-cols-[1fr_auto_auto_auto] gap-1 items-center p-1.5 rounded-lg hover:bg-muted/20 transition-colors"
+                        className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 items-center p-2 rounded-xl hover:bg-muted/20 transition-colors"
                       >
-                        <span className="text-[11px] font-medium flex items-center gap-1 truncate">
+                        <span className="text-[11px] font-medium flex items-center gap-1.5 truncate">
                           <span>{r.icon}</span>
                           <span className="truncate">{r.name}</span>
-                          <span className="text-[8px] text-muted-foreground/60 font-normal">({periodLabel(r.period)})</span>
                         </span>
-                        <span className="text-[10px] tabular-nums font-semibold text-right w-16">{fmt(r.weeklyTarget)}</span>
-                        <span className="text-[10px] tabular-nums font-semibold text-right w-16">{fmt(r.weekReceived)}</span>
-                        <span className={`text-[10px] tabular-nums font-bold text-right w-14 ${
-                          r.delta > 0 ? 'text-emerald-500' : r.delta < 0 ? 'text-destructive' : 'text-muted-foreground'
+                        <span className="text-[10px] tabular-nums font-semibold text-right">{fmt(r.weeklyTarget)}</span>
+                        <span className="text-[10px] tabular-nums font-semibold text-right">{fmt(r.weekReceived)}</span>
+                        <span className={`text-[10px] tabular-nums font-bold text-right ${
+                          r.delta > 0 ? 'text-secondary' : r.delta < 0 ? 'text-destructive' : 'text-muted-foreground'
                         }`}>
                           {r.delta >= 0 ? '+' : ''}{fmt(r.delta)}
                         </span>
                       </motion.div>
                     ))}
-                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-1 px-1.5 pt-2 border-t border-border/50">
+                    <div className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 px-2 pt-2 border-t border-border/30">
                       <span className="text-[10px] font-bold">Total</span>
-                      <span className="text-[10px] font-bold tabular-nums text-right w-16">{fmt(totalIncomeTarget)}</span>
-                      <span className="text-[10px] font-bold tabular-nums text-right w-16">{fmt(totalIncomeReceived)}</span>
-                      <span className={`text-[10px] font-bold tabular-nums text-right w-14 ${
-                        totalIncomeReceived >= totalIncomeTarget ? 'text-emerald-500' : 'text-destructive'
+                      <span className="text-[10px] font-bold tabular-nums text-right">{fmt(totalIncomeTarget)}</span>
+                      <span className="text-[10px] font-bold tabular-nums text-right">{fmt(totalIncomeReceived)}</span>
+                      <span className={`text-[10px] font-bold tabular-nums text-right ${
+                        totalIncomeReceived >= totalIncomeTarget ? 'text-secondary' : 'text-destructive'
                       }`}>
                         {totalIncomeReceived >= totalIncomeTarget ? '+' : ''}{fmt(totalIncomeReceived - totalIncomeTarget)}
                       </span>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
 
-          {/* ── NET BALANCE ─────────────────────────────── */}
-          <div className="rounded-xl p-2.5 bg-muted/30 border border-border/50">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground">{t.weeklyNetBalance}</span>
-              <span className={`text-xs font-bold tabular-nums ${netBalance >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
-                {netBalance >= 0 ? '+' : ''}{fmt(netBalance)}
-              </span>
+        {/* ── Net Balance footer ── */}
+        <div className="mx-4 mb-3 rounded-xl p-3 border border-border/30" style={{ background: 'var(--gradient-hero)' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className={`w-4 h-4 ${netBalance >= 0 ? 'text-secondary' : 'text-destructive'}`} />
+              <span className="text-[11px] font-bold">{t.weeklyNetBalance}</span>
             </div>
-            {netTarget !== 0 && (
-              <div className="flex items-center justify-between mt-0.5">
-                <span className="text-[9px] text-muted-foreground">{t.target}</span>
-                <span className="text-[9px] tabular-nums text-muted-foreground">{netTarget >= 0 ? '+' : ''}{fmt(netTarget)}</span>
-              </div>
-            )}
+            <span className={`text-sm font-bold tabular-nums ${netBalance >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+              {netBalance >= 0 ? '+' : ''}{fmt(netBalance)}
+            </span>
           </div>
-
-          {/* Quick link */}
-          <button
-            onClick={() => navigate('/dashboard/budgets')}
-            className="w-full flex items-center justify-center gap-1 text-[10px] text-primary hover:underline pt-1"
-          >
-            {t.budgets} <ArrowRight className="w-3 h-3" />
-          </button>
+          {netTarget !== 0 && (
+            <div className="flex items-center justify-end mt-0.5">
+              <span className="text-[9px] text-muted-foreground tabular-nums">{t.target}: {netTarget >= 0 ? '+' : ''}{fmt(netTarget)}</span>
+            </div>
+          )}
         </div>
+
+        {/* ── Footer link ── */}
+        <button
+          onClick={() => navigate('/dashboard/budgets')}
+          className="w-full flex items-center justify-center gap-1 text-[10px] text-primary font-medium hover:underline py-2.5 border-t border-border/20"
+        >
+          {t.budgets} <ArrowRight className="w-3 h-3" />
+        </button>
       </div>
     </motion.div>
   );
