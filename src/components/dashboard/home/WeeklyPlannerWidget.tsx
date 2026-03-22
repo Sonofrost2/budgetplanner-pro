@@ -39,6 +39,7 @@ interface WeeklyPlannerWidgetProps {
   transactions: Transaction[];
   fmt: (n: number) => string;
   t: DashTranslations;
+  locale?: string;
 }
 
 /* ── date helpers ─────────────────────────────────────────── */
