@@ -3,10 +3,11 @@ import {
   CalendarClock, TrendingDown, TrendingUp, PiggyBank,
   ChevronRight, ChevronLeft, Pencil, Check, X, Target,
   AlertTriangle, CheckCircle2, ArrowRight, Wallet, Compass,
-  Flame, Zap
+  Flame, Zap, CalendarPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import type { DashTranslations } from '@/i18n/dashTranslations';
@@ -313,8 +314,10 @@ const ProgressRing = ({ pct, size = 100, stroke = 8, color }: { pct: number; siz
 };
 
 /* ── Day labels ───────────────────────────────────────────── */
-const DAY_LABELS_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-const DAY_LABELS_EN = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const DAY_LABELS_FR = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const DAY_LABELS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_SHORT_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const DAY_SHORT_EN = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 /* ── Component ─────────────────────────────────────────────── */
 export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'fr' }: WeeklyPlannerWidgetProps) => {
@@ -442,6 +445,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
 
   const isCurrentWeek = weekOffset === 0;
   const isPastWeek = weekOffset < 0;
+  const isFutureWeek = weekOffset > 0;
 
   const periodLabel = (p: string) => {
     const map: Record<string, string> = {
@@ -452,6 +456,17 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
   };
 
   const dayLabels = isFr ? DAY_LABELS_FR : DAY_LABELS_EN;
+  const dayShort = isFr ? DAY_SHORT_FR : DAY_SHORT_EN;
+
+  // Compute full day dates for tooltips
+  const dayDates = useMemo(() => {
+    const ws = new Date(thisWeek.start);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(ws);
+      d.setDate(ws.getDate() + i);
+      return d.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+    });
+  }, [thisWeek.start, isFr]);
 
   if (expenseBudgets.length === 0 && incomeBudgets.length === 0) {
     return (
@@ -490,21 +505,43 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
             <span className="text-[10px] font-semibold tabular-nums px-1.5 whitespace-nowrap">
               {weekLabel(thisWeek.start)} — {weekLabel(thisWeek.end)}
               {isCurrentWeek && <span className="ml-1 text-primary">●</span>}
+              {isFutureWeek && <span className="ml-1 text-accent">◆</span>}
             </span>
             <button
-              onClick={() => setWeekOffset(o => Math.min(0, o + 1))}
-              disabled={weekOffset >= 0}
-              className="p-1 rounded-full hover:bg-muted/40 transition-colors disabled:opacity-30"
+              onClick={() => setWeekOffset(o => o + 1)}
+              className="p-1 rounded-full hover:bg-muted/40 transition-colors"
             >
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           </div>
         </div>
 
+        {/* Future week indicator */}
+        {isFutureWeek && (
+          <div className="mx-4 mt-3 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/20">
+            <CalendarPlus className="w-3.5 h-3.5 text-accent shrink-0" />
+            <span className="text-[10px] font-medium text-accent-foreground">
+              {isFr ? 'Prévision — Objectifs budgétaires uniquement' : 'Forecast — Budget targets only'}
+            </span>
+          </div>
+        )}
+
+        {/* Quick return to current week */}
+        {!isCurrentWeek && (
+          <div className="mx-4 mt-2">
+            <button
+              onClick={() => setWeekOffset(0)}
+              className="text-[10px] font-medium text-primary hover:underline flex items-center gap-1"
+            >
+              <ArrowRight className="w-3 h-3 rotate-180" />
+              {isFr ? 'Revenir à cette semaine' : 'Back to this week'}
+            </button>
+          </div>
+        )}
+
         {/* ── Hero: Ring + Stats ── */}
         <div className="px-4 pt-4 pb-3">
           <div className="flex items-center gap-4">
-            {/* Progress Ring */}
             <div className="relative shrink-0">
               <ProgressRing pct={totalPct} size={88} stroke={7} color={ringColor} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -515,15 +552,12 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
               </div>
             </div>
 
-            {/* Key metrics */}
             <div className="flex-1 min-w-0 space-y-2">
-              {/* Status badge */}
               <div className="flex items-center gap-1.5">
                 <StatusIcon className={`w-3.5 h-3.5 ${statusColor}`} />
                 <span className={`text-[11px] font-bold ${statusColor}`}>{statusLabel}</span>
               </div>
 
-              {/* Spent / Target */}
               <div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-base font-bold tabular-nums">{fmt(totalExpenseSpent)}</span>
@@ -531,7 +565,6 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
                 </div>
               </div>
 
-              {/* Delta chip */}
               <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                 totalDelta >= 0
                   ? 'bg-secondary/10 text-secondary'
@@ -547,30 +580,45 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
           </div>
         </div>
 
-        {/* ── Daily spending timeline ── */}
+        {/* ── Daily spending timeline with tooltips ── */}
         <div className="px-4 pb-3">
-          <div className="flex items-end gap-1 h-10">
+          <div className="flex items-end gap-1.5 h-12">
             {dailySpending.map((amount, i) => {
-              const h = maxDailySpending > 0 ? Math.max(3, (amount / maxDailySpending) * 100) : 3;
+              const h = maxDailySpending > 0 ? Math.max(4, (amount / maxDailySpending) * 100) : 4;
               const isToday = i === todayIndex;
+              const isFuture = weekOffset === 0 && i > todayIndex;
               return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                  <motion.div
-                    className="w-full rounded-t-sm"
-                    style={{
-                      background: isToday ? 'var(--gradient-primary)' : amount > 0 ? 'hsl(var(--primary) / 0.25)' : 'hsl(var(--muted) / 0.4)',
-                      minHeight: 3,
-                    }}
-                    initial={{ height: 0 }}
-                    animate={{ height: `${h}%` }}
-                    transition={{ duration: 0.5, delay: i * 0.05 }}
-                  />
-                </div>
+                <Tooltip key={i}>
+                  <TooltipTrigger asChild>
+                    <div className="flex-1 flex flex-col items-center gap-0.5 cursor-pointer group">
+                      <motion.div
+                        className="w-full rounded-md group-hover:opacity-80 transition-opacity"
+                        style={{
+                          background: isToday
+                            ? 'var(--gradient-primary)'
+                            : isFuture
+                            ? 'hsl(var(--muted) / 0.25)'
+                            : amount > 0
+                            ? 'hsl(var(--primary) / 0.3)'
+                            : 'hsl(var(--muted) / 0.4)',
+                          minHeight: 4,
+                        }}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${h}%` }}
+                        transition={{ duration: 0.5, delay: i * 0.05 }}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-[10px] px-2 py-1">
+                    <p className="font-semibold">{dayDates[i]}</p>
+                    <p className="tabular-nums">{amount > 0 ? fmt(amount) : (isFr ? 'Aucune dépense' : 'No spending')}</p>
+                  </TooltipContent>
+                </Tooltip>
               );
             })}
           </div>
-          <div className="flex gap-1 mt-1">
-            {dayLabels.map((label, i) => (
+          <div className="flex gap-1.5 mt-1">
+            {dayShort.map((label, i) => (
               <span key={i} className={`flex-1 text-center text-[8px] font-semibold ${
                 i === todayIndex ? 'text-primary' : 'text-muted-foreground/60'
               }`}>
@@ -597,14 +645,19 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
         <div className="px-4 pb-1">
           <button
             onClick={() => setShowExpenseDetails(!showExpenseDetails)}
-            className="w-full flex items-center justify-between py-2 border-t border-border/30"
+            className="w-full flex items-center justify-between py-2.5 border-t border-border/30"
           >
             <span className="text-[11px] font-bold flex items-center gap-1.5 text-foreground">
               <Target className="w-3.5 h-3.5 text-primary" />
               {t.expenses}
               <span className="text-[9px] font-medium text-muted-foreground bg-muted/40 rounded-full px-1.5 py-0.5">{expenseRows.length}</span>
             </span>
-            <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${showExpenseDetails ? 'rotate-90' : ''}`} />
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] tabular-nums font-semibold text-muted-foreground">
+                {fmt(totalExpenseSpent)} / {fmt(totalExpenseTarget)}
+              </span>
+              <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${showExpenseDetails ? 'rotate-90' : ''}`} />
+            </div>
           </button>
         </div>
 
@@ -616,85 +669,103 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-3 space-y-1">
-                {/* Column headers */}
-                <div className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 px-2 pb-1">
-                  <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{isFr ? 'Cat.' : 'Cat.'}</span>
-                  <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">{t.target}</span>
-                  <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">{t.spent}</span>
-                  <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">+/-</span>
-                </div>
+              <div className="px-3 pb-3 space-y-0.5 max-h-[340px] overflow-y-auto scrollbar-thin">
                 {expenseRows.map((r, i) => {
                   const over = r.weekSpent > r.weeklyTarget;
                   const isEditing = editingId === r.id;
+                  const pctCapped = Math.min(r.pct, 100);
                   return (
                     <motion.div
                       key={r.id}
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className="rounded-xl hover:bg-muted/20 transition-colors p-2"
+                      transition={{ delay: i * 0.025 }}
+                      className="rounded-xl hover:bg-muted/20 transition-colors px-2.5 py-2"
                     >
-                      <div className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 items-center">
-                        <span className="text-[11px] font-medium flex items-center gap-1.5 truncate">
-                          <span className="w-5 h-5 rounded-lg flex items-center justify-center text-[11px] shrink-0"
-                            style={{ background: `${r.color}15` }}>{r.icon}</span>
+                      {/* Row 1: Icon + Name + Status dot */}
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="text-[11px] font-medium flex items-center gap-1.5 truncate min-w-0">
+                          <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0"
+                            style={{ background: `${r.color}18` }}>{r.icon}</span>
                           <span className="truncate">{r.name}</span>
                         </span>
-                        <div className="flex items-center justify-end">
-                          {isEditing ? (
-                            <div className="flex items-center gap-0.5">
-                              <Input type="number" value={editValue} onChange={e => setEditValue(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && confirmEdit()}
-                                className="h-5 w-14 text-[10px] px-1 text-right" autoFocus />
-                              <button onClick={confirmEdit} className="text-secondary"><Check className="w-3 h-3" /></button>
-                              <button onClick={cancelEdit} className="text-muted-foreground"><X className="w-3 h-3" /></button>
-                            </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {r.weeklyTarget === 0 && r.weekSpent === 0 ? (
+                            <span className="text-[9px] text-muted-foreground/50">—</span>
                           ) : (
-                            <button onClick={() => startEdit(r.id, r.weeklyTarget)}
-                              className="text-[10px] tabular-nums font-semibold text-right hover:text-primary transition-colors flex items-center gap-0.5 group">
-                              {fmt(r.weeklyTarget)}
-                              <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
-                            </button>
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              over ? 'bg-destructive' : r.pct > 70 ? 'bg-warning' : 'bg-secondary'
+                            }`} />
                           )}
                         </div>
-                        <span className={`text-[10px] tabular-nums font-semibold text-right ${over ? 'text-destructive' : ''}`}>
-                          {fmt(r.weekSpent)}
-                        </span>
-                        <span className={`text-[10px] tabular-nums font-bold text-right flex items-center justify-end gap-0.5 ${
-                          r.delta > 0 ? 'text-secondary' : r.delta < 0 ? 'text-destructive' : 'text-muted-foreground'
-                        }`}>
-                          {r.delta > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : r.delta < 0 ? <TrendingDown className="w-2.5 h-2.5" /> : null}
-                          {r.delta >= 0 ? '+' : ''}{fmt(r.delta)}
-                        </span>
                       </div>
-                      {/* Mini progress bar */}
-                      <div className="mt-1.5 h-1 rounded-full bg-muted/30 overflow-hidden">
-                        <motion.div
-                          className="h-full rounded-full"
-                          style={{ background: over ? 'hsl(var(--destructive))' : r.color }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(r.pct, 100)}%` }}
-                          transition={{ duration: 0.6, delay: i * 0.04 }}
-                        />
-                      </div>
-                      {r.isCustom && (
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-[9px] text-muted-foreground italic">auto: {fmt(r.autoTarget)}</span>
-                          <button onClick={() => resetTarget(r.id)} className="text-[9px] text-muted-foreground hover:text-foreground underline">reset</button>
-                        </div>
+
+                      {/* Row 2: Target / Spent / Delta — only if there's data */}
+                      {(r.weeklyTarget > 0 || r.weekSpent > 0) && (
+                        <>
+                          <div className="flex items-center justify-between gap-2 text-[10px] tabular-nums">
+                            <div className="flex items-center gap-0.5">
+                              {isEditing ? (
+                                <div className="flex items-center gap-0.5">
+                                  <Input type="number" value={editValue} onChange={e => setEditValue(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && confirmEdit()}
+                                    className="h-5 w-16 text-[10px] px-1 text-right rounded-md" autoFocus />
+                                  <button onClick={confirmEdit} className="text-secondary p-0.5"><Check className="w-3 h-3" /></button>
+                                  <button onClick={cancelEdit} className="text-muted-foreground p-0.5"><X className="w-3 h-3" /></button>
+                                </div>
+                              ) : (
+                                <button onClick={() => startEdit(r.id, r.weeklyTarget)}
+                                  className="font-semibold text-muted-foreground hover:text-primary transition-colors flex items-center gap-0.5 group">
+                                  {isFr ? 'Obj' : 'Tgt'}: {fmt(r.weeklyTarget)}
+                                  <Pencil className="w-2 h-2 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`font-semibold ${over ? 'text-destructive' : ''}`}>
+                                {fmt(r.weekSpent)}
+                              </span>
+                              <span className={`font-bold flex items-center gap-0.5 min-w-[3.5rem] justify-end ${
+                                r.delta > 0 ? 'text-secondary' : r.delta < 0 ? 'text-destructive' : 'text-muted-foreground'
+                              }`}>
+                                {r.delta > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : r.delta < 0 ? <TrendingDown className="w-2.5 h-2.5" /> : null}
+                                {r.delta >= 0 ? '+' : ''}{fmt(r.delta)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="mt-1.5 h-1 rounded-full bg-muted/30 overflow-hidden">
+                            <motion.div
+                              className="h-full rounded-full"
+                              style={{ background: over ? 'hsl(var(--destructive))' : r.color }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pctCapped}%` }}
+                              transition={{ duration: 0.6, delay: i * 0.03 }}
+                            />
+                          </div>
+
+                          {r.isCustom && (
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-[9px] text-muted-foreground italic">auto: {fmt(r.autoTarget)}</span>
+                              <button onClick={() => resetTarget(r.id)} className="text-[9px] text-muted-foreground hover:text-foreground underline">reset</button>
+                            </div>
+                          )}
+                        </>
                       )}
                     </motion.div>
                   );
                 })}
                 {/* Totals */}
-                <div className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 px-2 pt-2 border-t border-border/30">
+                <div className="flex items-center justify-between px-2.5 pt-2 border-t border-border/30">
                   <span className="text-[10px] font-bold">Total</span>
-                  <span className="text-[10px] font-bold tabular-nums text-right">{fmt(totalExpenseTarget)}</span>
-                  <span className="text-[10px] font-bold tabular-nums text-right">{fmt(totalExpenseSpent)}</span>
-                  <span className={`text-[10px] font-bold tabular-nums text-right ${totalDelta >= 0 ? 'text-secondary' : 'text-destructive'}`}>
-                    {totalDelta >= 0 ? '+' : ''}{fmt(totalDelta)}
-                  </span>
+                  <div className="flex items-center gap-3 text-[10px] font-bold tabular-nums">
+                    <span className="text-muted-foreground">{fmt(totalExpenseTarget)}</span>
+                    <span>{fmt(totalExpenseSpent)}</span>
+                    <span className={`min-w-[3.5rem] text-right ${totalDelta >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                      {totalDelta >= 0 ? '+' : ''}{fmt(totalDelta)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -707,14 +778,19 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
             <div className="px-4 pb-1">
               <button
                 onClick={() => setShowIncomeDetails(!showIncomeDetails)}
-                className="w-full flex items-center justify-between py-2 border-t border-border/30"
+                className="w-full flex items-center justify-between py-2.5 border-t border-border/30"
               >
                 <span className="text-[11px] font-bold flex items-center gap-1.5 text-foreground">
                   <Wallet className="w-3.5 h-3.5 text-secondary" />
                   {t.weeklyIncomeExpected}
                   <span className="text-[9px] font-medium text-muted-foreground bg-muted/40 rounded-full px-1.5 py-0.5">{incomeRows.length}</span>
                 </span>
-                <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${showIncomeDetails ? 'rotate-90' : ''}`} />
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] tabular-nums font-semibold text-muted-foreground">
+                    {fmt(totalIncomeReceived)} / {fmt(totalIncomeTarget)}
+                  </span>
+                  <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${showIncomeDetails ? 'rotate-90' : ''}`} />
+                </div>
               </button>
             </div>
 
@@ -726,43 +802,56 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 pb-3 space-y-1">
-                    <div className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 px-2 pb-1">
-                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{isFr ? 'Cat.' : 'Cat.'}</span>
-                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">{t.target}</span>
-                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">{t.received}</span>
-                      <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest text-right">+/-</span>
-                    </div>
+                  <div className="px-3 pb-3 space-y-0.5 max-h-[260px] overflow-y-auto scrollbar-thin">
                     {incomeRows.map((r, i) => (
                       <motion.div
                         key={r.id}
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.03 }}
-                        className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 items-center p-2 rounded-xl hover:bg-muted/20 transition-colors"
+                        transition={{ delay: i * 0.025 }}
+                        className="rounded-xl hover:bg-muted/20 transition-colors px-2.5 py-2"
                       >
-                        <span className="text-[11px] font-medium flex items-center gap-1.5 truncate">
-                          <span>{r.icon}</span>
-                          <span className="truncate">{r.name}</span>
-                        </span>
-                        <span className="text-[10px] tabular-nums font-semibold text-right">{fmt(r.weeklyTarget)}</span>
-                        <span className="text-[10px] tabular-nums font-semibold text-right">{fmt(r.weekReceived)}</span>
-                        <span className={`text-[10px] tabular-nums font-bold text-right ${
-                          r.delta > 0 ? 'text-secondary' : r.delta < 0 ? 'text-destructive' : 'text-muted-foreground'
-                        }`}>
-                          {r.delta >= 0 ? '+' : ''}{fmt(r.delta)}
-                        </span>
+                        {/* Name row */}
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-[11px] font-medium flex items-center gap-1.5 truncate min-w-0">
+                            <span>{r.icon}</span>
+                            <span className="truncate">{r.name}</span>
+                          </span>
+                          {(r.weeklyTarget > 0 || r.weekReceived > 0) && (
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              r.weekReceived >= r.weeklyTarget ? 'bg-secondary' : 'bg-warning'
+                            }`} />
+                          )}
+                        </div>
+                        {/* Data row */}
+                        {(r.weeklyTarget > 0 || r.weekReceived > 0) && (
+                          <div className="flex items-center justify-between gap-2 text-[10px] tabular-nums">
+                            <span className="font-semibold text-muted-foreground">
+                              {isFr ? 'Obj' : 'Tgt'}: {fmt(r.weeklyTarget)}
+                            </span>
+                            <div className="flex items-center gap-3">
+                              <span className="font-semibold">{fmt(r.weekReceived)}</span>
+                              <span className={`font-bold min-w-[3.5rem] text-right ${
+                                r.delta > 0 ? 'text-secondary' : r.delta < 0 ? 'text-destructive' : 'text-muted-foreground'
+                              }`}>
+                                {r.delta >= 0 ? '+' : ''}{fmt(r.delta)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </motion.div>
                     ))}
-                    <div className="grid grid-cols-[1fr_4.5rem_4.5rem_3.5rem] gap-1 px-2 pt-2 border-t border-border/30">
+                    <div className="flex items-center justify-between px-2.5 pt-2 border-t border-border/30">
                       <span className="text-[10px] font-bold">Total</span>
-                      <span className="text-[10px] font-bold tabular-nums text-right">{fmt(totalIncomeTarget)}</span>
-                      <span className="text-[10px] font-bold tabular-nums text-right">{fmt(totalIncomeReceived)}</span>
-                      <span className={`text-[10px] font-bold tabular-nums text-right ${
-                        totalIncomeReceived >= totalIncomeTarget ? 'text-secondary' : 'text-destructive'
-                      }`}>
-                        {totalIncomeReceived >= totalIncomeTarget ? '+' : ''}{fmt(totalIncomeReceived - totalIncomeTarget)}
-                      </span>
+                      <div className="flex items-center gap-3 text-[10px] font-bold tabular-nums">
+                        <span className="text-muted-foreground">{fmt(totalIncomeTarget)}</span>
+                        <span>{fmt(totalIncomeReceived)}</span>
+                        <span className={`min-w-[3.5rem] text-right ${
+                          totalIncomeReceived >= totalIncomeTarget ? 'text-secondary' : 'text-destructive'
+                        }`}>
+                          {totalIncomeReceived >= totalIncomeTarget ? '+' : ''}{fmt(totalIncomeReceived - totalIncomeTarget)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
