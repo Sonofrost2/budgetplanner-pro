@@ -247,7 +247,7 @@ const DashboardHome = () => {
 
   // Widget render map
   const widgetRenderers: Record<WidgetId, ReactNode> = {
-    planner: <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} />,
+    planner: <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} locale={locale} />,
     accounts: <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />,
     charts: <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} locale={locale} />,
     budgets: <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />,
