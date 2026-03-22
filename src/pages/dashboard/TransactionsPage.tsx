@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles, ArrowLeftRight, AlertTriangle, BarChart3, Loader2, Filter } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles, ArrowLeftRight, AlertTriangle, BarChart3, Loader2, Filter, Clock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,10 +32,31 @@ import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
 type SortOrder = 'asc' | 'desc';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.04 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 8, scale: 0.98 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.25, ease: 'easeOut' } },
+  exit: { opacity: 0, x: -20, transition: { duration: 0.2 } },
+};
+
+const fadeScale = {
+  initial: { opacity: 0, scale: 0.95 },
+  animate: { opacity: 1, scale: 1, transition: { duration: 0.3 } },
+  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
+};
 
 const TransactionsPage = () => {
   const { user } = useAuth();
@@ -127,7 +148,6 @@ const TransactionsPage = () => {
         .order('date', { ascending: false })
         .limit(500);
       if (error) throw error;
-      // Deduplicate by description
       const seen = new Set<string>();
       return (data ?? []).filter(tx => {
         const key = tx.description.toLowerCase();
@@ -146,7 +166,6 @@ const TransactionsPage = () => {
 
   const refreshData = () => {
     invalidate('paginated-transactions', 'accounts', 'chart-data', 'transactions', 'all-transactions', 'budget-spending', 'category-tx-counts');
-    // Also invalidate month count
     invalidate('tx-month-count', 'tx-descriptions');
   };
 
@@ -208,11 +227,6 @@ const TransactionsPage = () => {
 
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
-    const affectedAccounts = new Set<string>();
-    ids.forEach(id => {
-      const tx = transactions.find(t => t.id === id);
-      if (tx?.account_id) affectedAccounts.add(tx.account_id);
-    });
     const { error } = await supabase.from('transactions').delete().in('id', ids);
     if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
     setSelectedIds(new Set());
@@ -287,7 +301,6 @@ const TransactionsPage = () => {
 
   const checkBudgetOverspend = async (): Promise<boolean> => {
     if (!user || form.type !== 'expense' || !form.category_id) return true;
-    // Check if there's a budget for this category
     const { data: budgets } = await supabase
       .from('budgets')
       .select('id, name, amount, period, control_type')
@@ -298,26 +311,25 @@ const TransactionsPage = () => {
     if (!budgets || budgets.length === 0) return true;
 
     const budget = budgets[0];
-    // Calculate period dates
     const now = new Date();
-    let startDate: string, endDate: string;
+    let sd: string, ed: string;
     if (budget.period === 'weekly') {
       const d = new Date(now); d.setDate(d.getDate() - d.getDay());
-      startDate = d.toISOString().split('T')[0];
+      sd = d.toISOString().split('T')[0];
       const e = new Date(d); e.setDate(e.getDate() + 6);
-      endDate = e.toISOString().split('T')[0];
+      ed = e.toISOString().split('T')[0];
     } else if (budget.period === 'yearly') {
-      startDate = `${now.getFullYear()}-01-01`;
-      endDate = `${now.getFullYear()}-12-31`;
+      sd = `${now.getFullYear()}-01-01`;
+      ed = `${now.getFullYear()}-12-31`;
     } else {
-      startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      sd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-      endDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${lastDay}`;
+      ed = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${lastDay}`;
     }
 
     const { data: spentData } = await supabase.rpc('get_budget_spending', {
       p_user_id: user.id, p_category_id: form.category_id, p_type: 'expense',
-      p_start_date: startDate, p_end_date: endDate,
+      p_start_date: sd, p_end_date: ed,
     });
     const spent = Number(spentData) || 0;
     const newTotal = spent + Number(form.amount);
@@ -325,7 +337,7 @@ const TransactionsPage = () => {
     if (newTotal > Number(budget.amount)) {
       setOverspendBudgetName(budget.name);
       setBudgetOverspendOpen(true);
-      return false; // Don't save yet
+      return false;
     }
     return true;
   };
@@ -339,7 +351,6 @@ const TransactionsPage = () => {
       date: form.date, notes: form.notes.trim() || null,
     };
 
-    // Check budget overspend only for new expenses (not editing)
     if (!editing && form.type === 'expense') {
       const canProceed = await checkBudgetOverspend();
       if (!canProceed) { setSaving(false); return; }
@@ -377,7 +388,6 @@ const TransactionsPage = () => {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    const txToDelete = transactions.find(tx => tx.id === deleteId);
     const { error } = await supabase.from('transactions').delete().eq('id', deleteId);
     if (error) { toast.error(error.message); setDeleteId(null); return; }
     setDeleteId(null);
@@ -422,7 +432,11 @@ const TransactionsPage = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between"><Skeleton className="h-8 w-48" /><Skeleton className="h-9 w-40" /></div>
         <div className="flex gap-3"><Skeleton className="h-10 w-40" /><Skeleton className="h-10 w-48" /></div>
-        <Skeleton className="h-96 rounded-xl" />
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 rounded-xl" style={{ animationDelay: `${i * 100}ms` }} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -430,13 +444,32 @@ const TransactionsPage = () => {
   const filteredCategories = categories.filter(c => c.type === form.type);
   const isEmpty = totalCount === 0 && !hasActiveFilters;
 
+  const activeFilterCount = [
+    filterType !== 'all',
+    filterCategory !== 'all',
+    filterAccount !== 'all',
+    !!startDate,
+    !!endDate,
+  ].filter(Boolean).length;
+
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-5"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+    >
       <Tabs defaultValue="manage">
-        <TabsList className="rounded-xl mb-4">
-          <TabsTrigger value="manage" className="rounded-lg gap-1.5"><ArrowUpDown className="w-4 h-4" />{t.management}</TabsTrigger>
-          <TabsTrigger value="stats" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{t.transactionsStats}</TabsTrigger>
-        </TabsList>
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.3 }}
+        >
+          <TabsList className="rounded-xl mb-4 bg-muted/50 p-1">
+            <TabsTrigger value="manage" className="rounded-lg gap-1.5 data-[state=active]:shadow-sm transition-all"><ArrowUpDown className="w-4 h-4" />{t.management}</TabsTrigger>
+            <TabsTrigger value="stats" className="rounded-lg gap-1.5 data-[state=active]:shadow-sm transition-all"><BarChart3 className="w-4 h-4" />{t.transactionsStats}</TabsTrigger>
+          </TabsList>
+        </motion.div>
 
         <TabsContent value="stats">
           <TransactionsStatsTab />
@@ -445,264 +478,412 @@ const TransactionsPage = () => {
         <TabsContent value="manage">
       {limitReached && <UpgradeBanner message={t.limitReachedTransactions(thisMonthCount, limits.transactionsPerMonth)} />}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold font-display">{t.allTransactions}
-          {!isPremium && <span className="text-sm font-normal text-muted-foreground ml-2">({thisMonthCount}/{limits.transactionsPerMonth})</span>}
-        </h2>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
-            <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
-          </Button>
-          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
-            <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
-          </Button>
+      {/* Header */}
+      <motion.div
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        initial={{ opacity: 0, x: -12 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.15, duration: 0.3 }}
+      >
+        <div>
+          <h2 className="text-2xl font-bold font-display">{t.allTransactions}
+            {!isPremium && <span className="text-sm font-normal text-muted-foreground ml-2">({thisMonthCount}/{limits.transactionsPerMonth})</span>}
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">{totalCount} {t.results}</p>
         </div>
-      </div>
+        <div className="flex gap-2">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
+              <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button size="sm" className="text-primary-foreground rounded-xl shadow-md hover:shadow-lg transition-shadow" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
+              <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
+            </Button>
+          </motion.div>
+        </div>
+      </motion.div>
 
       {/* Filters */}
-      <Card className="border border-border/50 rounded-2xl">
-        <CardContent className="p-3 sm:p-4">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row gap-2">
-              {/* Search */}
-              <div className="relative flex-1 min-w-[200px] group">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <Input
-                  placeholder={t.search + '...'}
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-9 rounded-xl h-10 bg-background/60 border-border/40 transition-all duration-300 focus:bg-background focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.08)] hover:border-border/60 hover:bg-background/80 text-sm"
-                />
-                {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded-full hover:bg-muted/50">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Type filter */}
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="h-10 w-36 rounded-xl text-xs font-medium border-border/40 bg-background/60 hover:bg-background/80 transition-colors">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t.all}</SelectItem>
-                  <SelectItem value="income">📈 {t.incomeType}</SelectItem>
-                  <SelectItem value="expense">📉 {t.expenseType}</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Category popover */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-colors min-w-[160px] justify-start font-medium">
-                    <Tag className="w-3.5 h-3.5 text-muted-foreground" />
-                    {filterCategory !== 'all'
-                      ? (() => { const cat = categories.find(c => c.id === filterCategory); return cat ? `${cat.icon} ${cat.name}` : t.category; })()
-                      : `${t.all} ${t.category}`
-                    }
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
-                  <div className="p-2.5 border-b border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-muted-foreground">{locale === 'fr' ? 'Filtrer par catégorie' : 'Filter by category'}</span>
-                      {filterCategory !== 'all' && (
-                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive" onClick={() => setFilterCategory('all')}>
-                          <X className="w-3 h-3 mr-0.5" />{locale === 'fr' ? 'Réinitialiser' : 'Reset'}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <ScrollArea className="h-72">
-                    <div className="p-2">
-                      {/* All option */}
-                      <button
-                        onClick={() => setFilterCategory('all')}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${filterCategory === 'all' ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted/50'}`}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
+      >
+        <Card className="border border-border/40 rounded-2xl bg-card/80 backdrop-blur-sm overflow-hidden">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                {/* Search with enhanced animation */}
+                <div className="relative flex-1 min-w-[200px] group">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors duration-300" />
+                  <Input
+                    placeholder={t.search + '...'}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-9 rounded-xl h-10 bg-background/60 border-border/40 transition-all duration-300 focus:bg-background focus:border-primary/40 focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.08)] hover:border-border/60 hover:bg-background/80 text-sm"
+                  />
+                  <AnimatePresence>
+                    {searchQuery && (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.5 }}
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded-full hover:bg-muted/50"
                       >
-                        <span className="text-base">📋</span>
-                        <span>{t.all} {t.category}</span>
-                      </button>
+                        <X className="w-3.5 h-3.5" />
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-                      {/* Income categories */}
-                      {categories.filter(c => c.type === 'income').length > 0 && (
-                        <>
-                          <div className="px-3 py-2 mt-2 text-[10px] font-bold uppercase tracking-wider text-secondary flex items-center gap-1.5">
-                            <TrendingUp className="w-3 h-3" /> {t.incomeType}
-                          </div>
-                          {categories.filter(c => c.type === 'income').map(c => (
-                            <button
-                              key={c.id}
-                              onClick={() => setFilterCategory(filterCategory === c.id ? 'all' : c.id)}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${filterCategory === c.id ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted/50'}`}
-                            >
-                              <span className="text-base">{c.icon}</span>
-                              <span className="truncate">{c.name}</span>
-                            </button>
-                          ))}
-                        </>
+                {/* Type filter pills */}
+                <div className="flex gap-1 p-0.5 bg-muted/40 rounded-xl">
+                  {[
+                    { value: 'all', label: t.all, icon: null },
+                    { value: 'income', label: t.incomeType, icon: <TrendingUp className="w-3.5 h-3.5" /> },
+                    { value: 'expense', label: t.expenseType, icon: <TrendingDown className="w-3.5 h-3.5" /> },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setFilterType(opt.value)}
+                      className={`relative flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                        filterType === opt.value
+                          ? 'text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {filterType === opt.value && (
+                        <motion.div
+                          layoutId="typeFilter"
+                          className="absolute inset-0 bg-background rounded-lg shadow-sm border border-border/50"
+                          transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                        />
                       )}
+                      <span className="relative flex items-center gap-1">
+                        {opt.icon}
+                        <span className="hidden sm:inline">{opt.label}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
 
-                      {/* Expense categories */}
-                      {categories.filter(c => c.type === 'expense').length > 0 && (
-                        <>
-                          <div className="px-3 py-2 mt-2 text-[10px] font-bold uppercase tracking-wider text-destructive flex items-center gap-1.5">
-                            <TrendingDown className="w-3 h-3" /> {t.expenseType}
-                          </div>
-                          {categories.filter(c => c.type === 'expense').map(c => (
-                            <button
-                              key={c.id}
-                              onClick={() => setFilterCategory(filterCategory === c.id ? 'all' : c.id)}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${filterCategory === c.id ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted/50'}`}
-                            >
-                              <span className="text-base">{c.icon}</span>
-                              <span className="truncate">{c.name}</span>
-                            </button>
-                          ))}
-                        </>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-
-              {/* Account popover */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-colors min-w-[160px] justify-start font-medium">
-                    <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                    {filterAccount !== 'all'
-                      ? (() => { const acc = accounts.find(a => a.id === filterAccount); return acc ? `${acc.icon} ${acc.name}` : t.allAccounts; })()
-                      : t.allAccounts
-                    }
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-72 p-0" align="start">
-                  <div className="p-2.5 border-b border-border">
-                    <span className="text-xs font-semibold text-muted-foreground">{locale === 'fr' ? 'Filtrer par compte' : 'Filter by account'}</span>
-                  </div>
-                  <ScrollArea className="h-64">
-                    <div className="p-2">
-                      <button
-                        onClick={() => setFilterAccount('all')}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${filterAccount === 'all' ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted/50'}`}
-                      >
-                        <span className="text-base">🏦</span>
-                        <span>{t.allAccounts}</span>
-                      </button>
-                      {accounts.map(a => (
-                        <button
-                          key={a.id}
-                          onClick={() => setFilterAccount(filterAccount === a.id ? 'all' : a.id)}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${filterAccount === a.id ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-muted/50'}`}
-                        >
-                          <span className="text-base">{a.icon}</span>
-                          <span className="truncate">{a.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Date range + clear */}
-            <div className="flex flex-wrap gap-2 items-center">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
-                <span className="text-xs text-muted-foreground">→</span>
-                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
-              </div>
-              {hasActiveFilters && (
-                <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-destructive gap-1 transition-all" onClick={clearFilters}>
-                  <X className="w-3.5 h-3.5" />{t.clearFilters}
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {someSelected && (
-        <BulkActionBar
-          count={selectedIds.size}
-          onDelete={() => setBulkDeleteOpen(true)}
-          onModify={() => { setBulkModifyForm({ category_id: '', account_id: '' }); setBulkModifyOpen(true); }}
-          onDuplicate={handleBulkDuplicate}
-          onExportCSV={canExportAdvanced ? () => handleExportSelection('csv') : undefined}
-          onExportExcel={canExportAdvanced ? () => handleExportSelection('excel') : undefined}
-          onClear={() => setSelectedIds(new Set())}
-        />
-      )}
-
-      {/* Transactions list */}
-      <Card className={`card-interactive overflow-hidden ${txFetching && !txLoading ? 'opacity-70 transition-opacity' : ''}`}>
-        <CardContent className="p-0">
-          {transactions.length === 0 ? (
-            <div className="py-16 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center"><Inbox className="w-7 h-7 text-muted-foreground/40" /></div>
-              {isEmpty ? (
-                <>
-                  <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noTransactions}</p>
-                  <p className="text-sm text-muted-foreground/70 mb-4">{t.addFirstTransaction}</p>
-                  <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addTransaction}</Button>
-                </>
-              ) : (
-                <p className="text-lg font-semibold text-muted-foreground">{t.noResults}</p>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-4 px-5 py-2.5 bg-muted/30 border-b border-border/50 text-xs font-semibold text-muted-foreground">
-                <div className="w-8 flex-shrink-0"><Checkbox checked={allPageSelected} onCheckedChange={toggleSelectAll} /></div>
-                <button className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={() => toggleSort('date')}>
-                  {t.date} <ArrowUpDown className="w-3 h-3" />{sortField === 'date' && <span className="text-primary">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
-                </button>
-                <div className="flex-1" />
-                <button className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={() => toggleSort('description')}>
-                  {t.description} <ArrowUpDown className="w-3 h-3" />{sortField === 'description' && <span className="text-primary">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
-                </button>
-                <div className="flex-1" />
-                <button className="flex items-center gap-1 hover:text-foreground transition-colors" onClick={() => toggleSort('amount')}>
-                  {t.amount} <ArrowUpDown className="w-3 h-3" />{sortField === 'amount' && <span className="text-primary">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
-                </button>
-              </div>
-              <div className="divide-y divide-border/50">
-                {transactions.map(tx => (
-                  <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors ${selectedIds.has(tx.id) ? 'bg-primary/5' : ''}`}>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 flex-shrink-0"><Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => toggleSelect(tx.id)} /></div>
-                      <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center text-lg flex-shrink-0">{tx.categories?.icon || '📁'}</div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">{tx.description}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </p>
+                {/* Category popover */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={`h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-all duration-200 min-w-[140px] justify-start font-medium ${filterCategory !== 'all' ? 'border-primary/30 bg-primary/5 text-primary' : ''}`}>
+                      <Tag className="w-3.5 h-3.5" />
+                      {filterCategory !== 'all'
+                        ? (() => { const cat = categories.find(c => c.id === filterCategory); return cat ? `${cat.icon} ${cat.name}` : t.category; })()
+                        : t.category
+                      }
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0 rounded-xl overflow-hidden" align="start">
+                    <div className="p-3 border-b border-border/50 bg-muted/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-muted-foreground">{locale === 'fr' ? 'Filtrer par catégorie' : 'Filter by category'}</span>
+                        {filterCategory !== 'all' && (
+                          <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive" onClick={() => setFilterCategory('all')}>
+                            <X className="w-3 h-3 mr-0.5" />{locale === 'fr' ? 'Réinitialiser' : 'Reset'}
+                          </Button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`text-sm font-bold ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
-                        {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
-                      </span>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => openEdit(tx)}><Pencil className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive" onClick={() => setDeleteId(tx.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    <ScrollArea className="h-72">
+                      <div className="p-2">
+                        <button
+                          onClick={() => setFilterCategory('all')}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${filterCategory === 'all' ? 'bg-primary/10 text-primary font-semibold shadow-sm' : 'hover:bg-muted/50'}`}
+                        >
+                          <span className="text-base">📋</span>
+                          <span>{t.all} {t.category}</span>
+                        </button>
+
+                        {categories.filter(c => c.type === 'income').length > 0 && (
+                          <>
+                            <div className="px-3 py-2 mt-3 text-[10px] font-bold uppercase tracking-wider text-secondary flex items-center gap-1.5">
+                              <TrendingUp className="w-3 h-3" /> {t.incomeType}
+                            </div>
+                            {categories.filter(c => c.type === 'income').map(c => (
+                              <button
+                                key={c.id}
+                                onClick={() => setFilterCategory(filterCategory === c.id ? 'all' : c.id)}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${filterCategory === c.id ? 'bg-primary/10 text-primary font-semibold shadow-sm' : 'hover:bg-muted/50'}`}
+                              >
+                                <span className="text-base">{c.icon}</span>
+                                <span className="truncate">{c.name}</span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+
+                        {categories.filter(c => c.type === 'expense').length > 0 && (
+                          <>
+                            <div className="px-3 py-2 mt-3 text-[10px] font-bold uppercase tracking-wider text-destructive flex items-center gap-1.5">
+                              <TrendingDown className="w-3 h-3" /> {t.expenseType}
+                            </div>
+                            {categories.filter(c => c.type === 'expense').map(c => (
+                              <button
+                                key={c.id}
+                                onClick={() => setFilterCategory(filterCategory === c.id ? 'all' : c.id)}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${filterCategory === c.id ? 'bg-primary/10 text-primary font-semibold shadow-sm' : 'hover:bg-muted/50'}`}
+                              >
+                                <span className="text-base">{c.icon}</span>
+                                <span className="truncate">{c.name}</span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Account popover */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={`h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-all duration-200 min-w-[140px] justify-start font-medium ${filterAccount !== 'all' ? 'border-primary/30 bg-primary/5 text-primary' : ''}`}>
+                      <CreditCard className="w-3.5 h-3.5" />
+                      {filterAccount !== 'all'
+                        ? (() => { const acc = accounts.find(a => a.id === filterAccount); return acc ? `${acc.icon} ${acc.name}` : t.allAccounts; })()
+                        : t.allAccounts
+                      }
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-0 rounded-xl overflow-hidden" align="start">
+                    <div className="p-3 border-b border-border/50 bg-muted/30">
+                      <span className="text-xs font-semibold text-muted-foreground">{locale === 'fr' ? 'Filtrer par compte' : 'Filter by account'}</span>
                     </div>
-                  </div>
-                ))}
+                    <ScrollArea className="h-64">
+                      <div className="p-2">
+                        <button
+                          onClick={() => setFilterAccount('all')}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${filterAccount === 'all' ? 'bg-primary/10 text-primary font-semibold shadow-sm' : 'hover:bg-muted/50'}`}
+                        >
+                          <span className="text-base">🏦</span>
+                          <span>{t.allAccounts}</span>
+                        </button>
+                        {accounts.map(a => (
+                          <button
+                            key={a.id}
+                            onClick={() => setFilterAccount(filterAccount === a.id ? 'all' : a.id)}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${filterAccount === a.id ? 'bg-primary/10 text-primary font-semibold shadow-sm' : 'hover:bg-muted/50'}`}
+                          >
+                            <span className="text-base">{a.icon}</span>
+                            <span className="truncate">{a.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
               </div>
-              <div className="flex items-center justify-between px-5 py-3.5 border-t border-border/50 bg-muted/20">
-                <span className="text-xs text-muted-foreground">{totalCount} {t.results} — {t.page} {page + 1}/{totalPages}</span>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="rounded-xl h-8" disabled={page === 0} onClick={() => setPage(p => p - 1)}><ChevronLeft className="w-3.5 h-3.5 mr-1" />{t.previous}</Button>
-                  <Button variant="outline" size="sm" className="rounded-xl h-8" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>{t.next}<ChevronRight className="w-3.5 h-3.5 ml-1" /></Button>
+
+              {/* Date range + active filter badge + clear */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
+                  <span className="text-xs text-muted-foreground">→</span>
+                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
                 </div>
+                <AnimatePresence>
+                  {hasActiveFilters && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8, x: -8 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, x: -8 }}
+                      className="flex items-center gap-2"
+                    >
+                      {activeFilterCount > 0 && (
+                        <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          {activeFilterCount} {locale === 'fr' ? 'filtre(s)' : 'filter(s)'}
+                        </span>
+                      )}
+                      <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-destructive gap-1 transition-all h-7 text-xs" onClick={clearFilters}>
+                        <X className="w-3.5 h-3.5" />{t.clearFilters}
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Bulk actions */}
+      <AnimatePresence>
+        {someSelected && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -10, height: 0 }}
+          >
+            <BulkActionBar
+              count={selectedIds.size}
+              onDelete={() => setBulkDeleteOpen(true)}
+              onModify={() => { setBulkModifyForm({ category_id: '', account_id: '' }); setBulkModifyOpen(true); }}
+              onDuplicate={handleBulkDuplicate}
+              onExportCSV={canExportAdvanced ? () => handleExportSelection('csv') : undefined}
+              onExportExcel={canExportAdvanced ? () => handleExportSelection('excel') : undefined}
+              onClear={() => setSelectedIds(new Set())}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Transaction list */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25, duration: 0.35 }}
+      >
+        <Card className={`border border-border/40 rounded-2xl overflow-hidden shadow-[var(--shadow-card)] transition-all duration-300 ${txFetching && !txLoading ? 'opacity-60' : ''}`}>
+          <CardContent className="p-0">
+            {transactions.length === 0 ? (
+              <motion.div
+                className="py-20 text-center"
+                {...fadeScale}
+              >
+                <motion.div
+                  className="w-16 h-16 rounded-2xl bg-muted/50 mx-auto mb-4 flex items-center justify-center"
+                  animate={{ rotate: [0, -5, 5, 0] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                >
+                  <Inbox className="w-7 h-7 text-muted-foreground/40" />
+                </motion.div>
+                {isEmpty ? (
+                  <>
+                    <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noTransactions}</p>
+                    <p className="text-sm text-muted-foreground/70 mb-5">{t.addFirstTransaction}</p>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button size="sm" className="text-primary-foreground rounded-xl shadow-md" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+                        <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
+                      </Button>
+                    </motion.div>
+                  </>
+                ) : (
+                  <p className="text-lg font-semibold text-muted-foreground">{t.noResults}</p>
+                )}
+              </motion.div>
+            ) : (
+              <>
+                {/* Sort header */}
+                <div className="flex items-center gap-4 px-5 py-2.5 bg-muted/20 border-b border-border/30 text-xs font-semibold text-muted-foreground">
+                  <div className="w-8 flex-shrink-0"><Checkbox checked={allPageSelected} onCheckedChange={toggleSelectAll} /></div>
+                  <SortButton field="date" current={sortField} order={sortOrder} onSort={toggleSort} label={t.date} />
+                  <div className="flex-1" />
+                  <SortButton field="description" current={sortField} order={sortOrder} onSort={toggleSort} label={t.description} />
+                  <div className="flex-1" />
+                  <SortButton field="amount" current={sortField} order={sortOrder} onSort={toggleSort} label={t.amount} />
+                </div>
+
+                {/* Transaction rows */}
+                <motion.div
+                  className="divide-y divide-border/30"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                  key={`${page}-${sortField}-${sortOrder}-${debouncedSearch}`}
+                >
+                  {transactions.map((tx, index) => (
+                    <motion.div
+                      key={tx.id}
+                      variants={itemVariants}
+                      layout
+                      className={`group flex items-center justify-between px-5 py-3 transition-all duration-200 cursor-default ${
+                        selectedIds.has(tx.id)
+                          ? 'bg-primary/5 border-l-2 border-l-primary'
+                          : 'hover:bg-muted/20 border-l-2 border-l-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-8 flex-shrink-0">
+                          <Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => toggleSelect(tx.id)} />
+                        </div>
+
+                        {/* Category icon with color accent */}
+                        <motion.div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 relative"
+                          style={{
+                            background: tx.categories?.color
+                              ? `${tx.categories.color}15`
+                              : 'hsl(var(--muted) / 0.5)',
+                          }}
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          transition={{ type: 'spring', stiffness: 400 }}
+                        >
+                          {tx.categories?.icon || '📁'}
+                          {/* Type indicator dot */}
+                          <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
+                        </motion.div>
+
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate leading-tight">{tx.description}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground/50 flex items-center gap-1 mt-0.5">
+                            <Clock className="w-2.5 h-2.5" />
+                            {locale === 'fr' ? 'Saisi le' : 'Created'} {new Date(tx.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                        <motion.span
+                          className={`text-sm font-bold tabular-nums amount-display px-2 py-1 rounded-lg ${
+                            tx.type === 'income'
+                              ? 'text-secondary bg-secondary/8 amount-glow-green'
+                              : 'text-destructive bg-destructive/8 amount-glow-red'
+                          }`}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.02 + 0.1 }}
+                        >
+                          <span className="text-[0.85em] opacity-70 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>{fmt(Number(tx.amount))}
+                        </motion.span>
+
+                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted/60" onClick={() => openEdit(tx)}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(tx.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between px-5 py-3 border-t border-border/30 bg-muted/10">
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {totalCount} {t.results} — {t.page} {page + 1}/{totalPages}
+                  </span>
+                  <div className="flex gap-1.5">
+                    <motion.div whileHover={{ x: -2 }} whileTap={{ scale: 0.95 }}>
+                      <Button variant="outline" size="sm" className="rounded-xl h-8 text-xs border-border/40" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                        <ChevronLeft className="w-3.5 h-3.5 mr-0.5" />{t.previous}
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ x: 2 }} whileTap={{ scale: 0.95 }}>
+                      <Button variant="outline" size="sm" className="rounded-xl h-8 text-xs border-border/40" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                        {t.next}<ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                      </Button>
+                    </motion.div>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Add/Edit Dialog */}
       <ResponsiveFormDialog
@@ -713,7 +894,7 @@ const TransactionsPage = () => {
         footer={
           <>
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
-            <Button className="text-primary-foreground rounded-xl min-w-[120px]" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>
+            <Button className="text-primary-foreground rounded-xl min-w-[120px] shadow-md" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={saving}>
               {saving ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') : t.save}
             </Button>
           </>
@@ -723,14 +904,16 @@ const TransactionsPage = () => {
             <div className="space-y-2">
               <Label className="form-label">{t.type}</Label>
               <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => setForm(f => ({ ...f, type: 'expense', category_id: '' }))}
-                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'expense' ? 'border-destructive bg-destructive/10 text-destructive' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
+                <motion.button type="button" onClick={() => setForm(f => ({ ...f, type: 'expense', category_id: '' }))}
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'expense' ? 'border-destructive bg-destructive/10 text-destructive shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
                   <TrendingDown className="w-4 h-4" />{t.expenseType}
-                </button>
-                <button type="button" onClick={() => setForm(f => ({ ...f, type: 'income', category_id: '' }))}
-                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'income' ? 'border-secondary bg-secondary/10 text-secondary' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
+                </motion.button>
+                <motion.button type="button" onClick={() => setForm(f => ({ ...f, type: 'income', category_id: '' }))}
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'income' ? 'border-secondary bg-secondary/10 text-secondary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
                   <TrendingUp className="w-4 h-4" />{t.incomeType}
-                </button>
+                </motion.button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -759,9 +942,7 @@ const TransactionsPage = () => {
                 onChange={e => { setForm(f => ({ ...f, description: e.target.value })); setShowSuggestions(true); }}
                 onBlur={() => {
                   setTimeout(() => setShowSuggestions(false), 200);
-                  // Auto-categorize via AI when description has 3+ chars and no category selected
                   if (canUseAISuggestions && form.description.trim().length >= 3 && !form.category_id && !aiSuggesting) {
-                    // Use lightweight auto-categorize
                     (async () => {
                       try {
                         const { data } = await supabase.functions.invoke('ai-categorize', {
@@ -783,7 +964,6 @@ const TransactionsPage = () => {
                       } catch { /* silent */ }
                     })();
                   }
-                  // Also trigger full AI suggest if no amount
                   if (canUseAISuggestions && form.description.trim().length >= 3 && !form.amount && !aiSuggesting) {
                     handleAISuggest();
                   }
@@ -798,16 +978,23 @@ const TransactionsPage = () => {
                 </div>
               )}
               {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
-              {showSuggestions && descriptionSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-xl shadow-lg overflow-hidden">
-                  {descriptionSuggestions.map((s, i) => (
-                    <button key={i} type="button" className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors"
-                      onMouseDown={(e) => { e.preventDefault(); setForm(f => ({ ...f, description: s.description, category_id: s.category_id || f.category_id, account_id: s.account_id || f.account_id })); setShowSuggestions(false); }}>
-                      {s.description}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <AnimatePresence>
+                {showSuggestions && descriptionSuggestions.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border border-border rounded-xl shadow-lg overflow-hidden"
+                  >
+                    {descriptionSuggestions.map((s, i) => (
+                      <button key={i} type="button" className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors"
+                        onMouseDown={(e) => { e.preventDefault(); setForm(f => ({ ...f, description: s.description, category_id: s.category_id || f.category_id, account_id: s.account_id || f.account_id })); setShowSuggestions(false); }}>
+                        {s.description}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -902,8 +1089,32 @@ const TransactionsPage = () => {
       </AlertDialog>
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 };
+
+/* Sort button sub-component */
+const SortButton = ({ field, current, order, onSort, label }: {
+  field: SortField; current: SortField; order: SortOrder;
+  onSort: (f: SortField) => void; label: string;
+}) => (
+  <button
+    className={`flex items-center gap-1 transition-colors duration-200 ${current === field ? 'text-primary font-bold' : 'hover:text-foreground'}`}
+    onClick={() => onSort(field)}
+  >
+    {label}
+    <ArrowUpDown className={`w-3 h-3 transition-transform duration-200 ${current === field ? 'text-primary' : ''}`} />
+    {current === field && (
+      <motion.span
+        key={order}
+        initial={{ opacity: 0, y: order === 'asc' ? 4 : -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-primary text-xs"
+      >
+        {order === 'asc' ? '↑' : '↓'}
+      </motion.span>
+    )}
+  </button>
+);
 
 export default TransactionsPage;
