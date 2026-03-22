@@ -443,6 +443,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
 
   const isCurrentWeek = weekOffset === 0;
   const isPastWeek = weekOffset < 0;
+  const isFutureWeek = weekOffset > 0;
 
   const periodLabel = (p: string) => {
     const map: Record<string, string> = {
