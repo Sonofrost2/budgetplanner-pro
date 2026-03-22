@@ -456,6 +456,17 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
   };
 
   const dayLabels = isFr ? DAY_LABELS_FR : DAY_LABELS_EN;
+  const dayShort = isFr ? DAY_SHORT_FR : DAY_SHORT_EN;
+
+  // Compute full day dates for tooltips
+  const dayDates = useMemo(() => {
+    const ws = new Date(thisWeek.start);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(ws);
+      d.setDate(ws.getDate() + i);
+      return d.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+    });
+  }, [thisWeek.start, isFr]);
 
   if (expenseBudgets.length === 0 && incomeBudgets.length === 0) {
     return (
