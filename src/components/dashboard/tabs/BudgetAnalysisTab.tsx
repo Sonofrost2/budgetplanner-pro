@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { PieChart as PieChartIcon, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Calendar as CalendarIcon, CalendarDays } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { abbreviateNumber, cn } from '@/lib/utils';
-import { getBudgetPeriodBounds, formatDateStr } from '@/lib/budgetProjection';
+import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount } from '@/lib/budgetProjection';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
