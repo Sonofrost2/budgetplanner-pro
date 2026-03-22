@@ -3,16 +3,10 @@ import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useTheme } from '@/hooks/useTheme';
-import { useRole } from '@/hooks/useRole';
 import { supabase } from '@/integrations/supabase/client';
 import { dashT } from '@/i18n/dashTranslations';
-import {
-  Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
-  Settings, LogOut, Menu, X, Sun, Moon, Monitor, CreditCard, Shield,
-  Tag, Receipt, Search, Crown, Users, Landmark, RefreshCw, Globe
-} from 'lucide-react';
+import { Wallet, Menu, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TopLoadingBar } from '@/components/ui/top-loading-bar';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
@@ -22,17 +16,17 @@ import AIChatWidget from '@/components/dashboard/AIChatWidget';
 import GlobalSearchCommand from '@/components/dashboard/GlobalSearchCommand';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { PWAUpdatePrompt } from '@/components/dashboard/PWAUpdatePrompt';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import AppSidebar from '@/components/dashboard/AppSidebar';
+import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
 
 const DashboardLayout = () => {
   useRealtimeSync();
   const { user, signOut, loading: authLoading } = useAuth();
-  const { locale, toggleLocale } = useLanguage();
-  const { mode, setMode } = useTheme();
-  const { isAdmin } = useRole();
+  const { locale } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const t = dashT[locale];
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -86,228 +80,120 @@ const DashboardLayout = () => {
   }, []);
 
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center mesh-bg">
-      <div className="flex flex-col items-center gap-4">
-        <motion.div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
-          style={{ background: 'var(--gradient-primary)' }}
-          animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <Wallet className="w-7 h-7 text-primary-foreground" />
-        </motion.div>
-        <div className="flex flex-col items-center gap-2">
-          <motion.span
-            className="text-sm text-muted-foreground font-medium"
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
+    return (
+      <div className="min-h-screen flex items-center justify-center mesh-bg">
+        <div className="flex flex-col items-center gap-4">
+          <motion.div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+            style={{ background: 'var(--gradient-primary)' }}
+            animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           >
-            Chargement...
-          </motion.span>
-          <div className="w-32 h-1 rounded-full bg-muted overflow-hidden">
-            <motion.div
-              className="h-full rounded-full"
-              style={{ background: 'var(--gradient-primary)' }}
-              animate={{ x: ['-100%', '100%'] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-            />
+            <Wallet className="w-7 h-7 text-primary-foreground" />
+          </motion.div>
+          <div className="flex flex-col items-center gap-2">
+            <motion.span
+              className="text-sm text-muted-foreground font-medium"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              Chargement...
+            </motion.span>
+            <div className="w-32 h-1 rounded-full bg-muted overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: 'var(--gradient-primary)' }}
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>;
+    );
   }
 
   if (!user) return null;
 
-  const navGroups = [
-    {
-      label: locale === 'fr' ? 'Principal' : 'Main',
-      items: [
-        { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
-        { key: 'transactions', icon: ArrowUpDown, path: '/dashboard/transactions' },
-        { key: 'accounts', icon: CreditCard, path: '/dashboard/accounts' },
-        { key: 'budgets', icon: PieChart, path: '/dashboard/budgets' },
-      ],
-    },
-    {
-      label: locale === 'fr' ? 'Gestion' : 'Management',
-      items: [
-        { key: 'savings', icon: Target, path: '/dashboard/savings' },
-        { key: 'categories', icon: Tag, path: '/dashboard/categories' },
-      ],
-    },
-    {
-      label: locale === 'fr' ? 'Analyse' : 'Analytics',
-      items: [
-        { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
-        { key: 'reports', icon: FileText, path: '/dashboard/reports' },
-        { key: 'family', icon: Users, path: '/dashboard/family' },
-      ],
-    },
-    {
-      label: locale === 'fr' ? 'Paramètres' : 'Settings',
-      items: [
-        { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
-        { key: 'payment', icon: Crown, path: '/dashboard/payment' },
-        { key: 'settings', icon: Settings, path: '/dashboard/settings' },
-        ...(isAdmin ? [{ key: 'adminPricing', icon: Shield, path: '/dashboard/admin/pricing' }] : []),
-      ],
-    },
-  ];
-
-  const renderNavItem = (item: { key: string; icon: any; path: string }) => {
-    const isExactDashboard = item.key === 'dashboard';
-    const isActive = isExactDashboard ? location.pathname === '/dashboard' : location.pathname === item.path;
-
-    return (
-      <Link key={item.key} to={item.path} onClick={() => setSidebarOpen(false)}
-        className={`group flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200 ${
-          isActive
-            ? 'glass text-primary shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
-        }`}>
-        <item.icon className={`w-[16px] h-[16px] transition-colors ${isActive ? 'text-primary' : 'group-hover:text-foreground'}`} />
-        <span>{t[item.key as keyof typeof t] as string}</span>
-        {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: 'var(--gradient-primary)' }} />}
-      </Link>
-    );
-  };
-
-  const planColor = userPlan === 'premium' ? 'bg-accent/15 text-accent border-accent/20' :
-    userPlan === 'pro' ? 'bg-primary/15 text-primary border-primary/20' :
-    'bg-muted/60 text-muted-foreground border-border';
-
   return (
-    <div className="min-h-screen mesh-bg flex">
-      <TopLoadingBar loading={pageLoading} />
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-[240px] glass-strong transform transition-transform lg:translate-x-0 lg:static lg:z-auto flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        {/* Logo */}
-        <div className="flex items-center justify-between p-4 border-b border-glass-border">
-          <Link to="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md" style={{ background: 'var(--gradient-primary)' }}>
-              <Wallet className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold font-display text-sm tracking-tight">Budget Planner</span>
-          </Link>
-          <Button variant="ghost" size="icon" className="lg:hidden rounded-xl h-7 w-7" onClick={() => setSidebarOpen(false)}>
-            <X className="w-3.5 h-3.5" />
-          </Button>
+    <SidebarProvider>
+      <div className="min-h-screen mesh-bg flex w-full">
+        <TopLoadingBar loading={pageLoading} />
+
+        {/* Sidebar — hidden on mobile, uses shadcn collapsible on desktop */}
+        <div className="hidden lg:block">
+          <AppSidebar
+            profile={profile}
+            userPlan={userPlan}
+            onLogout={() => setLogoutDialogOpen(true)}
+            onSearchOpen={() => setSearchOpen(true)}
+          />
         </div>
 
-        {/* Nav groups */}
-        <nav className="flex-1 p-2.5 space-y-4 overflow-y-auto">
-          {navGroups.map((group) => (
-            <div key={group.label}>
-              <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">{group.label}</p>
-              <div className="space-y-0.5">
-                {group.items.map(renderNavItem)}
-              </div>
-            </div>
-          ))}
-        </nav>
+        {/* Main content */}
+        <main className="flex-1 min-w-0 pb-20 lg:pb-0">
+          <header className="sticky top-0 z-30 bg-background/60 backdrop-blur-xl border-b border-border/50 px-4 lg:px-6 h-14 flex items-center gap-3">
+            {/* Sidebar toggle — desktop only */}
+            <SidebarTrigger className="hidden lg:flex h-8 w-8 rounded-xl" />
 
-        {/* Bottom */}
-        <div className="p-2.5 border-t border-glass-border space-y-1">
-          <div className="flex items-center gap-2 px-3 py-1.5">
-            <Badge variant="outline" className={`text-[9px] font-bold uppercase ${planColor}`}>
-              {userPlan || t.freePlan}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-0.5">
-            <div className="flex-1 flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40">
-              <button
-                onClick={() => setMode('light')}
-                className={`flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-medium transition-all ${mode === 'light' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <Sun className="w-3 h-3" />
-              </button>
-              <button
-                onClick={() => setMode('dark')}
-                className={`flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-medium transition-all ${mode === 'dark' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <Moon className="w-3 h-3" />
-              </button>
-              <button
-                onClick={() => setMode('auto')}
-                className={`flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-medium transition-all ${mode === 'auto' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <Monitor className="w-3 h-3" />
-              </button>
-            </div>
-            <Button variant="ghost" size="icon" className="text-muted-foreground rounded-xl h-8 w-8" onClick={toggleLocale}>
-              <Globe className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive/70 hover:text-destructive hover:bg-destructive/5 rounded-xl h-8 text-xs" onClick={() => setLogoutDialogOpen(true)}>
-            <LogOut className="w-3.5 h-3.5" />
-            <span>{t.logout}</span>
-          </Button>
-        </div>
-      </aside>
+            <h1 className="text-sm font-semibold font-display truncate">
+              {t.welcome}, {profile?.display_name?.split(' ')[0] || 'User'} 👋
+            </h1>
+            <div className="flex-1" />
 
-      {sidebarOpen && <div className="fixed inset-0 bg-foreground/10 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
-
-      {/* Main */}
-      <main className="flex-1 min-w-0">
-        <header className="sticky top-0 z-30 glass border-b border-glass-border px-4 lg:px-6 h-14 flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="lg:hidden rounded-xl h-8 w-8" onClick={() => setSidebarOpen(true)}>
-            <Menu className="w-4 h-4" />
-          </Button>
-          <h1 className="text-sm font-semibold font-display truncate">
-            {t.welcome}, {profile?.display_name?.split(' ')[0] || 'User'} 👋
-          </h1>
-          <div className="flex-1" />
-
-          {/* Search trigger — Command Palette */}
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="hidden sm:flex items-center gap-2 px-3 h-8 rounded-xl border border-glass-border bg-glass text-xs text-muted-foreground hover:bg-background transition-colors w-52"
-          >
-            <Search className="w-3.5 h-3.5" />
-            <span className="flex-1 text-left truncate">{locale === 'fr' ? 'Rechercher...' : 'Search...'}</span>
-            <kbd className="hidden md:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-              ⌘K
-            </kbd>
-          </button>
-          {/* Mobile search icon */}
-          <Button variant="ghost" size="icon" className="sm:hidden rounded-xl h-8 w-8" onClick={() => setSearchOpen(true)}>
-            <Search className="w-4 h-4" />
-          </Button>
-
-          <NotificationBell />
-        </header>
-
-        <div className="p-4 lg:p-6">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.15 }}
+            {/* Search trigger */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="hidden sm:flex items-center gap-2 px-3 h-8 rounded-xl border border-border/50 bg-background/50 text-xs text-muted-foreground hover:bg-background transition-colors w-52"
             >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
+              <Search className="w-3.5 h-3.5" />
+              <span className="flex-1 text-left truncate">{locale === 'fr' ? 'Rechercher...' : 'Search...'}</span>
+              <kbd className="hidden md:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                ⌘K
+              </kbd>
+            </button>
+            {/* Mobile search icon */}
+            <Button variant="ghost" size="icon" className="sm:hidden rounded-xl h-8 w-8" onClick={() => setSearchOpen(true)}>
+              <Search className="w-4 h-4" />
+            </Button>
 
-      <OfflineBanner />
-      <PWAUpdatePrompt />
-      <AIChatWidget />
-      <GlobalSearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
+            <NotificationBell />
+          </header>
 
-      <ConfirmDeleteDialog
-        open={logoutDialogOpen}
-        onOpenChange={setLogoutDialogOpen}
-        onConfirm={handleLogout}
-        title={locale === 'fr' ? 'Déconnexion' : 'Log out'}
-        description={locale === 'fr' ? 'Êtes-vous sûr de vouloir vous déconnecter ?' : 'Are you sure you want to log out?'}
-        cancelLabel={t.cancel}
-        confirmLabel={t.logout}
-      />
-    </div>
+          <div className="p-4 lg:p-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15 }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </main>
+
+        {/* Mobile bottom nav */}
+        <MobileBottomNav />
+
+        <OfflineBanner />
+        <PWAUpdatePrompt />
+        <AIChatWidget />
+        <GlobalSearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
+
+        <ConfirmDeleteDialog
+          open={logoutDialogOpen}
+          onOpenChange={setLogoutDialogOpen}
+          onConfirm={handleLogout}
+          title={locale === 'fr' ? 'Déconnexion' : 'Log out'}
+          description={locale === 'fr' ? 'Êtes-vous sûr de vouloir vous déconnecter ?' : 'Are you sure you want to log out?'}
+          cancelLabel={t.cancel}
+          confirmLabel={t.logout}
+        />
+      </div>
+    </SidebarProvider>
   );
 };
 
