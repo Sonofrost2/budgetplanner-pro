@@ -28,7 +28,7 @@ const DashboardLayout = () => {
   const location = useLocation();
   const t = dashT[locale];
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-  const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean } | null>(null);
+  const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean; avatar_url: string | null } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userPlan, setUserPlan] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(false);
