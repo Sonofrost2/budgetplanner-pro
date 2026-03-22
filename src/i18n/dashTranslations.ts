@@ -1111,6 +1111,9 @@ export const dashT = {
     weeklyOver: 'Over budget',
     weeklyIncomeExpected: 'Expected income',
     weeklyNetBalance: 'Weekly net balance',
+    weeklyUsed: 'used',
+    weeklyLeft: 'left',
+    weeklyOverBy: 'over',
     // Budget scheduling
     expectedDay: 'Expected day',
     expectedDayWeekHint: '1=Mon, 2=Tue, ..., 7=Sun',
