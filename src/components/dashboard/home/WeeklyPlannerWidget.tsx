@@ -437,6 +437,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
   }, [incomeBudgets, transactions, weekIncomeTxs, weekStartDate]);
 
   const totalExpenseTarget = expenseRows.reduce((s, r) => s + r.weeklyTarget, 0);
+  const dailyBudgetTarget = totalExpenseTarget / 7;
   const totalExpenseSpent = expenseRows.reduce((s, r) => s + r.weekSpent, 0);
   const totalIncomeTarget = incomeRows.reduce((s, r) => s + r.weeklyTarget, 0);
   const totalIncomeReceived = incomeRows.reduce((s, r) => s + r.weekReceived, 0);
