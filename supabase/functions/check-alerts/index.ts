@@ -217,6 +217,62 @@ Deno.serve(async (req) => {
         }
       }
 
+      // ────── Daily budget alert (80% threshold) ──────
+      // Compute weekly expense target and daily budget, check today's spending
+      const weekDay = now.getDay();
+      const weekMonday = new Date(now);
+      weekMonday.setDate(now.getDate() - (weekDay === 0 ? 6 : weekDay - 1));
+      weekMonday.setHours(0, 0, 0, 0);
+      const weekSunday = new Date(weekMonday);
+      weekSunday.setDate(weekMonday.getDate() + 6);
+      const weekStartStr = fmt(weekMonday);
+      const weekEndStr = fmt(weekSunday);
+
+      // Sum weekly expense targets from all expense budgets
+      const expenseBudgets = budgets.filter((b: any) => (b.budget_type || 'expense') === 'expense');
+      let weeklyExpenseTarget = 0;
+      for (const b of expenseBudgets) {
+        const period = b.period || 'monthly';
+        if (period === 'daily') {
+          weeklyExpenseTarget += Number(b.amount) * 7;
+        } else if (period === 'weekly') {
+          weeklyExpenseTarget += Number(b.amount);
+        } else if (period === 'monthly') {
+          weeklyExpenseTarget += Number(b.amount) / (30.44 / 7);
+        } else if (period === 'quarterly') {
+          weeklyExpenseTarget += Number(b.amount) / (91.31 / 7);
+        } else if (period === 'semi_annual') {
+          weeklyExpenseTarget += Number(b.amount) / (182.62 / 7);
+        } else if (period === 'yearly') {
+          weeklyExpenseTarget += Number(b.amount) / (365.25 / 7);
+        }
+      }
+
+      const dailyBudgetTarget = weeklyExpenseTarget / 7;
+      if (dailyBudgetTarget > 0) {
+        const todaysExpenses = allTxs.filter(
+          (tx: any) => tx.type === 'expense' && tx.date === todayStr
+        );
+        const todaySpent = todaysExpenses.reduce((sum: number, tx: any) => sum + Number(tx.amount), 0);
+        const dailyPct = (todaySpent / dailyBudgetTarget) * 100;
+
+        if (dailyPct >= 100) {
+          alerts.push({
+            title: isFr ? "🔥 Budget du jour dépassé !" : "🔥 Daily budget exceeded!",
+            body: isFr
+              ? `${Math.round(todaySpent).toLocaleString()} dépensés aujourd'hui (${Math.round(dailyPct)}% du budget jour de ${Math.round(dailyBudgetTarget).toLocaleString()})`
+              : `${Math.round(todaySpent).toLocaleString()} spent today (${Math.round(dailyPct)}% of daily budget ${Math.round(dailyBudgetTarget).toLocaleString()})`,
+          });
+        } else if (dailyPct >= 80) {
+          alerts.push({
+            title: isFr ? "⚡ Budget jour à 80%+" : "⚡ Daily budget at 80%+",
+            body: isFr
+              ? `${Math.round(todaySpent).toLocaleString()} / ${Math.round(dailyBudgetTarget).toLocaleString()} (${Math.round(dailyPct)}%) — Ralentissez vos dépenses !`
+              : `${Math.round(todaySpent).toLocaleString()} / ${Math.round(dailyBudgetTarget).toLocaleString()} (${Math.round(dailyPct)}%) — Slow down your spending!`,
+          });
+        }
+      }
+
       // ────── Recurring transaction reminders ──────
       for (const rec of recurringTxs) {
         const nextDate = new Date(rec.next_date);
