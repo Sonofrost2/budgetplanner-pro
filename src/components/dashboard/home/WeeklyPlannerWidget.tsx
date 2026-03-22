@@ -317,7 +317,7 @@ const DAY_LABELS_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const DAY_LABELS_EN = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 /* ── Component ─────────────────────────────────────────────── */
-export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPlannerWidgetProps) => {
+export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'fr' }: WeeklyPlannerWidgetProps) => {
   const navigate = useNavigate();
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
   const [showIncomeDetails, setShowIncomeDetails] = useState(false);
@@ -326,7 +326,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
   const [customTargets, setCustomTargets] = useState<Record<string, number>>(loadTargets);
   const [weekOffset, setWeekOffset] = useState(0);
 
-  const isFr = (t as any).expenses === 'Dépenses' || (t as any).weeklyPlanner?.includes?.('Planificateur');
+  const isFr = locale === 'fr';
 
   const thisWeek = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
   const weekStartDate = useMemo(() => new Date(thisWeek.start), [thisWeek.start]);
