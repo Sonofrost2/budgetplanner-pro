@@ -65,30 +65,17 @@ const CashCountDialog = ({ open, onOpenChange, account, userId, currency, locale
       return;
     }
 
-    // 2. If discrepancy ≠ 0, insert an adjustment transaction so recalculate stays consistent
-    if (Math.abs(discrepancy) > 0.001) {
-      const adjustmentType = discrepancy > 0 ? 'income' : 'expense';
-      const adjustmentAmount = Math.abs(discrepancy);
-      const desc = (t as any).cashCountAdjustment || 'Cash count adjustment';
+    // 2. Update real_balance to the counted total (PV = source of truth for real balance)
+    const { error: updateError } = await supabase
+      .from('payment_accounts')
+      .update({ real_balance: totalCounted })
+      .eq('id', account.id);
 
-      const { error: txError } = await supabase.from('transactions').insert({
-        user_id: userId,
-        type: adjustmentType,
-        amount: adjustmentAmount,
-        description: `${desc} – ${account.icon} ${account.name}`,
-        account_id: account.id,
-        date: new Date().toISOString().split('T')[0],
-        notes: `PV: ${fmt(totalCounted)} (${locale === 'fr' ? 'attendu' : 'expected'}: ${fmt(expected)})`,
-      });
-
-      if (txError) {
-        toast.error(txError.message);
-        setSaving(false);
-        return;
-      }
+    if (updateError) {
+      toast.error(updateError.message);
+      setSaving(false);
+      return;
     }
-
-    // real_balance is no longer auto-updated; user manages it manually
 
     setSaving(false);
     onOpenChange(false);
