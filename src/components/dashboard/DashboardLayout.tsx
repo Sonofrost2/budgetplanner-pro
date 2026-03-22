@@ -125,6 +125,7 @@ const DashboardLayout = () => {
           <AppSidebar
             profile={profile}
             userPlan={userPlan}
+            userEmail={user?.email || null}
             onLogout={() => setLogoutDialogOpen(true)}
             onSearchOpen={() => setSearchOpen(true)}
           />
