@@ -605,13 +605,15 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
           </div>
         </div>
 
-        {/* ── Daily spending timeline with tooltips ── */}
+        {/* ── Daily spending timeline with consumption bars ── */}
         <div className="px-4 pb-3">
-          <div className="flex items-end gap-1.5 h-12">
+          <div className="flex items-end gap-1.5 h-14">
             {dailySpending.map((amount, i) => {
-              const h = maxDailySpending > 0 ? Math.max(4, (amount / maxDailySpending) * 100) : 4;
+              const h = maxDailySpending > 0 ? Math.max(6, (amount / maxDailySpending) * 100) : 6;
               const isToday = i === todayIndex;
-              const isFuture = weekOffset === 0 && i > todayIndex;
+              const isFuturDay = weekOffset === 0 && i > todayIndex;
+              const consumptionPct = dailyBudgetTarget > 0 ? Math.min(100, (amount / dailyBudgetTarget) * 100) : 0;
+              const isOver = amount > dailyBudgetTarget && dailyBudgetTarget > 0;
               return (
                 <Tooltip key={i}>
                   <TooltipTrigger asChild>
@@ -621,7 +623,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
                         style={{
                           background: isToday
                             ? 'var(--gradient-primary)'
-                            : isFuture
+                            : isFuturDay
                             ? 'hsl(var(--muted) / 0.25)'
                             : amount > 0
                             ? 'hsl(var(--primary) / 0.3)'
@@ -634,14 +636,21 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
                       />
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="text-[10px] px-2 py-1">
+                  <TooltipContent side="top" className="text-[10px] px-2.5 py-1.5 space-y-0.5">
                     <p className="font-semibold">{dayDates[i]}</p>
                     <p className="tabular-nums">{amount > 0 ? fmt(amount) : (isFr ? 'Aucune dépense' : 'No spending')}</p>
+                    {dailyBudgetTarget > 0 && (
+                      <p className={`tabular-nums text-[9px] ${isOver ? 'text-destructive' : 'text-secondary'}`}>
+                        {Math.round(consumptionPct)}% {isFr ? 'du budget jour' : 'of daily budget'}
+                      </p>
+                    )}
                   </TooltipContent>
                 </Tooltip>
               );
             })}
           </div>
+
+          {/* Day labels */}
           <div className="flex gap-1.5 mt-1">
             {dayShort.map((label, i) => (
               <span key={i} className={`flex-1 text-center text-[8px] font-semibold ${
@@ -651,6 +660,47 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
               </span>
             ))}
           </div>
+
+          {/* Daily consumption bars */}
+          {dailyBudgetTarget > 0 && (
+            <div className="flex gap-1.5 mt-1.5">
+              {dailySpending.map((amount, i) => {
+                const pct = Math.min(100, (amount / dailyBudgetTarget) * 100);
+                const isOver = amount > dailyBudgetTarget;
+                const isFuturDay = weekOffset === 0 && i > todayIndex;
+                return (
+                  <div key={i} className="flex-1">
+                    <div className="h-1 rounded-full bg-muted/30 overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{
+                          background: isFuturDay
+                            ? 'hsl(var(--muted) / 0.2)'
+                            : isOver
+                            ? 'hsl(var(--destructive))'
+                            : pct > 70
+                            ? 'hsl(var(--warning))'
+                            : 'hsl(var(--secondary))',
+                        }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${isFuturDay ? 0 : pct}%` }}
+                        transition={{ duration: 0.5, delay: 0.3 + i * 0.04 }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Daily budget legend */}
+          {dailyBudgetTarget > 0 && (
+            <div className="flex items-center justify-end mt-1">
+              <span className="text-[8px] text-muted-foreground/60 tabular-nums">
+                {(t as any).weeklyDailyBudget || (isFr ? 'Budget jour' : 'Daily budget')}: {fmt(Math.round(dailyBudgetTarget))}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ── Savings action ── */}
