@@ -39,6 +39,7 @@ interface WeeklyPlannerWidgetProps {
   transactions: Transaction[];
   fmt: (n: number) => string;
   t: DashTranslations;
+  locale?: string;
 }
 
 /* ── date helpers ─────────────────────────────────────────── */
@@ -316,7 +317,7 @@ const DAY_LABELS_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const DAY_LABELS_EN = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 /* ── Component ─────────────────────────────────────────────── */
-export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPlannerWidgetProps) => {
+export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'fr' }: WeeklyPlannerWidgetProps) => {
   const navigate = useNavigate();
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
   const [showIncomeDetails, setShowIncomeDetails] = useState(false);
@@ -325,7 +326,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
   const [customTargets, setCustomTargets] = useState<Record<string, number>>(loadTargets);
   const [weekOffset, setWeekOffset] = useState(0);
 
-  const isFr = (t as any).expenses === 'Dépenses' || (t as any).weeklyPlanner?.includes?.('Planificateur');
+  const isFr = locale === 'fr';
 
   const thisWeek = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
   const weekStartDate = useMemo(() => new Date(thisWeek.start), [thisWeek.start]);
@@ -509,7 +510,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-lg font-bold tabular-nums leading-none">{Math.round(totalPct)}%</span>
                 <span className="text-[8px] text-muted-foreground font-medium mt-0.5">
-                  {isFr ? 'utilisé' : 'used'}
+                  {(t as any).weeklyUsed || (isFr ? 'utilisé' : 'used')}
                 </span>
               </div>
             </div>
@@ -539,7 +540,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t }: WeeklyPla
                 {totalDelta >= 0 ? <PiggyBank className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                 {totalDelta >= 0 ? '+' : ''}{fmt(totalDelta)}
                 <span className="font-medium opacity-70">
-                  {totalDelta >= 0 ? (isFr ? 'restant' : 'left') : (isFr ? 'dépassé' : 'over')}
+                  {totalDelta >= 0 ? ((t as any).weeklyLeft || (isFr ? 'restant' : 'left')) : ((t as any).weeklyOverBy || (isFr ? 'dépassé' : 'over'))}
                 </span>
               </div>
             </div>
