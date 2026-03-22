@@ -21,6 +21,7 @@ interface CashCountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   account: { id: string; name: string; icon: string; real_balance: number } | null;
+  theoreticalBalance: number;
   userId: string;
   currency: string;
   locale: string;
@@ -29,7 +30,7 @@ interface CashCountDialogProps {
   onSuccess: () => void;
 }
 
-const CashCountDialog = ({ open, onOpenChange, account, userId, currency, locale, fmt, t, onSuccess }: CashCountDialogProps) => {
+const CashCountDialog = ({ open, onOpenChange, account, theoreticalBalance, userId, currency, locale, fmt, t, onSuccess }: CashCountDialogProps) => {
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
