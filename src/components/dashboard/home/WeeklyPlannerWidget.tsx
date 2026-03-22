@@ -510,7 +510,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-lg font-bold tabular-nums leading-none">{Math.round(totalPct)}%</span>
                 <span className="text-[8px] text-muted-foreground font-medium mt-0.5">
-                  {isFr ? 'utilisé' : 'used'}
+                  {(t as any).weeklyUsed || (isFr ? 'utilisé' : 'used')}
                 </span>
               </div>
             </div>
