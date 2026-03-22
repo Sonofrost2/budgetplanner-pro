@@ -953,6 +953,172 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
           )}
         </div>
 
+        {/* ── Week Comparison Widget ── */}
+        <div className="px-4 pb-3">
+          <button
+            onClick={() => setShowComparison(!showComparison)}
+            className="w-full flex items-center justify-between py-2 border-t border-border/30"
+          >
+            <span className="text-[11px] font-bold flex items-center gap-1.5 text-foreground">
+              <GitCompareArrows className="w-3.5 h-3.5 text-primary" />
+              {(t as any).weeklyComparison || (isFr ? 'Comparaison' : 'Comparison')}
+            </span>
+            <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${showComparison ? 'rotate-90' : ''}`} />
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {showComparison && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="px-4 pb-4 space-y-3">
+                {/* Side-by-side daily bars */}
+                <div className="glass rounded-xl p-3 border border-border/20">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-sm bg-muted-foreground/30" />
+                      <span className="text-[9px] text-muted-foreground font-medium">{(t as any).weeklyPrevWeek || (isFr ? 'Sem. préc.' : 'Last week')}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-sm bg-primary" />
+                      <span className="text-[9px] text-muted-foreground font-medium">{(t as any).weeklyThisWeek || (isFr ? 'Cette sem.' : 'This week')}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-end gap-1 h-16">
+                    {(() => {
+                      const maxVal = Math.max(...dailySpending, ...prevDailySpending, 1);
+                      return dayShort.map((label, i) => {
+                        const currH = (dailySpending[i] / maxVal) * 100;
+                        const prevH = (prevDailySpending[i] / maxVal) * 100;
+                        return (
+                          <Tooltip key={i}>
+                            <TooltipTrigger asChild>
+                              <div className="flex-1 flex items-end justify-center gap-[2px] cursor-pointer">
+                                <motion.div
+                                  className="w-[40%] rounded-t-sm bg-muted-foreground/25"
+                                  initial={{ height: 0 }}
+                                  animate={{ height: `${Math.max(2, prevH)}%` }}
+                                  transition={{ duration: 0.4, delay: i * 0.03 }}
+                                  style={{ minHeight: 2 }}
+                                />
+                                <motion.div
+                                  className="w-[40%] rounded-t-sm"
+                                  style={{ background: 'hsl(var(--primary))' }}
+                                  initial={{ height: 0 }}
+                                  animate={{ height: `${Math.max(2, currH)}%` }}
+                                  transition={{ duration: 0.4, delay: i * 0.03 + 0.05 }}
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-[10px] px-2 py-1.5 space-y-0.5">
+                              <p className="font-semibold">{dayLabels[i]}</p>
+                              <p className="text-muted-foreground tabular-nums">{isFr ? 'Préc.' : 'Prev'}: {fmt(prevDailySpending[i])}</p>
+                              <p className="tabular-nums">{isFr ? 'Actuel' : 'Current'}: {fmt(dailySpending[i])}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      });
+                    })()}
+                  </div>
+                  <div className="flex gap-1 mt-1">
+                    {dayShort.map((label, i) => (
+                      <span key={i} className="flex-1 text-center text-[7px] font-semibold text-muted-foreground/50">{label}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Comparison stats */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Expenses comparison */}
+                  <div className="glass rounded-xl p-2.5 border border-border/20 space-y-1.5">
+                    <span className="text-[9px] text-muted-foreground font-medium">{t.expenses}</span>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-muted-foreground/70">{isFr ? 'Préc.' : 'Prev'}</span>
+                        <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">{fmt(prevTotalExpense)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-muted-foreground/70">{isFr ? 'Actuel' : 'Current'}</span>
+                        <span className="text-[10px] font-bold tabular-nums">{fmt(totalExpenseSpent)}</span>
+                      </div>
+                    </div>
+                    {(() => {
+                      const diff = totalExpenseSpent - prevTotalExpense;
+                      const isBetter = diff < 0; // less expense = better
+                      return (
+                        <div className={`flex items-center gap-0.5 text-[9px] font-bold ${isBetter ? 'text-secondary' : 'text-destructive'}`}>
+                          {isBetter ? <TrendingDown className="w-2.5 h-2.5" /> : <TrendingUp className="w-2.5 h-2.5" />}
+                          {diff >= 0 ? '+' : ''}{fmt(diff)}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Income comparison */}
+                  <div className="glass rounded-xl p-2.5 border border-border/20 space-y-1.5">
+                    <span className="text-[9px] text-muted-foreground font-medium">{t.income}</span>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-muted-foreground/70">{isFr ? 'Préc.' : 'Prev'}</span>
+                        <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">{fmt(prevTotalIncome)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-muted-foreground/70">{isFr ? 'Actuel' : 'Current'}</span>
+                        <span className="text-[10px] font-bold tabular-nums">{fmt(totalIncomeReceived)}</span>
+                      </div>
+                    </div>
+                    {(() => {
+                      const diff = totalIncomeReceived - prevTotalIncome;
+                      const isBetter = diff > 0; // more income = better
+                      return (
+                        <div className={`flex items-center gap-0.5 text-[9px] font-bold ${isBetter ? 'text-secondary' : 'text-destructive'}`}>
+                          {isBetter ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+                          {diff >= 0 ? '+' : ''}{fmt(diff)}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Net comparison */}
+                {(() => {
+                  const prevNet = prevTotalIncome - prevTotalExpense;
+                  const currNet = totalIncomeReceived - totalExpenseSpent;
+                  const diff = currNet - prevNet;
+                  const isBetter = diff > 0;
+                  return (
+                    <div className="glass rounded-xl p-2.5 border border-border/20 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-3.5 h-3.5 text-primary" />
+                        <div>
+                          <span className="text-[9px] text-muted-foreground font-medium block">{t.weeklyNetBalance}</span>
+                          <div className="flex items-center gap-2 text-[10px] tabular-nums">
+                            <span className="text-muted-foreground">{prevNet >= 0 ? '+' : ''}{fmt(prevNet)}</span>
+                            <ArrowRight className="w-2.5 h-2.5 text-muted-foreground/40" />
+                            <span className={`font-bold ${currNet >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                              {currNet >= 0 ? '+' : ''}{fmt(currNet)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                        isBetter ? 'bg-secondary/10 text-secondary' : 'bg-destructive/10 text-destructive'
+                      }`}>
+                        {isBetter ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+                        {diff >= 0 ? '+' : ''}{fmt(diff)}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* ── Footer link ── */}
         <button
           onClick={() => navigate('/dashboard/budgets')}
