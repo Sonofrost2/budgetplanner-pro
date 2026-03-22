@@ -378,6 +378,16 @@ const BudgetAnalysisTab = () => {
               </Popover>
             </>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-xl text-xs gap-1.5"
+            onClick={handleExportPDF}
+            disabled={exporting || budgetAnalysis.length === 0}
+          >
+            {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            PDF
+          </Button>
         </div>
       </div>
 
