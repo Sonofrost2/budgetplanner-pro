@@ -1,4 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useRole } from '@/hooks/useRole';
@@ -6,11 +7,14 @@ import { dashT } from '@/i18n/dashTranslations';
 import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
   Settings, LogOut, Sun, Moon, Monitor, CreditCard, Shield,
-  Tag, Receipt, Search, Crown, Users, Globe, ChevronRight,
-  Sparkles
+  Tag, Receipt, Search, Crown, Users, Globe,
+  Sparkles, User, ChevronUp
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
 import {
   Sidebar,
   SidebarContent,
@@ -30,20 +34,26 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface AppSidebarProps {
-  profile: { display_name: string | null } | null;
+  profile: { display_name: string | null; avatar_url: string | null } | null;
   userPlan: string | null;
+  userEmail: string | null;
   onLogout: () => void;
   onSearchOpen: () => void;
 }
 
-const AppSidebar = ({ profile, userPlan, onLogout, onSearchOpen }: AppSidebarProps) => {
+const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: AppSidebarProps) => {
   const { locale, toggleLocale } = useLanguage();
   const { mode, setMode } = useTheme();
   const { isAdmin } = useRole();
   const location = useLocation();
+  const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const t = dashT[locale];
+  const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
+
+  const displayName = profile?.display_name || 'User';
+  const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   const navGroups = [
     {
@@ -198,20 +208,6 @@ const AppSidebar = ({ profile, userPlan, onLogout, onSearchOpen }: AppSidebarPro
 
       {/* Footer */}
       <SidebarFooter className="p-3 space-y-2">
-        {/* Plan badge */}
-        {!collapsed && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-2 px-2"
-          >
-            <Badge variant="outline" className={cn('text-[9px] font-bold uppercase', planColor)}>
-              <Sparkles className="w-2.5 h-2.5 mr-1" />
-              {userPlan || t.freePlan}
-            </Badge>
-          </motion.div>
-        )}
-
         {/* Theme toggle */}
         {collapsed ? (
           <Tooltip>
@@ -257,30 +253,107 @@ const AppSidebar = ({ profile, userPlan, onLogout, onSearchOpen }: AppSidebarPro
           </div>
         )}
 
-        {/* Logout */}
-        {collapsed ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
+        {/* User avatar + mini-profile popover */}
+        <Popover open={profilePopoverOpen} onOpenChange={setProfilePopoverOpen}>
+          <PopoverTrigger asChild>
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="w-8 h-8 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all overflow-hidden">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={profile?.avatar_url || undefined} alt={displayName} />
+                      <AvatarFallback className="text-[10px] font-bold" style={{ background: 'var(--gradient-primary)', color: 'hsl(var(--primary-foreground))' }}>
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{displayName}</TooltipContent>
+              </Tooltip>
+            ) : (
+              <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-sidebar-accent/50 transition-all group">
+                <Avatar className="w-8 h-8 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all shrink-0">
+                  <AvatarImage src={profile?.avatar_url || undefined} alt={displayName} />
+                  <AvatarFallback className="text-[10px] font-bold" style={{ background: 'var(--gradient-primary)', color: 'hsl(var(--primary-foreground))' }}>
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-xs font-semibold text-sidebar-foreground truncate">{displayName}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{userEmail || ''}</p>
+                </div>
+                <ChevronUp className="w-3.5 h-3.5 text-muted-foreground shrink-0 group-hover:text-sidebar-foreground transition-colors" />
+              </button>
+            )}
+          </PopoverTrigger>
+          <PopoverContent
+            side={collapsed ? 'right' : 'top'}
+            align="start"
+            className="w-64 p-0 rounded-2xl overflow-hidden border-border/50 shadow-lg"
+          >
+            {/* Profile header */}
+            <div className="p-4 pb-3">
+              <div className="flex items-center gap-3">
+                <Avatar className="w-11 h-11 ring-2 ring-primary/20">
+                  <AvatarImage src={profile?.avatar_url || undefined} alt={displayName} />
+                  <AvatarFallback className="text-sm font-bold" style={{ background: 'var(--gradient-primary)', color: 'hsl(var(--primary-foreground))' }}>
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{displayName}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{userEmail || ''}</p>
+                </div>
+              </div>
+              <div className="mt-2.5">
+                <Badge variant="outline" className={cn('text-[9px] font-bold uppercase', planColor)}>
+                  <Sparkles className="w-2.5 h-2.5 mr-1" />
+                  {userPlan || t.freePlan}
+                </Badge>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Quick actions */}
+            <div className="p-1.5">
               <button
-                onClick={onLogout}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-destructive/70 hover:text-destructive hover:bg-destructive/5 transition-colors"
+                onClick={() => { setProfilePopoverOpen(false); navigate('/dashboard/settings'); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted/60 transition-colors"
+              >
+                <User className="w-3.5 h-3.5 text-muted-foreground" />
+                {locale === 'fr' ? 'Mon profil' : 'My profile'}
+              </button>
+              <button
+                onClick={() => { setProfilePopoverOpen(false); navigate('/dashboard/payment'); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted/60 transition-colors"
+              >
+                <Crown className="w-3.5 h-3.5 text-muted-foreground" />
+                {locale === 'fr' ? 'Abonnement' : 'Subscription'}
+              </button>
+              <button
+                onClick={() => { setProfilePopoverOpen(false); navigate('/dashboard/settings'); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-foreground hover:bg-muted/60 transition-colors"
+              >
+                <Settings className="w-3.5 h-3.5 text-muted-foreground" />
+                {t.settings}
+              </button>
+            </div>
+
+            <Separator />
+
+            {/* Logout */}
+            <div className="p-1.5">
+              <button
+                onClick={() => { setProfilePopoverOpen(false); onLogout(); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-destructive/80 hover:text-destructive hover:bg-destructive/5 transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" />
+                {t.logout}
               </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">{t.logout}</TooltipContent>
-          </Tooltip>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-destructive/70 hover:text-destructive hover:bg-destructive/5 rounded-xl h-8 text-xs"
-            onClick={onLogout}
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>{t.logout}</span>
-          </Button>
-        )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </SidebarFooter>
     </Sidebar>
   );
