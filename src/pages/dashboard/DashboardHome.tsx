@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -8,10 +8,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, CalendarRange, Sparkles } from 'lucide-react';
+import { Plus, CalendarRange, Sparkles, LayoutGrid, RotateCcw, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
 import { StatsCards } from '@/components/dashboard/home/StatsCards';
 import { AccountsWidget } from '@/components/dashboard/home/AccountsWidget';
 import { SavingsWidget } from '@/components/dashboard/home/SavingsWidget';
@@ -21,6 +35,8 @@ import { ChartsSection } from '@/components/dashboard/home/ChartsSection';
 import { RecentTransactions } from '@/components/dashboard/home/RecentTransactions';
 import { AccountsSummaryWidget } from '@/components/dashboard/home/AccountsSummaryWidget';
 import { WeeklyPlannerWidget } from '@/components/dashboard/home/WeeklyPlannerWidget';
+import { SortableWidget } from '@/components/dashboard/home/SortableWidget';
+import { useDashboardLayout, type WidgetId } from '@/hooks/useDashboardLayout';
 import { useAccounts, useTransactionsRange, useBudgets, useSavingsGoals, useChartData } from '@/hooks/useDashboardData';
 
 type PeriodKey = 'today' | 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisSemester' | 'thisYear' | 'custom';
@@ -29,9 +45,7 @@ const getDateRange = (period: PeriodKey) => {
   const now = new Date();
   let start: Date;
   switch (period) {
-    case 'today':
-      start = new Date(now);
-      break;
+    case 'today': start = new Date(now); break;
     case 'thisWeek': {
       const day = now.getDay();
       start = new Date(now);
@@ -48,11 +62,8 @@ const getDateRange = (period: PeriodKey) => {
       start = new Date(now.getFullYear(), s, 1);
       break;
     }
-    case 'thisYear':
-      start = new Date(now.getFullYear(), 0, 1);
-      break;
-    default:
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
+    case 'thisYear': start = new Date(now.getFullYear(), 0, 1); break;
+    default: start = new Date(now.getFullYear(), now.getMonth(), 1);
   }
   start.setHours(0, 0, 0, 0);
   return { start: start.toISOString().split('T')[0], end: now.toISOString().split('T')[0] };
@@ -107,6 +118,27 @@ const DashboardHome = () => {
   const [appliedCustom, setAppliedCustom] = useState<{ start: string; end: string } | null>(null);
   const [customOpen, setCustomOpen] = useState(false);
   const fmt = (n: number) => fmtCurrency(n, locale);
+  const isFr = locale === 'fr';
+
+  // Dashboard layout
+  const { widgets, editMode, setEditMode, reorder, toggleVisibility, resetLayout } = useDashboardLayout();
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = widgets.findIndex(w => w.id === active.id);
+      const newIndex = widgets.findIndex(w => w.id === over.id);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        reorder(oldIndex, newIndex);
+      }
+    }
+  }, [widgets, reorder]);
 
   const { start, end } = useMemo(() => {
     if (period === 'custom' && appliedCustom) return appliedCustom;
@@ -128,10 +160,7 @@ const DashboardHome = () => {
   const { data: savingsGoals = [], isLoading: savLoading } = useSavingsGoals();
   const { data: monthlyData = [] } = useChartData(locale);
 
-  const yearStartForPlanner = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-01-01`;
-  }, []);
+  const yearStartForPlanner = useMemo(() => `${new Date().getFullYear()}-01-01`, []);
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const { data: plannerTransactions = [] } = useTransactionsRange(yearStartForPlanner, todayStr);
 
@@ -203,20 +232,29 @@ const DashboardHome = () => {
 
   const periodLabel = useMemo(() => {
     if (period === 'custom' && appliedCustom) {
-      const fmtDate = (d: string) => new Date(d).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
+      const fmtDate = (d: string) => new Date(d).toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' });
       return `${fmtDate(appliedCustom.start)} → ${fmtDate(appliedCustom.end)}`;
     }
     return undefined;
-  }, [period, appliedCustom, locale]);
+  }, [period, appliedCustom, isFr]);
 
-  // Greeting
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    const isFr = locale === 'fr';
     if (hour < 12) return isFr ? 'Bonjour' : 'Good morning';
     if (hour < 18) return isFr ? 'Bon après-midi' : 'Good afternoon';
     return isFr ? 'Bonsoir' : 'Good evening';
-  }, [locale]);
+  }, [isFr]);
+
+  // Widget render map
+  const widgetRenderers: Record<WidgetId, ReactNode> = {
+    planner: <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} />,
+    accounts: <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />,
+    charts: <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} locale={locale} />,
+    budgets: <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />,
+    savings: <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />,
+    forecast: <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />,
+    transactions: <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />,
+  };
 
   if (loading) {
     return (
@@ -239,7 +277,7 @@ const DashboardHome = () => {
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
-      {/* ── Header: Greeting + Period + Add ── */}
+      {/* ── Header ── */}
       <motion.div variants={fadeUp} className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-lg sm:text-xl font-bold tracking-tight flex items-center gap-2">
@@ -279,6 +317,19 @@ const DashboardHome = () => {
               <Button size="sm" className="w-full" onClick={applyCustom} disabled={!customStart || !customEnd}>{t.apply}</Button>
             </PopoverContent>
           </Popover>
+
+          {/* Edit mode toggle */}
+          <Button
+            variant={editMode ? 'default' : 'outline'}
+            size="sm"
+            className={`h-9 rounded-xl text-xs gap-1.5 ${editMode ? 'btn-glow-primary' : 'glass border-glass-border'}`}
+            style={editMode ? { background: 'var(--gradient-primary)' } : undefined}
+            onClick={() => setEditMode(!editMode)}
+          >
+            {editMode ? <Check className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
+            {editMode ? (isFr ? 'Terminé' : 'Done') : ''}
+          </Button>
+
           <Button
             size="sm"
             className="text-primary-foreground rounded-xl btn-glow-primary h-9 px-4"
@@ -290,7 +341,37 @@ const DashboardHome = () => {
         </div>
       </motion.div>
 
-      {/* ── Hero Stats ── */}
+      {/* Edit mode banner */}
+      <AnimatePresence>
+        {editMode && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="glass rounded-2xl p-3 flex items-center justify-between gap-3 border border-primary/20">
+              <div className="flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4 text-primary" />
+                <span className="text-xs font-semibold">
+                  {isFr ? 'Mode personnalisation — Glissez les widgets pour réorganiser' : 'Customization mode — Drag widgets to rearrange'}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
+                onClick={resetLayout}
+              >
+                <RotateCcw className="w-3 h-3" />
+                {isFr ? 'Réinitialiser' : 'Reset'}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Hero Stats (always fixed at top) ── */}
       <motion.div variants={fadeUp}>
         <StatsCards
           balance={totalBalance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t}
@@ -315,34 +396,30 @@ const DashboardHome = () => {
         />
       </motion.div>
 
-      {/* ── Bento Grid: Main content ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Left column — 3/5: Weekly Planner + Charts */}
-        <motion.div variants={fadeUp} className="lg:col-span-3 space-y-4">
-          {/* Weekly Planner — prominent */}
-          <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} />
-
-          {/* Charts */}
-          <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} locale={locale} />
-        </motion.div>
-
-        {/* Right column — 2/5: Accounts + Budgets + Savings */}
-        <motion.div variants={fadeUp} className="lg:col-span-2 space-y-4">
-          <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />
-          <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />
-          <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />
-        </motion.div>
-      </div>
-
-      {/* ── Forecast + Recent Transactions — full width ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <motion.div variants={fadeUp}>
-          <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />
-        </motion.div>
-        <motion.div variants={fadeUp}>
-          <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />
-        </motion.div>
-      </div>
+      {/* ── Sortable Widget Grid ── */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={widgets.map(w => w.id)} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {widgets.map(widget => (
+              <SortableWidget
+                key={widget.id}
+                id={widget.id}
+                colSpan={widget.colSpan}
+                visible={widget.visible}
+                editMode={editMode}
+                locale={locale}
+                onToggleVisibility={toggleVisibility}
+              >
+                {widgetRenderers[widget.id]}
+              </SortableWidget>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </motion.div>
   );
 };
