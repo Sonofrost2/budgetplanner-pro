@@ -140,6 +140,7 @@ const SavingsPage = () => {
         .like('notes', '🎯 %')
         .order('date', { ascending: false })
         .limit(500)
+        .then(r => r)
     );
 
     // 2) All transactions on savings-linked accounts (transfers, imports, etc.)
@@ -151,6 +152,7 @@ const SavingsPage = () => {
           .in('account_id', savingsAccountIds)
           .order('date', { ascending: false })
           .limit(1000)
+          .then(r => r)
       );
     }
 
