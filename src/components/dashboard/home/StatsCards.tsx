@@ -102,7 +102,7 @@ const HeroCard = ({ label, value, icon: Icon, iconColor, bg, color, trend, inver
     whileHover={{ scale: 1.02 }}
     whileTap={onClick ? { scale: 0.97 } : undefined}
     onClick={onClick}
-    className={`glass rounded-2xl p-4 hover:bg-glass-hover transition-all duration-300 group ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+    className={`glass rounded-2xl p-4 hover:bg-glass-hover transition-all duration-300 group glow-primary ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
   >
     <div className="flex items-start justify-between mb-3">
       <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>

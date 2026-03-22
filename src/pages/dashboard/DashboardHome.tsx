@@ -294,7 +294,7 @@ const DashboardHome = () => {
             </PopoverContent>
           </Popover>
         </div>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => navigate('/dashboard/transactions')}>
+        <Button size="sm" className="text-primary-foreground rounded-xl btn-glow-primary" style={{ background: 'var(--gradient-primary)' }} onClick={() => navigate('/dashboard/transactions')}>
           <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
         </Button>
       </motion.div>

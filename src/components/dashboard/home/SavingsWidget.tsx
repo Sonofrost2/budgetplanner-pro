@@ -35,7 +35,7 @@ export const SavingsWidget = ({ goals, fmt, t }: SavingsWidgetProps) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-      <div className="glass rounded-2xl h-full">
+      <div className="glass rounded-2xl h-full glow-primary">
         <div className="flex items-center justify-between p-4 pb-3">
           <h3 className="text-sm font-bold flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-secondary/10 flex items-center justify-center">
