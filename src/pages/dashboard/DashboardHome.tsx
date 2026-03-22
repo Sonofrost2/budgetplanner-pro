@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, CalendarRange } from 'lucide-react';
+import { Plus, CalendarRange, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
@@ -86,20 +86,19 @@ const buildDailyData = (
   return days;
 };
 
-/** Staggered container animation */
 const stagger = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.08 } },
+  show: { transition: { staggerChildren: 0.07 } },
 };
 const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
 };
 
 const DashboardHome = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
+  const { profile, fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodKey>('today');
@@ -129,7 +128,6 @@ const DashboardHome = () => {
   const { data: savingsGoals = [], isLoading: savLoading } = useSavingsGoals();
   const { data: monthlyData = [] } = useChartData(locale);
 
-  // Planner needs transactions from year start to cover all periodicities
   const yearStartForPlanner = useMemo(() => {
     const d = new Date();
     return `${d.getFullYear()}-01-01`;
@@ -159,21 +157,18 @@ const DashboardHome = () => {
     }).slice(0, 5);
   }, [budgetsRaw, transactions]);
 
-  // Stats
   const totalBalance = accounts.reduce((s, a) => s + Number(a.real_balance), 0);
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const transactionCount = transactions.length;
   const dailyAvgExpense = totalExpenses / periodDays;
 
-  // Previous period
   const prevIncome = prevTransactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const prevExpenses = prevTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const prevPeriodDays = Math.max(1, Math.round((new Date(prevEnd).getTime() - new Date(prevStart).getTime()) / 86400000) + 1);
   const prevDailyAvg = prevExpenses / prevPeriodDays;
   const prevSavingsRate = prevIncome > 0 ? ((prevIncome - prevExpenses) / prevIncome) * 100 : 0;
 
-  // Top expense / income
   const topExpense = useMemo(() => {
     const expenses = transactions.filter(t => t.type === 'expense');
     if (expenses.length === 0) return undefined;
@@ -188,7 +183,6 @@ const DashboardHome = () => {
     return { description: top.description, amount: Number(top.amount) };
   }, [transactions]);
 
-  // Sparklines
   const dailyIncomeData = useMemo(() => buildDailyData(transactions, start, end, 'income'), [transactions, start, end]);
   const dailyExpenseData = useMemo(() => buildDailyData(transactions, start, end, 'expense'), [transactions, start, end]);
   const dailyBalanceData = useMemo(() => {
@@ -215,55 +209,50 @@ const DashboardHome = () => {
     return undefined;
   }, [period, appliedCustom, locale]);
 
+  // Greeting
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    const name = profile?.display_name?.split(' ')[0] || '';
+    const isFr = locale === 'fr';
+    let greet = '';
+    if (hour < 12) greet = isFr ? 'Bonjour' : 'Good morning';
+    else if (hour < 18) greet = isFr ? 'Bon après-midi' : 'Good afternoon';
+    else greet = isFr ? 'Bonsoir' : 'Good evening';
+    return name ? `${greet}, ${name}` : `${greet}`;
+  }, [locale, profile]);
+
   if (loading) {
     return (
-      <div className="space-y-6 animate-fade-in-up">
-        {/* Period bar skeleton */}
+      <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-9 w-44 rounded-xl" />
+          <Skeleton className="h-8 w-48 rounded-xl" />
           <Skeleton className="h-9 w-36 rounded-xl" />
         </div>
-        {/* Hero cards skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-2xl glass p-4 space-y-3" style={{ animationDelay: `${i * 100}ms` }}>
-              <div className="flex justify-between">
-                <Skeleton className="h-10 w-10 rounded-xl" />
-                <Skeleton className="h-5 w-12 rounded-full" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-3 w-20 rounded" />
-                <Skeleton className="h-6 w-32 rounded" />
-              </div>
-            </div>
-          ))}
+        <Skeleton className="h-36 rounded-3xl" />
+        <div className="grid grid-cols-3 gap-3">
+          {[0, 1, 2].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
         </div>
-        {/* Widgets skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 space-y-4">
-            <Skeleton className="h-48 rounded-2xl" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Skeleton className="h-64 rounded-2xl" />
-              <Skeleton className="h-64 rounded-2xl" />
-            </div>
-          </div>
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-40 rounded-2xl" style={{ animationDelay: `${(i + 3) * 100}ms` }} />
-            ))}
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <Skeleton className="h-80 rounded-2xl lg:col-span-3" />
+          <Skeleton className="h-80 rounded-2xl lg:col-span-2" />
         </div>
       </div>
     );
   }
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
-      {/* Period selector + Add */}
+    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
+      {/* ── Header: Greeting + Period + Add ── */}
       <motion.div variants={fadeUp} className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" />
+            {greeting}
+          </h1>
+        </div>
         <div className="flex items-center gap-2">
           <Select value={period} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-44 glass border-glass-border"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-40 h-9 glass border-glass-border rounded-xl text-xs font-medium"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="today">{t.today}</SelectItem>
               <SelectItem value="thisWeek">{t.thisWeek}</SelectItem>
@@ -277,7 +266,7 @@ const DashboardHome = () => {
             </SelectContent>
           </Select>
           {periodLabel && (
-            <span className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-2.5 py-1">{periodLabel}</span>
+            <span className="text-[10px] text-muted-foreground bg-muted/50 rounded-lg px-2 py-1 hidden sm:inline">{periodLabel}</span>
           )}
           <Popover open={customOpen} onOpenChange={setCustomOpen}>
             <PopoverTrigger asChild><span /></PopoverTrigger>
@@ -293,13 +282,18 @@ const DashboardHome = () => {
               <Button size="sm" className="w-full" onClick={applyCustom} disabled={!customStart || !customEnd}>{t.apply}</Button>
             </PopoverContent>
           </Popover>
+          <Button
+            size="sm"
+            className="text-primary-foreground rounded-xl btn-glow-primary h-9 px-4"
+            style={{ background: 'var(--gradient-primary)' }}
+            onClick={() => navigate('/dashboard/transactions')}
+          >
+            <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
+          </Button>
         </div>
-        <Button size="sm" className="text-primary-foreground rounded-xl btn-glow-primary" style={{ background: 'var(--gradient-primary)' }} onClick={() => navigate('/dashboard/transactions')}>
-          <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
-        </Button>
       </motion.div>
 
-      {/* Hero Stats (3 cards) + "More details" sheet */}
+      {/* ── Hero Stats ── */}
       <motion.div variants={fadeUp}>
         <StatsCards
           balance={totalBalance} totalIncome={totalIncome} totalExpenses={totalExpenses} fmt={fmt} t={t}
@@ -324,35 +318,34 @@ const DashboardHome = () => {
         />
       </motion.div>
 
-      {/* Two-column layout: Left = Accounts summary + Charts | Right = Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left column — 2/3 */}
-        <motion.div variants={fadeUp} className="lg:col-span-2 space-y-4">
-          {/* Accounts Summary */}
-          <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />
+      {/* ── Bento Grid: Main content ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Left column — 3/5: Weekly Planner + Charts */}
+        <motion.div variants={fadeUp} className="lg:col-span-3 space-y-4">
+          {/* Weekly Planner — prominent */}
+          <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} />
 
           {/* Charts */}
           <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} locale={locale} />
         </motion.div>
 
-        {/* Right column — 1/3 */}
-        <motion.div variants={fadeUp} className="space-y-4">
-          <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} />
-          <AccountsWidget accounts={accounts} fmt={fmt} t={t} />
+        {/* Right column — 2/5: Accounts + Budgets + Savings */}
+        <motion.div variants={fadeUp} className="lg:col-span-2 space-y-4">
+          <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />
           <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />
           <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />
         </motion.div>
       </div>
 
-      {/* Forecast */}
-      <motion.div variants={fadeUp}>
-        <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />
-      </motion.div>
-
-      {/* Recent Transactions */}
-      <motion.div variants={fadeUp}>
-        <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />
-      </motion.div>
+      {/* ── Forecast + Recent Transactions — full width ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <motion.div variants={fadeUp}>
+          <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />
+        </motion.div>
+        <motion.div variants={fadeUp}>
+          <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />
+        </motion.div>
+      </div>
     </motion.div>
   );
 };
