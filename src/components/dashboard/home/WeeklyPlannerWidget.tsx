@@ -3,7 +3,7 @@ import {
   CalendarClock, TrendingDown, TrendingUp, PiggyBank,
   ChevronRight, ChevronLeft, Pencil, Check, X, Target,
   AlertTriangle, CheckCircle2, ArrowRight, Wallet, Compass,
-  Flame, Zap, CalendarPlus
+  Flame, Zap, CalendarPlus, GitCompareArrows, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
