@@ -161,6 +161,10 @@
 
 /* Glassmorphism utilities */
 @layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   .glass {
     background: hsl(var(--glass));
     backdrop-filter: blur(20px) saturate(1.8);
