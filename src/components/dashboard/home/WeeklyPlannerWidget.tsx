@@ -314,8 +314,10 @@ const ProgressRing = ({ pct, size = 100, stroke = 8, color }: { pct: number; siz
 };
 
 /* ── Day labels ───────────────────────────────────────────── */
-const DAY_LABELS_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-const DAY_LABELS_EN = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const DAY_LABELS_FR = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const DAY_LABELS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_SHORT_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const DAY_SHORT_EN = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 /* ── Component ─────────────────────────────────────────────── */
 export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'fr' }: WeeklyPlannerWidgetProps) => {
