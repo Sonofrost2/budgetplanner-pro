@@ -89,7 +89,7 @@ const BudgetGlobalStats = ({ budgets, spending, fmt, onCardClick }: BudgetGlobal
       {cards.map((c, i) => (
         <Card
           key={i}
-          className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl transition-all duration-200 ${onCardClick ? 'cursor-pointer hover:shadow-[var(--shadow-soft)] hover:-translate-y-0.5 group' : ''}`}
+          className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl glow-primary transition-all duration-200 ${onCardClick ? 'cursor-pointer hover:shadow-[var(--shadow-soft)] hover:-translate-y-0.5 group' : ''}`}
           onClick={() => onCardClick?.(c.action)}
         >
           <CardContent className="p-4">

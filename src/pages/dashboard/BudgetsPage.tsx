@@ -384,7 +384,7 @@ const BudgetsPage = () => {
 
     return (
       <ScrollReveal key={b.id}>
-      <Card className={`card-interactive hover:-translate-y-1 ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
+      <Card className={`card-interactive hover:-translate-y-1 glow-primary ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-bold flex items-center gap-2.5">

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { PieChart as PieChartIcon, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Calendar as CalendarIcon, CalendarDays } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { abbreviateNumber, cn } from '@/lib/utils';
-import { getBudgetPeriodBounds, formatDateStr } from '@/lib/budgetProjection';
+import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount } from '@/lib/budgetProjection';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -109,17 +109,52 @@ const BudgetAnalysisTab = () => {
 
   const expenseBudgets = budgets.filter(b => (b as any).budget_type !== 'income');
 
+  // Compute the analysis period duration in days
+  const analysisDays = useMemo(() => {
+    if (periodRanges.length === 0) return 30;
+    // All budgets share the same analysis window for multi-month periods
+    const r = periodRanges[0];
+    const s = new Date(r.start);
+    const e = new Date(r.end);
+    return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
+  }, [periodRanges]);
+
+  /** Normalize a budget amount to the analysis period.
+   *  E.g. a weekly budget of 10k over a 90-day analysis = 10k * (90/7) ≈ 128.6k */
+  const normalizeToAnalysis = (amount: number, period: string, activeDays?: string | null) => {
+    // For "current" and "last_month" with the budget's own period, no normalization needed
+    if (analysisPeriod === 'current' || analysisPeriod === 'last_month') return amount;
+
+    // Period duration in days
+    const periodDaysMap: Record<string, number> = {
+      daily: 1, weekly: 7, monthly: 30.44, quarterly: 91.31, semi_annual: 182.63, yearly: 365.25,
+    };
+    const budgetPeriodDays = periodDaysMap[period] || 30.44;
+
+    // For daily budgets with active_days, adjust
+    let effectiveBudgetDays = budgetPeriodDays;
+    if (period === 'daily' && activeDays) {
+      const activeCount = activeDays.split(',').filter(Boolean).length;
+      // Budget covers activeCount days per 7-day week
+      effectiveBudgetDays = 7 / activeCount;
+    }
+
+    const periodsInAnalysis = analysisDays / effectiveBudgetDays;
+    return amount * periodsInAnalysis;
+  };
+
   const budgetAnalysis = useMemo(() => {
     return expenseBudgets.map(b => {
       const actual = spending[b.id] || 0;
-      const amount = Number(b.amount);
+      const rawAmount = Number(b.amount);
+      const amount = Math.round(normalizeToAnalysis(rawAmount, b.period || 'monthly', (b as any).active_days));
       const pct = amount > 0 ? Math.min((actual / amount) * 100, 100) : 0;
       const isMax = (b as any).control_type !== 'min';
       const variance = isMax ? amount - actual : actual - amount;
 
-      return { budget: b, actual, amount, pct, variance };
+      return { budget: b, actual, amount, pct, variance, rawAmount };
     });
-  }, [expenseBudgets, spending]);
+  }, [expenseBudgets, spending, analysisDays, analysisPeriod]);
 
   const summary = useMemo(() => {
     const totalBudgeted = budgetAnalysis.reduce((s, a) => s + a.amount, 0);
@@ -305,11 +340,16 @@ const BudgetAnalysisTab = () => {
         {budgetAnalysis.map(a => {
           const over = a.actual > a.amount;
           return (
-            <Card key={a.budget.id} className={`border border-border/50 rounded-2xl ${over ? 'ring-1 ring-destructive/20' : ''}`}>
+            <Card key={a.budget.id} className={`border border-border/50 rounded-2xl glow-primary ${over ? 'ring-1 ring-destructive/20' : ''}`}>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-sm flex items-center gap-2">
                     <span>{a.budget.categories?.icon || '📁'}</span> {a.budget.name}
+                    {a.rawAmount !== a.amount && (
+                      <span className="text-[10px] font-normal text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-md">
+                        {isFr ? 'normalisé' : 'normalized'}
+                      </span>
+                    )}
                   </span>
                   <span className={`text-sm font-bold amount-display ${over ? 'text-destructive' : 'text-secondary'}`}>
                     {fmt(a.actual)} / {fmt(a.amount)}

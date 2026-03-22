@@ -106,7 +106,7 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
   };
 
   return (
-    <Card className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden ${done ? 'ring-2 ring-secondary/30' : ''}`}>
+    <Card className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden glow-primary ${done ? 'ring-2 ring-secondary/30' : ''}`}>
       {/* ── Header ── */}
       <div className="p-5 pb-4">
         <div className="flex items-start justify-between">
