@@ -174,6 +174,154 @@ const BudgetAnalysisTab = () => {
     actual: a.actual,
   }));
 
+  const [exporting, setExporting] = useState(false);
+
+  const periodLabelForPdf = useMemo(() => {
+    if (analysisPeriod === 'custom' && customFrom && customTo) {
+      return `${format(customFrom, 'dd/MM/yyyy')} - ${format(customTo, 'dd/MM/yyyy')}`;
+    }
+    return periodLabels[analysisPeriod];
+  }, [analysisPeriod, customFrom, customTo, periodLabels]);
+
+  const handleExportPDF = useCallback(async () => {
+    setExporting(true);
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+
+      const pdfFmt = (n: number) => {
+        const parts = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        return parts;
+      };
+
+      const doc = new jsPDF();
+      const title = isFr ? 'Rapport d\'Analyse Budgetaire' : 'Budget Analysis Report';
+      const date = format(new Date(), 'dd/MM/yyyy HH:mm');
+
+      // Header
+      doc.setFontSize(18);
+      doc.text(title, 14, 20);
+      doc.setFontSize(10);
+      doc.setTextColor(120);
+      doc.text(`${isFr ? 'Periode' : 'Period'}: ${periodLabelForPdf}  |  ${isFr ? 'Genere le' : 'Generated'}: ${date}`, 14, 28);
+      doc.setTextColor(0);
+
+      // Summary section
+      let y = 38;
+      doc.setFontSize(13);
+      doc.text(isFr ? 'Resume Global' : 'Global Summary', 14, y);
+      y += 8;
+
+      const summaryData = [
+        [isFr ? 'Total budgete' : 'Total Budgeted', pdfFmt(summary.totalBudgeted)],
+        [isFr ? 'Total consomme' : 'Total Consumed', pdfFmt(summary.totalConsumed)],
+        [isFr ? 'Taux de consommation' : 'Consumption Rate', `${summary.totalBudgeted > 0 ? Math.round((summary.totalConsumed / summary.totalBudgeted) * 100) : 0}%`],
+        [isFr ? 'Budgets en bonne voie' : 'On Track', String(summary.onTrackCount)],
+        [isFr ? 'Budgets en alerte' : 'In Alert', String(summary.overBudgetCount)],
+        [isFr ? 'Total economies' : 'Total Savings', pdfFmt(Math.round(summary.totalSavings))],
+        [isFr ? 'Total depassements' : 'Total Overspend', pdfFmt(Math.round(summary.totalOverspend))],
+        [isFr ? 'Variance nette' : 'Net Variance', `${summary.netVariance >= 0 ? '+' : ''}${pdfFmt(Math.round(summary.netVariance))}`],
+      ];
+
+      autoTable(doc, {
+        startY: y,
+        head: [[isFr ? 'Indicateur' : 'Indicator', isFr ? 'Valeur' : 'Value']],
+        body: summaryData,
+        theme: 'striped',
+        headStyles: { fillColor: [108, 99, 255], fontSize: 10 },
+        styles: { fontSize: 9 },
+        margin: { left: 14, right: 14 },
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 12;
+
+      // Detail table
+      doc.setFontSize(13);
+      doc.text(isFr ? 'Detail par Budget' : 'Budget Details', 14, y);
+      y += 6;
+
+      const periodLabelsShort: Record<string, string> = {
+        daily: isFr ? 'Jour' : 'Daily',
+        weekly: isFr ? 'Sem.' : 'Weekly',
+        monthly: isFr ? 'Mois' : 'Monthly',
+        quarterly: isFr ? 'Trim.' : 'Quarterly',
+        semi_annual: isFr ? 'Sem.' : 'Semi-annual',
+        yearly: isFr ? 'Annuel' : 'Yearly',
+      };
+
+      const detailHead = [
+        isFr ? 'Budget' : 'Budget',
+        isFr ? 'Periode' : 'Period',
+        isFr ? 'Montant brut' : 'Raw Amount',
+        isFr ? 'Normalise' : 'Normalized',
+        isFr ? 'Realise' : 'Actual',
+        '%',
+        isFr ? 'Variance' : 'Variance',
+        isFr ? 'Statut' : 'Status',
+      ];
+
+      const detailBody = budgetAnalysis.map(a => [
+        a.budget.name,
+        periodLabelsShort[a.budget.period || 'monthly'] || a.budget.period,
+        pdfFmt(a.rawAmount),
+        a.rawAmount !== a.amount ? pdfFmt(a.amount) : '-',
+        pdfFmt(a.actual),
+        `${Math.round(a.pct)}%`,
+        `${a.variance >= 0 ? '+' : ''}${pdfFmt(Math.round(a.variance))}`,
+        a.variance >= 0 ? (isFr ? 'OK' : 'OK') : (isFr ? 'Depasse' : 'Over'),
+      ]);
+
+      autoTable(doc, {
+        startY: y,
+        head: [detailHead],
+        body: detailBody,
+        theme: 'striped',
+        headStyles: { fillColor: [108, 99, 255], fontSize: 8 },
+        styles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 35 },
+          7: { fontStyle: 'bold' },
+        },
+        margin: { left: 14, right: 14 },
+        didParseCell: (data: any) => {
+          if (data.section === 'body' && data.column.index === 7) {
+            const val = data.cell.raw;
+            if (val === 'OK') {
+              data.cell.styles.textColor = [34, 139, 34];
+            } else {
+              data.cell.styles.textColor = [220, 38, 38];
+            }
+          }
+          if (data.section === 'body' && data.column.index === 6) {
+            const val = String(data.cell.raw);
+            if (val.startsWith('+')) {
+              data.cell.styles.textColor = [34, 139, 34];
+            } else if (val.startsWith('-')) {
+              data.cell.styles.textColor = [220, 38, 38];
+            }
+          }
+        },
+      });
+
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Budget Planner - ${title}`, 14, doc.internal.pageSize.height - 10);
+        doc.text(`${i}/${pageCount}`, doc.internal.pageSize.width - 25, doc.internal.pageSize.height - 10);
+      }
+
+      doc.save(`analyse-budgetaire-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      toast.success(isFr ? 'PDF exporté avec succès' : 'PDF exported successfully');
+    } catch (err: any) {
+      toast.error(err.message || 'Export error');
+    } finally {
+      setExporting(false);
+    }
+  }, [budgetAnalysis, summary, isFr, periodLabelForPdf, fmt]);
+
   if (budgets.length === 0) {
     return (
       <Card className="border border-border/50 rounded-2xl">
