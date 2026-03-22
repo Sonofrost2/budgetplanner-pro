@@ -3,10 +3,11 @@ import {
   CalendarClock, TrendingDown, TrendingUp, PiggyBank,
   ChevronRight, ChevronLeft, Pencil, Check, X, Target,
   AlertTriangle, CheckCircle2, ArrowRight, Wallet, Compass,
-  Flame, Zap
+  Flame, Zap, CalendarPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import type { DashTranslations } from '@/i18n/dashTranslations';
