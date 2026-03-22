@@ -28,7 +28,7 @@ const DashboardLayout = () => {
   const location = useLocation();
   const t = dashT[locale];
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-  const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean } | null>(null);
+  const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean; avatar_url: string | null } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userPlan, setUserPlan] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(false);
@@ -39,7 +39,7 @@ const DashboardLayout = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('display_name, onboarding_completed').eq('user_id', user.id).single()
+    supabase.from('profiles').select('display_name, onboarding_completed, avatar_url').eq('user_id', user.id).single()
       .then(({ data }) => {
         setProfile(data);
         if (data && !data.onboarding_completed) navigate('/onboarding');
@@ -125,6 +125,7 @@ const DashboardLayout = () => {
           <AppSidebar
             profile={profile}
             userPlan={userPlan}
+            userEmail={user?.email || null}
             onLogout={() => setLogoutDialogOpen(true)}
             onSearchOpen={() => setSearchOpen(true)}
           />
