@@ -183,11 +183,16 @@ const BudgetAnalysisTab = () => {
     return periodLabels[analysisPeriod];
   }, [analysisPeriod, customFrom, customTo, periodLabels]);
 
+  const chartRef = useRef<HTMLDivElement>(null);
+
   const handleExportPDF = useCallback(async () => {
     setExporting(true);
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const { default: autoTable } = await import('jspdf-autotable');
+      const [{ default: jsPDF }, { default: autoTable }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+        import('html2canvas'),
+      ]);
 
       const pdfFmt = (n: number) => {
         const parts = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
