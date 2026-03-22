@@ -63,7 +63,7 @@ export function ResponsiveFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("sm:max-w-lg max-h-[85vh] flex flex-col", className)}>
+      <DialogContent className={cn("sm:max-w-xl md:max-w-2xl max-h-[85vh] flex flex-col", className)}>
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
