@@ -525,6 +525,9 @@ export const dashT = {
     weeklyOver: 'Dépassé',
     weeklyIncomeExpected: 'Revenus prévus',
     weeklyNetBalance: 'Solde net hebdomadaire',
+    weeklyUsed: 'utilisé',
+    weeklyLeft: 'restant',
+    weeklyOverBy: 'dépassé',
     // Budget scheduling
     expectedDay: 'Jour prévu',
     expectedDayWeekHint: '1=Lun, 2=Mar, ..., 7=Dim',
