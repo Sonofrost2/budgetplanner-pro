@@ -540,7 +540,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
                 {totalDelta >= 0 ? <PiggyBank className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                 {totalDelta >= 0 ? '+' : ''}{fmt(totalDelta)}
                 <span className="font-medium opacity-70">
-                  {totalDelta >= 0 ? (isFr ? 'restant' : 'left') : (isFr ? 'dépassé' : 'over')}
+                  {totalDelta >= 0 ? ((t as any).weeklyLeft || (isFr ? 'restant' : 'left')) : ((t as any).weeklyOverBy || (isFr ? 'dépassé' : 'over'))}
                 </span>
               </div>
             </div>
