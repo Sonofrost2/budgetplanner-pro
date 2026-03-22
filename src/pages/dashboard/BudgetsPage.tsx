@@ -699,16 +699,16 @@ const BudgetsPage = () => {
               </p>
             </div>
 
+            <div className="space-y-1.5">
+              <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
+              <CategoryCombobox
+                categories={filteredCategories}
+                value={form.category_id}
+                onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
+                placeholder={t.selectCategory}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
-                <CategoryCombobox
-                  categories={filteredCategories}
-                  value={form.category_id}
-                  onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
-                  placeholder={t.selectCategory}
-                />
-              </div>
               <div className="space-y-1.5">
                 <Label className="form-label">{t.alertThreshold}</Label>
                 <Input type="number" min="1" max="100" value={form.alert_threshold} onChange={e => setForm(f => ({ ...f, alert_threshold: e.target.value }))} className="rounded-xl h-10" />
