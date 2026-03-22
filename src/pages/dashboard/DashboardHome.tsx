@@ -212,14 +212,11 @@ const DashboardHome = () => {
   // Greeting
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    const name = profile?.display_name?.split(' ')[0] || '';
     const isFr = locale === 'fr';
-    let greet = '';
-    if (hour < 12) greet = isFr ? 'Bonjour' : 'Good morning';
-    else if (hour < 18) greet = isFr ? 'Bon après-midi' : 'Good afternoon';
-    else greet = isFr ? 'Bonsoir' : 'Good evening';
-    return name ? `${greet}, ${name}` : `${greet}`;
-  }, [locale, profile]);
+    if (hour < 12) return isFr ? 'Bonjour' : 'Good morning';
+    if (hour < 18) return isFr ? 'Bon après-midi' : 'Good afternoon';
+    return isFr ? 'Bonsoir' : 'Good evening';
+  }, [locale]);
 
   if (loading) {
     return (
