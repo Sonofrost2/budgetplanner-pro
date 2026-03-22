@@ -986,12 +986,20 @@ const TransactionsPage = () => {
                     exit={{ opacity: 0, y: -4, scale: 0.98 }}
                     className="absolute top-full left-0 right-0 z-[60] mt-1 bg-popover border border-border rounded-xl shadow-xl max-h-48 overflow-y-auto"
                   >
-                    {descriptionSuggestions.map((s, i) => (
-                      <button key={i} type="button" className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors truncate"
-                        onMouseDown={(e) => { e.preventDefault(); setForm(f => ({ ...f, description: s.description, category_id: s.category_id || f.category_id, account_id: s.account_id || f.account_id })); setShowSuggestions(false); }}>
-                        {s.description}
-                      </button>
-                    ))}
+                    {descriptionSuggestions.map((s, i) => {
+                      const cat = categories.find(c => c.id === s.category_id);
+                      const acc = accounts.find(a => a.id === s.account_id);
+                      return (
+                        <button key={i} type="button" className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors flex items-center gap-2"
+                          onMouseDown={(e) => { e.preventDefault(); setForm(f => ({ ...f, description: s.description, category_id: s.category_id || f.category_id, account_id: s.account_id || f.account_id })); setShowSuggestions(false); }}>
+                          <span className="truncate flex-1">{s.description}</span>
+                          <span className="flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground">
+                            {cat && <span className="flex items-center gap-0.5" title={cat.name}><span>{cat.icon}</span><span className="hidden sm:inline max-w-[80px] truncate">{cat.name}</span></span>}
+                            {acc && <span className="flex items-center gap-0.5 border-l border-border pl-1.5" title={acc.name}><span>{acc.icon}</span><span className="hidden sm:inline max-w-[80px] truncate">{acc.name}</span></span>}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </motion.div>
                 )}
               </AnimatePresence>
