@@ -498,7 +498,7 @@ const BudgetAnalysisTab = () => {
             <CardTitle className="text-base font-bold">{t.budgetVsActual}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
+            <div className="h-72" ref={chartRef}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
