@@ -130,7 +130,7 @@ const SavingsPage = () => {
       .filter((id: string | null): id is string => !!id);
 
     // Fetch transactions: those with 🎯 notes OR on savings-linked accounts
-    const txPromises: Promise<any>[] = [];
+    const txPromises: PromiseLike<any>[] = [];
 
     // 1) Transactions with 🎯 pattern (legacy / explicit savings transactions)
     txPromises.push(
