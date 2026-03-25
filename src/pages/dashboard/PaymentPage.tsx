@@ -505,6 +505,15 @@ const PaymentPage = () => {
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>
                     {statusLabel}
                   </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg shrink-0"
+                    onClick={() => downloadReceiptPDF(r, locale, fmt)}
+                    title={locale === 'fr' ? 'Télécharger PDF' : 'Download PDF'}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </Button>
                 </motion.div>
               );
             })}
