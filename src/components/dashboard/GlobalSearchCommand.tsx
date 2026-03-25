@@ -199,7 +199,7 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
               {filteredBudgets.map(b => (
                 <CommandItem
                   key={b.id}
-                  onSelect={() => go('/dashboard/budgets')}
+                  onSelect={() => go(`/dashboard/budgets?q=${encodeURIComponent(b.name)}`)}
                   className="gap-2.5 cursor-pointer"
                 >
                   <span className="text-base">{(b.categories as any)?.icon || '📁'}</span>
