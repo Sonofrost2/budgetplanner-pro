@@ -704,7 +704,11 @@ const SavingsPage = () => {
             {goals.length > 0 && ` · ${fmt(goals.reduce((s, g) => s + Number(g.current_amount), 0))} ${locale === 'fr' ? 'épargnés' : 'saved'}`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button size="sm" variant="outline" className="rounded-xl" onClick={handleRecalculate} disabled={recalculating}>
+            <Calculator className={`w-4 h-4 mr-1 ${recalculating ? 'animate-spin' : ''}`} />
+            {recalculating ? (locale === 'fr' ? 'Recalcul...' : 'Recalculating...') : (locale === 'fr' ? 'Recalculer soldes' : 'Recalculate')}
+          </Button>
           <Button size="sm" variant="outline" className="rounded-xl" onClick={handleSyncSavings} disabled={syncing}>
             <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? (t.syncing) : (t.syncSavings)}
