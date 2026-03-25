@@ -72,7 +72,7 @@ export const SavingsWidget = ({ goals, fmt, t }: SavingsWidgetProps) => {
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
                     className="space-y-1.5 p-2 rounded-xl hover:bg-muted/20 transition-all cursor-pointer"
-                    onClick={() => navigate('/dashboard/savings')}
+                    onClick={() => navigate(`/dashboard/savings?q=${encodeURIComponent(goal.name)}`)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">

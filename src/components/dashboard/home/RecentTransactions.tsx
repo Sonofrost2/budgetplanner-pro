@@ -61,7 +61,7 @@ export const RecentTransactions = ({ transactions, fmt, t, locale }: RecentTrans
                 animate="show"
                 whileHover={{ x: 4, backgroundColor: 'hsl(var(--muted) / 0.3)' }}
                 className="flex items-center justify-between p-2 rounded-xl transition-colors cursor-pointer"
-                onClick={() => navigate('/dashboard/transactions')}
+                onClick={() => navigate(`/dashboard/transactions?q=${encodeURIComponent(tx.description)}`)}
               >
                 <div className="flex items-center gap-2.5">
                   <motion.div
