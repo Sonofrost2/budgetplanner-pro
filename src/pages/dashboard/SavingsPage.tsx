@@ -116,7 +116,7 @@ const SavingsPage = () => {
   const fetchData = useCallback(async () => {
     if (!user) return;
     const [goalsRes, accRes] = await Promise.all([
-      supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance)').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance, opening_balance)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('payment_accounts').select('*').eq('user_id', user.id),
     ]);
 

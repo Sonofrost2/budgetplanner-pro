@@ -43,8 +43,11 @@ export const SavingsControlTable = ({ goals, contributions, fmt, t, locale }: Sa
       const totalWithdrawals = goalContribs.filter(c => c.type === 'withdrawal').reduce((s, c) => s + Number(c.amount), 0);
       const netContributed = totalDeposits - totalWithdrawals;
       
+      // Include the linked account's opening_balance to avoid false discrepancies
+      const openingBalance = Number((g.payment_accounts as any)?.opening_balance) || 0;
+      
       const currentAmount = Number(g.current_amount);
-      const discrepancy = currentAmount - netContributed;
+      const discrepancy = currentAmount - (openingBalance + netContributed);
       const variance = thisMonthAmount - plannedMonthly;
 
       return {
@@ -55,6 +58,7 @@ export const SavingsControlTable = ({ goals, contributions, fmt, t, locale }: Sa
         totalDeposits,
         totalWithdrawals,
         netContributed,
+        openingBalance,
         currentAmount,
         discrepancy,
         variance,
@@ -92,13 +96,14 @@ export const SavingsControlTable = ({ goals, contributions, fmt, t, locale }: Sa
       </div>
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader>
+         <TableHeader>
             <TableRow>
               <TableHead></TableHead>
               <TableHead>{isFr ? 'Objectif' : 'Goal'}</TableHead>
               <TableHead className="text-right">{isFr ? 'Prévu/mois' : 'Planned/mo'}</TableHead>
               <TableHead className="text-right">{isFr ? 'Versé ce mois' : 'This month'}</TableHead>
               <TableHead className="text-right">{t.variance}</TableHead>
+              <TableHead className="text-right">{isFr ? 'Solde initial' : 'Opening'}</TableHead>
               <TableHead className="text-right">{isFr ? 'Cumul versé' : 'Total paid'}</TableHead>
               <TableHead className="text-right">{isFr ? 'Solde affiché' : 'Shown balance'}</TableHead>
               <TableHead className="text-right">{isFr ? 'Écart' : 'Gap'}</TableHead>
@@ -116,6 +121,7 @@ export const SavingsControlTable = ({ goals, contributions, fmt, t, locale }: Sa
                   <TableCell className={`text-right text-sm font-bold ${r.variance >= 0 ? 'text-secondary' : 'text-destructive'}`}>
                     {r.variance >= 0 ? '+' : ''}{fmt(Math.round(r.variance))}
                   </TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">{fmt(r.openingBalance)}</TableCell>
                   <TableCell className="text-right text-sm">
                     <div>{fmt(r.netContributed)}</div>
                     {r.totalWithdrawals > 0 && (
@@ -148,8 +154,8 @@ export const SavingsControlTable = ({ goals, contributions, fmt, t, locale }: Sa
       <div className="px-5 py-3 border-t border-border/30 bg-muted/20">
         <p className="text-[11px] text-muted-foreground">
           {isFr
-            ? '💡 L\'écart = Solde affiché − Cumul net des versements. Un écart positif signifie que le solde affiché est supérieur au cumul des transactions détectées (ex: intérêts, ajustement manuel). Un écart négatif peut indiquer des versements non comptabilisés.'
-            : '💡 Gap = Shown balance − Net deposits. Positive gap means the displayed balance exceeds tracked transactions (e.g., interest, manual adjustment). Negative gap may indicate untracked deposits.'}
+            ? '💡 Écart = Solde affiché − (Solde initial + Cumul net). Un écart positif peut indiquer des intérêts capitalisés ou ajustements manuels. Un écart négatif peut indiquer des versements non comptabilisés.'
+            : '💡 Gap = Shown balance − (Opening + Net deposits). Positive gap may indicate capitalized interest or manual adjustments. Negative gap may indicate untracked deposits.'}
         </p>
       </div>
     </div>
