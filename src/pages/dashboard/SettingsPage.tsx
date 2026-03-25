@@ -191,7 +191,7 @@ const SettingsPage = () => {
       </Card>
 
       {/* Push Notifications */}
-      <PushNotificationCard locale={locale} />
+      <NotificationPreferencesCard locale={locale} />
 
       {/* Security */}
       <Card className="border-none shadow-[var(--shadow-card)]">
