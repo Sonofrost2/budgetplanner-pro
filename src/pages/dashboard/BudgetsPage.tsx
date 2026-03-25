@@ -137,7 +137,7 @@ const BudgetsPage = () => {
 
   const expenseBudgets = useMemo(() => {
     let result = budgets.filter(b => (b as any).budget_type !== 'income');
-    if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(b => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q)); }
+    if (searchQuery) { const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean); result = result.filter(b => terms.some(q => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q))); }
     if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
     result = [...result].sort((a, b) => {
       let cmp = 0;
