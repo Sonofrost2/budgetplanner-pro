@@ -7,9 +7,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Check, X, Crown, Zap, Loader2, AlertCircle, Star, Shield, Sparkles } from 'lucide-react';
+import { Check, X, Crown, Zap, Loader2, AlertCircle, Star, Shield, Sparkles, Receipt, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
+import { fr, enUS } from 'date-fns/locale';
 
 type Plan = {
   id: string;
@@ -41,6 +43,8 @@ const PaymentPage = () => {
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [canceling, setCanceling] = useState(false);
   const [annual, setAnnual] = useState(false);
+  const [receipts, setReceipts] = useState<any[]>([]);
+  const [receiptsLoading, setReceiptsLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
@@ -54,6 +58,10 @@ const PaymentPage = () => {
       setLoading(false);
     };
     load();
+
+    // Load receipts
+    supabase.from('payment_receipts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20)
+      .then(({ data }) => { setReceipts(data || []); setReceiptsLoading(false); });
   }, [user]);
 
   const getPrice = (plan: Plan) => {
@@ -379,11 +387,80 @@ const PaymentPage = () => {
         </div>
       </motion.div>
 
+      {/* Payment History */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.55, duration: 0.35 }}
+        className="glass rounded-2xl overflow-hidden"
+      >
+        <div className="px-6 py-4 border-b border-border/50 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Receipt className="w-4 h-4 text-primary" />
+          </div>
+          <h3 className="font-bold text-sm">{locale === 'fr' ? 'Historique des paiements' : 'Payment History'}</h3>
+          <Badge variant="secondary" className="ml-auto text-[10px] rounded-full px-2 py-0.5">{receipts.length}</Badge>
+        </div>
+
+        {receiptsLoading ? (
+          <div className="p-6 space-y-3">
+            <Skeleton className="h-12 rounded-xl" />
+            <Skeleton className="h-12 rounded-xl" />
+            <Skeleton className="h-12 rounded-xl" />
+          </div>
+        ) : receipts.length === 0 ? (
+          <div className="p-8 text-center">
+            <Clock className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground">{t.noReceipts}</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/30">
+            {receipts.map((r, idx) => {
+              const statusColor = r.status === 'confirmed'
+                ? 'bg-secondary/15 text-secondary'
+                : r.status === 'pending'
+                  ? 'bg-amber-500/15 text-amber-600'
+                  : 'bg-destructive/15 text-destructive';
+              const statusLabel = r.status === 'confirmed'
+                ? (locale === 'fr' ? 'Confirmé' : 'Confirmed')
+                : r.status === 'pending'
+                  ? (locale === 'fr' ? 'En attente' : 'Pending')
+                  : r.status;
+
+              return (
+                <motion.div
+                  key={r.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05 * idx }}
+                  className="px-6 py-3.5 flex items-center gap-4 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold capitalize truncate">
+                      {locale === 'fr' ? 'Plan' : 'Plan'} {r.plan_name}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {format(new Date(r.created_at), 'dd MMM yyyy · HH:mm', { locale: locale === 'fr' ? fr : enUS })}
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold tabular-nums whitespace-nowrap">
+                    {fmt(r.amount, locale)} {r.currency}
+                  </span>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>
+                    {statusLabel}
+                  </span>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </motion.div>
+
       {/* Footer note */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
+        transition={{ delay: 0.65 }}
         className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5"
       >
         <AlertCircle className="w-3 h-3" />
