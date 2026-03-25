@@ -65,25 +65,21 @@ export const useBudgetNotifications = () => {
     const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0];
     const yearStart = `${now.getFullYear()}-01-01`;
 
-    const [budgetsRes, allTxRes, savingsRes, savingsTxRes, importedSavingsTxRes, accountsRes, recurringRes, accountTxRes] = await Promise.all([
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+
+    const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, accountsRes, recurringRes, accountTxRes] = await Promise.all([
       supabase.from('budgets').select('*, categories(name, icon)').eq('user_id', user.id),
       supabase.from('transactions').select('category_id, amount, type, date').eq('user_id', user.id)
         .gte('date', yearStart).lte('date', todayStr),
       supabase.from('savings_goals').select('*').eq('user_id', user.id),
-      supabase.from('transactions').select('amount, date, notes')
-        .eq('user_id', user.id).eq('type', 'expense')
-        .like('notes', '🎯 %')
-        .gte('date', new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0])
-        .lte('date', todayStr),
-      supabase.from('transactions').select('amount, description, account_id')
-        .eq('user_id', user.id).eq('type', 'income')
-        .ilike('description', '%cotisation epargne%')
-        .gte('date', new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0])
-        .lte('date', todayStr),
+      // Fetch this month's transactions that could be savings contributions:
+      // income on savings-linked accounts OR 🎯-noted income transactions
+      supabase.from('transactions').select('amount, date, notes, type, account_id, description')
+        .eq('user_id', user.id)
+        .gte('date', monthStart).lte('date', todayStr),
       supabase.from('payment_accounts').select('id, name, icon, real_balance, opening_balance').eq('user_id', user.id),
       supabase.from('recurring_transactions').select('*').eq('user_id', user.id).eq('active', true)
         .lte('next_date', sevenDaysLaterStr),
-      // Fetch ALL transactions with account_id for balance discrepancy calculation
       supabase.from('transactions').select('account_id, amount, type').eq('user_id', user.id)
         .not('account_id', 'is', null).limit(100000),
     ]);
@@ -91,8 +87,7 @@ export const useBudgetNotifications = () => {
     const budgets = budgetsRes.data || [];
     const allTxs = allTxRes.data || [];
     const savings = savingsRes.data || [];
-    const savingsTxs = savingsTxRes.data || [];
-    const importedSavingsTxs = importedSavingsTxRes.data || [];
+    const savingsMonthTxs = savingsMonthTxRes.data || [];
     const accounts = accountsRes.data || [];
     const recurringTxs = recurringRes.data || [];
     const accountTxs = accountTxRes.data || [];
@@ -231,15 +226,31 @@ export const useBudgetNotifications = () => {
       }
       if (monthlyNeeded <= 0) continue;
 
-      const goalContribs = savingsTxs.filter(tx => tx.notes === `🎯 ${goal.name}`);
-      const importedContribs = importedSavingsTxs.filter(tx =>
-        (goal.account_id && tx.account_id === goal.account_id) ||
-        tx.description?.toLowerCase().includes(goal.name.toLowerCase().split(' ').slice(0, 2).join(' '))
-      );
-      const monthlyActual = [
-        ...goalContribs.map(tx => Number(tx.amount)),
-        ...importedContribs.map(tx => Number(tx.amount)),
-      ].reduce((s, a) => s + a, 0);
+      // Calculate this month's contributions using same logic as SavingsPage:
+      // 1) Income transactions on the goal's linked account (deposits)
+      // 2) Income transactions with 🎯 note matching goal name (for goals without linked account)
+      let monthlyActual = 0;
+      const seen = new Set<string>();
+
+      for (const tx of savingsMonthTxs) {
+        const isReturnTx = (tx.description || '').includes('↩');
+        // Match by account
+        if (goal.account_id && tx.account_id === goal.account_id && !isReturnTx && tx.type === 'income') {
+          if (!seen.has(tx.date + tx.amount)) {
+            monthlyActual += Number(tx.amount);
+            seen.add(tx.date + tx.amount);
+          }
+        }
+        // Match by 🎯 note (only for goals without linked account, or as fallback)
+        else if (tx.notes === `🎯 ${goal.name}` && tx.type === 'income' && !isReturnTx) {
+          if (!goal.account_id || tx.account_id === goal.account_id) {
+            if (!seen.has(tx.date + tx.amount)) {
+              monthlyActual += Number(tx.amount);
+              seen.add(tx.date + tx.amount);
+            }
+          }
+        }
+      }
 
       if (monthlyActual === 0) {
         notifs.push({
