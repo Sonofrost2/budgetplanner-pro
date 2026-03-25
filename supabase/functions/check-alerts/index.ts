@@ -182,42 +182,37 @@ Deno.serve(async (req) => {
         const daysToExceed = dailyRate > 0 ? Math.round((amount - spent) / dailyRate) : Infinity;
 
         if (isMax) {
-          if (spent > amount) {
-            // ⚠️ Budget exceeded — with context
+          if (prefBudgetAlerts && spent > amount) {
             alerts.push({
               title: isFr ? "⚠️ Budget dépassé" : "⚠️ Budget exceeded",
               body: `${catIcon} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}`,
             });
-          } else if (pct >= threshold) {
-            // Warning: threshold reached
+          } else if (prefBudgetAlerts && pct >= threshold) {
             alerts.push({
               title: isFr ? `📊 Budget à ${Math.round(pct)}%` : `📊 Budget at ${Math.round(pct)}%`,
               body: `${catIcon} ${budget.name} (${isFr ? "seuil" : "threshold"} ${threshold}%)`,
             });
-          } else if (projection > amount && pct >= 40 && daysToExceed < daysRemaining && daysToExceed > 0) {
-            // 📈 Predictive alert: "will exceed in ~X days"
+          } else if (prefBudgetProjections && projection > amount && pct >= 40 && daysToExceed < daysRemaining && daysToExceed > 0) {
             alerts.push({
               title: isFr ? `📈 Dépassement estimé dans ~${daysToExceed}j` : `📈 Projected to exceed in ~${daysToExceed}d`,
               body: `${catIcon} ${budget.name}: ${isFr ? "projection" : "projection"} ${Math.round(projection).toLocaleString()} (${Math.round((projection / amount) * 100)}%)`,
             });
-          } else if (pct < 50 && daysElapsed > daysTotal * 0.7) {
-            // 🎉 Congratulations: budget under control near end of period
+          } else if (prefGoalReached && pct < 50 && daysElapsed > daysTotal * 0.7) {
             alerts.push({
               title: isFr ? "🎉 Budget maîtrisé !" : "🎉 Budget under control!",
               body: `${catIcon} ${budget.name}: ${Math.round(amount - spent).toLocaleString()} ${isFr ? "économisés" : "saved"}`,
             });
           }
         } else {
-          // Min budget (income target) — respect expected_day
           const expDay = budget.expected_day ? Number(budget.expected_day) : null;
           const pastExpectedDay = expDay ? now.getDate() >= expDay : daysElapsed > daysTotal * 0.5;
 
-          if (spent >= amount) {
+          if (prefGoalReached && spent >= amount) {
             alerts.push({
               title: isFr ? "🎉 Objectif atteint !" : "🎉 Target reached!",
               body: `${catIcon} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? "au-dessus" : "above"}`,
             });
-          } else if (pastExpectedDay) {
+          } else if (prefBudgetAlerts && pastExpectedDay) {
             alerts.push({
               title: isFr ? `📊 Objectif à ${Math.round(pct)}%` : `📊 Target at ${Math.round(pct)}%`,
               body: `${catIcon} ${budget.name}: ${isFr ? "manque" : "missing"} ${Math.round(amount - spent).toLocaleString()}`,
@@ -225,8 +220,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 📅 Upcoming budget expense reminder via expected_day
-        if (budget.expected_day && isMax) {
+        if (prefBudgetAlerts && budget.expected_day && isMax) {
           const expDay = Number(budget.expected_day);
           const todayDay = now.getDate();
           const daysUntil = expDay >= todayDay ? expDay - todayDay : 0;
@@ -237,6 +231,8 @@ Deno.serve(async (req) => {
             });
           }
         }
+      }
+      } // end if prefBudgetAlerts || prefBudgetProjections || prefGoalReached
       }
 
       // ────── Daily budget alert (80% threshold) ──────
