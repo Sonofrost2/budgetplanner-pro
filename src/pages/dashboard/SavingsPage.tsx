@@ -362,26 +362,41 @@ const SavingsPage = () => {
     try {
       const amountToAdd = Number(addAmount);
       const today = new Date().toISOString().split('T')[0];
+      const desc = `${t.savings}: ${goal.name}`;
 
-      if (sourceAccountId) {
-        await supabase.from('transactions').insert({
-          user_id: user.id, type: 'expense', amount: amountToAdd,
-          description: `${t.savings}: ${goal.name}`, account_id: sourceAccountId,
-          date: today, notes: `🎯 ${goal.name}`,
+      // Use atomic transfer when both source and savings accounts exist
+      if (sourceAccountId && goal.account_id && sourceAccountId !== goal.account_id) {
+        const { error } = await supabase.rpc('perform_transfer', {
+          p_user_id: user.id,
+          p_from_account_id: sourceAccountId,
+          p_to_account_id: goal.account_id,
+          p_amount: amountToAdd,
+          p_description: desc,
         });
+        if (error) throw error;
+      } else {
+        // Fallback: create individual transactions
+        if (sourceAccountId) {
+          await supabase.from('transactions').insert({
+            user_id: user.id, type: 'expense', amount: amountToAdd,
+            description: desc, account_id: sourceAccountId, date: today,
+          });
+        }
+        if (goal.account_id) {
+          await supabase.from('transactions').insert({
+            user_id: user.id, type: 'income', amount: amountToAdd,
+            description: desc, account_id: goal.account_id, date: today,
+          });
+        }
       }
 
-      if (goal.account_id) {
-        await supabase.from('transactions').insert({
-          user_id: user.id, type: 'income', amount: amountToAdd,
-          description: `${t.savings}: ${goal.name}`, account_id: goal.account_id,
-          date: today, notes: `🎯 ${goal.name}`,
-        });
+      // current_amount will be recalculated from transactions in fetchData
+      // Only update manually for goals without linked account
+      if (!goal.account_id) {
+        await supabase.from('savings_goals').update({
+          current_amount: Number(goal.current_amount) + amountToAdd,
+        }).eq('id', addAmountDialog);
       }
-
-      await supabase.from('savings_goals').update({
-        current_amount: Number(goal.current_amount) + amountToAdd,
-      }).eq('id', addAmountDialog);
 
       setAddAmountDialog(null);
       setAddAmount('');
@@ -401,7 +416,6 @@ const SavingsPage = () => {
     const goal = goals.find(g => g.id === withdrawDialog);
     if (!goal) return;
 
-    // Check if locked
     if ((goal as any).is_locked) {
       toast.error(t.savingsLockedWarning);
       return;
@@ -416,26 +430,40 @@ const SavingsPage = () => {
     setSaving(true);
     try {
       const today = new Date().toISOString().split('T')[0];
+      const desc = `${t.savings}: ${goal.name} ↩`;
 
-      if (goal.account_id) {
-        await supabase.from('transactions').insert({
-          user_id: user.id, type: 'expense', amount,
-          description: `${t.savings}: ${goal.name} ↩`, account_id: goal.account_id,
-          date: today, notes: `🎯 ${goal.name}`,
+      // Use atomic transfer when both savings and target accounts exist
+      if (goal.account_id && targetAccountId && goal.account_id !== targetAccountId) {
+        const { error } = await supabase.rpc('perform_transfer', {
+          p_user_id: user.id,
+          p_from_account_id: goal.account_id,
+          p_to_account_id: targetAccountId,
+          p_amount: amount,
+          p_description: desc,
         });
+        if (error) throw error;
+      } else {
+        // Fallback: create individual transactions
+        if (goal.account_id) {
+          await supabase.from('transactions').insert({
+            user_id: user.id, type: 'expense', amount,
+            description: desc, account_id: goal.account_id, date: today,
+          });
+        }
+        if (targetAccountId) {
+          await supabase.from('transactions').insert({
+            user_id: user.id, type: 'income', amount,
+            description: desc, account_id: targetAccountId, date: today,
+          });
+        }
       }
 
-      if (targetAccountId) {
-        await supabase.from('transactions').insert({
-          user_id: user.id, type: 'income', amount,
-          description: `${t.savings}: ${goal.name} ↩`, account_id: targetAccountId,
-          date: today, notes: `🎯 ${goal.name}`,
-        });
+      // current_amount will be recalculated from transactions in fetchData
+      if (!goal.account_id) {
+        await supabase.from('savings_goals').update({
+          current_amount: Math.max(0, Number(goal.current_amount) - amount),
+        }).eq('id', withdrawDialog);
       }
-
-      await supabase.from('savings_goals').update({
-        current_amount: Math.max(0, Number(goal.current_amount) - amount),
-      }).eq('id', withdrawDialog);
 
       setWithdrawDialog(null);
       setWithdrawAmount('');
