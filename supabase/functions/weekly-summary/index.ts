@@ -51,87 +51,133 @@ Deno.serve(async (req) => {
     let totalSent = 0;
 
     for (const userId of uniqueUserIds) {
-      // Get user budgets
-      const { data: userBudgets } = await supabase
-        .from("budgets")
-        .select("id, amount, category_id, categories(name)")
-        .eq("user_id", userId)
-        .eq("budget_type", "expense")
-        .eq("period", "monthly");
+      // Get user budgets + savings goals + month transactions in parallel
+      const [budgetsRes, savingsRes, monthTxsRes, profileRes] = await Promise.all([
+        supabase.from("budgets").select("id, amount, category_id, categories(name)")
+          .eq("user_id", userId).eq("budget_type", "expense").eq("period", "monthly"),
+        supabase.from("savings_goals").select("*, payment_accounts(name, opening_balance)")
+          .eq("user_id", userId),
+        supabase.from("transactions").select("amount, category_id, date, type, account_id, notes, description")
+          .eq("user_id", userId).gte("date", monthStart),
+        supabase.from("profiles").select("locale, currency").eq("user_id", userId).single(),
+      ]);
 
-      if (!userBudgets || userBudgets.length === 0) continue;
+      const userBudgets = budgetsRes.data || [];
+      const savingsGoals = savingsRes.data || [];
+      const monthTxs = monthTxsRes.data || [];
+      const locale = profileRes.data?.locale || "fr";
+      const currency = profileRes.data?.currency || "XOF";
+      const isFr = locale === "fr";
 
-      // Get month transactions
-      const { data: monthTxs } = await supabase
-        .from("transactions")
-        .select("amount, category_id, date")
-        .eq("user_id", userId)
-        .eq("type", "expense")
-        .gte("date", monthStart);
-
-      if (!monthTxs) continue;
+      if (userBudgets.length === 0 && savingsGoals.length === 0) continue;
 
       // Calculate weekly target and actual
       let totalWeeklyTarget = 0;
       let totalWeekSpent = 0;
 
+      const expenseTxs = monthTxs.filter((tx: any) => tx.type === "expense");
+
       for (const b of userBudgets) {
-        const monthSpent = monthTxs
-          .filter((tx) => tx.category_id === b.category_id)
-          .reduce((s, tx) => s + Number(tx.amount), 0);
+        const monthSpent = expenseTxs
+          .filter((tx: any) => tx.category_id === b.category_id)
+          .reduce((s: number, tx: any) => s + Number(tx.amount), 0);
         const remaining = Math.max(0, b.amount - monthSpent);
         const weeklyTarget = Math.round(remaining / weeksLeft);
-        const weekSpent = monthTxs
-          .filter((tx) => tx.category_id === b.category_id && tx.date >= weekStart && tx.date <= weekEnd)
-          .reduce((s, tx) => s + Number(tx.amount), 0);
+        const weekSpent = expenseTxs
+          .filter((tx: any) => tx.category_id === b.category_id && tx.date >= weekStart && tx.date <= weekEnd)
+          .reduce((s: number, tx: any) => s + Number(tx.amount), 0);
 
         totalWeeklyTarget += weeklyTarget;
         totalWeekSpent += Math.round(weekSpent);
       }
 
       const delta = totalWeeklyTarget - totalWeekSpent;
-      const nextWeekTarget = totalWeeklyTarget; // Approximate
-
-      // Get user locale for message
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("locale, currency")
-        .eq("user_id", userId)
-        .single();
-
-      const locale = profile?.locale || "fr";
-      const currency = profile?.currency || "XOF";
+      const nextWeekTarget = totalWeeklyTarget;
 
       const fmtAmount = (n: number) => {
         try {
-          return new Intl.NumberFormat(locale === "fr" ? "fr-FR" : "en-US", {
-            style: "currency",
-            currency,
-            maximumFractionDigits: 0,
+          return new Intl.NumberFormat(isFr ? "fr-FR" : "en-US", {
+            style: "currency", currency, maximumFractionDigits: 0,
           }).format(n);
         } catch {
           return `${n} ${currency}`;
         }
       };
 
+      // ────── Savings contribution recap ──────
+      const activeGoals = savingsGoals.filter((g: any) =>
+        Number(g.current_amount) < Number(g.target_amount) && (Number(g.monthly_contribution) > 0 || g.deadline)
+      );
+
+      let savingsLines: string[] = [];
+      let totalPlanned = 0;
+      let totalContributed = 0;
+      let goalsMissing = 0;
+
+      for (const goal of activeGoals) {
+        let monthlyNeeded = Number(goal.monthly_contribution) || 0;
+        if (monthlyNeeded <= 0 && goal.deadline) {
+          const dl = new Date(goal.deadline);
+          if (dl <= now) continue;
+          const remaining = Number(goal.target_amount) - Number(goal.current_amount);
+          const monthsLeft = Math.max(1, (dl.getFullYear() - now.getFullYear()) * 12 + dl.getMonth() - now.getMonth());
+          monthlyNeeded = remaining / monthsLeft;
+        }
+        if (monthlyNeeded <= 0) continue;
+
+        // Calculate contributions using corrected logic
+        let goalContrib = 0;
+        const seen = new Set<string>();
+        for (const tx of monthTxs) {
+          const isReturnTx = ((tx as any).description || "").includes("↩");
+          if (goal.account_id && (tx as any).account_id === goal.account_id && !isReturnTx && tx.type === "income") {
+            const key = tx.date + tx.amount;
+            if (!seen.has(key)) { goalContrib += Number(tx.amount); seen.add(key); }
+          } else if ((tx as any).notes === `🎯 ${goal.name}` && tx.type === "income" && !isReturnTx) {
+            if (!goal.account_id || (tx as any).account_id === goal.account_id) {
+              const key = tx.date + tx.amount;
+              if (!seen.has(key)) { goalContrib += Number(tx.amount); seen.add(key); }
+            }
+          }
+        }
+
+        totalPlanned += monthlyNeeded;
+        totalContributed += goalContrib;
+        if (goalContrib === 0) goalsMissing++;
+      }
+
+      // Build notification message
       let title: string;
       let body: string;
 
-      if (locale === "fr") {
+      if (isFr) {
         if (delta >= 0) {
           title = `🎉 Bravo ! ${fmtAmount(delta)} economises cette semaine`;
-          body = `Budget semaine prochaine : ${fmtAmount(nextWeekTarget)}. Continuez ainsi !`;
+          body = `Budget semaine prochaine : ${fmtAmount(nextWeekTarget)}.`;
         } else {
           title = `⚠️ Depassement de ${fmtAmount(Math.abs(delta))} cette semaine`;
-          body = `Budget semaine prochaine : ${fmtAmount(nextWeekTarget)}. Ajustez vos depenses.`;
+          body = `Budget semaine prochaine : ${fmtAmount(nextWeekTarget)}.`;
+        }
+        // Append savings recap
+        if (activeGoals.length > 0) {
+          body += ` 🐷 Épargne: ${fmtAmount(totalContributed)}/${fmtAmount(Math.round(totalPlanned))}`;
+          if (goalsMissing > 0) {
+            body += ` (${goalsMissing} objectif${goalsMissing > 1 ? "s" : ""} sans versement)`;
+          }
         }
       } else {
         if (delta >= 0) {
           title = `🎉 Great! ${fmtAmount(delta)} saved this week`;
-          body = `Next week's budget: ${fmtAmount(nextWeekTarget)}. Keep it up!`;
+          body = `Next week's budget: ${fmtAmount(nextWeekTarget)}.`;
         } else {
           title = `⚠️ Overspent by ${fmtAmount(Math.abs(delta))} this week`;
-          body = `Next week's budget: ${fmtAmount(nextWeekTarget)}. Adjust your spending.`;
+          body = `Next week's budget: ${fmtAmount(nextWeekTarget)}.`;
+        }
+        if (activeGoals.length > 0) {
+          body += ` 🐷 Savings: ${fmtAmount(totalContributed)}/${fmtAmount(Math.round(totalPlanned))}`;
+          if (goalsMissing > 0) {
+            body += ` (${goalsMissing} goal${goalsMissing > 1 ? "s" : ""} with no deposit)`;
+          }
         }
       }
 
