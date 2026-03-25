@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Bell, Lock, Trash2, Download, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
+import NotificationPreferencesCard from '@/components/dashboard/settings/NotificationPreferencesCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { exportToCSV } from '@/lib/export';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
