@@ -295,7 +295,15 @@ export const usePaginatedTransactions = (options: {
       if (accountId && accountId !== 'all') query = query.eq('account_id', accountId);
       if (startDate) query = query.gte('date', startDate);
       if (endDate) query = query.lte('date', endDate);
-      if (search) query = query.or(`description.ilike.%${search}%,notes.ilike.%${search}%`);
+      if (search) {
+        const terms = search.split(';').map(s => s.trim()).filter(Boolean);
+        if (terms.length === 1) {
+          query = query.or(`description.ilike.%${terms[0]}%,notes.ilike.%${terms[0]}%`);
+        } else {
+          const orClauses = terms.map(t => `description.ilike.%${t}%`).join(',');
+          query = query.or(orClauses);
+        }
+      }
 
       query = query.order(sortField as any, { ascending: sortOrder === 'asc' });
       query = query.range(page * pageSize, (page + 1) * pageSize - 1);

@@ -179,7 +179,7 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
               {filteredAccounts.map(a => (
                 <CommandItem
                   key={a.id}
-                  onSelect={() => go('/dashboard/accounts')}
+                  onSelect={() => go(`/dashboard/accounts?q=${encodeURIComponent(a.name)}`)}
                   className="gap-2.5 cursor-pointer"
                 >
                   <span className="text-base">{a.icon}</span>
@@ -199,7 +199,7 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
               {filteredBudgets.map(b => (
                 <CommandItem
                   key={b.id}
-                  onSelect={() => go('/dashboard/budgets')}
+                  onSelect={() => go(`/dashboard/budgets?q=${encodeURIComponent(b.name)}`)}
                   className="gap-2.5 cursor-pointer"
                 >
                   <span className="text-base">{(b.categories as any)?.icon || '📁'}</span>
@@ -244,7 +244,7 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
                 return (
                   <CommandItem
                     key={g.id}
-                    onSelect={() => go('/dashboard/savings')}
+                    onSelect={() => go(`/dashboard/savings?q=${encodeURIComponent(g.name)}`)}
                     className="gap-2.5 cursor-pointer"
                   >
                     <span className="text-base">{g.icon}</span>

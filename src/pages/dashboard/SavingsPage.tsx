@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -60,8 +61,10 @@ const SavingsPage = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency, currency } = useProfile();
   const t = dashT[locale];
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get('q') || '';
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [sortField, setSortField] = useState<'name' | 'current_amount' | 'target_amount'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -100,8 +103,8 @@ const SavingsPage = () => {
   const filteredGoals = useMemo(() => {
     let result = [...goals];
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(g => g.name.toLowerCase().includes(q) || (g as any).bank_name?.toLowerCase().includes(q));
+      const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean);
+      result = result.filter(g => terms.some(q => g.name.toLowerCase().includes(q) || (g as any).bank_name?.toLowerCase().includes(q)));
     }
     result.sort((a, b) => {
       let cmp = 0;

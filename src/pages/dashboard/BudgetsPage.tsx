@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount, computeDaysRemaining } from '@/lib/budgetProjection';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -45,6 +46,8 @@ const BudgetsPage = () => {
   const t = dashT[locale];
   const isFr = locale === 'fr';
   const { invalidate } = useInvalidate();
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get('q') || '';
 
   const { data: budgets = [], isLoading: budLoading } = useBudgets();
   const { data: allCategories = [], isLoading: catLoading } = useCategories();
@@ -61,7 +64,7 @@ const BudgetsPage = () => {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
   const [bulkModifyForm, setBulkModifyForm] = useState({ period: '', category_id: '' });
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [sortField, setSortField] = useState<'name' | 'amount' | 'spent'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterPeriod, setFilterPeriod] = useState('');
@@ -137,7 +140,7 @@ const BudgetsPage = () => {
 
   const expenseBudgets = useMemo(() => {
     let result = budgets.filter(b => (b as any).budget_type !== 'income');
-    if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(b => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q)); }
+    if (searchQuery) { const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean); result = result.filter(b => terms.some(q => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q))); }
     if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
     result = [...result].sort((a, b) => {
       let cmp = 0;
@@ -151,7 +154,7 @@ const BudgetsPage = () => {
 
   const incomeBudgets = useMemo(() => {
     let result = budgets.filter(b => (b as any).budget_type === 'income');
-    if (searchQuery) { const q = searchQuery.toLowerCase(); result = result.filter(b => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q)); }
+    if (searchQuery) { const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean); result = result.filter(b => terms.some(q => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q))); }
     if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
     result = [...result].sort((a, b) => {
       let cmp = 0;

@@ -68,7 +68,7 @@ export const AccountsWidget = ({ accounts, fmt, t }: AccountsWidgetProps) => {
                   whileHover={{ x: 4, backgroundColor: 'hsl(var(--muted) / 0.3)' }}
                   whileTap={{ scale: 0.97 }}
                   className="flex items-center justify-between p-2 rounded-xl transition-colors cursor-pointer"
-                  onClick={() => navigate('/dashboard/accounts')}
+                  onClick={() => navigate(`/dashboard/accounts?q=${encodeURIComponent(acc.name)}`)}
                 >
                   <div className="flex items-center gap-2.5">
                     <motion.span

@@ -71,7 +71,7 @@ export const BudgetsWidget = ({ budgets, fmt, t }: BudgetsWidgetProps) => {
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
                     className="space-y-1.5 p-2 rounded-xl hover:bg-muted/20 transition-all cursor-pointer"
-                    onClick={() => navigate('/dashboard/budgets')}
+                    onClick={() => navigate(`/dashboard/budgets?q=${encodeURIComponent(b.name)}`)}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold">{b.name}</span>
