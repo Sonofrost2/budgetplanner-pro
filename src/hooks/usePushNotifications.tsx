@@ -72,7 +72,7 @@ export const usePushNotifications = () => {
       if (!sub) {
         sub = await swReg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
         });
       }
 
