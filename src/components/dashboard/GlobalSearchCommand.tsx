@@ -244,7 +244,7 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
                 return (
                   <CommandItem
                     key={g.id}
-                    onSelect={() => go('/dashboard/savings')}
+                    onSelect={() => go(`/dashboard/savings?q=${encodeURIComponent(g.name)}`)}
                     className="gap-2.5 cursor-pointer"
                   >
                     <span className="text-base">{g.icon}</span>
