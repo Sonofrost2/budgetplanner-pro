@@ -37,7 +37,7 @@ interface FilterToolbarProps {
 export const FilterToolbar = ({
   searchValue,
   onSearchChange,
-  searchPlaceholder = 'Rechercher...',
+  searchPlaceholder = 'Rechercher... (ex: terme1 ; terme2)',
   sortOptions,
   sortValue,
   onSortChange,
