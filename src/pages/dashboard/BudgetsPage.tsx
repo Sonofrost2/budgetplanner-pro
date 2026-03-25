@@ -46,6 +46,8 @@ const BudgetsPage = () => {
   const t = dashT[locale];
   const isFr = locale === 'fr';
   const { invalidate } = useInvalidate();
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get('q') || '';
 
   const { data: budgets = [], isLoading: budLoading } = useBudgets();
   const { data: allCategories = [], isLoading: catLoading } = useCategories();
