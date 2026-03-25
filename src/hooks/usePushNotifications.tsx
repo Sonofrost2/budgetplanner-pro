@@ -1,8 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -13,6 +11,18 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+// Cache the VAPID key so we don't fetch it every time
+let cachedVapidKey: string | null = null;
+
+async function getVapidPublicKey(): Promise<string> {
+  if (cachedVapidKey) return cachedVapidKey;
+
+  const { data, error } = await supabase.functions.invoke('get-vapid-key');
+  if (error) throw new Error('Failed to fetch VAPID key');
+  cachedVapidKey = data.vapidPublicKey;
+  return cachedVapidKey!;
+}
+
 export const usePushNotifications = () => {
   const { user } = useAuth();
   const [permission, setPermission] = useState<NotificationPermission>(
@@ -20,10 +30,12 @@ export const usePushNotifications = () => {
   );
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const checkedRef = useRef(false);
 
   // Check if already subscribed
   useEffect(() => {
-    if (!user || !('serviceWorker' in navigator)) return;
+    if (!user || !('serviceWorker' in navigator) || checkedRef.current) return;
+    checkedRef.current = true;
     navigator.serviceWorker.ready.then(async (reg) => {
       const sub = await reg.pushManager.getSubscription();
       setSubscribed(!!sub);
@@ -38,13 +50,29 @@ export const usePushNotifications = () => {
       setPermission(perm);
       if (perm !== 'granted') { setLoading(false); return false; }
 
-      const reg = await navigator.serviceWorker.ready;
-      let sub = await reg.pushManager.getSubscription();
+      // Fetch VAPID public key from edge function
+      const vapidPublicKey = await getVapidPublicKey();
+      if (!vapidPublicKey) {
+        console.error('VAPID public key not available');
+        setLoading(false);
+        return false;
+      }
+
+      // Register the push service worker
+      let swReg: ServiceWorkerRegistration;
+      try {
+        swReg = await navigator.serviceWorker.register('/sw-push.js', { scope: '/' });
+        await navigator.serviceWorker.ready;
+      } catch {
+        swReg = await navigator.serviceWorker.ready;
+      }
+
+      let sub = await swReg.pushManager.getSubscription();
 
       if (!sub) {
-        sub = await reg.pushManager.subscribe({
+        sub = await swReg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         });
       }
 
@@ -90,7 +118,7 @@ export const usePushNotifications = () => {
     setLoading(false);
   }, [user]);
 
-  const isSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const isSupported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
   return { permission, subscribed, subscribe, unsubscribe, loading, isSupported };
 };
