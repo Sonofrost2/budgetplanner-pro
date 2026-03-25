@@ -65,25 +65,21 @@ export const useBudgetNotifications = () => {
     const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0];
     const yearStart = `${now.getFullYear()}-01-01`;
 
-    const [budgetsRes, allTxRes, savingsRes, savingsTxRes, importedSavingsTxRes, accountsRes, recurringRes, accountTxRes] = await Promise.all([
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+
+    const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, accountsRes, recurringRes, accountTxRes] = await Promise.all([
       supabase.from('budgets').select('*, categories(name, icon)').eq('user_id', user.id),
       supabase.from('transactions').select('category_id, amount, type, date').eq('user_id', user.id)
         .gte('date', yearStart).lte('date', todayStr),
       supabase.from('savings_goals').select('*').eq('user_id', user.id),
-      supabase.from('transactions').select('amount, date, notes')
-        .eq('user_id', user.id).eq('type', 'expense')
-        .like('notes', '🎯 %')
-        .gte('date', new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0])
-        .lte('date', todayStr),
-      supabase.from('transactions').select('amount, description, account_id')
-        .eq('user_id', user.id).eq('type', 'income')
-        .ilike('description', '%cotisation epargne%')
-        .gte('date', new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0])
-        .lte('date', todayStr),
+      // Fetch this month's transactions that could be savings contributions:
+      // income on savings-linked accounts OR 🎯-noted income transactions
+      supabase.from('transactions').select('amount, date, notes, type, account_id, description')
+        .eq('user_id', user.id)
+        .gte('date', monthStart).lte('date', todayStr),
       supabase.from('payment_accounts').select('id, name, icon, real_balance, opening_balance').eq('user_id', user.id),
       supabase.from('recurring_transactions').select('*').eq('user_id', user.id).eq('active', true)
         .lte('next_date', sevenDaysLaterStr),
-      // Fetch ALL transactions with account_id for balance discrepancy calculation
       supabase.from('transactions').select('account_id, amount, type').eq('user_id', user.id)
         .not('account_id', 'is', null).limit(100000),
     ]);
@@ -91,8 +87,7 @@ export const useBudgetNotifications = () => {
     const budgets = budgetsRes.data || [];
     const allTxs = allTxRes.data || [];
     const savings = savingsRes.data || [];
-    const savingsTxs = savingsTxRes.data || [];
-    const importedSavingsTxs = importedSavingsTxRes.data || [];
+    const savingsMonthTxs = savingsMonthTxRes.data || [];
     const accounts = accountsRes.data || [];
     const recurringTxs = recurringRes.data || [];
     const accountTxs = accountTxRes.data || [];
