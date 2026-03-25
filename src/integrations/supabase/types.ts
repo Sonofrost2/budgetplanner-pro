@@ -277,6 +277,75 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          balance_discrepancy: boolean
+          budget_alerts: boolean
+          budget_projections: boolean
+          created_at: string
+          daily_budget: boolean
+          debt_alerts: boolean
+          goal_reached: boolean
+          id: string
+          large_transaction: boolean
+          large_transaction_threshold: number
+          low_balance: boolean
+          low_balance_threshold: number
+          quiet_hours_enabled: boolean
+          quiet_hours_end: number
+          quiet_hours_start: number
+          recurring_reminders: boolean
+          savings_reminders: boolean
+          updated_at: string
+          user_id: string
+          weekly_summary: boolean
+        }
+        Insert: {
+          balance_discrepancy?: boolean
+          budget_alerts?: boolean
+          budget_projections?: boolean
+          created_at?: string
+          daily_budget?: boolean
+          debt_alerts?: boolean
+          goal_reached?: boolean
+          id?: string
+          large_transaction?: boolean
+          large_transaction_threshold?: number
+          low_balance?: boolean
+          low_balance_threshold?: number
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: number
+          quiet_hours_start?: number
+          recurring_reminders?: boolean
+          savings_reminders?: boolean
+          updated_at?: string
+          user_id: string
+          weekly_summary?: boolean
+        }
+        Update: {
+          balance_discrepancy?: boolean
+          budget_alerts?: boolean
+          budget_projections?: boolean
+          created_at?: string
+          daily_budget?: boolean
+          debt_alerts?: boolean
+          goal_reached?: boolean
+          id?: string
+          large_transaction?: boolean
+          large_transaction_threshold?: number
+          low_balance?: boolean
+          low_balance_threshold?: number
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: number
+          quiet_hours_start?: number
+          recurring_reminders?: boolean
+          savings_reminders?: boolean
+          updated_at?: string
+          user_id?: string
+          weekly_summary?: boolean
+        }
+        Relationships: []
+      }
       payment_accounts: {
         Row: {
           created_at: string
