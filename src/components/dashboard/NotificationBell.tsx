@@ -226,15 +226,31 @@ export const useBudgetNotifications = () => {
       }
       if (monthlyNeeded <= 0) continue;
 
-      const goalContribs = savingsTxs.filter(tx => tx.notes === `🎯 ${goal.name}`);
-      const importedContribs = importedSavingsTxs.filter(tx =>
-        (goal.account_id && tx.account_id === goal.account_id) ||
-        tx.description?.toLowerCase().includes(goal.name.toLowerCase().split(' ').slice(0, 2).join(' '))
-      );
-      const monthlyActual = [
-        ...goalContribs.map(tx => Number(tx.amount)),
-        ...importedContribs.map(tx => Number(tx.amount)),
-      ].reduce((s, a) => s + a, 0);
+      // Calculate this month's contributions using same logic as SavingsPage:
+      // 1) Income transactions on the goal's linked account (deposits)
+      // 2) Income transactions with 🎯 note matching goal name (for goals without linked account)
+      let monthlyActual = 0;
+      const seen = new Set<string>();
+
+      for (const tx of savingsMonthTxs) {
+        const isReturnTx = (tx.description || '').includes('↩');
+        // Match by account
+        if (goal.account_id && tx.account_id === goal.account_id && !isReturnTx && tx.type === 'income') {
+          if (!seen.has(tx.date + tx.amount)) {
+            monthlyActual += Number(tx.amount);
+            seen.add(tx.date + tx.amount);
+          }
+        }
+        // Match by 🎯 note (only for goals without linked account, or as fallback)
+        else if (tx.notes === `🎯 ${goal.name}` && tx.type === 'income' && !isReturnTx) {
+          if (!goal.account_id || tx.account_id === goal.account_id) {
+            if (!seen.has(tx.date + tx.amount)) {
+              monthlyActual += Number(tx.amount);
+              seen.add(tx.date + tx.amount);
+            }
+          }
+        }
+      }
 
       if (monthlyActual === 0) {
         notifs.push({
