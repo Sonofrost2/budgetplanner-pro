@@ -58,6 +58,10 @@ const PaymentPage = () => {
       setLoading(false);
     };
     load();
+
+    // Load receipts
+    supabase.from('payment_receipts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20)
+      .then(({ data }) => { setReceipts(data || []); setReceiptsLoading(false); });
   }, [user]);
 
   const getPrice = (plan: Plan) => {
