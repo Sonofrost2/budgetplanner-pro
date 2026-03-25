@@ -121,7 +121,6 @@ const SavingsPage = () => {
     ]);
 
     const goalsData = goalsRes.data || [];
-    setGoals(goalsData);
     setAccounts(accRes.data || []);
 
     // Collect all account_ids linked to savings goals
@@ -129,21 +128,19 @@ const SavingsPage = () => {
       .map((g: any) => g.account_id)
       .filter((id: string | null): id is string => !!id);
 
-    // Fetch transactions: those with 🎯 notes OR on savings-linked accounts
+    // Build a map: account_id → goal for fast lookup
+    const accountToGoal = new Map<string, any>();
+    for (const g of goalsData) {
+      if (g.account_id) accountToGoal.set(g.account_id, g);
+    }
+
+    // Goals WITHOUT linked account (use 🎯 note matching)
+    const goalsWithoutAccount = goalsData.filter((g: any) => !g.account_id);
+
+    // Fetch transactions in parallel
     const txPromises: PromiseLike<any>[] = [];
 
-    // 1) Transactions with 🎯 pattern (legacy / explicit savings transactions)
-    txPromises.push(
-      supabase.from('transactions')
-        .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
-        .eq('user_id', user.id)
-        .like('notes', '🎯 %')
-        .order('date', { ascending: false })
-        .limit(500)
-        .then(r => r)
-    );
-
-    // 2) All transactions on savings-linked accounts (transfers, imports, etc.)
+    // 1) All transactions on savings-linked accounts (primary source of truth)
     if (savingsAccountIds.length > 0) {
       txPromises.push(
         supabase.from('transactions')
@@ -151,73 +148,77 @@ const SavingsPage = () => {
           .eq('user_id', user.id)
           .in('account_id', savingsAccountIds)
           .order('date', { ascending: false })
-          .limit(1000)
+          .limit(2000)
+          .then(r => r)
+      );
+    }
+
+    // 2) 🎯 note transactions ONLY for goals without linked account
+    if (goalsWithoutAccount.length > 0) {
+      txPromises.push(
+        supabase.from('transactions')
+          .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
+          .eq('user_id', user.id)
+          .like('notes', '🎯 %')
+          .order('date', { ascending: false })
+          .limit(500)
           .then(r => r)
       );
     }
 
     const txResults = await Promise.all(txPromises);
-    
-    // Merge & deduplicate transactions
-    const allTxMap = new Map<string, any>();
-    for (const res of txResults) {
-      for (const tx of (res.data || [])) {
-        allTxMap.set(tx.id, tx);
-      }
-    }
 
     const contribMap: Record<string, SavingsContribution[]> = {};
+    const seenTxIds = new Set<string>();
     for (const goal of goalsData) {
       contribMap[goal.id] = [];
     }
 
-    for (const tx of allTxMap.values()) {
-      const desc = tx.description || '';
-      const hasTargetNote = tx.notes?.startsWith('🎯 ');
-      const goalNameFromNote = hasTargetNote ? tx.notes!.replace('🎯 ', '') : null;
-      const isReturnTx = desc.includes('↩');
+    // Process account-linked transactions first (highest priority, no ambiguity)
+    if (txResults.length > 0 && savingsAccountIds.length > 0) {
+      const accountTxs = txResults[0]?.data || [];
+      for (const tx of accountTxs) {
+        const goal = accountToGoal.get(tx.account_id);
+        if (!goal) continue;
+        seenTxIds.add(tx.id);
 
-      // Find which goal this tx belongs to
-      let matchedGoal: any = null;
-      let matchMethod: 'note' | 'account' = 'account';
-
-      if (hasTargetNote) {
-        matchedGoal = goalsData.find((g: any) => g.name === goalNameFromNote);
-        matchMethod = 'note';
+        const contribType: 'deposit' | 'withdrawal' = tx.type === 'income' ? 'deposit' : 'withdrawal';
+        contribMap[goal.id].push({
+          id: tx.id,
+          amount: tx.amount,
+          date: tx.date,
+          type: contribType,
+          account_name: (tx.payment_accounts as any)?.name,
+          account_icon: (tx.payment_accounts as any)?.icon,
+          description: tx.description,
+        });
       }
-      if (!matchedGoal && tx.account_id) {
-        matchedGoal = goalsData.find((g: any) => g.account_id === tx.account_id);
-        matchMethod = 'account';
+    }
+
+    // Process 🎯 note transactions for goals WITHOUT linked account
+    const noteResultIdx = savingsAccountIds.length > 0 ? 1 : 0;
+    if (goalsWithoutAccount.length > 0 && txResults[noteResultIdx]) {
+      const noteTxs = txResults[noteResultIdx]?.data || [];
+      for (const tx of noteTxs) {
+        if (seenTxIds.has(tx.id)) continue; // Already matched by account
+        const hasTargetNote = tx.notes?.startsWith('🎯 ');
+        if (!hasTargetNote) continue;
+        const goalNameFromNote = tx.notes!.replace('🎯 ', '');
+        const goal = goalsWithoutAccount.find((g: any) => g.name === goalNameFromNote);
+        if (!goal) continue;
+        seenTxIds.add(tx.id);
+
+        const contribType: 'deposit' | 'withdrawal' = tx.type === 'income' ? 'deposit' : 'withdrawal';
+        contribMap[goal.id].push({
+          id: tx.id,
+          amount: tx.amount,
+          date: tx.date,
+          type: contribType,
+          account_name: (tx.payment_accounts as any)?.name,
+          account_icon: (tx.payment_accounts as any)?.icon,
+          description: tx.description,
+        });
       }
-      if (!matchedGoal) continue;
-
-      // Skip the "other side" of a transfer (tx on a different account than the goal's)
-      // When depositing: expense on source account + income on savings account → keep only savings side
-      // When withdrawing: expense on savings account + income on target account → keep only savings side
-      if (matchMethod === 'note' && matchedGoal.account_id && tx.account_id !== matchedGoal.account_id) {
-        continue;
-      }
-
-      // Avoid duplicates
-      if (contribMap[matchedGoal.id].some((c: SavingsContribution) => c.id === tx.id)) continue;
-
-      // Determine deposit vs withdrawal based on the savings account perspective
-      let contribType: 'deposit' | 'withdrawal';
-      if (isReturnTx || tx.type === 'expense') {
-        contribType = 'withdrawal';
-      } else {
-        contribType = 'deposit';
-      }
-
-      contribMap[matchedGoal.id].push({
-        id: tx.id,
-        amount: tx.amount,
-        date: tx.date,
-        type: contribType,
-        account_name: (tx.payment_accounts as any)?.name,
-        account_icon: (tx.payment_accounts as any)?.icon,
-        description: tx.description,
-      });
     }
 
     // Sort each goal's contributions by date desc
@@ -225,6 +226,27 @@ const SavingsPage = () => {
       contribMap[goalId].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 
+    // Recalculate current_amount from opening_balance + net transactions for goals with linked accounts
+    const updatedGoals: typeof goalsData = [];
+    for (const goal of goalsData) {
+      if (goal.account_id) {
+        const contribs = contribMap[goal.id];
+        const openingBalance = Number((goal.payment_accounts as any)?.opening_balance) || 0;
+        const netFromTx = contribs.reduce((sum, c) => sum + (c.type === 'deposit' ? c.amount : -c.amount), 0);
+        const computedAmount = openingBalance + netFromTx;
+        // Update if there's a significant discrepancy (> 0.5)
+        if (Math.abs(computedAmount - Number(goal.current_amount)) > 0.5) {
+          await supabase.from('savings_goals').update({ current_amount: computedAmount }).eq('id', goal.id);
+          updatedGoals.push({ ...goal, current_amount: computedAmount } as any);
+        } else {
+          updatedGoals.push(goal);
+        }
+      } else {
+        updatedGoals.push(goal);
+      }
+    }
+
+    setGoals(updatedGoals);
     setContributions(contribMap);
     setLoading(false);
   }, [user]);
@@ -340,26 +362,41 @@ const SavingsPage = () => {
     try {
       const amountToAdd = Number(addAmount);
       const today = new Date().toISOString().split('T')[0];
+      const desc = `${t.savings}: ${goal.name}`;
 
-      if (sourceAccountId) {
-        await supabase.from('transactions').insert({
-          user_id: user.id, type: 'expense', amount: amountToAdd,
-          description: `${t.savings}: ${goal.name}`, account_id: sourceAccountId,
-          date: today, notes: `🎯 ${goal.name}`,
+      // Use atomic transfer when both source and savings accounts exist
+      if (sourceAccountId && goal.account_id && sourceAccountId !== goal.account_id) {
+        const { error } = await supabase.rpc('perform_transfer', {
+          p_user_id: user.id,
+          p_from_account_id: sourceAccountId,
+          p_to_account_id: goal.account_id,
+          p_amount: amountToAdd,
+          p_description: desc,
         });
+        if (error) throw error;
+      } else {
+        // Fallback: create individual transactions
+        if (sourceAccountId) {
+          await supabase.from('transactions').insert({
+            user_id: user.id, type: 'expense', amount: amountToAdd,
+            description: desc, account_id: sourceAccountId, date: today,
+          });
+        }
+        if (goal.account_id) {
+          await supabase.from('transactions').insert({
+            user_id: user.id, type: 'income', amount: amountToAdd,
+            description: desc, account_id: goal.account_id, date: today,
+          });
+        }
       }
 
-      if (goal.account_id) {
-        await supabase.from('transactions').insert({
-          user_id: user.id, type: 'income', amount: amountToAdd,
-          description: `${t.savings}: ${goal.name}`, account_id: goal.account_id,
-          date: today, notes: `🎯 ${goal.name}`,
-        });
+      // current_amount will be recalculated from transactions in fetchData
+      // Only update manually for goals without linked account
+      if (!goal.account_id) {
+        await supabase.from('savings_goals').update({
+          current_amount: Number(goal.current_amount) + amountToAdd,
+        }).eq('id', addAmountDialog);
       }
-
-      await supabase.from('savings_goals').update({
-        current_amount: Number(goal.current_amount) + amountToAdd,
-      }).eq('id', addAmountDialog);
 
       setAddAmountDialog(null);
       setAddAmount('');
@@ -379,7 +416,6 @@ const SavingsPage = () => {
     const goal = goals.find(g => g.id === withdrawDialog);
     if (!goal) return;
 
-    // Check if locked
     if ((goal as any).is_locked) {
       toast.error(t.savingsLockedWarning);
       return;
@@ -394,26 +430,40 @@ const SavingsPage = () => {
     setSaving(true);
     try {
       const today = new Date().toISOString().split('T')[0];
+      const desc = `${t.savings}: ${goal.name} ↩`;
 
-      if (goal.account_id) {
-        await supabase.from('transactions').insert({
-          user_id: user.id, type: 'expense', amount,
-          description: `${t.savings}: ${goal.name} ↩`, account_id: goal.account_id,
-          date: today, notes: `🎯 ${goal.name}`,
+      // Use atomic transfer when both savings and target accounts exist
+      if (goal.account_id && targetAccountId && goal.account_id !== targetAccountId) {
+        const { error } = await supabase.rpc('perform_transfer', {
+          p_user_id: user.id,
+          p_from_account_id: goal.account_id,
+          p_to_account_id: targetAccountId,
+          p_amount: amount,
+          p_description: desc,
         });
+        if (error) throw error;
+      } else {
+        // Fallback: create individual transactions
+        if (goal.account_id) {
+          await supabase.from('transactions').insert({
+            user_id: user.id, type: 'expense', amount,
+            description: desc, account_id: goal.account_id, date: today,
+          });
+        }
+        if (targetAccountId) {
+          await supabase.from('transactions').insert({
+            user_id: user.id, type: 'income', amount,
+            description: desc, account_id: targetAccountId, date: today,
+          });
+        }
       }
 
-      if (targetAccountId) {
-        await supabase.from('transactions').insert({
-          user_id: user.id, type: 'income', amount,
-          description: `${t.savings}: ${goal.name} ↩`, account_id: targetAccountId,
-          date: today, notes: `🎯 ${goal.name}`,
-        });
+      // current_amount will be recalculated from transactions in fetchData
+      if (!goal.account_id) {
+        await supabase.from('savings_goals').update({
+          current_amount: Math.max(0, Number(goal.current_amount) - amount),
+        }).eq('id', withdrawDialog);
       }
-
-      await supabase.from('savings_goals').update({
-        current_amount: Math.max(0, Number(goal.current_amount) - amount),
-      }).eq('id', withdrawDialog);
 
       setWithdrawDialog(null);
       setWithdrawAmount('');
