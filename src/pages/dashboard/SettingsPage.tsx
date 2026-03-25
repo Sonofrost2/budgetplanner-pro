@@ -315,42 +315,135 @@ const SettingsPage = () => {
 
 const PushNotificationCard = ({ locale }: { locale: string }) => {
   const { subscribed, subscribe, unsubscribe, loading, isSupported, permission } = usePushNotifications();
-
-  if (!isSupported) return null;
+  const { user } = useAuth();
+  const [testLoading, setTestLoading] = useState(false);
 
   const handleToggle = async (checked: boolean) => {
     if (checked) {
       const ok = await subscribe();
       if (ok) toast.success(locale === 'fr' ? 'Notifications activées' : 'Notifications enabled');
-      else if (permission === 'denied') toast.error(locale === 'fr' ? 'Notifications bloquées par le navigateur' : 'Notifications blocked by browser');
+      else if (permission === 'denied') toast.error(locale === 'fr' ? 'Notifications bloquées par le navigateur. Vérifiez les paramètres de votre navigateur.' : 'Notifications blocked by browser. Check your browser settings.');
     } else {
       await unsubscribe();
       toast.success(locale === 'fr' ? 'Notifications désactivées' : 'Notifications disabled');
     }
   };
 
+  const handleTestPush = async () => {
+    if (!user) return;
+    setTestLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('push-notify', {
+        body: {
+          user_id: user.id,
+          title: locale === 'fr' ? '🔔 Test réussi !' : '🔔 Test successful!',
+          body: locale === 'fr' ? 'Les notifications push fonctionnent correctement sur cet appareil.' : 'Push notifications are working correctly on this device.',
+          data: { url: '/dashboard/settings' },
+        },
+      });
+      if (error) throw error;
+      if (data?.sent > 0) {
+        toast.success(locale === 'fr' ? 'Notification envoyée !' : 'Notification sent!');
+      } else {
+        toast.warning(locale === 'fr' ? 'Aucun appareil abonné trouvé' : 'No subscribed device found');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error');
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  const isDesktop = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isFr = locale === 'fr';
+
   return (
     <Card className="border-none shadow-[var(--shadow-card)]">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Bell className="w-4 h-4" />
-          {locale === 'fr' ? 'Notifications push' : 'Push notifications'}
+          {isFr ? 'Notifications push' : 'Push notifications'}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium">
-              {locale === 'fr' ? 'Alertes budget & épargne' : 'Budget & savings alerts'}
+              {isFr ? 'Alertes budget & épargne' : 'Budget & savings alerts'}
             </p>
             <p className="text-xs text-muted-foreground">
-              {locale === 'fr'
+              {isFr
                 ? 'Recevez des notifications même quand l\'app est fermée'
                 : 'Get notified even when the app is closed'}
             </p>
           </div>
           <Switch checked={subscribed} onCheckedChange={handleToggle} disabled={loading} />
         </div>
+
+        {/* Status indicator */}
+        {!isSupported ? (
+          <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-xl px-3 py-2">
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+            {isFr ? 'Ce navigateur ne supporte pas les notifications push' : 'This browser does not support push notifications'}
+          </div>
+        ) : permission === 'denied' ? (
+          <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-xl px-3 py-2">
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+            {isFr
+              ? 'Notifications bloquées. Allez dans les paramètres de votre navigateur pour les autoriser.'
+              : 'Notifications blocked. Go to your browser settings to allow them.'}
+          </div>
+        ) : subscribed ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs text-secondary bg-secondary/10 rounded-xl px-3 py-2">
+              <Bell className="w-3.5 h-3.5 flex-shrink-0" />
+              {isFr ? '✅ Notifications actives sur cet appareil' : '✅ Notifications active on this device'}
+              {isDesktop && (
+                <span className="ml-auto text-muted-foreground">
+                  {isFr ? '(Bureau)' : '(Desktop)'}
+                </span>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl w-full"
+              onClick={handleTestPush}
+              disabled={testLoading}
+            >
+              <Bell className="w-3.5 h-3.5 mr-1.5" />
+              {testLoading
+                ? '...'
+                : (isFr ? 'Envoyer une notification test' : 'Send a test notification')}
+            </Button>
+          </div>
+        ) : null}
+
+        {/* Desktop-specific tips */}
+        {isDesktop && !subscribed && isSupported && permission !== 'denied' && (
+          <div className="text-xs text-muted-foreground bg-muted/50 rounded-xl px-3 py-2 space-y-1">
+            <p className="font-medium">{isFr ? '💡 Astuce PC' : '💡 Desktop tip'}</p>
+            <p>{isFr
+              ? 'Activez les notifications pour recevoir des alertes en temps réel : dépassements de budget, rappels d\'épargne et bilan hebdomadaire, même quand l\'app est en arrière-plan.'
+              : 'Enable notifications to get real-time alerts: budget overruns, savings reminders, and weekly summaries, even when the app is in the background.'
+            }</p>
+          </div>
+        )}
+
+        {/* What you receive */}
+        {subscribed && (
+          <div className="text-xs text-muted-foreground space-y-1.5 border-t border-border/50 pt-3">
+            <p className="font-medium text-foreground text-xs">
+              {isFr ? 'Vous recevrez :' : 'You will receive:'}
+            </p>
+            <ul className="space-y-1 ml-1">
+              <li>⚠️ {isFr ? 'Alertes de dépassement de budget (80% et 100%)' : 'Budget overrun alerts (80% and 100%)'}</li>
+              <li>🐷 {isFr ? 'Rappels de cotisation épargne' : 'Savings contribution reminders'}</li>
+              <li>📋 {isFr ? 'Échéances de transactions récurrentes' : 'Recurring transaction due dates'}</li>
+              <li>📊 {isFr ? 'Bilan hebdomadaire chaque dimanche' : 'Weekly summary every Sunday'}</li>
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
