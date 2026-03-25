@@ -236,41 +236,27 @@ Deno.serve(async (req) => {
       }
 
       // ────── Daily budget alert (80% threshold) ──────
-      // Compute weekly expense target and daily budget, check today's spending
+      if (prefDailyBudget) {
       const weekDay = now.getDay();
       const weekMonday = new Date(now);
       weekMonday.setDate(now.getDate() - (weekDay === 0 ? 6 : weekDay - 1));
       weekMonday.setHours(0, 0, 0, 0);
-      const weekSunday = new Date(weekMonday);
-      weekSunday.setDate(weekMonday.getDate() + 6);
-      const weekStartStr = fmt(weekMonday);
-      const weekEndStr = fmt(weekSunday);
 
-      // Sum weekly expense targets from all expense budgets
       const expenseBudgets = budgets.filter((b: any) => (b.budget_type || 'expense') === 'expense');
       let weeklyExpenseTarget = 0;
       for (const b of expenseBudgets) {
         const period = b.period || 'monthly';
-        if (period === 'daily') {
-          weeklyExpenseTarget += Number(b.amount) * 7;
-        } else if (period === 'weekly') {
-          weeklyExpenseTarget += Number(b.amount);
-        } else if (period === 'monthly') {
-          weeklyExpenseTarget += Number(b.amount) / (30.44 / 7);
-        } else if (period === 'quarterly') {
-          weeklyExpenseTarget += Number(b.amount) / (91.31 / 7);
-        } else if (period === 'semi_annual') {
-          weeklyExpenseTarget += Number(b.amount) / (182.62 / 7);
-        } else if (period === 'yearly') {
-          weeklyExpenseTarget += Number(b.amount) / (365.25 / 7);
-        }
+        if (period === 'daily') weeklyExpenseTarget += Number(b.amount) * 7;
+        else if (period === 'weekly') weeklyExpenseTarget += Number(b.amount);
+        else if (period === 'monthly') weeklyExpenseTarget += Number(b.amount) / (30.44 / 7);
+        else if (period === 'quarterly') weeklyExpenseTarget += Number(b.amount) / (91.31 / 7);
+        else if (period === 'semi_annual') weeklyExpenseTarget += Number(b.amount) / (182.62 / 7);
+        else if (period === 'yearly') weeklyExpenseTarget += Number(b.amount) / (365.25 / 7);
       }
 
       const dailyBudgetTarget = weeklyExpenseTarget / 7;
       if (dailyBudgetTarget > 0) {
-        const todaysExpenses = allTxs.filter(
-          (tx: any) => tx.type === 'expense' && tx.date === todayStr
-        );
+        const todaysExpenses = allTxs.filter((tx: any) => tx.type === 'expense' && tx.date === todayStr);
         const todaySpent = todaysExpenses.reduce((sum: number, tx: any) => sum + Number(tx.amount), 0);
         const dailyPct = (todaySpent / dailyBudgetTarget) * 100;
 
@@ -278,20 +264,22 @@ Deno.serve(async (req) => {
           alerts.push({
             title: isFr ? "🔥 Budget du jour dépassé !" : "🔥 Daily budget exceeded!",
             body: isFr
-              ? `${Math.round(todaySpent).toLocaleString()} dépensés aujourd'hui (${Math.round(dailyPct)}% du budget jour de ${Math.round(dailyBudgetTarget).toLocaleString()})`
-              : `${Math.round(todaySpent).toLocaleString()} spent today (${Math.round(dailyPct)}% of daily budget ${Math.round(dailyBudgetTarget).toLocaleString()})`,
+              ? `${Math.round(todaySpent).toLocaleString()} dépensés (${Math.round(dailyPct)}% de ${Math.round(dailyBudgetTarget).toLocaleString()})`
+              : `${Math.round(todaySpent).toLocaleString()} spent (${Math.round(dailyPct)}% of ${Math.round(dailyBudgetTarget).toLocaleString()})`,
           });
         } else if (dailyPct >= 80) {
           alerts.push({
             title: isFr ? "⚡ Budget jour à 80%+" : "⚡ Daily budget at 80%+",
             body: isFr
-              ? `${Math.round(todaySpent).toLocaleString()} / ${Math.round(dailyBudgetTarget).toLocaleString()} (${Math.round(dailyPct)}%) — Ralentissez vos dépenses !`
-              : `${Math.round(todaySpent).toLocaleString()} / ${Math.round(dailyBudgetTarget).toLocaleString()} (${Math.round(dailyPct)}%) — Slow down your spending!`,
+              ? `${Math.round(todaySpent).toLocaleString()} / ${Math.round(dailyBudgetTarget).toLocaleString()} (${Math.round(dailyPct)}%)`
+              : `${Math.round(todaySpent).toLocaleString()} / ${Math.round(dailyBudgetTarget).toLocaleString()} (${Math.round(dailyPct)}%)`,
           });
         }
       }
+      } // end if prefDailyBudget
 
       // ────── Recurring transaction reminders ──────
+      if (prefRecurring) {
       for (const rec of recurringTxs) {
         const nextDate = new Date(rec.next_date);
         const daysUntil = Math.max(0, Math.floor((nextDate.getTime() - now.getTime()) / 86400000));
@@ -307,18 +295,23 @@ Deno.serve(async (req) => {
           });
         }
       }
+      } // end if prefRecurring
 
       // ────── Savings alerts ──────
+      if (prefSavings || prefGoalReached) {
       for (const goal of savings) {
         if (Number(goal.current_amount) >= Number(goal.target_amount)) {
-          alerts.push({
-            title: isFr ? "🎉 Objectif épargne atteint !" : "🎉 Savings goal reached!",
-            body: `${goal.icon} ${goal.name}`,
-          });
+          if (prefGoalReached) {
+            alerts.push({
+              title: isFr ? "🎉 Objectif épargne atteint !" : "🎉 Savings goal reached!",
+              body: `${goal.icon} ${goal.name}`,
+            });
+          }
           continue;
         }
 
-        // Calculate this month's contributions (same logic as NotificationBell)
+        if (!prefSavings) continue;
+
         let totalContributed = 0;
         const seen = new Set<string>();
         for (const tx of savingsMonthTxs) {
@@ -334,7 +327,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 🐷 Contribution day alert: if today IS the contribution day and no deposit yet
         const todayDay = now.getDate();
         if (goal.contribution_day && todayDay === goal.contribution_day && totalContributed === 0) {
           const monthlyAmount = Number(goal.monthly_contribution) || 0;
@@ -342,9 +334,7 @@ Deno.serve(async (req) => {
             title: isFr ? "🐷 Jour de cotisation !" : "🐷 Contribution day!",
             body: `${goal.icon} ${isFr ? "C'est le jour de cotisation pour" : "Today is contribution day for"} ${goal.name}${monthlyAmount > 0 ? ` (${Math.round(monthlyAmount).toLocaleString()})` : ""}`,
           });
-        }
-        // Upcoming contribution reminder (1-5 days before)
-        else if (goal.contribution_day) {
+        } else if (goal.contribution_day) {
           const daysUntil = goal.contribution_day >= todayDay ? goal.contribution_day - todayDay : 0;
           if (daysUntil > 0 && daysUntil <= 5) {
             alerts.push({
@@ -365,7 +355,6 @@ Deno.serve(async (req) => {
         if (monthlyNeeded <= 0) continue;
 
         if (totalContributed === 0) {
-          // Only add "no contribution" alert if we didn't already send the contribution-day alert
           if (!(goal.contribution_day && todayDay === goal.contribution_day)) {
             alerts.push({
               title: isFr ? "🐷 Rappel épargne" : "🐷 Savings reminder",
@@ -380,8 +369,10 @@ Deno.serve(async (req) => {
           });
         }
       }
+      } // end if prefSavings || prefGoalReached
 
       // ────── Debt alerts ──────
+      if (prefDebt) {
       const { data: debtsData } = await supabase.from("debts").select("*").eq("user_id", userId);
       const userDebts = debtsData || [];
       for (const debt of userDebts) {
@@ -412,8 +403,10 @@ Deno.serve(async (req) => {
           }
         }
       }
+      } // end if prefDebt
 
       // ────── Balance discrepancy alerts ──────
+      if (prefBalance) {
       for (const account of accounts) {
         const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
         const txSum = acctTxs.reduce((sum: number, tx: any) => {
@@ -430,6 +423,38 @@ Deno.serve(async (req) => {
             title: isFr ? "🔍 Écart de solde détecté" : "🔍 Balance discrepancy",
             body: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString()} (${isFr ? "réel" : "actual"}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? "théorique" : "calculated"}: ${Math.round(theoreticalBalance).toLocaleString()})`,
           });
+        }
+      }
+      } // end if prefBalance
+
+      // ────── Large transaction alerts ──────
+      if (prefLargeTransaction) {
+        const todaysTxs = allTxs.filter((tx: any) => tx.date === todayStr);
+        for (const tx of todaysTxs) {
+          if (Number(tx.amount) >= prefLargeThreshold) {
+            const typeLabel = tx.type === "income" ? (isFr ? "revenu" : "income") : (isFr ? "dépense" : "expense");
+            alerts.push({
+              title: isFr ? "💰 Grosse transaction détectée" : "💰 Large transaction detected",
+              body: `${Math.round(Number(tx.amount)).toLocaleString()} (${typeLabel})`,
+            });
+          }
+        }
+      }
+
+      // ────── Low balance alerts ──────
+      if (prefLowBalance) {
+        for (const account of accounts) {
+          const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
+          const txSum = acctTxs.reduce((sum: number, tx: any) => {
+            return sum + (tx.type === "income" ? Number(tx.amount) : -Number(tx.amount));
+          }, 0);
+          const theoreticalBalance = Number(account.opening_balance) + txSum;
+          if (theoreticalBalance < prefLowBalanceThreshold && theoreticalBalance >= 0) {
+            alerts.push({
+              title: isFr ? "⚠️ Solde bas" : "⚠️ Low balance",
+              body: `${account.icon} ${account.name}: ${Math.round(theoreticalBalance).toLocaleString()} (${isFr ? "seuil" : "threshold"}: ${Math.round(prefLowBalanceThreshold).toLocaleString()})`,
+            });
+          }
         }
       }
 
