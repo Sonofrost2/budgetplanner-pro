@@ -7,11 +7,67 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Check, X, Crown, Zap, Loader2, AlertCircle, Star, Shield, Sparkles, Receipt, Clock } from 'lucide-react';
+import { Check, X, Crown, Zap, Loader2, AlertCircle, Star, Shield, Sparkles, Receipt, Clock, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+
+const downloadReceiptPDF = (receipt: any, locale: string, fmtFn: (v: number, l: string) => string) => {
+  const doc = new jsPDF({ unit: 'mm', format: 'a5' });
+  const w = doc.internal.pageSize.getWidth();
+  const isFr = locale === 'fr';
+  const dateStr = format(new Date(receipt.created_at), 'dd MMMM yyyy · HH:mm', { locale: isFr ? fr : enUS });
+  const amountStr = `${fmtFn(receipt.amount, locale)} ${receipt.currency}`;
+  const statusLabel = receipt.status === 'confirmed' ? (isFr ? 'Confirmé' : 'Confirmed') : receipt.status;
+
+  // Header band
+  doc.setFillColor(99, 102, 241);
+  doc.rect(0, 0, w, 28, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Budget Planner', w / 2, 12, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(isFr ? 'Reçu de paiement' : 'Payment Receipt', w / 2, 20, { align: 'center' });
+
+  // Body
+  doc.setTextColor(60, 60, 60);
+  let y = 40;
+  const labelX = 16;
+  const valueX = w - 16;
+
+  const addRow = (label: string, value: string) => {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(120, 120, 120);
+    doc.text(label, labelX, y);
+    doc.setTextColor(40, 40, 40);
+    doc.setFont('helvetica', 'bold');
+    doc.text(value, valueX, y, { align: 'right' });
+    y += 10;
+    doc.setDrawColor(230, 230, 230);
+    doc.line(labelX, y - 4, valueX, y - 4);
+  };
+
+  addRow('Plan', receipt.plan_name);
+  addRow(isFr ? 'Montant' : 'Amount', amountStr);
+  addRow('Date', dateStr);
+  addRow(isFr ? 'Statut' : 'Status', statusLabel);
+  if (receipt.payment_token) {
+    addRow('Ref', receipt.payment_token);
+  }
+
+  // Footer
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(160, 160, 160);
+  doc.text(`© ${new Date().getFullYear()} Budget Planner`, w / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+
+  doc.save(`receipt-${receipt.plan_name}-${format(new Date(receipt.created_at), 'yyyy-MM-dd')}.pdf`);
+};
 
 type Plan = {
   id: string;
@@ -449,6 +505,15 @@ const PaymentPage = () => {
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>
                     {statusLabel}
                   </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg shrink-0"
+                    onClick={() => downloadReceiptPDF(r, locale, fmt)}
+                    title={locale === 'fr' ? 'Télécharger PDF' : 'Download PDF'}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </Button>
                 </motion.div>
               );
             })}
