@@ -211,7 +211,7 @@ async function createVapidJwt(
   const payloadB64 = base64UrlEncode(enc.encode(JSON.stringify(payload)));
   const unsigned = `${headerB64}.${payloadB64}`;
 
-  const key = await importVapidPrivateKey(privateKeyBase64);
+  const key = await importVapidPrivateKey(privateKeyBase64, publicKeyBase64);
 
   const signature = new Uint8Array(
     await crypto.subtle.sign(
