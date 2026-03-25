@@ -11,12 +11,10 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-// Cache the VAPID key so we don't fetch it every time
 let cachedVapidKey: string | null = null;
 
 async function getVapidPublicKey(): Promise<string> {
   if (cachedVapidKey) return cachedVapidKey;
-
   const { data, error } = await supabase.functions.invoke('get-vapid-key');
   if (error) throw new Error('Failed to fetch VAPID key');
   cachedVapidKey = data.vapidPublicKey;
@@ -32,13 +30,40 @@ export const usePushNotifications = () => {
   const [loading, setLoading] = useState(false);
   const checkedRef = useRef(false);
 
-  // Check if already subscribed
+  // Dynamically re-check permission on focus (user may have changed it in browser settings)
+  useEffect(() => {
+    const checkPermission = () => {
+      if (typeof Notification !== 'undefined') {
+        setPermission(Notification.permission);
+      }
+    };
+
+    // Check on mount
+    checkPermission();
+
+    // Re-check when window regains focus (user may have changed browser settings)
+    window.addEventListener('focus', checkPermission);
+    // Also check on visibility change (PWA returning to foreground)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkPermission();
+    });
+
+    return () => {
+      window.removeEventListener('focus', checkPermission);
+    };
+  }, []);
+
+  // Check if already subscribed using the PWA's own service worker
   useEffect(() => {
     if (!user || !('serviceWorker' in navigator) || checkedRef.current) return;
     checkedRef.current = true;
     navigator.serviceWorker.ready.then(async (reg) => {
-      const sub = await reg.pushManager.getSubscription();
-      setSubscribed(!!sub);
+      try {
+        const sub = await reg.pushManager.getSubscription();
+        setSubscribed(!!sub);
+      } catch (e) {
+        console.warn('Could not check push subscription:', e);
+      }
     });
   }, [user]);
 
@@ -46,11 +71,12 @@ export const usePushNotifications = () => {
     if (!user || !('serviceWorker' in navigator) || !('PushManager' in window)) return false;
     setLoading(true);
     try {
+      // Request permission
       const perm = await Notification.requestPermission();
       setPermission(perm);
       if (perm !== 'granted') { setLoading(false); return false; }
 
-      // Fetch VAPID public key from edge function
+      // Fetch VAPID public key
       const vapidPublicKey = await getVapidPublicKey();
       if (!vapidPublicKey) {
         console.error('VAPID public key not available');
@@ -58,14 +84,9 @@ export const usePushNotifications = () => {
         return false;
       }
 
-      // Register the push service worker
-      let swReg: ServiceWorkerRegistration;
-      try {
-        swReg = await navigator.serviceWorker.register('/sw-push.js', { scope: '/' });
-        await navigator.serviceWorker.ready;
-      } catch {
-        swReg = await navigator.serviceWorker.ready;
-      }
+      // Use the existing PWA service worker (which already imports sw-push.js)
+      // Do NOT register a separate service worker — it conflicts with the PWA SW
+      const swReg = await navigator.serviceWorker.ready;
 
       let sub = await swReg.pushManager.getSubscription();
 
