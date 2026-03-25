@@ -91,13 +91,12 @@ Deno.serve(async (req) => {
     for (const userId of uniqueUserIds) {
       const alerts: { title: string; body: string }[] = [];
 
-      // Fetch all data needed in parallel
-      const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, recurringRes, profileRes, accountsRes, accountTxRes] = await Promise.all([
+      // Fetch all data needed in parallel (including notification preferences)
+      const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, recurringRes, profileRes, accountsRes, accountTxRes, prefsRes] = await Promise.all([
         supabase.from("budgets").select("*, categories(name, icon)").eq("user_id", userId),
         supabase.from("transactions").select("category_id, amount, type, date")
           .eq("user_id", userId).gte("date", yearStart).lte("date", todayStr),
         supabase.from("savings_goals").select("*").eq("user_id", userId),
-        // Fetch this month's transactions for savings contribution detection
         supabase.from("transactions").select("amount, date, notes, type, account_id, description")
           .eq("user_id", userId).gte("date", monthStart).lte("date", todayStr),
         supabase.from("recurring_transactions").select("*")
@@ -107,6 +106,7 @@ Deno.serve(async (req) => {
         supabase.from("payment_accounts").select("id, name, icon, real_balance, opening_balance").eq("user_id", userId),
         supabase.from("transactions").select("account_id, amount, type")
           .eq("user_id", userId).not("account_id", "is", null).limit(100000),
+        supabase.from("notification_preferences").select("*").eq("user_id", userId).maybeSingle(),
       ]);
 
       const locale = profileRes.data?.locale || "fr";
@@ -118,6 +118,33 @@ Deno.serve(async (req) => {
       const recurringTxs = recurringRes.data || [];
       const accounts = accountsRes.data || [];
       const accountTxs = accountTxRes.data || [];
+
+      // Notification preferences (defaults: all true)
+      const np = prefsRes.data || {};
+      const prefBudgetAlerts = np.budget_alerts !== false;
+      const prefBudgetProjections = np.budget_projections !== false;
+      const prefDailyBudget = np.daily_budget !== false;
+      const prefSavings = np.savings_reminders !== false;
+      const prefRecurring = np.recurring_reminders !== false;
+      const prefDebt = np.debt_alerts !== false;
+      const prefBalance = np.balance_discrepancy !== false;
+      const prefGoalReached = np.goal_reached !== false;
+      const prefLargeTransaction = np.large_transaction !== false;
+      const prefLargeThreshold = Number(np.large_transaction_threshold) || 50000;
+      const prefLowBalance = np.low_balance === true;
+      const prefLowBalanceThreshold = Number(np.low_balance_threshold) || 5000;
+      const prefQuietHours = np.quiet_hours_enabled === true;
+      const quietStart = Number(np.quiet_hours_start) || 22;
+      const quietEnd = Number(np.quiet_hours_end) || 7;
+
+      // Check quiet hours
+      if (prefQuietHours) {
+        const currentHour = now.getHours();
+        const inQuiet = quietStart > quietEnd
+          ? (currentHour >= quietStart || currentHour < quietEnd)
+          : (currentHour >= quietStart && currentHour < quietEnd);
+        if (inQuiet) continue; // Skip this user during quiet hours
+      }
 
       // ────── Budget alerts with improved projections ──────
       for (const budget of budgets) {
