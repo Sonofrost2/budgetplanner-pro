@@ -92,19 +92,14 @@ Deno.serve(async (req) => {
       const alerts: { title: string; body: string }[] = [];
 
       // Fetch all data needed in parallel
-      const [budgetsRes, allTxRes, savingsRes, savingsTxRes, importedSavingsTxRes, recurringRes, profileRes, accountsRes, accountTxRes] = await Promise.all([
+      const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, recurringRes, profileRes, accountsRes, accountTxRes] = await Promise.all([
         supabase.from("budgets").select("*, categories(name, icon)").eq("user_id", userId),
         supabase.from("transactions").select("category_id, amount, type, date")
           .eq("user_id", userId).gte("date", yearStart).lte("date", todayStr),
         supabase.from("savings_goals").select("*").eq("user_id", userId),
-        supabase.from("transactions").select("amount, notes")
-          .eq("user_id", userId).eq("type", "expense")
-          .like("notes", "🎯 %")
-          .gte("date", monthStart).lte("date", todayStr),
-        supabase.from("transactions").select("amount, description, account_id")
-          .eq("user_id", userId).eq("type", "income")
-          .ilike("description", "%cotisation epargne%")
-          .gte("date", monthStart).lte("date", todayStr),
+        // Fetch this month's transactions for savings contribution detection
+        supabase.from("transactions").select("amount, date, notes, type, account_id, description")
+          .eq("user_id", userId).gte("date", monthStart).lte("date", todayStr),
         supabase.from("recurring_transactions").select("*")
           .eq("user_id", userId).eq("active", true)
           .lte("next_date", sevenDaysLaterStr),
@@ -119,8 +114,7 @@ Deno.serve(async (req) => {
       const budgets = budgetsRes.data || [];
       const allTxs = allTxRes.data || [];
       const savings = savingsRes.data || [];
-      const savingsTxs = savingsTxRes.data || [];
-      const importedSavingsTxs = importedSavingsTxRes.data || [];
+      const savingsMonthTxs = savingsMonthTxRes.data || [];
       const recurringTxs = recurringRes.data || [];
       const accounts = accountsRes.data || [];
       const accountTxs = accountTxRes.data || [];
@@ -300,9 +294,33 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // 🐷 Upcoming contribution reminder
-        if (goal.contribution_day) {
-          const todayDay = now.getDate();
+        // Calculate this month's contributions (same logic as NotificationBell)
+        let totalContributed = 0;
+        const seen = new Set<string>();
+        for (const tx of savingsMonthTxs) {
+          const isReturnTx = (tx.description || "").includes("↩");
+          if (goal.account_id && tx.account_id === goal.account_id && !isReturnTx && tx.type === "income") {
+            const key = tx.date + tx.amount;
+            if (!seen.has(key)) { totalContributed += Number(tx.amount); seen.add(key); }
+          } else if ((tx as any).notes === `🎯 ${goal.name}` && tx.type === "income" && !isReturnTx) {
+            if (!goal.account_id || tx.account_id === goal.account_id) {
+              const key = tx.date + tx.amount;
+              if (!seen.has(key)) { totalContributed += Number(tx.amount); seen.add(key); }
+            }
+          }
+        }
+
+        // 🐷 Contribution day alert: if today IS the contribution day and no deposit yet
+        const todayDay = now.getDate();
+        if (goal.contribution_day && todayDay === goal.contribution_day && totalContributed === 0) {
+          const monthlyAmount = Number(goal.monthly_contribution) || 0;
+          alerts.push({
+            title: isFr ? "🐷 Jour de cotisation !" : "🐷 Contribution day!",
+            body: `${goal.icon} ${isFr ? "C'est le jour de cotisation pour" : "Today is contribution day for"} ${goal.name}${monthlyAmount > 0 ? ` (${Math.round(monthlyAmount).toLocaleString()})` : ""}`,
+          });
+        }
+        // Upcoming contribution reminder (1-5 days before)
+        else if (goal.contribution_day) {
           const daysUntil = goal.contribution_day >= todayDay ? goal.contribution_day - todayDay : 0;
           if (daysUntil > 0 && daysUntil <= 5) {
             alerts.push({
@@ -322,21 +340,14 @@ Deno.serve(async (req) => {
         }
         if (monthlyNeeded <= 0) continue;
 
-        const appContribs = savingsTxs.filter((tx: any) => tx.notes === `🎯 ${goal.name}`);
-        const importedContribs = importedSavingsTxs.filter((tx: any) =>
-          (goal.account_id && tx.account_id === goal.account_id) ||
-          tx.description?.toLowerCase().includes(goal.name.toLowerCase().split(" ").slice(0, 2).join(" "))
-        );
-        const totalContributed = [
-          ...appContribs.map((tx: any) => Number(tx.amount)),
-          ...importedContribs.map((tx: any) => Number(tx.amount)),
-        ].reduce((sum: number, a: number) => sum + a, 0);
-
         if (totalContributed === 0) {
-          alerts.push({
-            title: isFr ? "🐷 Rappel épargne" : "🐷 Savings reminder",
-            body: `${goal.icon} ${isFr ? "Aucun versement ce mois pour" : "No contribution this month for"} ${goal.name}`,
-          });
+          // Only add "no contribution" alert if we didn't already send the contribution-day alert
+          if (!(goal.contribution_day && todayDay === goal.contribution_day)) {
+            alerts.push({
+              title: isFr ? "🐷 Rappel épargne" : "🐷 Savings reminder",
+              body: `${goal.icon} ${isFr ? "Aucun versement ce mois pour" : "No contribution this month for"} ${goal.name}`,
+            });
+          }
         } else if (totalContributed < monthlyNeeded * 0.9) {
           const pct = Math.round((totalContributed / monthlyNeeded) * 100);
           alerts.push({
