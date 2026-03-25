@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount, computeDaysRemaining } from '@/lib/budgetProjection';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
