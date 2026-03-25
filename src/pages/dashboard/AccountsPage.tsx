@@ -53,6 +53,7 @@ const AccountsPage = () => {
   const t = dashT[locale];
   const [searchParams, setSearchParams] = useSearchParams();
   const typeFilter = searchParams.get('type') || '';
+  const initialSearch = searchParams.get('q') || '';
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [theoreticalBalances, setTheoreticalBalances] = useState<Record<string, number>>({});
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
@@ -73,7 +74,7 @@ const AccountsPage = () => {
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [previewCashCount, setPreviewCashCount] = useState<any | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
