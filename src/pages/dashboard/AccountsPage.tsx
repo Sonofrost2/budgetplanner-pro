@@ -82,8 +82,8 @@ const AccountsPage = () => {
     let result = accounts;
     if (typeFilter) result = result.filter(a => a.type === typeFilter);
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(a => a.name.toLowerCase().includes(q) || a.type.toLowerCase().includes(q));
+      const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean);
+      result = result.filter(a => terms.some(q => a.name.toLowerCase().includes(q) || a.type.toLowerCase().includes(q)));
     }
     result = [...result].sort((a, b) => {
       let cmp = 0;
