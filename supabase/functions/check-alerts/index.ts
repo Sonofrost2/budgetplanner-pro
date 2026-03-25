@@ -147,6 +147,7 @@ Deno.serve(async (req) => {
       }
 
       // ────── Budget alerts with improved projections ──────
+      if (prefBudgetAlerts || prefBudgetProjections || prefGoalReached) {
       for (const budget of budgets) {
         const { periodStart, periodEnd } = getBudgetPeriodBounds(
           budget.period || "monthly", now, budget.reference_date
