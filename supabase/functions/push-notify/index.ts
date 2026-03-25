@@ -162,21 +162,34 @@ async function encryptPayload(
 
 // ─── VAPID JWT (ES256) ───
 
-async function importVapidPrivateKey(privateKeyBase64: string): Promise<CryptoKey> {
-  const rawKey = base64UrlDecode(privateKeyBase64);
+async function importVapidPrivateKey(privateKeyBase64: string, publicKeyBase64: string): Promise<CryptoKey> {
+  const rawPrivate = base64UrlDecode(privateKeyBase64);
+  const rawPublic = base64UrlDecode(publicKeyBase64);
   
-  // Build PKCS8 wrapper for 32-byte raw EC private key
-  const pkcs8Prefix = new Uint8Array([
-    0x30, 0x41, 0x02, 0x01, 0x00, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48,
-    0xce, 0x3d, 0x02, 0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03,
-    0x01, 0x07, 0x04, 0x27, 0x30, 0x25, 0x02, 0x01, 0x01, 0x04, 0x20,
-  ]);
+  console.log(`VAPID key lengths: private=${rawPrivate.length}, public=${rawPublic.length}`);
   
-  const pkcs8 = concatUint8(pkcs8Prefix, rawKey);
+  if (rawPrivate.length !== 32) {
+    throw new Error(`Invalid VAPID private key length: ${rawPrivate.length} (expected 32)`);
+  }
+
+  // Use JWK import which is most reliable across Deno versions
+  // Extract x and y from the uncompressed public key (0x04 || x || y)
+  const x = base64UrlEncode(rawPublic.slice(1, 33));
+  const y = base64UrlEncode(rawPublic.slice(33, 65));
+  const d = base64UrlEncode(rawPrivate);
   
+  const jwk = {
+    kty: "EC",
+    crv: "P-256",
+    x,
+    y,
+    d,
+    ext: true,
+  };
+
   return crypto.subtle.importKey(
-    "pkcs8",
-    pkcs8.buffer,
+    "jwk",
+    jwk,
     { name: "ECDSA", namedCurve: "P-256" },
     false,
     ["sign"]
