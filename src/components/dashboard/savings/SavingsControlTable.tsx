@@ -58,6 +58,7 @@ export const SavingsControlTable = ({ goals, contributions, fmt, t, locale }: Sa
         totalDeposits,
         totalWithdrawals,
         netContributed,
+        openingBalance,
         currentAmount,
         discrepancy,
         variance,
