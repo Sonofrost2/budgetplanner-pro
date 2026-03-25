@@ -199,7 +199,8 @@ async function importVapidPrivateKey(privateKeyBase64: string, publicKeyBase64: 
 async function createVapidJwt(
   audience: string,
   subject: string,
-  privateKeyBase64: string
+  privateKeyBase64: string,
+  publicKeyBase64: string
 ): Promise<string> {
   const header = { typ: "JWT", alg: "ES256" };
   const now = Math.floor(Date.now() / 1000);
