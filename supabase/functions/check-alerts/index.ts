@@ -233,7 +233,6 @@ Deno.serve(async (req) => {
         }
       }
       } // end if prefBudgetAlerts || prefBudgetProjections || prefGoalReached
-      }
 
       // ────── Daily budget alert (80% threshold) ──────
       if (prefDailyBudget) {
