@@ -253,7 +253,57 @@ const SavingsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Sync savings from imported transactions
+  // Force recalculate all current_amounts from transactions
+  const [recalculating, setRecalculating] = useState(false);
+  const handleRecalculate = async () => {
+    if (!user) return;
+    setRecalculating(true);
+    try {
+      // Fetch goals with linked accounts
+      const { data: goalsData } = await supabase.from('savings_goals')
+        .select('id, name, account_id, current_amount, payment_accounts(opening_balance)')
+        .eq('user_id', user.id);
+      if (!goalsData) { setRecalculating(false); return; }
+
+      const withAccount = goalsData.filter(g => g.account_id);
+      const accountIds = withAccount.map(g => g.account_id!);
+      if (accountIds.length === 0) {
+        toast.info(locale === 'fr' ? 'Aucun objectif avec compte lié' : 'No goals with linked accounts');
+        setRecalculating(false);
+        return;
+      }
+
+      const { data: txs } = await supabase.from('transactions')
+        .select('account_id, type, amount')
+        .eq('user_id', user.id)
+        .in('account_id', accountIds);
+
+      let updated = 0;
+      for (const goal of withAccount) {
+        const opening = Number((goal.payment_accounts as any)?.opening_balance) || 0;
+        const goalTxs = (txs || []).filter(t => t.account_id === goal.account_id);
+        const income = goalTxs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+        const expense = goalTxs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+        const computed = opening + income - expense;
+        if (Math.abs(computed - Number(goal.current_amount)) > 0.5) {
+          await supabase.from('savings_goals').update({ current_amount: computed }).eq('id', goal.id);
+          updated++;
+        }
+      }
+
+      await fetchData();
+      invalidateCrossModule();
+      toast.success(locale === 'fr'
+        ? `${updated} objectif(s) recalculé(s) depuis les transactions`
+        : `${updated} goal(s) recalculated from transactions`);
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+
   const handleSyncSavings = async () => {
     if (!user) return;
     setSyncing(true);
