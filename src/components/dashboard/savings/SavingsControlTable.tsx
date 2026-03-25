@@ -43,8 +43,11 @@ export const SavingsControlTable = ({ goals, contributions, fmt, t, locale }: Sa
       const totalWithdrawals = goalContribs.filter(c => c.type === 'withdrawal').reduce((s, c) => s + Number(c.amount), 0);
       const netContributed = totalDeposits - totalWithdrawals;
       
+      // Include the linked account's opening_balance to avoid false discrepancies
+      const openingBalance = Number((g.payment_accounts as any)?.opening_balance) || 0;
+      
       const currentAmount = Number(g.current_amount);
-      const discrepancy = currentAmount - netContributed;
+      const discrepancy = currentAmount - (openingBalance + netContributed);
       const variance = thisMonthAmount - plannedMonthly;
 
       return {
