@@ -23,7 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download } from 'lucide-react';
+import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjectionsTab';
@@ -253,7 +253,57 @@ const SavingsPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Sync savings from imported transactions
+  // Force recalculate all current_amounts from transactions
+  const [recalculating, setRecalculating] = useState(false);
+  const handleRecalculate = async () => {
+    if (!user) return;
+    setRecalculating(true);
+    try {
+      // Fetch goals with linked accounts
+      const { data: goalsData } = await supabase.from('savings_goals')
+        .select('id, name, account_id, current_amount, payment_accounts(opening_balance)')
+        .eq('user_id', user.id);
+      if (!goalsData) { setRecalculating(false); return; }
+
+      const withAccount = goalsData.filter(g => g.account_id);
+      const accountIds = withAccount.map(g => g.account_id!);
+      if (accountIds.length === 0) {
+        toast.info(locale === 'fr' ? 'Aucun objectif avec compte lié' : 'No goals with linked accounts');
+        setRecalculating(false);
+        return;
+      }
+
+      const { data: txs } = await supabase.from('transactions')
+        .select('account_id, type, amount')
+        .eq('user_id', user.id)
+        .in('account_id', accountIds);
+
+      let updated = 0;
+      for (const goal of withAccount) {
+        const opening = Number((goal.payment_accounts as any)?.opening_balance) || 0;
+        const goalTxs = (txs || []).filter(t => t.account_id === goal.account_id);
+        const income = goalTxs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+        const expense = goalTxs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+        const computed = opening + income - expense;
+        if (Math.abs(computed - Number(goal.current_amount)) > 0.5) {
+          await supabase.from('savings_goals').update({ current_amount: computed }).eq('id', goal.id);
+          updated++;
+        }
+      }
+
+      await fetchData();
+      invalidateCrossModule();
+      toast.success(locale === 'fr'
+        ? `${updated} objectif(s) recalculé(s) depuis les transactions`
+        : `${updated} goal(s) recalculated from transactions`);
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+
   const handleSyncSavings = async () => {
     if (!user) return;
     setSyncing(true);
@@ -654,7 +704,11 @@ const SavingsPage = () => {
             {goals.length > 0 && ` · ${fmt(goals.reduce((s, g) => s + Number(g.current_amount), 0))} ${locale === 'fr' ? 'épargnés' : 'saved'}`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button size="sm" variant="outline" className="rounded-xl" onClick={handleRecalculate} disabled={recalculating}>
+            <Calculator className={`w-4 h-4 mr-1 ${recalculating ? 'animate-spin' : ''}`} />
+            {recalculating ? (locale === 'fr' ? 'Recalcul...' : 'Recalculating...') : (locale === 'fr' ? 'Recalculer soldes' : 'Recalculate')}
+          </Button>
           <Button size="sm" variant="outline" className="rounded-xl" onClick={handleSyncSavings} disabled={syncing}>
             <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? (t.syncing) : (t.syncSavings)}
