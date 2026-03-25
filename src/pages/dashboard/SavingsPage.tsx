@@ -103,8 +103,8 @@ const SavingsPage = () => {
   const filteredGoals = useMemo(() => {
     let result = [...goals];
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(g => g.name.toLowerCase().includes(q) || (g as any).bank_name?.toLowerCase().includes(q));
+      const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean);
+      result = result.filter(g => terms.some(q => g.name.toLowerCase().includes(q) || (g as any).bank_name?.toLowerCase().includes(q)));
     }
     result.sort((a, b) => {
       let cmp = 0;
