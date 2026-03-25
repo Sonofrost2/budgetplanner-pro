@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// ─── Web Push Encryption (RFC 8291 / aes128gcm) ───
+// ─── Utility functions ───
 
 function base64UrlDecode(str: string): Uint8Array {
   const padding = "=".repeat((4 - (str.length % 4)) % 4);
@@ -33,19 +33,40 @@ function concatUint8(...arrays: Uint8Array[]): Uint8Array {
   return result;
 }
 
+// ─── HKDF-SHA256 ───
+
 async function hkdfSha256(
   ikm: Uint8Array,
   salt: Uint8Array,
   info: Uint8Array,
   length: number
 ): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey("raw", salt.length ? salt : new Uint8Array(32), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const prk = new Uint8Array(await crypto.subtle.sign("HMAC", key, ikm));
-  const prkKey = await crypto.subtle.importKey("raw", prk, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  // Extract
+  const saltKey = await crypto.subtle.importKey(
+    "raw",
+    salt.length ? salt : new Uint8Array(32),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const prk = new Uint8Array(await crypto.subtle.sign("HMAC", saltKey, ikm));
+
+  // Expand
+  const prkKey = await crypto.subtle.importKey(
+    "raw",
+    prk,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
   const infoWithCounter = concatUint8(info, new Uint8Array([1]));
-  const okm = new Uint8Array(await crypto.subtle.sign("HMAC", prkKey, infoWithCounter));
+  const okm = new Uint8Array(
+    await crypto.subtle.sign("HMAC", prkKey, infoWithCounter)
+  );
   return okm.slice(0, length);
 }
+
+// ─── Web Push Encryption (aesgcm — RFC 8291 draft) ───
 
 function createInfo(
   type: string,
@@ -53,19 +74,24 @@ function createInfo(
   serverPublicKey: Uint8Array
 ): Uint8Array {
   const encoder = new TextEncoder();
-  const typeBytes = encoder.encode(type);
-  const header = encoder.encode("Content-Encoding: ");
-  const nul = new Uint8Array([0]);
+  const typeEncoded = encoder.encode(`Content-Encoding: ${type}\0`);
+  const p256 = encoder.encode("P-256\0");
+
+  // aesgcm info format: "Content-Encoding: <type>\0P-256\0\0A<client_pub>\0A<server_pub>"
+  const clientLen = new Uint8Array(2);
+  clientLen[0] = 0;
+  clientLen[1] = clientPublicKey.length;
+
+  const serverLen = new Uint8Array(2);
+  serverLen[0] = 0;
+  serverLen[1] = serverPublicKey.length;
 
   return concatUint8(
-    header,
-    typeBytes,
-    nul,
-    encoder.encode("P-256"),
-    nul,
-    new Uint8Array([0, 65]),
+    typeEncoded,
+    p256,
+    clientLen,
     clientPublicKey,
-    new Uint8Array([0, 65]),
+    serverLen,
     serverPublicKey
   );
 }
@@ -74,7 +100,11 @@ async function encryptPayload(
   payload: string,
   subscriptionPublicKey: string,
   subscriptionAuth: string
-): Promise<{ ciphertext: Uint8Array; salt: Uint8Array; serverPublicKey: Uint8Array }> {
+): Promise<{
+  ciphertext: Uint8Array;
+  salt: Uint8Array;
+  serverPublicKey: Uint8Array;
+}> {
   const clientPublicKeyBytes = base64UrlDecode(subscriptionPublicKey);
   const authBytes = base64UrlDecode(subscriptionAuth);
 
@@ -98,7 +128,7 @@ async function encryptPayload(
     []
   );
 
-  // Derive shared secret
+  // ECDH shared secret
   const sharedSecret = new Uint8Array(
     await crypto.subtle.deriveBits(
       { name: "ECDH", public: clientPublicKey },
@@ -107,12 +137,12 @@ async function encryptPayload(
     )
   );
 
-  // Generate salt
+  // Generate random salt
   const salt = crypto.getRandomValues(new Uint8Array(16));
 
   const encoder = new TextEncoder();
 
-  // HKDF for IKM
+  // Derive IKM from shared secret + auth
   const authInfo = encoder.encode("Content-Encoding: auth\0");
   const ikm = await hkdfSha256(sharedSecret, authBytes, authInfo, 32);
 
@@ -124,15 +154,12 @@ async function encryptPayload(
   const nonceInfo = createInfo("nonce", clientPublicKeyBytes, serverPublicKeyRaw);
   const nonce = await hkdfSha256(ikm, salt, nonceInfo, 12);
 
-  // Encrypt with AES-128-GCM
-  const paddingLength = 0;
-  const padding = new Uint8Array(2 + paddingLength);
-  padding[0] = (paddingLength >> 8) & 0xff;
-  padding[1] = paddingLength & 0xff;
-
+  // Pad payload (aesgcm uses 2-byte BE padding length prefix)
   const payloadBytes = encoder.encode(payload);
+  const padding = new Uint8Array(2); // 0 padding length
   const plaintext = concatUint8(padding, payloadBytes);
 
+  // Encrypt
   const key = await crypto.subtle.importKey(
     "raw",
     contentEncryptionKey,
@@ -142,17 +169,13 @@ async function encryptPayload(
   );
 
   const encrypted = new Uint8Array(
-    await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv: nonce },
-      key,
-      plaintext
-    )
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, plaintext)
   );
 
   return { ciphertext: encrypted, salt, serverPublicKey: serverPublicKeyRaw };
 }
 
-// ─── VAPID JWT ───
+// ─── VAPID JWT (ES256) ───
 
 async function wrapRawToP8(raw32: Uint8Array): Promise<ArrayBuffer> {
   const prefix = new Uint8Array([
@@ -169,12 +192,14 @@ async function wrapRawToP8(raw32: Uint8Array): Promise<ArrayBuffer> {
 function derToRaw(der: Uint8Array): Uint8Array {
   const raw = new Uint8Array(64);
   let offset = 3;
-  const rLen = der[offset]; offset++;
+  const rLen = der[offset];
+  offset++;
   const rStart = rLen > 32 ? offset + (rLen - 32) : offset;
   const rDest = rLen < 32 ? 32 - rLen : 0;
   raw.set(der.slice(rStart, rStart + Math.min(rLen, 32)), rDest);
   offset += rLen + 1;
-  const sLen = der[offset]; offset++;
+  const sLen = der[offset];
+  offset++;
   const sStart = sLen > 32 ? offset + (sLen - 32) : offset;
   const sDest = sLen < 32 ? 64 - sLen : 32;
   raw.set(der.slice(sStart, sStart + Math.min(sLen, 32)), sDest);
@@ -206,7 +231,11 @@ async function createVapidJwt(
   );
 
   const sig = new Uint8Array(
-    await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, enc.encode(unsigned))
+    await crypto.subtle.sign(
+      { name: "ECDSA", hash: "SHA-256" },
+      key,
+      enc.encode(unsigned)
+    )
   );
 
   const rawSig = sig.length === 64 ? sig : derToRaw(sig);
@@ -221,7 +250,7 @@ async function sendPush(
   vapidPublicKey: string,
   vapidPrivateKey: string,
   vapidSubject: string
-) {
+): Promise<Response> {
   const { ciphertext, salt, serverPublicKey } = await encryptPayload(
     payloadStr,
     subscription.p256dh,
@@ -232,24 +261,16 @@ async function sendPush(
   const audience = `${url.protocol}//${url.host}`;
   const jwt = await createVapidJwt(audience, vapidSubject, vapidPrivateKey);
 
-  const body = concatUint8(
-    // aes128gcm header
-    salt,                                          // 16 bytes salt
-    new Uint8Array(new Uint32Array([ciphertext.length + 16 + 1 + 65]).buffer).reverse(), // rs (record size) as 4 bytes big-endian
-    new Uint8Array([65]),                           // key length
-    serverPublicKey,                               // 65 bytes server public key
-    ciphertext                                     // encrypted data
-  );
-
   const res = await fetch(subscription.endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/octet-stream",
       "Content-Encoding": "aesgcm",
       "Crypto-Key": `dh=${base64UrlEncode(serverPublicKey)};p256ecdsa=${vapidPublicKey}`,
-      "Encryption": `salt=${base64UrlEncode(salt)}`,
+      Encryption: `salt=${base64UrlEncode(salt)}`,
       TTL: "86400",
       Authorization: `WebPush ${jwt}`,
+      Urgency: "normal",
     },
     body: ciphertext,
   });
@@ -269,17 +290,31 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY")!;
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY")!;
-    const vapidSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:contact@budgetplanner.app";
+    const vapidSubject =
+      Deno.env.get("VAPID_SUBJECT") || "mailto:contact@budgetplanner.app";
+
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      return new Response(
+        JSON.stringify({ error: "VAPID keys not configured" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const { user_id, title, body, icon, data } = await req.json();
 
     if (!user_id || !title) {
-      return new Response(JSON.stringify({ error: "user_id and title are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "user_id and title are required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Get all push subscriptions for this user
@@ -290,9 +325,10 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
     if (!subs || subs.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, reason: "no_subscriptions" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ sent: 0, reason: "no_subscriptions" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const payload = JSON.stringify({
@@ -318,15 +354,16 @@ Deno.serve(async (req) => {
           vapidSubject
         );
 
-        const responseText = await res.text();
-
         if (res.status === 201 || res.status === 200) {
           sent++;
         } else if (res.status === 404 || res.status === 410) {
           expired.push(sub.id);
         } else {
+          const responseText = await res.text();
           errors.push(`${res.status}: ${responseText}`);
-          console.error(`Push failed for ${sub.endpoint}: ${res.status} ${responseText}`);
+          console.error(
+            `Push failed for ${sub.endpoint}: ${res.status} ${responseText}`
+          );
         }
       } catch (e) {
         errors.push(e.message);
@@ -340,7 +377,12 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ sent, expired: expired.length, total: subs.length, errors: errors.length > 0 ? errors : undefined }),
+      JSON.stringify({
+        sent,
+        expired: expired.length,
+        total: subs.length,
+        errors: errors.length > 0 ? errors : undefined,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
