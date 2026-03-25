@@ -172,47 +172,52 @@ const SavingsPage = () => {
     }
 
     for (const tx of allTxMap.values()) {
-      // Strategy 1: Match by 🎯 notes pattern (explicit savings tx)
-      if (tx.notes?.startsWith('🎯 ')) {
-        const goalName = tx.notes.replace('🎯 ', '');
-        const matchedGoal = goalsData.find((g: any) => g.name === goalName);
-        if (matchedGoal) {
-          const desc = tx.description || '';
-          const isWithdrawal = desc.includes('↩') || tx.type === 'expense';
-          const isDeposit = !desc.includes('↩') && tx.type === 'income';
-          if (isDeposit || isWithdrawal) {
-            contribMap[matchedGoal.id].push({
-              id: tx.id,
-              amount: tx.amount,
-              date: tx.date,
-              type: isWithdrawal ? 'withdrawal' : 'deposit',
-              account_name: (tx.payment_accounts as any)?.name,
-              account_icon: (tx.payment_accounts as any)?.icon,
-              description: tx.description,
-            });
-          }
-          continue;
-        }
+      const desc = tx.description || '';
+      const hasTargetNote = tx.notes?.startsWith('🎯 ');
+      const goalNameFromNote = hasTargetNote ? tx.notes!.replace('🎯 ', '') : null;
+      const isReturnTx = desc.includes('↩');
+
+      // Find which goal this tx belongs to
+      let matchedGoal: any = null;
+      let matchMethod: 'note' | 'account' = 'account';
+
+      if (hasTargetNote) {
+        matchedGoal = goalsData.find((g: any) => g.name === goalNameFromNote);
+        matchMethod = 'note';
+      }
+      if (!matchedGoal && tx.account_id) {
+        matchedGoal = goalsData.find((g: any) => g.account_id === tx.account_id);
+        matchMethod = 'account';
+      }
+      if (!matchedGoal) continue;
+
+      // Skip the "other side" of a transfer (tx on a different account than the goal's)
+      // When depositing: expense on source account + income on savings account → keep only savings side
+      // When withdrawing: expense on savings account + income on target account → keep only savings side
+      if (matchMethod === 'note' && matchedGoal.account_id && tx.account_id !== matchedGoal.account_id) {
+        continue;
       }
 
-      // Strategy 2: Match by account_id (any tx on savings-linked account)
-      if (tx.account_id) {
-        const matchedGoal = goalsData.find((g: any) => g.account_id === tx.account_id);
-        if (matchedGoal) {
-          // Avoid duplicates (already added via strategy 1)
-          if (!contribMap[matchedGoal.id].some(c => c.id === tx.id)) {
-            contribMap[matchedGoal.id].push({
-              id: tx.id,
-              amount: tx.amount,
-              date: tx.date,
-              type: tx.type === 'expense' ? 'withdrawal' : 'deposit',
-              account_name: (tx.payment_accounts as any)?.name,
-              account_icon: (tx.payment_accounts as any)?.icon,
-              description: tx.description,
-            });
-          }
-        }
+      // Avoid duplicates
+      if (contribMap[matchedGoal.id].some((c: SavingsContribution) => c.id === tx.id)) continue;
+
+      // Determine deposit vs withdrawal based on the savings account perspective
+      let contribType: 'deposit' | 'withdrawal';
+      if (isReturnTx || tx.type === 'expense') {
+        contribType = 'withdrawal';
+      } else {
+        contribType = 'deposit';
       }
+
+      contribMap[matchedGoal.id].push({
+        id: tx.id,
+        amount: tx.amount,
+        date: tx.date,
+        type: contribType,
+        account_name: (tx.payment_accounts as any)?.name,
+        account_icon: (tx.payment_accounts as any)?.icon,
+        description: tx.description,
+      });
     }
 
     // Sort each goal's contributions by date desc
