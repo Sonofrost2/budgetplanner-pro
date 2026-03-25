@@ -43,6 +43,8 @@ const PaymentPage = () => {
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [canceling, setCanceling] = useState(false);
   const [annual, setAnnual] = useState(false);
+  const [receipts, setReceipts] = useState<any[]>([]);
+  const [receiptsLoading, setReceiptsLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
