@@ -264,7 +264,7 @@ async function sendPush(
 
   const url = new URL(subscription.endpoint);
   const audience = `${url.protocol}//${url.host}`;
-  const jwt = await createVapidJwt(audience, vapidSubject, vapidPrivateKey);
+  const jwt = await createVapidJwt(audience, vapidSubject, vapidPrivateKey, vapidPublicKey);
 
   const res = await fetch(subscription.endpoint, {
     method: "POST",
