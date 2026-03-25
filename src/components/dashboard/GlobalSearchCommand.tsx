@@ -179,7 +179,7 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
               {filteredAccounts.map(a => (
                 <CommandItem
                   key={a.id}
-                  onSelect={() => go('/dashboard/accounts')}
+                  onSelect={() => go(`/dashboard/accounts?q=${encodeURIComponent(a.name)}`)}
                   className="gap-2.5 cursor-pointer"
                 >
                   <span className="text-base">{a.icon}</span>
