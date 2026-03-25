@@ -7,9 +7,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Check, X, Crown, Zap, Loader2, AlertCircle, Star, Shield, Sparkles } from 'lucide-react';
+import { Check, X, Crown, Zap, Loader2, AlertCircle, Star, Shield, Sparkles, Receipt, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
+import { fr, enUS } from 'date-fns/locale';
 
 type Plan = {
   id: string;
