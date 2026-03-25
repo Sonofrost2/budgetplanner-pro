@@ -61,8 +61,10 @@ const SavingsPage = () => {
   const { locale } = useLanguage();
   const { fmt: fmtCurrency, currency } = useProfile();
   const t = dashT[locale];
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get('q') || '';
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [sortField, setSortField] = useState<'name' | 'current_amount' | 'target_amount'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [accounts, setAccounts] = useState<Account[]>([]);
