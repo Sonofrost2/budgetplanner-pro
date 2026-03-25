@@ -92,19 +92,14 @@ Deno.serve(async (req) => {
       const alerts: { title: string; body: string }[] = [];
 
       // Fetch all data needed in parallel
-      const [budgetsRes, allTxRes, savingsRes, savingsTxRes, importedSavingsTxRes, recurringRes, profileRes, accountsRes, accountTxRes] = await Promise.all([
+      const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, recurringRes, profileRes, accountsRes, accountTxRes] = await Promise.all([
         supabase.from("budgets").select("*, categories(name, icon)").eq("user_id", userId),
         supabase.from("transactions").select("category_id, amount, type, date")
           .eq("user_id", userId).gte("date", yearStart).lte("date", todayStr),
         supabase.from("savings_goals").select("*").eq("user_id", userId),
-        supabase.from("transactions").select("amount, notes")
-          .eq("user_id", userId).eq("type", "expense")
-          .like("notes", "🎯 %")
-          .gte("date", monthStart).lte("date", todayStr),
-        supabase.from("transactions").select("amount, description, account_id")
-          .eq("user_id", userId).eq("type", "income")
-          .ilike("description", "%cotisation epargne%")
-          .gte("date", monthStart).lte("date", todayStr),
+        // Fetch this month's transactions for savings contribution detection
+        supabase.from("transactions").select("amount, date, notes, type, account_id, description")
+          .eq("user_id", userId).gte("date", monthStart).lte("date", todayStr),
         supabase.from("recurring_transactions").select("*")
           .eq("user_id", userId).eq("active", true)
           .lte("next_date", sevenDaysLaterStr),
@@ -119,8 +114,7 @@ Deno.serve(async (req) => {
       const budgets = budgetsRes.data || [];
       const allTxs = allTxRes.data || [];
       const savings = savingsRes.data || [];
-      const savingsTxs = savingsTxRes.data || [];
-      const importedSavingsTxs = importedSavingsTxRes.data || [];
+      const savingsMonthTxs = savingsMonthTxRes.data || [];
       const recurringTxs = recurringRes.data || [];
       const accounts = accountsRes.data || [];
       const accountTxs = accountTxRes.data || [];
