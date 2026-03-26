@@ -181,7 +181,7 @@ export const useBudgetNotifications = () => {
             ? (isFr ? "📋 Échéance aujourd'hui" : '📋 Due today')
             : (isFr ? `📋 Échéance dans ${daysUntil}j` : `📋 Due in ${daysUntil}d`),
           message: `${rec.description}: ${Math.round(Number(rec.amount)).toLocaleString()} (${rec.type === 'income' ? (isFr ? 'revenu' : 'income') : (isFr ? 'dépense' : 'expense')})`,
-          action: { label: isFr ? 'Voir récurrences' : 'View recurring', path: '/dashboard/recurring' },
+          action: { label: isFr ? 'Voir récurrences' : 'View recurring', path: `/dashboard/recurring?q=${encodeURIComponent(rec.description)}` },
         });
       }
     }
