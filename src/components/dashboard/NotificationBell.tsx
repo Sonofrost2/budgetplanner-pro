@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -308,6 +308,32 @@ export const useBudgetNotifications = () => {
     const interval = setInterval(checkNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [checkNotifications]);
+
+  // Realtime: refresh immediately when a transaction is inserted/updated/deleted
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('notif-bell-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => {
+        // Debounce to avoid multiple rapid refreshes (e.g. bulk import)
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => checkNotifications(), 800);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${user.id}` }, () => {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => checkNotifications(), 800);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'savings_goals', filter: `user_id=eq.${user.id}` }, () => {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => checkNotifications(), 800);
+      })
+      .subscribe();
+    return () => {
+      clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [user, checkNotifications]);
 
   return { notifications, loading, refresh: checkNotifications };
 };
