@@ -211,7 +211,7 @@ export const useBudgetNotifications = () => {
             severity: 'info',
             title: isFr ? `🐷 Cotisation dans ${daysUntil}j` : `🐷 Contribution in ${daysUntil}d`,
             message: `${goal.icon} ${goal.name}: ${Math.round(Number(goal.monthly_contribution || 0)).toLocaleString()}`,
-            action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
+            action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
           });
         }
       }
