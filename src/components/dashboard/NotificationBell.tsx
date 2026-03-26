@@ -254,7 +254,7 @@ export const useBudgetNotifications = () => {
           severity: 'warning',
           title: isFr ? 'Rappel épargne' : 'Savings reminder',
           message: `${goal.icon} ${isFr ? 'Aucun versement ce mois pour' : 'No contribution this month for'} ${goal.name}`,
-          action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
+          action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
         });
       } else if (monthlyActual < monthlyNeeded * 0.9) {
         notifs.push({
