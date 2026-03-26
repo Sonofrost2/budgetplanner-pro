@@ -141,7 +141,7 @@ export const useBudgetNotifications = () => {
             severity: 'success',
             title: isFr ? '🎉 Budget maîtrisé' : '🎉 Budget under control',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(amount - spent).toLocaleString()} ${isFr ? 'économisés' : 'saved'}`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           });
         }
       } else {
