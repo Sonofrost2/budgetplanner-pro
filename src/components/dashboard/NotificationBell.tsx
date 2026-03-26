@@ -195,7 +195,7 @@ export const useBudgetNotifications = () => {
           severity: 'success',
           title: isFr ? 'Objectif atteint !' : 'Goal reached!',
           message: `${goal.icon} ${goal.name}`,
-          action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
+          action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
         });
         continue;
       }
