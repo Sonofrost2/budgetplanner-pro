@@ -123,7 +123,7 @@ export const useBudgetNotifications = () => {
             severity: 'critical',
             title: isFr ? 'Budget dépassé' : 'Budget exceeded',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}`,
-            action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}` },
+            action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}&type=${budgetType}&from=${periodStartStr}&to=${periodEndStr}` },
           });
         } else if (pct >= threshold) {
           notifs.push({
