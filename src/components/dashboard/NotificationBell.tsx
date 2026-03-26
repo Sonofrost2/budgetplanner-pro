@@ -132,7 +132,7 @@ export const useBudgetNotifications = () => {
             severity: 'warning',
             title: isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`,
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           });
         } else if (pct < 50 && daysElapsed > daysTotal * 0.7) {
           notifs.push({
