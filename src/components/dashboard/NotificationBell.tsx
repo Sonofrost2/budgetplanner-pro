@@ -289,7 +289,7 @@ export const useBudgetNotifications = () => {
           severity: 'warning',
           title: isFr ? `🔍 Écart de solde détecté` : `🔍 Balance discrepancy`,
           message: `${account.icon} ${account.name}: ${isFr ? 'écart de' : 'difference of'} ${sign}${Math.round(diff).toLocaleString()} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? 'théorique' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString()})`,
-          action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts` },
+          action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
         });
       }
     }
