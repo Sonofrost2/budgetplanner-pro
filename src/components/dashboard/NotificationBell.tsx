@@ -123,7 +123,7 @@ export const useBudgetNotifications = () => {
             severity: 'critical',
             title: isFr ? 'Budget dépassé' : 'Budget exceeded',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}`,
-            action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}` },
+            action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}&type=${budgetType}&from=${periodStartStr}&to=${periodEndStr}` },
           });
         } else if (pct >= threshold) {
           notifs.push({
@@ -132,7 +132,7 @@ export const useBudgetNotifications = () => {
             severity: 'warning',
             title: isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`,
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           });
         } else if (pct < 50 && daysElapsed > daysTotal * 0.7) {
           notifs.push({
@@ -141,7 +141,7 @@ export const useBudgetNotifications = () => {
             severity: 'success',
             title: isFr ? '🎉 Budget maîtrisé' : '🎉 Budget under control',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(amount - spent).toLocaleString()} ${isFr ? 'économisés' : 'saved'}`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           });
         }
       } else {
@@ -153,7 +153,7 @@ export const useBudgetNotifications = () => {
             severity: 'success',
             title: isFr ? '🎉 Objectif atteint' : '🎉 Target reached',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? 'au-dessus' : 'above'}`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           });
         } else if (shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal)) {
           notifs.push({
@@ -162,7 +162,7 @@ export const useBudgetNotifications = () => {
             severity: 'info',
             title: isFr ? 'Objectif non atteint' : 'Target not reached',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString()}`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           });
         }
       }
@@ -181,7 +181,7 @@ export const useBudgetNotifications = () => {
             ? (isFr ? "📋 Échéance aujourd'hui" : '📋 Due today')
             : (isFr ? `📋 Échéance dans ${daysUntil}j` : `📋 Due in ${daysUntil}d`),
           message: `${rec.description}: ${Math.round(Number(rec.amount)).toLocaleString()} (${rec.type === 'income' ? (isFr ? 'revenu' : 'income') : (isFr ? 'dépense' : 'expense')})`,
-          action: { label: isFr ? 'Voir récurrences' : 'View recurring', path: '/dashboard/recurring' },
+          action: { label: isFr ? 'Voir récurrences' : 'View recurring', path: `/dashboard/recurring?q=${encodeURIComponent(rec.description)}` },
         });
       }
     }
@@ -195,7 +195,7 @@ export const useBudgetNotifications = () => {
           severity: 'success',
           title: isFr ? 'Objectif atteint !' : 'Goal reached!',
           message: `${goal.icon} ${goal.name}`,
-          action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
+          action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
         });
         continue;
       }
@@ -211,7 +211,7 @@ export const useBudgetNotifications = () => {
             severity: 'info',
             title: isFr ? `🐷 Cotisation dans ${daysUntil}j` : `🐷 Contribution in ${daysUntil}d`,
             message: `${goal.icon} ${goal.name}: ${Math.round(Number(goal.monthly_contribution || 0)).toLocaleString()}`,
-            action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
+            action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
           });
         }
       }
@@ -254,7 +254,7 @@ export const useBudgetNotifications = () => {
           severity: 'warning',
           title: isFr ? 'Rappel épargne' : 'Savings reminder',
           message: `${goal.icon} ${isFr ? 'Aucun versement ce mois pour' : 'No contribution this month for'} ${goal.name}`,
-          action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
+          action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
         });
       } else if (monthlyActual < monthlyNeeded * 0.9) {
         notifs.push({
@@ -263,7 +263,7 @@ export const useBudgetNotifications = () => {
           severity: 'info',
           title: isFr ? 'Versement insuffisant' : 'Insufficient contribution',
           message: `${goal.icon} ${goal.name}: ${Math.round(monthlyActual).toLocaleString()} / ${Math.round(monthlyNeeded).toLocaleString()}`,
-          action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
+          action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
         });
       }
     }
@@ -289,7 +289,7 @@ export const useBudgetNotifications = () => {
           severity: 'warning',
           title: isFr ? `🔍 Écart de solde détecté` : `🔍 Balance discrepancy`,
           message: `${account.icon} ${account.name}: ${isFr ? 'écart de' : 'difference of'} ${sign}${Math.round(diff).toLocaleString()} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? 'théorique' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString()})`,
-          action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts` },
+          action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
         });
       }
     }
