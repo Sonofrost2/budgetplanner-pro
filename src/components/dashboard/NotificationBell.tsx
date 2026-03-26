@@ -153,7 +153,7 @@ export const useBudgetNotifications = () => {
             severity: 'success',
             title: isFr ? '🎉 Objectif atteint' : '🎉 Target reached',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? 'au-dessus' : 'above'}`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: '/dashboard/budgets' },
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           });
         } else if (shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal)) {
           notifs.push({
