@@ -263,7 +263,7 @@ export const useBudgetNotifications = () => {
           severity: 'info',
           title: isFr ? 'Versement insuffisant' : 'Insufficient contribution',
           message: `${goal.icon} ${goal.name}: ${Math.round(monthlyActual).toLocaleString()} / ${Math.round(monthlyNeeded).toLocaleString()}`,
-          action: { label: isFr ? 'Voir épargne' : 'View savings', path: '/dashboard/savings' },
+          action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
         });
       }
     }
