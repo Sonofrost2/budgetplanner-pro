@@ -35,6 +35,7 @@ const GuidePage = () => {
     { q: 'faqInvestments', a: 'faqInvestmentsAnswer' },
     { q: 'faqSubPages', a: 'faqSubPagesAnswer' },
     { q: 'faqRecurring', a: 'faqRecurringAnswer' },
+    { q: 'faqWealth', a: 'faqWealthAnswer' },
     { q: 'faqFamilySharing', a: 'faqFamilySharingAnswer' },
     { q: 'faqBudgetOverspend', a: 'faqBudgetOverspendAnswer' },
     { q: 'faqOfflineMode', a: 'faqOfflineModeAnswer' },
