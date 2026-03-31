@@ -1,220 +1,356 @@
-# Audit complet et plan d'ameliorations — Budget Planner Pro
 
-## Vue d'ensemble
 
-L'application est mature avec 16 modules dashboard, une landing page, l'authentification, et un systeme de notifications. Voici les problemes identifies et les ameliorations proposees, classes par priorite.
+# Audit complet de Budget Planner Pro — Tous les modules, pages, vues, listes, tabs et formulaires
 
 ---
 
-## 1. Architecture et code — Problemes transversaux
+## 1. Dashboard Home (`DashboardHome.tsx` — 429 lignes)
 
-### 1.1 Fichiers monolithiques (CRITIQUE)
+### Vues & Widgets
+- **OK** : Bento grid drag & drop, 10 widgets configurables, selecteur de periode, comparaison N-1
+- **Probleme** : Pas d'etat vide engageant pour les nouveaux utilisateurs (aucun onboarding contextuel)
+- **Probleme** : Le WeeklyPlannerWidget charge toutes les transactions de l'annee
+- **Amelioration** : Ajouter un "Quick Actions" flottant (raccourcis: ajouter transaction, transfert, valoriser actif)
+- **Amelioration** : Ajouter un message d'accueil contextuel pour les comptes vides ("Commencez par creer un compte")
 
-- `TransactionsPage.tsx` : **1126 lignes** — formulaire, liste, filtres, stats, bulk actions, tout dans un seul fichier
-- `BudgetsPage.tsx` : **1038 lignes**
-- `SavingsPage.tsx` : **1206 lignes**
-- `AccountsPage.tsx` : **744 lignes**
-- `ForecastsPage.tsx` : **545 lignes**
-- `PaymentPage.tsx` : **538 lignes**
-- `RecurringPage.tsx` : **492 lignes**
-
-**Action** : Extraire les formulaires, listes et dialogues en sous-composants dedies (ex: `TransactionForm.tsx`, `TransactionListItem.tsx`, `BudgetForm.tsx`).
-
-### 1.2 Gestion d'etat inconsistante
-
-- `AccountsPage` et `SavingsPage` utilisent `useState` + `fetchData` manuels au lieu de React Query (contrairement a `TransactionsPage`, `BudgetsPage`, `CategoriesPage` qui utilisent correctement `useDashboardData` hooks)
-- Consequence : pas de cache, pas de revalidation automatique, pas de stale-while-revalidate
-
-**Action** : Migrer `AccountsPage` et `SavingsPage` vers React Query via les hooks existants dans `useDashboardData`.
-
-### 1.3 Validation de formulaires non uniforme
-
-- `TransactionsPage` et `BudgetsPage` ont une validation robuste avec messages d'erreur
-- `CategoriesPage` : validation minimaliste (`!form.name.trim()` seulement, pas de message d'erreur affiche)
-- `DebtsPage` : validation inline sans messages (`!form.creditor_name.trim() || Number(form.total_amount) <= 0`)
-- `RecurringPage` : meme probleme (`!form.description.trim() || Number(form.amount) <= 0 || !form.next_date`)
-- Aucun formulaire n'utilise `zod` ou `react-hook-form` de maniere uniforme
-
-**Action** : Creer un pattern de validation uniforme avec `zod` + affichage des erreurs inline pour tous les formulaires.
+### Widget Patrimoine (`WealthWidget.tsx`)
+- **OK** : Valeur nette, plus-value, mini donut
+- **Probleme** : Fait 3 requetes independantes (assets, savings, debts) — devrait utiliser un hook consolide
+- **Amelioration** : Ajouter un mini sparkline d'evolution au lieu du donut seul
 
 ---
 
-## 2. Pages et modules — Audit detaille
+## 2. Transactions (`TransactionsPage.tsx` — 999 lignes)
 
-### 2.1 Dashboard Home (`DashboardHome.tsx`)
+### Liste
+- **OK** : Pagination server-side, tri, filtres, bulk actions, regroupement par date, deep-linking
+- **Probleme** : Le fichier reste monolithique malgre l'extraction de `TransactionForm`
+- **Amelioration** : Extraire `TransactionListItem` et `TransactionBulkActions` en sous-composants
+- **Amelioration** : Ajouter swipe-to-edit/delete sur mobile (touch gestures)
 
-- **OK** : Bento grid drag & drop, periode personnalisable, widgets configurables
-- **Manque** : Pas d'etat vide engageant pour les nouveaux utilisateurs (onboarding contextuel)
-- **Manque** : Le widget "Planner hebdomadaire" charge toutes les transactions de l'annee (`yearStartForPlanner`) — potentiel de performance
-- **Amelioration** : Ajouter un "Quick Actions" widget (raccourcis rapides: ajouter transaction, transfert, etc.)
+### Formulaire (`TransactionForm.tsx`)
+- **OK** : Validation avec messages d'erreur, suggestions historiques, suggestions IA, combobox categories/comptes
+- **Probleme** : Le champ `notes` n'est pas marque "(optionnel)"
+- **Amelioration** : Ajouter un mode "saisie rapide" (inline dans la liste sans ouvrir le dialogue)
 
-### 2.2 Transactions (`TransactionsPage.tsx`)
+### Tabs
+- **Tab Statistiques** (`TransactionsStatsTab`) : OK — graphiques et repartition
+- **Amelioration** : Ajouter un tab "Import" pour importer des transactions depuis CSV
 
-- **OK** : Pagination server-side, tri, filtres avances, bulk actions, suggestions IA, deep-linking
-- **Manque** : Pas de regroupement par date (les transactions ne sont pas visuellement groupees par jour)
-- **Manque** : Pas de swipe-to-delete/edit sur mobile
-- **Amelioration** : Ajouter un groupement visuel par date avec séparateurs de jours
-- **Amelioration** : Ajouter un mode "saisie rapide" sans ouvrir le dialogue complet
-- **Amélioration :** L'horodatage des saisies tri de la 1ère saisie du jour (toujours en haut) à la dernière saisie du jour alors que la dernière saisie doit se mettre en haut et les autres en bas (toujours en fonction de la date et l'heure de saisie)
+---
 
-### 2.3 Budgets (`BudgetsPage.tsx`)
+## 3. Budgets (`BudgetsPage.tsx` — 755 lignes)
 
-- **OK** : Tabs depenses/revenus, stats globales, evolution, analyse, IA suggestions
-- **Manque** : Pas de vue calendrier pour les budgets periodiques
-- **Amelioration** : Ajouter une barre de progression animee avec code couleur dynamique (vert → jaune → rouge)
-- **Bug potentiel** : `expenseBudgets` filtre par `budget_type !== 'income'` — mais un budget sans `budget_type` serait classe comme depense par defaut
+### Liste
+- **OK** : Filtres, recherche, tri, bulk actions, progression visuelle
+- **Probleme** : Un budget sans `budget_type` serait classe comme depense par defaut (filtre `!== 'income'`)
+- **Amelioration** : Ajouter un code couleur dynamique sur la barre de progression (vert → jaune → rouge selon le %)
 
-### 2.4 Comptes (`AccountsPage.tsx`)
+### Formulaire (`BudgetForm.tsx`)
+- **OK** : Validation robuste, champs conditionnels, combobox categorie
+- **Probleme** : Le champ `reference_date` apparait sans explication de son utilite
+- **Amelioration** : Ajouter un tooltip explicatif sur `reference_date` et `occurrence_frequency`
 
-- **OK** : Transferts, arquet de caisse, historique, stats periode
-- **Manque** : Pas de graphique d'evolution du solde par compte
-- **Manque** : `fetchData` charge **100 000 transactions** (`limit(100000)`) — tres mauvais pour la performance
-- **Amelioration** : Calculer les soldes theoriques cote serveur via une fonction RPC plutot que tout charger cote client
-- **Amelioration** : Ajouter un tri rapide par solde decroissant par defaut
+### Tabs
+- **Tab Gestion** : Liste des budgets — OK
+- **Tab Evolution** (`BudgetEvolutionTab`) : Graphique d'evolution — OK
+- **Tab Analyse** (`BudgetAnalysisTab`) : Comparaison — OK
+- **Amelioration** : Ajouter un tab "Suggestions IA" avec les recommandations budgetaires personnalisees
 
-### 2.5 Epargne (`SavingsPage.tsx`)
+---
 
-- **OK** : Objectifs avec progression, contributions, simulation IA, verrouillage, interets
-- **Manque** : Pas de notification quand un objectif est atteint (le champ `goal_reached` existe dans les preferences mais n'est pas utilise)
-- **Manque** : Pas de vue resume avec total global de l'epargne en haut de page (existe dans `SavingsGlobalStats` mais verifier l'integration)
-- **Amelioration** : Ajouter un celebratory confetti/animation quand un objectif atteint 100%
+## 4. Comptes (`AccountsPage.tsx` — 709 lignes)
 
-### 2.6 Categories (`CategoriesPage.tsx`)
+### Liste
+- **OK** : Filtres, transferts, arquets de caisse, historique, stats periode, bulk actions
+- **OK** : Migration vers React Query realisee (useAccounts, useAccountTheoreticalBalances)
+- **Amelioration** : Ajouter un mini graphique d'evolution du solde par compte (sparkline dans la carte)
 
-- **OK** : CRUD, evolution chart, bulk actions, filtres
-- **Manque** : Pas de fusion de categories (merge)
-- **Manque** : Pas de validation d'unicite du nom de categorie
-- **Amelioration** : Ajouter un apercu des depenses par categorie directement dans la carte (mini sparkline)
-- **Amelioration** : Permettre le reordonnement des categories par drag & drop
+### Formulaire
+- **OK** : Validation avec messages d'erreur, types de comptes, icones selectionnables
+- **Probleme** : Le champ `opening_balance` affiche une erreur pour les negatifs mais les decouverts sont valides
+- **Amelioration** : Permettre les soldes negatifs avec un warning au lieu d'une erreur
 
-### 2.7 Dettes (`DebtsPage.tsx`)
+### Tabs
+- **Tab Comptes** : Liste — OK
+- **Tab Recapitulatif** (`AccountsRecapTab`) : Stats par periode — OK
+- **Amelioration** : Ajouter un tab "Evolution" avec graphique des soldes dans le temps
 
-- **OK** : CRUD, paiements partiels, plan IA de remboursement
-- **Manque** : Pas de filtres ni recherche (contrairement aux autres modules)
-- **Manque** : Pas de bulk actions
-- **Manque** : Pas d'export CSV/Excel
-- **Manque** : Pas de lien avec les transactions (un paiement de dette ne cree pas de transaction)
-- **Amelioration** : Ajouter FilterToolbar + export + lien avec les transactions
+---
 
-### 2.8 Recurrences (`RecurringPage.tsx`)
+## 5. Epargne (`SavingsPage.tsx` — 1073 lignes)
 
-- **OK** : Detection IA, filtres, tabs confirme/detecte, stats mensuelles
-- **Manque** : Pas de bulk actions (presente dans d'autres modules)
+### Liste
+- **OK** : Objectifs avec progression, contributions, simulation IA, verrouillage, interets, stats globales
+- **Probleme** : Fichier le plus gros de l'app (1073 lignes) — extraire les dialogues et sous-composants
+- **Amelioration** : Animation confetti/celebration quand un objectif atteint 100%
+- **Amelioration** : Notification push quand `goal_reached` (le champ existe dans les preferences mais n'est pas utilise)
+
+### Formulaire
+- **Probleme** : 12+ champs affiches simultanement sans groupement
+- **Amelioration** : Grouper en sections collapsibles (Base: nom/cible/delai, Avance: taux/frequence/contribution, Banque: nom banque/jour)
+- **Amelioration** : Ajouter des valeurs par defaut intelligentes (contribution = cible / mois restants)
+
+### Tabs
+- **Tab Objectifs** : Cartes d'objectifs — OK (composant `SavingsGoalCard` extrait)
+- **Tab Projections** (`SavingsProjectionsTab`) : OK
+- **Tab Evolution** (`SavingsEvolutionTab`) : OK
+- **Tab Resume** : Tableaux recapitulatifs — OK
+- **Tab Controle** : Table de suivi — OK
+
+---
+
+## 6. Patrimoine (`WealthPage.tsx` — 879 lignes)
+
+### Vue d'ensemble
+- **OK** : KPIs (valeur nette, actifs, epargne, dettes), donut de repartition, top actifs, projections 5 ans
+- **OK** : Export PDF et Excel, suggestions IA de valorisation, historique par actif
+- **Probleme** : Pas de bulk actions (supprimer/modifier plusieurs actifs)
+- **Amelioration** : Ajouter bulk actions comme les autres modules
+- **Amelioration** : Ajouter un indicateur de "sante du patrimoine" (diversification, ratio dettes/actifs)
+
+### Formulaire actif
+- **OK** : Types, categories dynamiques, icones, localisation, notes
+- **Probleme** : Validation minimale (seulement nom + valeur > 0, pas de messages d'erreur inline)
+- **Amelioration** : Ajouter une validation complete avec `setErrors` et messages inline comme les autres modules
+- **Amelioration** : Ajouter un apercu en temps reel de la carte de l'actif dans le formulaire
+
+### Formulaire valorisation
+- **OK** : Valeur, date, notes
+- **Probleme** : Pas de validation de la date (peut etre dans le futur)
+- **Amelioration** : Limiter la date a aujourd'hui maximum
+
+### Tabs
+- **Tab Vue d'ensemble** : Donut + top actifs — OK
+- **Tab Mes actifs** : Grille filtrable — OK
+- **Tab Evolution** : Graphiques + projections — OK
+- **Amelioration** : Ajouter un tab "Analyse" avec ratio de diversification, rendement par type, comparaison annuelle
+
+---
+
+## 7. Categories (`CategoriesPage.tsx` — 323 lignes)
+
+### Liste
+- **OK** : CRUD, bulk actions, filtres, evolution chart, compteur de transactions
+- **Amelioration** : Ajouter un apercu preview de l'icone + couleur choisies dans la carte
+- **Amelioration** : Valider l'unicite du nom de categorie avant la sauvegarde
+
+### Formulaire
+- **OK** : Validation avec messages d'erreur inline
+- **Probleme** : Pas de preview en temps reel de l'icone + couleur ensemble
+- **Amelioration** : Ajouter un mini apercu de la categorie (icone sur fond couleur) a cote du formulaire
+
+### Tabs
+- **Tab Gestion** : Liste — OK
+- **Tab Evolution** (`CategoryEvolutionChart`) : Graphique — OK
+
+---
+
+## 8. Dettes (`DebtsPage.tsx` — 383 lignes)
+
+### Liste
+- **OK** : CRUD, paiements partiels, plan IA, recherche, filtres par statut, export CSV/Excel
+- **Probleme** : Pas de bulk actions (contrairement aux autres modules)
+- **Probleme** : Un paiement de dette ne cree pas de transaction correspondante (pas de lien)
+- **Amelioration** : Ajouter bulk actions (supprimer/marquer paye en masse)
+- **Amelioration** : Option de lier un paiement de dette a une transaction automatiquement
+- **Amelioration** : Ajouter un calendrier visuel des echeances a venir
+
+### Formulaire
+- **OK** : Validation complete avec messages d'erreur inline (ameliore depuis l'audit initial)
+- **Amelioration** : Ajouter un champ "taux d'interet" et calcul automatique du cout total
+
+---
+
+## 9. Recurrences (`RecurringPage.tsx` — 514 lignes)
+
+### Liste
+- **OK** : Detection IA, filtres par type/frequence, tri, tabs confirme/detecte
+- **Probleme** : Pas de bulk actions
+- **Amelioration** : Ajouter bulk actions (activer/desactiver/supprimer en masse)
 - **Amelioration** : Ajouter un calendrier visuel des prochaines echeances
-- **Amelioration** : Notification push pour les echeances a venir (non implementee malgre `recurring_reminders` dans les preferences)
+- **Amelioration** : Notification push pour les echeances a venir (preference `recurring_reminders` existe mais n'est pas implementee)
 
-### 2.9 Rapports (`ReportsPage.tsx`)
+### Formulaire
+- **OK** : Validation avec messages d'erreur inline
+- **Probleme** : Le champ `next_date` n'a pas de valeur par defaut
+- **Amelioration** : Pre-remplir `next_date` avec la date du jour
 
-- **OK** : 6 tabs (IA, mensuel, categories, cash flow, budget vs actual, journal)
-- **Manque** : Pas de selecteur de periode — les rapports affichent toujours "toutes les donnees"
-- **Amelioration** : Ajouter un selecteur de periode global (comme DashboardHome) pour filtrer tous les rapports
+---
+
+## 10. Rapports (`ReportsPage.tsx` — 241 lignes)
+
+### Vues
+- **OK** : 6 tabs (IA, mensuel, categories, cash flow, budget vs actual, journal), selecteur de periode
 - **Amelioration** : Ajouter un rapport "Tendances" avec comparaison mois-sur-mois
+- **Amelioration** : Ajouter un rapport "Patrimoine" qui reprend les donnees du module Wealth
 
-### 2.10 Previsions (`ForecastsPage.tsx`)
+### Tabs
+- **Tab Synthese IA** (`AIInsightsReport`) : OK
+- **Tab Mensuel** : Graphique barres — OK
+- **Tab Categories** : Camembert — OK
+- **Tab Cash Flow** (`CashFlowReport`) : OK
+- **Tab Budget vs Reel** (`BudgetVsActualReport`) : OK
+- **Tab Journal** (`DailyJournalReport`) : OK
 
+---
+
+## 11. Previsions (`ForecastsPage.tsx` — 545 lignes)
+
+### Vues
 - **OK** : Health gauge, projections, recommandations IA, graphiques
-- **Manque** : Pas de cache pour les resultats IA (chaque visite relance l'analyse)
-- **Amelioration** : Cacher le resultat en localStorage avec TTL de 24h
+- **Probleme** : Pas de cache pour les resultats IA (chaque visite relance l'analyse complete)
+- **Amelioration** : Cacher le resultat IA en localStorage avec TTL de 24h
+- **Amelioration** : Ajouter un bouton "Rafraichir l'analyse" au lieu de relancer automatiquement
 
-### 2.11 Famille (`FamilyPage.tsx`)
+---
 
+## 12. Famille (`FamilyPage.tsx` — 415 lignes)
+
+### Vues
 - **OK** : Groupes, invitations, budgets partages, transactions des membres
-- **Manque** : Pas de recherche/filtre dans les transactions partagees
-- **Amelioration** : Ajouter un resume des contributions par membre
+- **Probleme** : Utilise `fetchData` manuel (useState + useEffect) au lieu de React Query
+- **Amelioration** : Migrer vers React Query pour le cache et la revalidation
+- **Amelioration** : Ajouter un resume des contributions par membre (qui depense quoi)
+- **Amelioration** : Ajouter recherche/filtre dans les transactions partagees
 
-### 2.12 Recus (`ReceiptsPage.tsx`)
+### Formulaires
+- **Probleme** : Validation minimale (pas de messages d'erreur inline sur les formulaires de creation de groupe et d'invitation)
+- **Amelioration** : Ajouter validation email + messages d'erreur inline
 
-- **OK** : Liste basique avec impression
-- **Manque** : Page tres minimaliste (70 lignes), pas de filtres, pas de recherche, pas de pagination
-- **Amelioration** : Ajouter FilterToolbar, telechargement PDF, recherche
+---
 
-### 2.13 Parametres (`SettingsPage.tsx`)
+## 13. Recus (`ReceiptsPage.tsx` — 160 lignes)
 
-- **OK** : Profil, langue, devise, mot de passe, export, suppression compte, notifications
-- **Manque** : Pas de section "Apparence" (le theme est dans la sidebar mais pas dans les parametres)
-- **Manque** : Pas de section "Securite" (sessions actives, 2FA)
+### Liste
+- **OK** : Recherche, filtres par statut, export CSV/Excel, impression
+- **Probleme** : Pas de pagination (tous les recus charges)
+- **Amelioration** : Ajouter la pagination si le nombre de recus est eleve
+- **Amelioration** : Ajouter le telechargement PDF individuel (comme PaymentPage)
+
+---
+
+## 14. Parametres (`SettingsPage.tsx` — 316 lignes)
+
+### Sections
+- **OK** : Profil (nom, devise, langue), securite (mot de passe), donnees (export, suppression)
+- **OK** : Preferences de notifications (`NotificationPreferencesCard`)
+- **Probleme** : Mot de passe minimum 6 caracteres — devrait etre 8 minimum
+- **Probleme** : Pas de section "Apparence" (le theme est dans la sidebar mais pas dans les parametres)
 - **Amelioration** : Regrouper theme + apparence dans les parametres
-- **Amelioration** : Ajouter un bouton "Envoyer notification de test" dans les preferences de notifications
-
-### 2.14 Paiement (`PaymentPage.tsx`)
-
-- **OK** : Plans, checkout PayDunya, generation de recu PDF
-- **Amelioration** : Ajouter un comparatif des plans plus visuel
+- **Amelioration** : Ajouter un bouton "Notification de test" dans les preferences
+- **Amelioration** : Ajouter l'upload d'avatar (le champ `avatar_url` existe en DB mais n'est pas utilise dans le formulaire)
 
 ---
 
-## 3. Navigation et UX
+## 15. Paiement (`PaymentPage.tsx` — 538 lignes)
 
-### 3.1 Mobile Bottom Nav
-
-- Seulement 5 onglets : Dashboard, Transactions, Budgets, Epargne, Parametres
-- **Manque** : Comptes, Dettes, Recurrences, Rapports, Categories sont inaccessibles directement sur mobile
-- **Amelioration** : Remplacer le dernier onglet (Parametres) par un bouton "Plus" qui ouvre un menu avec tous les modules
-
-### 3.2 Sidebar Desktop
-
-- **OK** : Groupes logiques, indicateur actif, profil, theme, recherche
-- **Manque** : Les modules Dettes et Recurrences ne sont pas dans la sidebar
-- **Amelioration** : Ajouter Dettes et Recurrences au groupe "Gestion"
+### Vues
+- **OK** : Plans, checkout PayDunya, generation de recu PDF, historique
+- **Amelioration** : Ajouter un comparatif visuel des plans (tableau feature-par-feature)
+- **Amelioration** : Ajouter un badge "Populaire" sur le plan recommande
 
 ---
 
-## 4. Formulaires — Ameliorations specifiques
+## 16. Guide (`GuidePage.tsx` — 156 lignes)
 
-
-| Formulaire  | Probleme                                                                      | Action                                                  |
-| ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Transaction | Le champ `notes` est optionnel mais pas clairement indique                    | Ajouter "(optionnel)" au label                          |
-| Budget      | Le champ `reference_date` est requis pour certaines periodes mais pas evident | Affichage conditionnel avec explication                 |
-| Compte      | Le champ `opening_balance` accepte des negatifs mais affiche une erreur       | Permettre les soldes negatifs (decouvert)               |
-| Epargne     | Le formulaire a 12+ champs affiches simultanement                             | Grouper en sections collapsibles (Base, Avance, Banque) |
-| Dette       | Pas de messages d'erreur affiches                                             | Ajouter validation avec `setErrors` comme les autres    |
-| Recurrence  | Le champ `next_date` n'a pas de valeur par defaut                             | Pre-remplir avec la date du jour                        |
-| Categorie   | Pas de preview en temps reel de l'icone + couleur choisies                    | Ajouter un apercu de la categorie dans le formulaire    |
-
+### Vues
+- **OK** : Guides par module, FAQ, tutoriel pas-a-pas
+- **Probleme** : Pas de guide pour le module Patrimoine (Wealth) — manquant
+- **Amelioration** : Ajouter le guide Patrimoine + FAQ correspondante
+- **Amelioration** : Ajouter des videos courtes ou GIFs animes pour illustrer les tutoriels
 
 ---
 
-## 5. Performance
+## 17. Onboarding (`OnboardingPage.tsx` — 436 lignes)
 
-
-| Probleme                                                                  | Impact                    | Action                                                      |
-| ------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------- |
-| `AccountsPage` charge 100K transactions                                   | Page lente                | RPC cote serveur pour les soldes                            |
-| `SavingsPage` charge les contributions manuellement                       | Pas de cache              | Migrer vers React Query                                     |
-| `DashboardHome` charge toutes les transactions de l'annee pour le planner | Lenteur pour gros volumes | Limiter au mois courant ou utiliser une aggregation serveur |
-| `CategoriesPage` charge tous les `category_id` pour compter               | N+1 potentiel             | Utiliser un `COUNT GROUP BY` cote serveur                   |
-
+### Formulaire
+- **OK** : 6 etapes (bienvenue, plan, preferences, comptes, paiement, termine)
+- **Amelioration** : Ajouter une etape "Premiere transaction" pour guider la saisie initiale
+- **Amelioration** : Ajouter une etape "Patrimoine" pour les actifs existants
 
 ---
 
-## 6. Securite
+## 18. Admin Pricing (`AdminPricingPage.tsx` — 159 lignes)
 
-- Le trigger `notify_on_transaction_insert` contient la **cle anon en dur** dans le code SQL — risque faible mais mauvaise pratique. Utiliser `current_setting('supabase.service_role_key')` ou la cle anon via un secret.
-- Les formulaires de Login/Signup n'ont pas de rate limiting cote client (pas de debounce sur les soumissions)
-- Le mot de passe minimum est 6 caracteres — recommander 8 minimum
+### Formulaire
+- **OK** : Edition des plans, prix multi-devises, fonctionnalites
+- **Amelioration** : Ajouter la creation de nouveaux plans (actuellement edition seulement)
+- **Amelioration** : Ajouter la suppression de plans
 
 ---
 
-## Plan d'implementation (par priorite)
+## 19. Navigation
 
-### Phase 1 — Quick wins (corrections critiques)
+### Sidebar Desktop (`AppSidebar.tsx` — 365 lignes)
+- **OK** : 3 groupes (Principal, Gestion, Analyse), profil, theme, recherche, admin
+- **OK** : Dettes, Recurrences, Patrimoine presents dans la sidebar
 
-1. Ajouter Dettes et Recurrences dans la sidebar + mobile nav "Plus"
-2. Corriger la perf de `AccountsPage` (supprimer le `limit(100000)`, RPC serveur)
-3. Uniformiser la validation des formulaires (Dettes, Recurrences, Categories)
-4. Ajouter un bouton "Notification de test" dans les parametres
+### Mobile Bottom Nav (`MobileBottomNav.tsx` — 162 lignes)
+- **OK** : 4 tabs + menu "Plus" avec tous les modules
+- **Amelioration** : Ajouter un badge de notification sur l'onglet correspondant (ex: alertes budget)
+
+### Layout (`DashboardLayout.tsx`)
+- **OK** : Loading spinner, recherche globale (Cmd+K), notifications, offline banner, PWA update
+- **Amelioration** : Ajouter un breadcrumb pour indiquer la page active
+
+---
+
+## 20. Problemes transversaux
+
+### Performance
+| Probleme | Module | Action |
+|---|---|---|
+| WeeklyPlanner charge toutes les TX de l'annee | DashboardHome | Limiter au mois courant |
+| WealthWidget fait 3 requetes independantes | DashboardHome | Consolider en un seul hook |
+| ForecastsPage relance l'IA a chaque visite | Forecasts | Cache localStorage 24h |
+| FamilyPage utilise useState au lieu de React Query | Family | Migrer vers React Query |
+
+### Validation des formulaires
+| Module | Niveau actuel | Action |
+|---|---|---|
+| Transactions | Complet | OK |
+| Budgets | Complet | OK |
+| Comptes | Complet | Permettre negatifs |
+| Epargne | Partiel | Grouper en sections |
+| Patrimoine | Minimal | Ajouter validation inline |
+| Dettes | Complet | OK |
+| Recurrences | Complet | Pre-remplir next_date |
+| Categories | Complet | Ajouter preview |
+| Famille | Minimal | Ajouter validation email |
+
+### Securite
+- Trigger `notify_on_transaction_insert` contient la **cle anon en dur** dans le SQL
+- Mot de passe minimum 6 caracteres → passer a 8
+- Pas de rate limiting client-side sur les formulaires Login/Signup
+
+---
+
+## Plan d'implementation par priorite
+
+### Phase 1 — Corrections rapides
+1. Validation inline complete pour WealthPage (formulaire actif)
+2. Pre-remplir `next_date` dans RecurringPage
+3. Ajouter le guide Patrimoine dans GuidePage
+4. Mot de passe minimum 8 caracteres
+5. Marquer les champs optionnels "(optionnel)" dans tous les formulaires
 
 ### Phase 2 — UX amelioree
+6. Sections collapsibles dans le formulaire Epargne
+7. Bulk actions pour Dettes, Recurrences, Patrimoine
+8. Cache localStorage pour les resultats IA des Previsions
+9. Upload d'avatar dans les Parametres
+10. Breadcrumb dans le layout
 
-5. Groupement des transactions par date
-6. Selecteur de periode global dans les Rapports
-7. Sections collapsibles dans le formulaire Epargne
-8. Mobile nav "Plus" avec acces a tous les modules
-9. Filtres et export pour Dettes et Recus
+### Phase 3 — Fonctionnalites avancees
+11. Tab "Analyse" dans le module Patrimoine (diversification, rendement)
+12. Rapport Patrimoine dans ReportsPage
+13. Lien automatique paiement dette → transaction
+14. Notifications push pour recurrences et objectifs epargne atteints
+15. Migration FamilyPage vers React Query
 
-### Phase 3 — Refactoring
+### Phase 4 — Refactoring
+16. Extraire SavingsPage en sous-composants (1073 lignes → ~5 fichiers)
+17. Extraire TransactionListItem et TransactionBulkActions
+18. Consolider les requetes du WealthWidget en un seul hook
 
-10. Extraire les formulaires en composants dedies (TransactionForm, BudgetForm, etc.)
-11. Migrer AccountsPage et SavingsPage vers React Query
-12. Implementer les notifications push manquantes (recurrences, objectif atteint)
