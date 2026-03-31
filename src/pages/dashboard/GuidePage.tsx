@@ -5,7 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { BookOpen, HelpCircle, Play, ArrowRight, CreditCard, Tag, ArrowUpDown, PieChart, Target, FileText, BarChart3, Users, Sparkles, RefreshCw, Layers } from 'lucide-react';
+import { BookOpen, HelpCircle, Play, ArrowRight, CreditCard, Tag, ArrowUpDown, PieChart, Target, FileText, BarChart3, Users, Sparkles, RefreshCw, Layers, Gem } from 'lucide-react';
 
 const GuidePage = () => {
   const { locale } = useLanguage();
@@ -21,6 +21,7 @@ const GuidePage = () => {
     { key: 'familyGuide', icon: Users, link: '/dashboard/family' },
     { key: 'aiChatGuide', icon: Sparkles, link: '/dashboard' },
     { key: 'recurringGuide', icon: RefreshCw, link: '/dashboard/recurring' },
+    { key: 'wealthGuide', icon: Gem, link: '/dashboard/wealth' },
     { key: 'subPagesGuide', icon: Layers, link: '/dashboard/accounts' },
   ];
 
@@ -34,6 +35,7 @@ const GuidePage = () => {
     { q: 'faqInvestments', a: 'faqInvestmentsAnswer' },
     { q: 'faqSubPages', a: 'faqSubPagesAnswer' },
     { q: 'faqRecurring', a: 'faqRecurringAnswer' },
+    { q: 'faqWealth', a: 'faqWealthAnswer' },
     { q: 'faqFamilySharing', a: 'faqFamilySharingAnswer' },
     { q: 'faqBudgetOverspend', a: 'faqBudgetOverspendAnswer' },
     { q: 'faqOfflineMode', a: 'faqOfflineModeAnswer' },

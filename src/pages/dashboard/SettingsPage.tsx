@@ -66,8 +66,8 @@ const SettingsPage = () => {
   };
 
   const handlePasswordChange = async () => {
-    if (newPassword.length < 6) {
-      toast.error(locale === 'fr' ? 'Le mot de passe doit contenir au moins 6 caractères' : 'Password must be at least 6 characters');
+    if (newPassword.length < 8) {
+      toast.error(locale === 'fr' ? 'Le mot de passe doit contenir au moins 8 caractères' : 'Password must be at least 8 characters');
       return;
     }
     if (newPassword !== confirmPassword) {

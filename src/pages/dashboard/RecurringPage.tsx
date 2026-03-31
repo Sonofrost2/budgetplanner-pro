@@ -20,7 +20,10 @@ import { Plus, RefreshCw, Pencil, Trash2, Sparkles, Check, X, Zap, TrendingDown,
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import BulkActionBar from '@/components/dashboard/BulkActionBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 
 interface AIPattern {
@@ -80,6 +83,9 @@ const RecurringPage = () => {
     return result;
   }, [items, searchQuery, filterType, filterFreq, sortField, sortOrder]);
 
+  const bulk = useBulkSelection(filteredItems);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
   // AI detection state
   const [aiPatterns, setAiPatterns] = useState<AIPattern[]>([]);
   const [aiDetecting, setAiDetecting] = useState(false);
@@ -87,6 +93,16 @@ const RecurringPage = () => {
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const refreshData = () => invalidate('recurring');
+
+  const handleBulkDelete = async () => {
+    for (const id of bulk.selectedIds) {
+      await supabase.from('recurring_transactions').delete().eq('id', id);
+    }
+    bulk.clear();
+    setBulkDeleteOpen(false);
+    refreshData();
+    toast.success(locale === 'fr' ? 'Récurrences supprimées' : 'Recurring deleted');
+  };
 
   const freqMap: Record<string, string> = {
     daily: t.daily, weekly: t.weekly, monthly: t.monthly,
@@ -336,12 +352,17 @@ const RecurringPage = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <>
+              {bulk.hasSelection && (
+                <BulkActionBar count={bulk.count} onDelete={() => setBulkDeleteOpen(true)} onClear={bulk.clear} />
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredItems.map(r => (
-                <Card key={r.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${!r.active ? 'opacity-50' : ''}`}>
+                <Card key={r.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${!r.active ? 'opacity-50' : ''} ${bulk.selectedIds.has(r.id) ? 'ring-2 ring-primary' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base font-bold flex items-center gap-2.5">
+                        <Checkbox checked={bulk.selectedIds.has(r.id)} onCheckedChange={() => bulk.toggle(r.id)} className="mr-1" />
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (r.categories?.color || '#6C63FF') + '20' }}>{r.categories?.icon || '📁'}</div>
                         <div><span>{r.description}</span><p className="text-[11px] font-normal text-muted-foreground">{freqMap[r.frequency || 'monthly'] || r.frequency}</p></div>
                       </CardTitle>
@@ -361,6 +382,7 @@ const RecurringPage = () => {
                 </Card>
               ))}
             </div>
+            </>
           )}
         </TabsContent>
 
@@ -507,6 +529,10 @@ const RecurringPage = () => {
       </ResponsiveFormDialog>
 
       <ConfirmDeleteDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} onConfirm={handleDelete} title={t.confirmDelete} description={t.confirmDeleteMessage} cancelLabel={t.cancel} confirmLabel={t.delete} />
+      <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen} onConfirm={handleBulkDelete}
+        title={locale === 'fr' ? `Supprimer ${bulk.count} récurrence(s)` : `Delete ${bulk.count} recurring`}
+        description={locale === 'fr' ? 'Cette action est irréversible.' : 'This action cannot be undone.'}
+        cancelLabel={t.cancel} confirmLabel={t.delete} />
     </div>
   );
 };
