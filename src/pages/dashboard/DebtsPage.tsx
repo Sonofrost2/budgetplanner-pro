@@ -225,6 +225,18 @@ const DebtsPage = () => {
         </div>
       )}
 
+      {bulk.hasSelection && (
+        <BulkActionBar
+          count={bulk.count}
+          onDelete={() => setBulkDeleteOpen(true)}
+          onExportCSV={() => {
+            const rows = bulk.selectedItems.map(d => ({ [t.creditor]: d.creditor_name, [t.totalDebt]: d.total_amount, [t.paidAmount]: d.paid_amount, [t.remainingDebt]: Number(d.total_amount) - Number(d.paid_amount), [t.deadline]: d.due_date || '' }));
+            exportToCSV(rows, 'debts-selected');
+          }}
+          onClear={bulk.clear}
+        />
+      )}
+
       {filteredDebts.length === 0 && debts.length === 0 ? (
         <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><Landmark className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-semibold text-muted-foreground mb-2">{locale === 'fr' ? 'Aucune dette enregistrée' : 'No debts recorded'}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button></CardContent></Card>
       ) : filteredDebts.length === 0 ? (
@@ -236,10 +248,11 @@ const DebtsPage = () => {
             const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
             const isOverdue = d.due_date && new Date(d.due_date) < new Date() && remaining > 0;
             return (
-              <Card key={d.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${isOverdue ? 'ring-1 ring-destructive/20' : ''}`}>
+              <Card key={d.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${isOverdue ? 'ring-1 ring-destructive/20' : ''} ${bulk.selectedIds.has(d.id) ? 'ring-2 ring-primary' : ''}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-bold flex items-center gap-2.5">
+                      <Checkbox checked={bulk.selectedIds.has(d.id)} onCheckedChange={() => bulk.toggle(d.id)} className="mr-1" />
                       <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Landmark className="w-5 h-5 text-primary" /></div>
                       <div><span>{d.creditor_name}</span>{d.due_date && <p className={`text-[11px] font-normal ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}>{locale === 'fr' ? 'Échéance' : 'Due'}: {new Date(d.due_date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</p>}</div>
                     </CardTitle>
