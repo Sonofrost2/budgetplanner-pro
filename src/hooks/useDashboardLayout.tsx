@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-export type WidgetId = 'planner' | 'accounts' | 'charts' | 'budgets' | 'savings' | 'forecast' | 'transactions';
+export type WidgetId = 'planner' | 'accounts' | 'charts' | 'budgets' | 'savings' | 'forecast' | 'transactions' | 'wealth';
 
 export interface WidgetConfig {
   id: WidgetId;
