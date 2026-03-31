@@ -1,10 +1,10 @@
-import { useMemo, useRef, useCallback, useState } from 'react';
+import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Pencil, Trash2, Inbox, Plus, ChevronLeft, ChevronRight, ArrowUpDown, MoreVertical, TrendingUp, TrendingDown, Clock, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Pencil, Trash2, Inbox, Plus, ChevronLeft, ChevronRight, ArrowUpDown, MoreVertical, TrendingUp, TrendingDown, Clock, ChevronsLeft, ChevronsRight, Calendar } from 'lucide-react';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { Transaction } from '@/hooks/useDashboardData';
 import type { DashTranslations } from '@/i18n/dashTranslations';
@@ -37,29 +37,45 @@ interface TransactionListProps {
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.03 } },
+  show: { opacity: 1, transition: { staggerChildren: 0.04 } },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 6, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.22, ease: 'easeOut' as const } },
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
-/** Group transactions by date and compute daily sums */
+/** Group transactions by date, sort within group by created_at desc, compute daily sums */
 const groupByDate = (transactions: Transaction[], locale: string) => {
-  const groups: { date: string; label: string; txs: Transaction[]; income: number; expense: number }[] = [];
+  const groups: { date: string; label: string; weekday: string; txs: Transaction[]; income: number; expense: number }[] = [];
   let current: typeof groups[number] | null = null;
 
-  for (const tx of transactions) {
+  // Sort within same date by created_at descending
+  const sorted = [...transactions].sort((a, b) => {
+    if (a.date !== b.date) return 0; // keep server order across dates
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  for (const tx of sorted) {
     const d = tx.date;
     if (!current || current.date !== d) {
       const today = new Date().toISOString().split('T')[0];
       const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const dateObj = new Date(d + 'T12:00:00');
+      const loc = locale === 'fr' ? 'fr-FR' : 'en-US';
       let label: string;
-      if (d === today) label = locale === 'fr' ? "Aujourd'hui" : 'Today';
-      else if (d === yesterday) label = locale === 'fr' ? 'Hier' : 'Yesterday';
-      else label = new Date(d + 'T12:00:00').toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-      current = { date: d, label, txs: [], income: 0, expense: 0 };
+      let weekday: string;
+      if (d === today) {
+        label = locale === 'fr' ? "Aujourd'hui" : 'Today';
+        weekday = dateObj.toLocaleDateString(loc, { weekday: 'long' });
+      } else if (d === yesterday) {
+        label = locale === 'fr' ? 'Hier' : 'Yesterday';
+        weekday = dateObj.toLocaleDateString(loc, { weekday: 'long' });
+      } else {
+        label = dateObj.toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric' });
+        weekday = dateObj.toLocaleDateString(loc, { weekday: 'long' });
+      }
+      current = { date: d, label, weekday, txs: [], income: 0, expense: 0 };
       groups.push(current);
     }
     current.txs.push(tx);
@@ -69,8 +85,29 @@ const groupByDate = (transactions: Transaction[], locale: string) => {
   return groups;
 };
 
-/** KPI summary bar */
-const KPIBar = ({ transactions, fmt, t, locale }: { transactions: Transaction[]; fmt: (n: number) => string; t: DashTranslations; locale: string }) => {
+/** Animated counter */
+const AnimatedAmount = ({ value, prefix, fmt, className }: { value: number; prefix: string; fmt: (n: number) => string; className: string }) => {
+  const motionVal = useMotionValue(0);
+  const [display, setDisplay] = useState(fmt(0));
+
+  useEffect(() => {
+    const controls = animate(motionVal, value, {
+      duration: 0.6,
+      ease: [0.25, 0.46, 0.45, 0.94],
+      onUpdate: (v) => setDisplay(fmt(Math.abs(v))),
+    });
+    return controls.stop;
+  }, [value, fmt]);
+
+  return (
+    <span className={className}>
+      <span className="text-[0.85em] opacity-70 mr-0.5">{prefix}</span>{display}
+    </span>
+  );
+};
+
+/** KPI summary bar — glassmorphism */
+const KPIBar = ({ transactions, fmt, locale }: { transactions: Transaction[]; fmt: (n: number) => string; locale: string }) => {
   const { totalIncome, totalExpense } = useMemo(() => {
     let inc = 0, exp = 0;
     for (const tx of transactions) {
@@ -83,24 +120,26 @@ const KPIBar = ({ transactions, fmt, t, locale }: { transactions: Transaction[];
   const net = totalIncome - totalExpense;
 
   return (
-    <div className="flex items-center gap-4 px-5 py-3 bg-muted/20 border-b border-border/30">
-      <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-3 sm:gap-5 px-5 py-3.5 bg-[hsl(var(--glass))] backdrop-blur-xl border-b border-[hsl(var(--glass-border))]">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary/10 border border-secondary/20">
         <TrendingUp className="w-3.5 h-3.5 text-secondary" />
-        <span className="text-xs font-semibold text-secondary tabular-nums">+{fmt(totalIncome)}</span>
+        <AnimatedAmount value={totalIncome} prefix="+" fmt={fmt} className="text-xs font-bold text-secondary tabular-nums" />
       </div>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-destructive/10 border border-destructive/20">
         <TrendingDown className="w-3.5 h-3.5 text-destructive" />
-        <span className="text-xs font-semibold text-destructive tabular-nums">-{fmt(totalExpense)}</span>
+        <AnimatedAmount value={totalExpense} prefix="-" fmt={fmt} className="text-xs font-bold text-destructive tabular-nums" />
       </div>
-      <div className="h-4 w-px bg-border/50" />
-      <span className={`text-xs font-bold tabular-nums ${net >= 0 ? 'text-secondary' : 'text-destructive'}`}>
-        {locale === 'fr' ? 'Solde net' : 'Net'}: {net >= 0 ? '+' : '-'}{fmt(Math.abs(net))}
-      </span>
+      <div className="h-5 w-px bg-border/40 hidden sm:block" />
+      <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border ${net >= 0 ? 'bg-secondary/5 border-secondary/15' : 'bg-destructive/5 border-destructive/15'}`}>
+        <span className={`text-xs font-extrabold tabular-nums ${net >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+          {locale === 'fr' ? 'Solde' : 'Net'}: {net >= 0 ? '+' : '-'}{fmt(Math.abs(net))}
+        </span>
+      </div>
     </div>
   );
 };
 
-/** Pagination with page numbers */
+/** Pagination with page numbers — glassmorphism */
 const PaginationBar = ({ page, totalPages, totalCount, onPageChange, t }: {
   page: number; totalPages: number; totalCount: number;
   onPageChange: (p: number) => void; t: DashTranslations;
@@ -125,11 +164,11 @@ const PaginationBar = ({ page, totalPages, totalCount, onPageChange, t }: {
   }, [page, totalPages]);
 
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-border/30 bg-muted/10">
-      <span className="text-xs text-muted-foreground tabular-nums">
+    <div className="flex items-center justify-between px-5 py-3 border-t border-[hsl(var(--glass-border))] bg-[hsl(var(--glass))] backdrop-blur-sm">
+      <span className="text-[11px] text-muted-foreground tabular-nums font-medium">
         {totalCount} {t.results} — {t.page} {page + 1}/{totalPages}
       </span>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" disabled={page === 0} onClick={() => onPageChange(0)}>
           <ChevronsLeft className="w-3.5 h-3.5" />
         </Button>
@@ -144,7 +183,7 @@ const PaginationBar = ({ page, totalPages, totalCount, onPageChange, t }: {
               key={p}
               variant={p === page ? 'default' : 'ghost'}
               size="icon"
-              className={`h-7 w-7 rounded-lg text-xs font-medium ${p === page ? 'text-primary-foreground' : ''}`}
+              className={`h-7 w-7 rounded-lg text-xs font-semibold transition-all ${p === page ? 'text-primary-foreground shadow-md' : 'hover:bg-muted/40'}`}
               onClick={() => onPageChange(p)}
             >
               {p + 1}
@@ -186,7 +225,6 @@ const SwipeableRow = ({ children, onEdit, onDelete }: { children: React.ReactNod
 
   return (
     <div className="relative overflow-hidden">
-      {/* Action buttons revealed on swipe */}
       <div className="absolute right-0 top-0 bottom-0 flex items-stretch">
         <button
           onClick={() => { onEdit(); setOffset(0); setSwiped(false); }}
@@ -215,6 +253,15 @@ const SwipeableRow = ({ children, onEdit, onDelete }: { children: React.ReactNod
   );
 };
 
+/** Gradient for category icon based on color */
+const getCategoryGradient = (color?: string, type?: string) => {
+  if (color) {
+    return `linear-gradient(135deg, ${color}30, ${color}15)`;
+  }
+  if (type === 'income') return 'linear-gradient(135deg, hsl(var(--secondary) / 0.2), hsl(var(--secondary) / 0.08))';
+  return 'linear-gradient(135deg, hsl(var(--muted) / 0.6), hsl(var(--muted) / 0.3))';
+};
+
 export const TransactionList = ({
   transactions, totalCount, page, totalPages,
   onPageChange, selectedIds, onToggleSelect, onToggleSelectAll, allPageSelected,
@@ -225,38 +272,38 @@ export const TransactionList = ({
   const isMobile = useIsMobile();
 
   return (
-    <Card className={`border border-border/40 rounded-2xl overflow-hidden shadow-[var(--shadow-card)] transition-all duration-300 ${isFetching ? 'opacity-60' : ''}`}>
+    <Card className={`border border-[hsl(var(--glass-border))] rounded-2xl overflow-hidden shadow-[var(--shadow-glass)] backdrop-blur-sm bg-[hsl(var(--glass))] transition-all duration-300 ${isFetching ? 'opacity-50' : ''}`}>
       <CardContent className="p-0">
         {transactions.length === 0 ? (
           <motion.div className="py-20 text-center" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
             <motion.div
-              className="w-16 h-16 rounded-2xl bg-muted/50 mx-auto mb-4 flex items-center justify-center"
-              animate={{ rotate: [0, -5, 5, 0] }}
-              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+              className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 mx-auto mb-5 flex items-center justify-center border border-primary/10"
+              animate={{ rotate: [0, -3, 3, 0], scale: [1, 1.02, 1] }}
+              transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
             >
-              <Inbox className="w-7 h-7 text-muted-foreground/40" />
+              <Inbox className="w-8 h-8 text-muted-foreground/30" />
             </motion.div>
             {isEmpty ? (
               <>
-                <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noTransactions}</p>
-                <p className="text-sm text-muted-foreground/70 mb-5">{t.addFirstTransaction}</p>
+                <p className="text-lg font-bold text-foreground/80 mb-2">{t.noTransactions}</p>
+                <p className="text-sm text-muted-foreground/60 mb-6 max-w-xs mx-auto">{t.addFirstTransaction}</p>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="sm" className="text-primary-foreground rounded-xl shadow-md" style={{ background: 'var(--gradient-primary)' }} onClick={onAddNew}>
+                  <Button size="sm" className="text-primary-foreground rounded-xl shadow-lg shadow-primary/25" style={{ background: 'var(--gradient-primary)' }} onClick={onAddNew}>
                     <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
                   </Button>
                 </motion.div>
               </>
             ) : (
-              <p className="text-lg font-semibold text-muted-foreground">{t.noResults}</p>
+              <p className="text-lg font-bold text-foreground/60">{t.noResults}</p>
             )}
           </motion.div>
         ) : (
           <>
             {/* KPI Summary */}
-            <KPIBar transactions={transactions} fmt={fmt} t={t} locale={locale} />
+            <KPIBar transactions={transactions} fmt={fmt} locale={locale} />
 
-            {/* Sort header */}
-            <div className="flex items-center gap-4 px-5 py-2.5 bg-muted/20 border-b border-border/30 text-xs font-semibold text-muted-foreground">
+            {/* Sort header — glass */}
+            <div className="flex items-center gap-4 px-5 py-2.5 bg-muted/15 backdrop-blur-sm border-b border-border/20 text-xs font-semibold text-muted-foreground">
               <div className="w-8 flex-shrink-0"><Checkbox checked={allPageSelected} onCheckedChange={onToggleSelectAll} /></div>
               <SortButton field="date" current={sortField} order={sortOrder} onSort={onSort} label={t.date} />
               <div className="flex-1" />
@@ -267,24 +314,55 @@ export const TransactionList = ({
 
             {/* Grouped transaction rows */}
             <div>
-              {groups.map(group => (
+              {groups.map((group, groupIndex) => (
                 <div key={group.date}>
-                  {/* Date separator with daily sum */}
-                  <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-2 bg-muted/50 backdrop-blur-sm border-b border-border/30">
-                    <div className="h-px flex-1 bg-border/40" />
-                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">
-                      {group.label}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground/60">({group.txs.length})</span>
-                    <div className="flex items-center gap-2 text-[10px] tabular-nums">
-                      {group.income > 0 && <span className="text-secondary font-semibold">+{fmt(group.income)}</span>}
-                      {group.expense > 0 && <span className="text-destructive font-semibold">-{fmt(group.expense)}</span>}
+                  {/* Date separator — visual timeline style */}
+                  <div className="relative sticky top-0 z-10 px-5 py-2.5 bg-gradient-to-r from-primary/[0.04] via-muted/40 to-secondary/[0.04] backdrop-blur-xl border-b border-border/20">
+                    <div className="flex items-center gap-3">
+                      {/* Calendar badge */}
+                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/15 flex flex-col items-center justify-center">
+                        <Calendar className="w-3 h-3 text-primary/70 mb-0.5" />
+                        <span className="text-[9px] font-extrabold text-primary/80 leading-none">
+                          {new Date(group.date + 'T12:00:00').getDate()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-foreground/80 capitalize">
+                            {group.label}
+                          </span>
+                          <span className="text-[9px] font-medium text-muted-foreground/50 capitalize">
+                            {group.weekday}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground/40 bg-muted/40 px-1.5 py-0.5 rounded-full font-semibold">
+                            {group.txs.length}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {group.income > 0 && (
+                            <span className="text-[10px] font-bold text-secondary tabular-nums">+{fmt(group.income)}</span>
+                          )}
+                          {group.expense > 0 && (
+                            <span className="text-[10px] font-bold text-destructive tabular-nums">-{fmt(group.expense)}</span>
+                          )}
+                          {group.income > 0 && group.expense > 0 && (
+                            <>
+                              <span className="text-muted-foreground/30">·</span>
+                              <span className={`text-[10px] font-bold tabular-nums ${group.income - group.expense >= 0 ? 'text-secondary/70' : 'text-destructive/70'}`}>
+                                = {group.income - group.expense >= 0 ? '+' : '-'}{fmt(Math.abs(group.income - group.expense))}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="h-px flex-1 bg-border/40" />
+                    {/* Timeline line */}
+                    {groupIndex < groups.length - 1 && (
+                      <div className="absolute left-[39px] top-full w-px h-full bg-gradient-to-b from-primary/15 to-transparent pointer-events-none" />
+                    )}
                   </div>
 
                   <motion.div
-                    className="divide-y divide-border/30"
                     variants={containerVariants}
                     initial="hidden"
                     animate="show"
@@ -295,62 +373,83 @@ export const TransactionList = ({
                           key={tx.id}
                           variants={itemVariants}
                           layout
-                          className={`group flex items-center justify-between px-5 py-3 transition-all duration-200 cursor-default active:scale-[0.995] ${
+                          className={`group relative flex items-center justify-between px-5 py-3.5 transition-all duration-300 cursor-default border-b border-border/10 last:border-b-0 ${
                             selectedIds.has(tx.id)
-                              ? 'bg-primary/5 border-l-2 border-l-primary'
-                              : 'hover:bg-muted/20 border-l-2 border-l-transparent'
+                              ? 'bg-primary/[0.06] border-l-[3px] border-l-primary'
+                              : 'hover:bg-[hsl(var(--glass-hover))] border-l-[3px] border-l-transparent'
                           }`}
+                          whileTap={{ scale: 0.998 }}
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div className="w-8 flex-shrink-0">
                               <Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
                             </div>
 
+                            {/* Gradient category icon */}
                             <motion.div
-                              className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 relative"
-                              style={{
-                                background: tx.categories?.color ? `${tx.categories.color}15` : 'hsl(var(--muted) / 0.5)',
-                              }}
+                              className="w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0 relative border border-white/10 shadow-sm"
+                              style={{ background: getCategoryGradient(tx.categories?.color, tx.type) }}
                               whileHover={{ scale: 1.1, rotate: 5 }}
                               transition={{ type: 'spring', stiffness: 400 }}
                             >
                               {tx.categories?.icon || '📁'}
-                              <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
+                              {/* Glowing type indicator */}
+                              <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background shadow-sm ${
+                                tx.type === 'income'
+                                  ? 'bg-secondary shadow-secondary/30'
+                                  : 'bg-destructive shadow-destructive/30'
+                              }`} />
                             </motion.div>
 
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold truncate leading-tight">{tx.description}</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">
-                                {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
+                              <p className="text-sm font-bold truncate leading-tight text-foreground/90">{tx.description}</p>
+                              <p className="text-[11px] text-muted-foreground/70 mt-0.5 flex items-center gap-1">
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-muted/30 text-[10px] font-medium">
+                                  {tx.categories?.name || '-'}
+                                </span>
+                                <span className="text-muted-foreground/30">·</span>
+                                {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
                               </p>
-                              <p className="text-[10px] text-muted-foreground/50 flex items-center gap-1 mt-0.5">
+                              <p className="text-[10px] text-muted-foreground/40 flex items-center gap-1 mt-0.5">
                                 <Clock className="w-2.5 h-2.5" />
-                                {locale === 'fr' ? 'Saisi le' : 'Created'} {new Date(tx.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                {new Date(tx.created_at).toLocaleTimeString(locale === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                                <span className="text-muted-foreground/20 mx-0.5">·</span>
+                                {new Date(tx.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
                               </p>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                            <motion.span
-                              className={`text-sm font-bold tabular-nums amount-display px-2 py-1 rounded-lg ${
+                            {/* Animated amount with glow */}
+                            <motion.div
+                              className={`relative px-3 py-1.5 rounded-xl text-sm font-extrabold tabular-nums ${
                                 tx.type === 'income'
-                                  ? 'text-secondary bg-secondary/8 amount-glow-green'
-                                  : 'text-destructive bg-destructive/8 amount-glow-red'
+                                  ? 'text-secondary'
+                                  : 'text-destructive'
                               }`}
-                              initial={{ opacity: 0, scale: 0.8 }}
+                              style={{
+                                background: tx.type === 'income'
+                                  ? 'linear-gradient(135deg, hsl(var(--secondary) / 0.12), hsl(var(--secondary) / 0.04))'
+                                  : 'linear-gradient(135deg, hsl(var(--destructive) / 0.12), hsl(var(--destructive) / 0.04))',
+                                boxShadow: tx.type === 'income'
+                                  ? '0 2px 12px -2px hsl(var(--secondary) / 0.15)'
+                                  : '0 2px 12px -2px hsl(var(--destructive) / 0.15)',
+                              }}
+                              initial={{ opacity: 0, scale: 0.85 }}
                               animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: index * 0.02 + 0.1 }}
+                              transition={{ delay: index * 0.03 + 0.1, type: 'spring', stiffness: 300 }}
                             >
-                              <span className="text-[0.85em] opacity-70 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>{fmt(Number(tx.amount))}
-                            </motion.span>
+                              <span className="text-[0.82em] opacity-60 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>
+                              {fmt(Number(tx.amount))}
+                            </motion.div>
 
                             {/* Desktop: hover actions */}
                             {!isMobile && (
-                              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted/60" onClick={() => onEdit(tx)}>
+                              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => onEdit(tx)}>
                                   <Pencil className="w-3.5 h-3.5" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => onDelete(tx.id)}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(tx.id)}>
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                               </div>
@@ -360,15 +459,15 @@ export const TransactionList = ({
                             {isMobile && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl">
                                     <MoreVertical className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="rounded-xl">
-                                  <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2">
+                                <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
+                                  <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg">
                                     <Pencil className="w-3.5 h-3.5" /> {t.edit}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive">
+                                  <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg">
                                     <Trash2 className="w-3.5 h-3.5" /> {t.delete}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -406,7 +505,7 @@ const SortButton = ({ field, current, order, onSort, label }: {
   onSort: (f: SortField) => void; label: string;
 }) => (
   <button
-    className={`flex items-center gap-1 transition-colors duration-200 ${current === field ? 'text-primary font-bold' : 'hover:text-foreground'}`}
+    className={`flex items-center gap-1 transition-all duration-200 rounded-lg px-1.5 py-0.5 ${current === field ? 'text-primary font-bold bg-primary/5' : 'hover:text-foreground hover:bg-muted/30'}`}
     onClick={() => onSort(field)}
   >
     {label}
@@ -416,7 +515,7 @@ const SortButton = ({ field, current, order, onSort, label }: {
         key={order}
         initial={{ opacity: 0, y: order === 'asc' ? 4 : -4 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-primary text-xs"
+        className="text-primary text-xs font-bold"
       >
         {order === 'asc' ? '↑' : '↓'}
       </motion.span>

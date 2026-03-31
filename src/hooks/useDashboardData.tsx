@@ -306,6 +306,10 @@ export const usePaginatedTransactions = (options: {
       }
 
       query = query.order(sortField as any, { ascending: sortOrder === 'asc' });
+      // Secondary sort: within same date, most recently created first
+      if (sortField === 'date') {
+        query = query.order('created_at', { ascending: false });
+      }
       query = query.range(page * pageSize, (page + 1) * pageSize - 1);
 
       const { data, error, count } = await query;
