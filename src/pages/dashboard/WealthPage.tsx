@@ -22,12 +22,13 @@ import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis
 import {
   Building2, Car, TrendingUp, Wallet, Plus, Pencil, Trash2, Sparkles,
   MapPin, Calendar, ArrowUpRight, ArrowDownRight, History, Loader2,
-  Gem, Package, BarChart3, Eye
+  Gem, Package, BarChart3, Eye, FileDown, FileSpreadsheet
 } from 'lucide-react';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { WealthProjectionChart } from '@/components/dashboard/wealth/WealthProjectionChart';
+import { exportWealthPDF, exportWealthExcel } from '@/lib/wealthExport';
 
 const ASSET_TYPES = [
   { value: 'real_estate', label_fr: 'Immobilier', label_en: 'Real Estate', icon: '🏠', lucide: Building2, color: 'hsl(var(--primary))' },
