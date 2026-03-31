@@ -61,6 +61,18 @@ const DebtsPage = () => {
     return result;
   }, [debts, searchQuery, statusFilter]);
 
+  const bulk = useBulkSelection(filteredDebts);
+
+  const handleBulkDelete = async () => {
+    for (const id of bulk.selectedIds) {
+      await supabase.from('debts').delete().eq('id', id);
+    }
+    bulk.clear();
+    setBulkDeleteOpen(false);
+    refreshData();
+    toast.success(locale === 'fr' ? 'Dettes supprimées' : 'Debts deleted');
+  };
+
   const handleExportCSV = () => {
     const rows = filteredDebts.map(d => ({ [t.creditor]: d.creditor_name, [t.totalDebt]: d.total_amount, [t.paidAmount]: d.paid_amount, [t.remainingDebt]: Number(d.total_amount) - Number(d.paid_amount), [t.deadline]: d.due_date || '', [t.notes]: d.notes || '' }));
     if (!exportToCSV(rows, 'debts')) toast.info(locale === 'fr' ? 'Aucune dette' : 'No debts');
