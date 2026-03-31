@@ -63,12 +63,13 @@ const SavingsPage = () => {
   const t = dashT[locale];
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get('q') || '';
-  const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const { data: savingsData, isLoading: loading, refetch: refetchSavings } = useSavingsPageData();
+  const goals = savingsData?.goals ?? [];
+  const accounts = savingsData?.accounts ?? [];
+  const contributions = savingsData?.contributions ?? {};
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [sortField, setSortField] = useState<'name' | 'current_amount' | 'target_amount'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [contributions, setContributions] = useState<Record<string, SavingsContribution[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editGoalId, setEditGoalId] = useState<string | null>(null);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
@@ -82,7 +83,6 @@ const SavingsPage = () => {
     monthly_contribution: '', start_date: '', contribution_day: '',
     is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
   });
-  const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
