@@ -387,7 +387,7 @@ const WealthPage = () => {
               <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{isFr ? 'Valeur nette' : 'Net Worth'}</p>
             </div>
             <p className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums tracking-tight">
-              <AnimatedNumber value={netWorth} formatter={fmt} />
+              <AnimatedNumber value={netWorth} format={fmt} />
             </p>
             <div className="flex flex-wrap gap-3 mt-3">
               <span className="text-xs font-semibold text-white/60">
