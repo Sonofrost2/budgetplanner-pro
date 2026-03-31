@@ -19,6 +19,7 @@ import { PWAUpdatePrompt } from '@/components/dashboard/PWAUpdatePrompt';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/dashboard/AppSidebar';
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
+import DashboardBreadcrumb from '@/components/dashboard/Breadcrumb';
 
 const DashboardLayout = () => {
   useRealtimeSync();
