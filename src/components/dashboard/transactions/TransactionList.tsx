@@ -94,7 +94,7 @@ const KPIBar = ({ transactions, fmt, t }: { transactions: Transaction[]; fmt: (n
       </div>
       <div className="h-4 w-px bg-border/50" />
       <span className={`text-xs font-bold tabular-nums ${net >= 0 ? 'text-secondary' : 'text-destructive'}`}>
-        {t.netBalance || (net >= 0 ? 'Net' : 'Net')}: {net >= 0 ? '+' : '-'}{fmt(Math.abs(net))}
+        {locale === 'fr' ? 'Solde net' : 'Net'}: {net >= 0 ? '+' : '-'}{fmt(Math.abs(net))}
       </span>
     </div>
   );
