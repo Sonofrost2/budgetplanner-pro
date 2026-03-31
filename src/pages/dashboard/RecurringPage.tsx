@@ -352,12 +352,16 @@ const RecurringPage = () => {
               </CardContent>
             </Card>
           ) : (
+          {bulk.hasSelection && (
+            <BulkActionBar count={bulk.count} onDelete={() => setBulkDeleteOpen(true)} onClear={bulk.clear} />
+          )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredItems.map(r => (
-                <Card key={r.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${!r.active ? 'opacity-50' : ''}`}>
+                <Card key={r.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${!r.active ? 'opacity-50' : ''} ${bulk.selectedIds.has(r.id) ? 'ring-2 ring-primary' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base font-bold flex items-center gap-2.5">
+                        <Checkbox checked={bulk.selectedIds.has(r.id)} onCheckedChange={() => bulk.toggle(r.id)} className="mr-1" />
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (r.categories?.color || '#6C63FF') + '20' }}>{r.categories?.icon || '📁'}</div>
                         <div><span>{r.description}</span><p className="text-[11px] font-normal text-muted-foreground">{freqMap[r.frequency || 'monthly'] || r.frequency}</p></div>
                       </CardTitle>
