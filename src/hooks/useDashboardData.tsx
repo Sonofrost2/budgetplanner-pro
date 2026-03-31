@@ -376,6 +376,157 @@ export const useChartData = (locale: string) => {
   });
 };
 
+// ─── Account page data (theoretical balances + cash counts) ──────────────────
+export const useAccountTheoreticalBalances = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['account-theoretical-balances', user?.id ?? ''],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_account_theoretical_balances', { p_user_id: user!.id });
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const row of (data || [])) {
+        map[row.account_id] = Number(row.theoretical_balance);
+      }
+      return map;
+    },
+    enabled: !!user,
+    staleTime: 15_000,
+  });
+};
+
+export const useAccountCashCounts = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['account-cash-counts', user?.id ?? ''],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cash_counts')
+        .select('account_id, counted_at, total_counted')
+        .eq('user_id', user!.id)
+        .order('counted_at', { ascending: false });
+      if (error) throw error;
+      const map: Record<string, { counted_at: string; total_counted: number }> = {};
+      (data || []).forEach(cc => {
+        if (cc.account_id && !map[cc.account_id]) {
+          map[cc.account_id] = { counted_at: cc.counted_at!, total_counted: Number(cc.total_counted) };
+        }
+      });
+      return map;
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+};
+
+// ─── Savings page data (goals + contributions from transactions) ─────────────
+export const useSavingsPageData = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['savings-page-data', user?.id ?? ''],
+    queryFn: async () => {
+      const [goalsRes, accRes] = await Promise.all([
+        supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance, opening_balance)').eq('user_id', user!.id).order('created_at', { ascending: false }),
+        supabase.from('payment_accounts').select('*').eq('user_id', user!.id),
+      ]);
+      if (goalsRes.error) throw goalsRes.error;
+
+      const goalsData = goalsRes.data || [];
+      const accounts = accRes.data || [];
+      const savingsAccountIds = goalsData.map(g => g.account_id).filter((id): id is string => !!id);
+      const accountToGoal = new Map<string, any>();
+      for (const g of goalsData) { if (g.account_id) accountToGoal.set(g.account_id, g); }
+      const goalsWithoutAccount = goalsData.filter(g => !g.account_id);
+
+      const txPromises: PromiseLike<any>[] = [];
+      if (savingsAccountIds.length > 0) {
+        txPromises.push(
+          supabase.from('transactions')
+            .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
+            .eq('user_id', user!.id).in('account_id', savingsAccountIds)
+            .order('date', { ascending: false }).limit(2000)
+        );
+      }
+      if (goalsWithoutAccount.length > 0) {
+        txPromises.push(
+          supabase.from('transactions')
+            .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
+            .eq('user_id', user!.id).like('notes', '🎯 %')
+            .order('date', { ascending: false }).limit(500)
+        );
+      }
+
+      const txResults = await Promise.all(txPromises);
+      const contribMap: Record<string, { id: string; amount: number; date: string; type: 'deposit' | 'withdrawal'; account_name?: string; account_icon?: string; description?: string }[]> = {};
+      const seenTxIds = new Set<string>();
+      for (const goal of goalsData) contribMap[goal.id] = [];
+
+      if (txResults.length > 0 && savingsAccountIds.length > 0) {
+        const accountTxs = txResults[0]?.data || [];
+        for (const tx of accountTxs) {
+          const goal = accountToGoal.get(tx.account_id);
+          if (!goal) continue;
+          seenTxIds.add(tx.id);
+          contribMap[goal.id].push({
+            id: tx.id, amount: tx.amount, date: tx.date,
+            type: tx.type === 'income' ? 'deposit' : 'withdrawal',
+            account_name: (tx.payment_accounts as any)?.name,
+            account_icon: (tx.payment_accounts as any)?.icon,
+            description: tx.description,
+          });
+        }
+      }
+
+      const noteResultIdx = savingsAccountIds.length > 0 ? 1 : 0;
+      if (goalsWithoutAccount.length > 0 && txResults[noteResultIdx]) {
+        const noteTxs = txResults[noteResultIdx]?.data || [];
+        for (const tx of noteTxs) {
+          if (seenTxIds.has(tx.id)) continue;
+          if (!tx.notes?.startsWith('🎯 ')) continue;
+          const goalNameFromNote = tx.notes.replace('🎯 ', '');
+          const goal = goalsWithoutAccount.find(g => g.name === goalNameFromNote);
+          if (!goal) continue;
+          seenTxIds.add(tx.id);
+          contribMap[goal.id].push({
+            id: tx.id, amount: tx.amount, date: tx.date,
+            type: tx.type === 'income' ? 'deposit' : 'withdrawal',
+            account_name: (tx.payment_accounts as any)?.name,
+            account_icon: (tx.payment_accounts as any)?.icon,
+            description: tx.description,
+          });
+        }
+      }
+
+      for (const goalId of Object.keys(contribMap)) {
+        contribMap[goalId].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      }
+
+      // Recalculate current_amount for account-linked goals
+      const updatedGoals = [];
+      for (const goal of goalsData) {
+        if (goal.account_id) {
+          const contribs = contribMap[goal.id];
+          const openingBalance = Number((goal.payment_accounts as any)?.opening_balance) || 0;
+          const netFromTx = contribs.reduce((sum, c) => sum + (c.type === 'deposit' ? c.amount : -c.amount), 0);
+          const computedAmount = openingBalance + netFromTx;
+          if (Math.abs(computedAmount - Number(goal.current_amount)) > 0.5) {
+            await supabase.from('savings_goals').update({ current_amount: computedAmount }).eq('id', goal.id);
+            updatedGoals.push({ ...goal, current_amount: computedAmount });
+          } else {
+            updatedGoals.push(goal);
+          }
+        } else {
+          updatedGoals.push(goal);
+        }
+      }
+
+      return { goals: updatedGoals as SavingsGoal[], accounts: accounts as Account[], contributions: contribMap };
+    },
+    enabled: !!user,
+    staleTime: 15_000,
+  });
+};
+
 // ─── Invalidation helper ─────────────────────────────────────────────────────
 export const useInvalidate = () => {
   const queryClient = useQueryClient();
@@ -390,7 +541,8 @@ export const useInvalidate = () => {
     if (!user) return;
     ['accounts', 'transactions', 'all-transactions', 'paginated-transactions',
      'categories', 'budgets', 'savings-goals', 'debts', 'recurring',
-     'chart-data', 'receipts', 'reports-data', 'forecast-raw-tx'].forEach(k =>
+     'chart-data', 'receipts', 'reports-data', 'forecast-raw-tx',
+     'account-theoretical-balances', 'account-cash-counts', 'savings-page-data'].forEach(k =>
       queryClient.invalidateQueries({ queryKey: [k, user.id] })
     );
     // Also invalidate range-based transaction queries
