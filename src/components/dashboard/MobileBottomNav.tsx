@@ -5,7 +5,7 @@ import { dashT } from '@/i18n/dashTranslations';
 import {
   LayoutDashboard, ArrowUpDown, PieChart, Target, MoreHorizontal,
   Settings, CreditCard, Tag, Landmark, RefreshCw, BarChart3, FileText,
-  Receipt, Crown, Users, X
+  Receipt, Crown, Users, X, Gem
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
