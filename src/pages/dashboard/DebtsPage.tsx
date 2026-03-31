@@ -168,7 +168,13 @@ const DebtsPage = () => {
           <h2 className="text-2xl font-bold font-display">{t.debts}</h2>
           {debts.length > 0 && <p className="text-sm text-muted-foreground mt-1">{fmt(totalPaid)} / {fmt(totalDebt)} {locale === 'fr' ? 'remboursé' : 'repaid'} — {locale === 'fr' ? 'Reste' : 'Remaining'}: <span className="font-semibold text-destructive">{fmt(totalRemaining)}</span></p>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {debts.length > 0 && (
+            <>
+              <Button size="sm" variant="outline" className="rounded-xl" onClick={handleExportCSV}><Download className="w-4 h-4 mr-1" /> CSV</Button>
+              <Button size="sm" variant="outline" className="rounded-xl" onClick={handleExportExcel}><Download className="w-4 h-4 mr-1" /> Excel</Button>
+            </>
+          )}
           {debts.length > 0 && debts.some(d => Number(d.total_amount) - Number(d.paid_amount) > 0) && (
             <Button size="sm" variant="outline" className="rounded-xl" onClick={handleAIPlan} disabled={aiPlanLoading}>
               <Sparkles className="w-4 h-4 mr-1" />{locale === 'fr' ? 'Plan IA' : 'AI Plan'}
@@ -178,7 +184,32 @@ const DebtsPage = () => {
         </div>
       </div>
 
-      {debts.length === 0 ? (
+      {/* Search & filters */}
+      {debts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={locale === 'fr' ? 'Rechercher un créancier...' : 'Search creditor...'} className="pl-9 pr-8 rounded-xl h-10" />
+            {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-3.5 h-3.5" /></button>}
+          </div>
+          <div className="flex gap-1.5">
+            {(['all', 'active', 'paid', 'overdue'] as const).map(s => {
+              const labels: Record<string, string> = locale === 'fr'
+                ? { all: 'Tous', active: 'En cours', paid: 'Soldés', overdue: 'En retard' }
+                : { all: 'All', active: 'Active', paid: 'Paid off', overdue: 'Overdue' };
+              return (
+                <button key={s} onClick={() => setStatusFilter(s)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border
+                    ${statusFilter === s ? 'bg-primary text-primary-foreground border-primary' : 'bg-background/60 text-muted-foreground border-border/40 hover:bg-background/80'}`}>
+                  {labels[s]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {filteredDebts.length === 0 && debts.length === 0 ? (
         <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><Landmark className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-semibold text-muted-foreground mb-2">{locale === 'fr' ? 'Aucune dette enregistrée' : 'No debts recorded'}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button></CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
