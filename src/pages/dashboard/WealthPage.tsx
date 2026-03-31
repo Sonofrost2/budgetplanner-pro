@@ -261,6 +261,7 @@ const WealthPage = () => {
 
   const openEdit = (asset: Asset) => {
     setEditId(asset.id);
+    setFormErrors({});
     setForm({
       name: asset.name, asset_type: asset.asset_type, category: asset.category,
       acquisition_date: asset.acquisition_date || '', acquisition_cost: String(asset.acquisition_cost),
