@@ -750,6 +750,11 @@ const WealthPage = () => {
             </Card>
           )}
         </TabsContent>
+
+        {/* ─── Analysis ─── */}
+        <TabsContent value="analysis">
+          <WealthAnalysisTab assets={assets} valuations={allValuations} totalSavings={totalSavings} totalDebt={totalDebt} fmt={fmt} isFr={isFr} />
+        </TabsContent>
       </Tabs>
 
       {/* ─── Add/Edit Asset Dialog ─── */}
