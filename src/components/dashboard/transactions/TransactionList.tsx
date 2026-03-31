@@ -328,51 +328,50 @@ export const TransactionList = ({
             <div>
               {groups.map((group, groupIndex) => (
                 <div key={group.date}>
-                  {/* Date separator — visual timeline style */}
-                  <div className="relative sticky top-0 z-10 px-5 py-2.5 bg-gradient-to-r from-primary/[0.04] via-muted/40 to-secondary/[0.04] backdrop-blur-xl border-b border-border/20">
-                    <div className="flex items-center gap-3">
-                      {/* Calendar badge */}
-                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/15 flex flex-col items-center justify-center">
-                        <Calendar className="w-3 h-3 text-primary/70 mb-0.5" />
-                        <span className="text-[9px] font-extrabold text-primary/80 leading-none">
-                          {new Date(group.date + 'T12:00:00').getDate()}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold text-foreground/80 capitalize">
-                            {group.label}
-                          </span>
-                          <span className="text-[9px] font-medium text-muted-foreground/50 capitalize">
-                            {group.weekday}
-                          </span>
-                          <span className="text-[9px] text-muted-foreground/40 bg-muted/40 px-1.5 py-0.5 rounded-full font-semibold">
-                            {group.txs.length}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {group.income > 0 && (
-                            <span className="text-[10px] font-bold text-secondary tabular-nums">+{fmt(group.income)}</span>
-                          )}
-                          {group.expense > 0 && (
-                            <span className="text-[10px] font-bold text-destructive tabular-nums">-{fmt(group.expense)}</span>
-                          )}
-                          {group.income > 0 && group.expense > 0 && (
-                            <>
-                              <span className="text-muted-foreground/30">·</span>
-                              <span className={`text-[10px] font-bold tabular-nums ${group.income - group.expense >= 0 ? 'text-secondary/70' : 'text-destructive/70'}`}>
-                                = {group.income - group.expense >= 0 ? '+' : '-'}{fmt(Math.abs(group.income - group.expense))}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                  {/* Date separator — compact or detailed */}
+                  {condensed ? (
+                    <div className="sticky top-0 z-10 px-5 py-1.5 bg-muted/30 backdrop-blur-sm border-b border-border/15 flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-foreground/70 capitalize">{group.label}</span>
+                      <span className="text-[9px] text-muted-foreground/40 capitalize">{group.weekday}</span>
+                      <span className="text-[9px] text-muted-foreground/40 bg-muted/40 px-1.5 py-0.5 rounded-full font-semibold">{group.txs.length}</span>
+                      <div className="flex-1" />
+                      {group.income > 0 && <span className="text-[9px] font-bold text-secondary tabular-nums">+{fmt(group.income)}</span>}
+                      {group.expense > 0 && <span className="text-[9px] font-bold text-destructive tabular-nums">-{fmt(group.expense)}</span>}
                     </div>
-                    {/* Timeline line */}
-                    {groupIndex < groups.length - 1 && (
-                      <div className="absolute left-[39px] top-full w-px h-full bg-gradient-to-b from-primary/15 to-transparent pointer-events-none" />
-                    )}
-                  </div>
+                  ) : (
+                    <div className="relative sticky top-0 z-10 px-5 py-2.5 bg-gradient-to-r from-primary/[0.04] via-muted/40 to-secondary/[0.04] backdrop-blur-xl border-b border-border/20">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/15 flex flex-col items-center justify-center">
+                          <Calendar className="w-3 h-3 text-primary/70 mb-0.5" />
+                          <span className="text-[9px] font-extrabold text-primary/80 leading-none">
+                            {new Date(group.date + 'T12:00:00').getDate()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-foreground/80 capitalize">{group.label}</span>
+                            <span className="text-[9px] font-medium text-muted-foreground/50 capitalize">{group.weekday}</span>
+                            <span className="text-[9px] text-muted-foreground/40 bg-muted/40 px-1.5 py-0.5 rounded-full font-semibold">{group.txs.length}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {group.income > 0 && <span className="text-[10px] font-bold text-secondary tabular-nums">+{fmt(group.income)}</span>}
+                            {group.expense > 0 && <span className="text-[10px] font-bold text-destructive tabular-nums">-{fmt(group.expense)}</span>}
+                            {group.income > 0 && group.expense > 0 && (
+                              <>
+                                <span className="text-muted-foreground/30">·</span>
+                                <span className={`text-[10px] font-bold tabular-nums ${group.income - group.expense >= 0 ? 'text-secondary/70' : 'text-destructive/70'}`}>
+                                  = {group.income - group.expense >= 0 ? '+' : '-'}{fmt(Math.abs(group.income - group.expense))}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {groupIndex < groups.length - 1 && (
+                        <div className="absolute left-[39px] top-full w-px h-full bg-gradient-to-b from-primary/15 to-transparent pointer-events-none" />
+                      )}
+                    </div>
+                  )}
 
                   <motion.div
                     variants={containerVariants}
