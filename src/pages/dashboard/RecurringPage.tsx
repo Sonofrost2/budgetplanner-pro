@@ -83,6 +83,9 @@ const RecurringPage = () => {
     return result;
   }, [items, searchQuery, filterType, filterFreq, sortField, sortOrder]);
 
+  const bulk = useBulkSelection(filteredItems);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
   // AI detection state
   const [aiPatterns, setAiPatterns] = useState<AIPattern[]>([]);
   const [aiDetecting, setAiDetecting] = useState(false);
