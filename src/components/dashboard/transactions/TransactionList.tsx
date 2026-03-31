@@ -379,7 +379,57 @@ export const TransactionList = ({
                     animate="show"
                   >
                     {group.txs.map((tx, index) => {
-                      const rowContent = (
+                      const rowContent = condensed ? (
+                        /* ── Condensed row ── */
+                        <motion.div
+                          key={tx.id}
+                          variants={itemVariants}
+                          layout
+                          className={`group relative flex items-center gap-2 px-4 py-1.5 transition-all duration-200 cursor-default border-b border-border/8 last:border-b-0 ${
+                            selectedIds.has(tx.id)
+                              ? 'bg-primary/[0.06] border-l-2 border-l-primary'
+                              : 'hover:bg-[hsl(var(--glass-hover))] border-l-2 border-l-transparent'
+                          }`}
+                          whileTap={{ scale: 0.998 }}
+                        >
+                          <Checkbox className="h-3.5 w-3.5" checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
+                          <span className="text-sm flex-shrink-0">{tx.categories?.icon || '📁'}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
+                          <span className="text-xs font-semibold truncate flex-1 text-foreground/85">{tx.description}</span>
+                          <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 tabular-nums hidden sm:inline">
+                            {tx.categories?.name || '-'}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/40 flex-shrink-0 tabular-nums hidden md:inline">
+                            {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
+                          </span>
+                          <span className={`text-xs font-bold tabular-nums flex-shrink-0 ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
+                            {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
+                          </span>
+                          {/* Desktop: hover actions */}
+                          {!isMobile && (
+                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary" onClick={() => onEdit(tx)}>
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md text-destructive hover:bg-destructive/10" onClick={() => onDelete(tx.id)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                          {isMobile && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md"><MoreVertical className="w-3 h-3" /></Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
+                                <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg"><Pencil className="w-3.5 h-3.5" /> {t.edit}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg"><Trash2 className="w-3.5 h-3.5" /> {t.delete}</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </motion.div>
+                      ) : (
+                        /* ── Detailed row ── */
                         <motion.div
                           key={tx.id}
                           variants={itemVariants}
@@ -395,8 +445,6 @@ export const TransactionList = ({
                             <div className="w-8 flex-shrink-0">
                               <Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
                             </div>
-
-                            {/* Gradient category icon */}
                             <motion.div
                               className="w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0 relative border border-white/10 shadow-sm"
                               style={{ background: getCategoryGradient(tx.categories?.color, tx.type) }}
@@ -404,20 +452,14 @@ export const TransactionList = ({
                               transition={{ type: 'spring', stiffness: 400 }}
                             >
                               {tx.categories?.icon || '📁'}
-                              {/* Glowing type indicator */}
                               <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background shadow-sm ${
-                                tx.type === 'income'
-                                  ? 'bg-secondary shadow-secondary/30'
-                                  : 'bg-destructive shadow-destructive/30'
+                                tx.type === 'income' ? 'bg-secondary shadow-secondary/30' : 'bg-destructive shadow-destructive/30'
                               }`} />
                             </motion.div>
-
                             <div className="min-w-0">
                               <p className="text-sm font-bold truncate leading-tight text-foreground/90">{tx.description}</p>
                               <p className="text-[11px] text-muted-foreground/70 mt-0.5 flex items-center gap-1">
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-muted/30 text-[10px] font-medium">
-                                  {tx.categories?.name || '-'}
-                                </span>
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-muted/30 text-[10px] font-medium">{tx.categories?.name || '-'}</span>
                                 <span className="text-muted-foreground/30">·</span>
                                 {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
                               </p>
@@ -429,15 +471,9 @@ export const TransactionList = ({
                               </p>
                             </div>
                           </div>
-
                           <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                            {/* Animated amount with glow */}
                             <motion.div
-                              className={`relative px-3 py-1.5 rounded-xl text-sm font-extrabold tabular-nums ${
-                                tx.type === 'income'
-                                  ? 'text-secondary'
-                                  : 'text-destructive'
-                              }`}
+                              className={`relative px-3 py-1.5 rounded-xl text-sm font-extrabold tabular-nums ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}
                               style={{
                                 background: tx.type === 'income'
                                   ? 'linear-gradient(135deg, hsl(var(--secondary) / 0.12), hsl(var(--secondary) / 0.04))'
@@ -453,8 +489,6 @@ export const TransactionList = ({
                               <span className="text-[0.82em] opacity-60 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>
                               {fmt(Number(tx.amount))}
                             </motion.div>
-
-                            {/* Desktop: hover actions */}
                             {!isMobile && (
                               <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => onEdit(tx)}>
@@ -465,22 +499,14 @@ export const TransactionList = ({
                                 </Button>
                               </div>
                             )}
-
-                            {/* Mobile: context menu */}
                             {isMobile && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl">
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl"><MoreVertical className="w-4 h-4" /></Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
-                                  <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg">
-                                    <Pencil className="w-3.5 h-3.5" /> {t.edit}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg">
-                                    <Trash2 className="w-3.5 h-3.5" /> {t.delete}
-                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg"><Pencil className="w-3.5 h-3.5" /> {t.edit}</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg"><Trash2 className="w-3.5 h-3.5" /> {t.delete}</DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
@@ -488,7 +514,7 @@ export const TransactionList = ({
                         </motion.div>
                       );
 
-                      if (isMobile) {
+                      if (isMobile && !condensed) {
                         return (
                           <SwipeableRow key={tx.id} onEdit={() => onEdit(tx)} onDelete={() => onDelete(tx.id)}>
                             {rowContent}
