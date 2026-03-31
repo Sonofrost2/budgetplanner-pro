@@ -360,6 +360,7 @@ export const dashT = {
     paidAmount: 'Déjà payé',
     remainingDebt: 'Restant',
     recurring: 'Charges récurrentes',
+    wealth: 'Patrimoine',
     addRecurring: 'Ajouter manuellement',
     frequency: 'Fréquence',
     nextDate: 'Prochaine date',
