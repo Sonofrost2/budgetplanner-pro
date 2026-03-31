@@ -124,24 +124,18 @@ const AccountsPage = () => {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const [accRes, txRes, ccRes] = await Promise.all([
+    const [accRes, balRes, ccRes] = await Promise.all([
       supabase.from('payment_accounts').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.from('transactions').select('account_id, amount, type, date').eq('user_id', user.id).limit(100000),
+      supabase.rpc('get_account_theoretical_balances', { p_user_id: user.id }),
       supabase.from('cash_counts').select('account_id, counted_at, total_counted').eq('user_id', user.id).order('counted_at', { ascending: false }),
     ]);
     const accs = accRes.data || [];
     setAccounts(accs);
-    setAllTransactions((txRes.data || []) as Transaction[]);
-    // Calculate theoretical balances: opening_balance + income - expense per account
+    setAllTransactions([]); // No longer loading all transactions
+    // Build theoretical balances from RPC
     const balances: Record<string, number> = {};
-    for (const acc of accs) {
-      balances[acc.id] = Number(acc.opening_balance);
-    }
-    for (const tx of (txRes.data || [])) {
-      if (tx.account_id && balances[tx.account_id] !== undefined) {
-        if (tx.type === 'income') balances[tx.account_id] += Number(tx.amount);
-        else if (tx.type === 'expense') balances[tx.account_id] -= Number(tx.amount);
-      }
+    for (const row of (balRes.data || [])) {
+      balances[row.account_id] = Number(row.theoretical_balance);
     }
     setTheoreticalBalances(balances);
     // Build map of latest cash count per account
