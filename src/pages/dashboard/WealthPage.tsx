@@ -391,10 +391,17 @@ const WealthPage = () => {
           <h1 className="text-xl font-bold font-display">{isFr ? 'Gestion du patrimoine' : 'Wealth Management'}</h1>
           <p className="text-sm text-muted-foreground">{isFr ? 'Suivez et valorisez vos actifs' : 'Track and value your assets'}</p>
         </div>
-        <Button onClick={() => { resetForm(); setEditId(null); setDialogOpen(true); }}
-          className="rounded-xl text-primary-foreground shadow-md" style={{ background: 'var(--gradient-primary)' }}>
-          <Plus className="w-4 h-4 mr-1.5" />{isFr ? 'Ajouter un actif' : 'Add Asset'}
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="rounded-xl h-9 text-xs gap-1.5 glass border-glass-border" onClick={() => handleExport('pdf')}>
+            <FileDown className="w-3.5 h-3.5" /> PDF
+          </Button>
+          <Button variant="outline" size="sm" className="rounded-xl h-9 text-xs gap-1.5 glass border-glass-border" onClick={() => handleExport('excel')}>
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+          </Button>
+          <Button onClick={() => { resetForm(); setEditId(null); setDialogOpen(true); }}
+            className="rounded-xl text-primary-foreground shadow-md h-9" style={{ background: 'var(--gradient-primary)' }}>
+            <Plus className="w-4 h-4 mr-1.5" />{isFr ? 'Ajouter un actif' : 'Add Asset'}
+          </Button>
       </div>
 
       {/* KPI Cards */}
