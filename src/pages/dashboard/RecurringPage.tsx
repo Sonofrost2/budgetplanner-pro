@@ -94,6 +94,16 @@ const RecurringPage = () => {
   const fmt = (n: number) => fmtCurrency(n, locale);
   const refreshData = () => invalidate('recurring');
 
+  const handleBulkDelete = async () => {
+    for (const id of bulk.selectedIds) {
+      await supabase.from('recurring_transactions').delete().eq('id', id);
+    }
+    bulk.clear();
+    setBulkDeleteOpen(false);
+    refreshData();
+    toast.success(locale === 'fr' ? 'Récurrences supprimées' : 'Recurring deleted');
+  };
+
   const freqMap: Record<string, string> = {
     daily: t.daily, weekly: t.weekly, monthly: t.monthly,
     quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly,
