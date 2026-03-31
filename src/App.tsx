@@ -31,6 +31,7 @@ import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import FamilyPage from "./pages/dashboard/FamilyPage";
 import DebtsPage from "./pages/dashboard/DebtsPage";
 import RecurringPage from "./pages/dashboard/RecurringPage";
+import WealthPage from "./pages/dashboard/WealthPage";
 
 import AboutPage from "./pages/AboutPage";
 import BlogPage from "./pages/BlogPage";
