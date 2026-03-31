@@ -843,7 +843,7 @@ const WealthPage = () => {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="form-label">{t.notes}</Label>
+            <Label className="form-label">{t.notes} ({isFr ? 'optionnel' : 'optional'})</Label>
             <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               rows={2} className="rounded-xl resize-none" placeholder={isFr ? 'Détails supplémentaires...' : 'Additional details...'} />
           </div>
