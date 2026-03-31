@@ -519,11 +519,11 @@ const WealthPage = () => {
             searchValue={searchQuery}
             onSearchChange={setSearchQuery}
             searchPlaceholder={isFr ? 'Rechercher un actif...' : 'Search asset...'}
-            filterOptions={[
+            filterChips={[
               { label: isFr ? 'Tous' : 'All', value: 'all' },
               ...ASSET_TYPES.map(t => ({ label: t[isFr ? 'label_fr' : 'label_en'], value: t.value })),
             ]}
-            filterValue={filterType}
+            activeFilter={filterType}
             onFilterChange={setFilterType}
           />
 
