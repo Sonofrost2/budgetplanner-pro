@@ -957,6 +957,7 @@ export const dashT = {
     paidAmount: 'Already paid',
     remainingDebt: 'Remaining',
     recurring: 'Recurring',
+    wealth: 'Wealth',
     addRecurring: 'Add manually',
     frequency: 'Frequency',
     nextDate: 'Next date',
