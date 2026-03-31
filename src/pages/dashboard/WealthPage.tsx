@@ -188,6 +188,28 @@ const WealthPage = () => {
   const totalAcquisition = useMemo(() => assets.reduce((s, a) => s + Number(a.acquisition_cost || 0), 0), [assets]);
   const totalGainLoss = totalAssets - totalAcquisition;
 
+  // Projection data for export
+  const projectionData = useMemo(() => {
+    const defaults: Record<string, number> = { real_estate: 0.05, vehicle: -0.10, financial: 0.07, savings: 0.03, jewelry: 0.03, other: 0.02 };
+    const currentYear = new Date().getFullYear();
+    const data: { year: string; optimistic: number; base: number; pessimistic: number }[] = [];
+    for (let y = 0; y <= 5; y++) {
+      if (y === 0) { data.push({ year: String(currentYear), optimistic: netWorth, base: netWorth, pessimistic: netWorth }); continue; }
+      let baseAssets = 0;
+      assets.forEach(a => { baseAssets += Number(a.current_value) * Math.pow(1 + (defaults[a.asset_type] ?? 0.03), y); });
+      const baseSavings = totalSavings * Math.pow(1.03, y);
+      const baseDebt = totalDebt * Math.pow(0.85, y);
+      const base = baseAssets + baseSavings - baseDebt;
+      data.push({ year: String(currentYear + y), optimistic: Math.round(base * (1 + 0.02 * y)), base: Math.round(base), pessimistic: Math.round(base * (1 - 0.02 * y)) });
+    }
+    return data;
+  }, [assets, netWorth, totalSavings, totalDebt]);
+
+  const handleExport = (type: 'pdf' | 'excel') => {
+    const exportData = { assets: assets as any, savingsGoals, debts: debts as any, netWorth, totalAssets, totalSavings, totalDebt, totalGainLoss, projections: projectionData, pieData, isFr, fmt };
+    type === 'pdf' ? exportWealthPDF(exportData) : exportWealthExcel(exportData);
+  };
+
   const filteredAssets = useMemo(() => {
     let result = [...assets];
     if (filterType !== 'all') result = result.filter(a => a.asset_type === filterType);
