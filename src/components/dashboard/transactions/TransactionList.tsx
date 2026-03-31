@@ -70,7 +70,7 @@ const groupByDate = (transactions: Transaction[], locale: string) => {
 };
 
 /** KPI summary bar */
-const KPIBar = ({ transactions, fmt, t }: { transactions: Transaction[]; fmt: (n: number) => string; t: DashTranslations }) => {
+const KPIBar = ({ transactions, fmt, t, locale }: { transactions: Transaction[]; fmt: (n: number) => string; t: DashTranslations; locale: string }) => {
   const { totalIncome, totalExpense } = useMemo(() => {
     let inc = 0, exp = 0;
     for (const tx of transactions) {
