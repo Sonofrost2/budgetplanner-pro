@@ -337,6 +337,10 @@ const WealthPage = () => {
 
   const handleAddValuation = async () => {
     if (!valuationDialog || !user || Number(valuationValue) <= 0) return;
+    if (new Date(valuationDate) > new Date()) {
+      toast.error(isFr ? 'La date ne peut pas être dans le futur' : 'Date cannot be in the future');
+      return;
+    }
     setSaving(true);
     try {
       await supabase.from('asset_valuations').insert({
