@@ -57,6 +57,7 @@ const AccountsPage = () => {
   const { data: accounts = [], isLoading: accLoading } = useAccounts();
   const { data: theoreticalBalances = {}, isLoading: balLoading } = useAccountTheoreticalBalances();
   const { data: cashCounts = {}, isLoading: ccLoading } = useAccountCashCounts();
+  const { data: allTransactions = [], isLoading: txLoading } = useAccountTransactions();
   const loading = accLoading || balLoading;
 
   const [dialogOpen, setDialogOpen] = useState(false);
