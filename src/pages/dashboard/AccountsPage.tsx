@@ -116,40 +116,10 @@ const AccountsPage = () => {
   const fmt = (n: number) => fmtCurrency(n, locale);
   const { invalidate } = useInvalidate();
 
-  // Wrapper to also invalidate react-query caches
   const refreshAll = () => {
-    fetchData();
-    invalidate('accounts', 'transactions', 'paginated-transactions', 'chart-data', 'all-transactions');
+    invalidate('accounts', 'account-theoretical-balances', 'account-cash-counts',
+      'transactions', 'paginated-transactions', 'chart-data', 'all-transactions');
   };
-
-  const fetchData = useCallback(async () => {
-    if (!user) return;
-    const [accRes, balRes, ccRes] = await Promise.all([
-      supabase.from('payment_accounts').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.rpc('get_account_theoretical_balances', { p_user_id: user.id }),
-      supabase.from('cash_counts').select('account_id, counted_at, total_counted').eq('user_id', user.id).order('counted_at', { ascending: false }),
-    ]);
-    const accs = accRes.data || [];
-    setAccounts(accs);
-    setAllTransactions([]); // No longer loading all transactions
-    // Build theoretical balances from RPC
-    const balances: Record<string, number> = {};
-    for (const row of (balRes.data || [])) {
-      balances[row.account_id] = Number(row.theoretical_balance);
-    }
-    setTheoreticalBalances(balances);
-    // Build map of latest cash count per account
-    const latestMap: Record<string, { counted_at: string; total_counted: number }> = {};
-    (ccRes.data || []).forEach(cc => {
-      if (cc.account_id && !latestMap[cc.account_id]) {
-        latestMap[cc.account_id] = { counted_at: cc.counted_at!, total_counted: Number(cc.total_counted) };
-      }
-    });
-    setCashCounts(latestMap);
-    setLoading(false);
-  }, [user]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   const getTheoreticalBalance = (accountId: string) => {
     return theoreticalBalances[accountId] ?? Number(accounts.find(a => a.id === accountId)?.opening_balance || 0);
