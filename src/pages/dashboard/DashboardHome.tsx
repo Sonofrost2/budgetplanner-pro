@@ -255,6 +255,7 @@ const DashboardHome = () => {
     savings: <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />,
     forecast: <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />,
     transactions: <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />,
+    wealth: <WealthWidget fmt={fmt} t={t} locale={locale} />,
   };
 
   if (loading) {
