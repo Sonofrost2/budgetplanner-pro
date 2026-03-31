@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import WealthAnalysisTab from '@/components/dashboard/wealth/WealthAnalysisTab';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
