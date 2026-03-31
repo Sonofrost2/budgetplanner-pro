@@ -39,9 +39,33 @@ const DebtsPage = () => {
   const [aiPlan, setAiPlan] = useState<any>(null);
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const [aiPlanOpen, setAiPlanOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paid' | 'overdue'>('all');
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const refreshData = () => invalidate('debts');
+
+  const filteredDebts = useMemo(() => {
+    let result = [...debts];
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(d => d.creditor_name.toLowerCase().includes(q) || d.notes?.toLowerCase().includes(q));
+    }
+    if (statusFilter === 'active') result = result.filter(d => Number(d.total_amount) - Number(d.paid_amount) > 0 && !(d.due_date && new Date(d.due_date) < new Date()));
+    else if (statusFilter === 'paid') result = result.filter(d => Number(d.total_amount) - Number(d.paid_amount) <= 0);
+    else if (statusFilter === 'overdue') result = result.filter(d => d.due_date && new Date(d.due_date) < new Date() && Number(d.total_amount) - Number(d.paid_amount) > 0);
+    return result;
+  }, [debts, searchQuery, statusFilter]);
+
+  const handleExportCSV = () => {
+    const rows = filteredDebts.map(d => ({ [t.creditor]: d.creditor_name, [t.totalDebt]: d.total_amount, [t.paidAmount]: d.paid_amount, [t.remainingDebt]: Number(d.total_amount) - Number(d.paid_amount), [t.deadline]: d.due_date || '', [t.notes]: d.notes || '' }));
+    if (!exportToCSV(rows, 'debts')) toast.info(locale === 'fr' ? 'Aucune dette' : 'No debts');
+  };
+
+  const handleExportExcel = () => {
+    const rows = filteredDebts.map(d => ({ [t.creditor]: d.creditor_name, [t.totalDebt]: d.total_amount, [t.paidAmount]: d.paid_amount, [t.remainingDebt]: Number(d.total_amount) - Number(d.paid_amount), [t.deadline]: d.due_date || '', [t.notes]: d.notes || '' }));
+    if (!exportToExcel(rows, 'debts')) toast.info(locale === 'fr' ? 'Aucune dette' : 'No debts');
+  };
 
   const validateDebtForm = () => {
     const errs: Record<string, string> = {};
