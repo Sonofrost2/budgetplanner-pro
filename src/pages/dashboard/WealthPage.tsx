@@ -767,9 +767,10 @@ const WealthPage = () => {
         <div className="space-y-4 py-2">
           <div className="flex gap-3">
             <div className="space-y-1.5 flex-1">
-              <Label className="form-label">{isFr ? 'Nom de l\'actif' : 'Asset Name'}</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder={isFr ? 'Ex: Terrain Bingerville' : 'E.g: Downtown Apartment'} className="rounded-xl h-10" />
+              <Label className="form-label">{isFr ? 'Nom de l\'actif' : 'Asset Name'} *</Label>
+              <Input value={form.name} onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFormErrors(e => ({ ...e, name: '' })); }}
+                placeholder={isFr ? 'Ex: Terrain Bingerville' : 'E.g: Downtown Apartment'} className={`rounded-xl h-10 ${formErrors.name ? 'border-destructive' : ''}`} />
+              {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
             </div>
             <div className="space-y-1.5">
               <Label className="form-label">{isFr ? 'Icône' : 'Icon'}</Label>
