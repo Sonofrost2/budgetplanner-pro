@@ -20,7 +20,10 @@ import { Plus, RefreshCw, Pencil, Trash2, Sparkles, Check, X, Zap, TrendingDown,
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import BulkActionBar from '@/components/dashboard/BulkActionBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 
 interface AIPattern {
