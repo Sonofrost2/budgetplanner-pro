@@ -5,7 +5,7 @@ import { dashT } from '@/i18n/dashTranslations';
 import {
   LayoutDashboard, ArrowUpDown, PieChart, Target, MoreHorizontal,
   Settings, CreditCard, Tag, Landmark, RefreshCw, BarChart3, FileText,
-  Receipt, Crown, Users, X
+  Receipt, Crown, Users, X, Gem
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,6 +25,7 @@ const MobileBottomNav = () => {
 
   const moreItems = [
     { key: 'accounts', icon: CreditCard, path: '/dashboard/accounts' },
+    { key: 'wealth', icon: Gem, path: '/dashboard/wealth' },
     { key: 'categories', icon: Tag, path: '/dashboard/categories' },
     { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
     { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },

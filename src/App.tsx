@@ -31,6 +31,7 @@ import ReceiptsPage from "./pages/dashboard/ReceiptsPage";
 import FamilyPage from "./pages/dashboard/FamilyPage";
 import DebtsPage from "./pages/dashboard/DebtsPage";
 import RecurringPage from "./pages/dashboard/RecurringPage";
+import WealthPage from "./pages/dashboard/WealthPage";
 
 import AboutPage from "./pages/AboutPage";
 import BlogPage from "./pages/BlogPage";
@@ -73,6 +74,7 @@ const AnimatedRoutes = () => {
           <Route path="family" element={<FamilyPage />} />
           <Route path="debts" element={<DebtsPage />} />
           <Route path="recurring" element={<RecurringPage />} />
+          <Route path="wealth" element={<WealthPage />} />
           <Route path="admin/pricing" element={<AdminPricingPage />} />
           
           <Route path="guide" element={<GuidePage />} />

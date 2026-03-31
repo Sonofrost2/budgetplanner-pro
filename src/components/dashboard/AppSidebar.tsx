@@ -8,7 +8,7 @@ import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
   Settings, LogOut, Sun, Moon, Monitor, CreditCard, Shield,
   Tag, Receipt, Search, Crown, Users, Globe,
-  Sparkles, User, ChevronUp, Landmark, RefreshCw
+  Sparkles, User, ChevronUp, Landmark, RefreshCw, Gem
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,6 +69,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       label: locale === 'fr' ? 'Gestion' : 'Management',
       items: [
         { key: 'savings', icon: Target, path: '/dashboard/savings' },
+        { key: 'wealth', icon: Gem, path: '/dashboard/wealth' },
         { key: 'categories', icon: Tag, path: '/dashboard/categories' },
         { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
         { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },

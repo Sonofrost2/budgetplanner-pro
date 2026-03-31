@@ -14,6 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset_valuations: {
+        Row: {
+          asset_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          source: string | null
+          user_id: string
+          value: number
+          valued_at: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          source?: string | null
+          user_id: string
+          value: number
+          valued_at?: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          source?: string | null
+          user_id?: string
+          value?: number
+          valued_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_valuations_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          acquisition_cost: number | null
+          acquisition_date: string | null
+          asset_type: string
+          category: string
+          created_at: string
+          currency: string
+          current_value: number
+          icon: string
+          id: string
+          location: string | null
+          metadata: Json
+          name: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acquisition_cost?: number | null
+          acquisition_date?: string | null
+          asset_type?: string
+          category?: string
+          created_at?: string
+          currency?: string
+          current_value?: number
+          icon?: string
+          id?: string
+          location?: string | null
+          metadata?: Json
+          name: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acquisition_cost?: number | null
+          acquisition_date?: string | null
+          asset_type?: string
+          category?: string
+          created_at?: string
+          currency?: string
+          current_value?: number
+          icon?: string
+          id?: string
+          location?: string | null
+          metadata?: Json
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       budgets: {
         Row: {
           active_days: string | null
