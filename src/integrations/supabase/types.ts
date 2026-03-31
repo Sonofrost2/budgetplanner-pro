@@ -821,6 +821,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_account_theoretical_balances: {
+        Args: { p_user_id: string }
+        Returns: {
+          account_id: string
+          theoretical_balance: number
+        }[]
+      }
       get_budget_spending: {
         Args: {
           p_category_id: string

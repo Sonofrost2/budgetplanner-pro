@@ -70,6 +70,8 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       items: [
         { key: 'savings', icon: Target, path: '/dashboard/savings' },
         { key: 'categories', icon: Tag, path: '/dashboard/categories' },
+        { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
+        { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },
       ],
     },
     {
