@@ -270,11 +270,18 @@ const WealthPage = () => {
     setDialogOpen(true);
   };
 
+  const validateAssetForm = () => {
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = isFr ? 'Le nom est requis' : 'Name is required';
+    if (!form.current_value || Number(form.current_value) <= 0) errs.current_value = isFr ? 'La valeur doit être supérieure à 0' : 'Value must be greater than 0';
+    if (form.acquisition_cost && Number(form.acquisition_cost) < 0) errs.acquisition_cost = isFr ? 'Le coût ne peut pas être négatif' : 'Cost cannot be negative';
+    if (form.acquisition_date && new Date(form.acquisition_date) > new Date()) errs.acquisition_date = isFr ? 'La date ne peut pas être dans le futur' : 'Date cannot be in the future';
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSave = async () => {
-    if (!user || !form.name.trim() || Number(form.current_value) <= 0) {
-      toast.error(isFr ? 'Remplissez le nom et la valeur' : 'Fill in name and value');
-      return;
-    }
+    if (!user || !validateAssetForm()) return;
     setSaving(true);
     try {
       const payload = {
