@@ -45,7 +45,6 @@ const DebtsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paid' | 'overdue'>('all');
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
-  const bulk = useBulkSelection(filteredDebts);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const refreshData = () => invalidate('debts');
