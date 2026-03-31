@@ -25,6 +25,7 @@ const MobileBottomNav = () => {
 
   const moreItems = [
     { key: 'accounts', icon: CreditCard, path: '/dashboard/accounts' },
+    { key: 'wealth', icon: Gem, path: '/dashboard/wealth' },
     { key: 'categories', icon: Tag, path: '/dashboard/categories' },
     { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
     { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },

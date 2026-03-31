@@ -69,6 +69,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       label: locale === 'fr' ? 'Gestion' : 'Management',
       items: [
         { key: 'savings', icon: Target, path: '/dashboard/savings' },
+        { key: 'wealth', icon: Gem, path: '/dashboard/wealth' },
         { key: 'categories', icon: Tag, path: '/dashboard/categories' },
         { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
         { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },

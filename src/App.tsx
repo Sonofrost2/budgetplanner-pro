@@ -74,6 +74,7 @@ const AnimatedRoutes = () => {
           <Route path="family" element={<FamilyPage />} />
           <Route path="debts" element={<DebtsPage />} />
           <Route path="recurring" element={<RecurringPage />} />
+          <Route path="wealth" element={<WealthPage />} />
           <Route path="admin/pricing" element={<AdminPricingPage />} />
           
           <Route path="guide" element={<GuidePage />} />
