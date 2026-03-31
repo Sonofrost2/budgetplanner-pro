@@ -21,6 +21,7 @@ const GuidePage = () => {
     { key: 'familyGuide', icon: Users, link: '/dashboard/family' },
     { key: 'aiChatGuide', icon: Sparkles, link: '/dashboard' },
     { key: 'recurringGuide', icon: RefreshCw, link: '/dashboard/recurring' },
+    { key: 'wealthGuide', icon: Gem, link: '/dashboard/wealth' },
     { key: 'subPagesGuide', icon: Layers, link: '/dashboard/accounts' },
   ];
 
