@@ -8,7 +8,7 @@ import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
   Settings, LogOut, Sun, Moon, Monitor, CreditCard, Shield,
   Tag, Receipt, Search, Crown, Users, Globe,
-  Sparkles, User, ChevronUp
+  Sparkles, User, ChevronUp, Landmark, RefreshCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,8 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       items: [
         { key: 'savings', icon: Target, path: '/dashboard/savings' },
         { key: 'categories', icon: Tag, path: '/dashboard/categories' },
+        { key: 'debts', icon: Landmark, path: '/dashboard/debts' },
+        { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },
       ],
     },
     {

@@ -53,6 +53,7 @@ const RecurringPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: '', active: true });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('confirmed');
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,8 +93,17 @@ const RecurringPage = () => {
     quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly,
   };
 
+  const validateRecurringForm = () => {
+    const errs: Record<string, string> = {};
+    if (!form.description.trim()) errs.description = locale === 'fr' ? 'La description est requise' : 'Description is required';
+    if (!form.amount || Number(form.amount) <= 0) errs.amount = locale === 'fr' ? 'Le montant doit être supérieur à 0' : 'Amount must be greater than 0';
+    if (!form.next_date) errs.next_date = locale === 'fr' ? 'La date est requise' : 'Date is required';
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSave = async () => {
-    if (!user || !form.description.trim() || Number(form.amount) <= 0 || !form.next_date) return;
+    if (!user || !validateRecurringForm()) return;
     const payload = { description: form.description.trim(), amount: Number(form.amount), type: form.type, category_id: form.category_id || null, account_id: form.account_id || null, frequency: form.frequency, next_date: form.next_date, active: form.active };
     const { error } = editId
       ? await supabase.from('recurring_transactions').update(payload).eq('id', editId)
@@ -114,8 +124,8 @@ const RecurringPage = () => {
     setDeleteId(null); refreshData();
   };
 
-  const openNew = () => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: new Date().toISOString().split('T')[0], active: true }); setDialogOpen(true); };
-  const openEdit = (r: any) => { setEditId(r.id); setForm({ description: r.description, amount: String(r.amount), type: r.type, category_id: r.category_id || '', account_id: r.account_id || '', frequency: r.frequency, next_date: r.next_date, active: r.active }); setDialogOpen(true); };
+  const openNew = () => { setEditId(null); setFormErrors({}); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: new Date().toISOString().split('T')[0], active: true }); setDialogOpen(true); };
+  const openEdit = (r: any) => { setEditId(r.id); setFormErrors({}); setForm({ description: r.description, amount: String(r.amount), type: r.type, category_id: r.category_id || '', account_id: r.account_id || '', frequency: r.frequency, next_date: r.next_date, active: r.active }); setDialogOpen(true); };
 
   // AI Detection
   const runAiDetection = async () => {
@@ -452,9 +462,17 @@ const RecurringPage = () => {
         }
       >
           <div className="space-y-4">
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.description}</Label><Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="rounded-xl h-11" /></div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.description}</Label>
+              <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className={`rounded-xl h-11 ${formErrors.description ? 'border-destructive' : ''}`} />
+              {formErrors.description && <p className="text-xs text-destructive">{formErrors.description}</p>}
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.amount}</Label><Input type="number" min="1" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className="rounded-xl h-11 text-lg font-bold" /></div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.amount}</Label>
+                <Input type="number" min="1" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className={`rounded-xl h-11 text-lg font-bold ${formErrors.amount ? 'border-destructive' : ''}`} />
+                {formErrors.amount && <p className="text-xs text-destructive">{formErrors.amount}</p>}
+              </div>
               <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.type}</Label>
                 <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="expense">{t.expenseType}</SelectItem><SelectItem value="income">{t.incomeType}</SelectItem></SelectContent></Select>
               </div>
@@ -473,7 +491,11 @@ const RecurringPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.nextDate}</Label><Input type="date" value={form.next_date} onChange={e => setForm(f => ({ ...f, next_date: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.nextDate}</Label>
+                <Input type="date" value={form.next_date} onChange={e => setForm(f => ({ ...f, next_date: e.target.value }))} className={`rounded-xl h-11 ${formErrors.next_date ? 'border-destructive' : ''}`} />
+                {formErrors.next_date && <p className="text-xs text-destructive">{formErrors.next_date}</p>}
+              </div>
             </div>
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.category} ({t.optional})</Label>
               <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger><SelectContent>{categories.filter(c => c.type === form.type).map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent></Select>

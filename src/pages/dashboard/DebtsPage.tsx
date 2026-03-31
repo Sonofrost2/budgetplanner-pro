@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -30,6 +31,7 @@ const DebtsPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ creditor_name: '', total_amount: '', paid_amount: '', due_date: '', notes: '' });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payDialog, setPayDialog] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState('');
@@ -40,8 +42,18 @@ const DebtsPage = () => {
   const fmt = (n: number) => fmtCurrency(n, locale);
   const refreshData = () => invalidate('debts');
 
+  const validateDebtForm = () => {
+    const errs: Record<string, string> = {};
+    if (!form.creditor_name.trim()) errs.creditor_name = locale === 'fr' ? 'Le nom du créancier est requis' : 'Creditor name is required';
+    if (!form.total_amount || Number(form.total_amount) <= 0) errs.total_amount = locale === 'fr' ? 'Le montant doit être supérieur à 0' : 'Amount must be greater than 0';
+    if (Number(form.paid_amount) < 0) errs.paid_amount = locale === 'fr' ? 'Le montant payé ne peut pas être négatif' : 'Paid amount cannot be negative';
+    if (Number(form.paid_amount) > Number(form.total_amount)) errs.paid_amount = locale === 'fr' ? 'Le montant payé ne peut pas dépasser le total' : 'Paid amount cannot exceed total';
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSave = async () => {
-    if (!user || !form.creditor_name.trim() || Number(form.total_amount) <= 0) return;
+    if (!user || !validateDebtForm()) return;
     const payload = { creditor_name: form.creditor_name.trim(), total_amount: Number(form.total_amount), paid_amount: Number(form.paid_amount) || 0, due_date: form.due_date || null, notes: form.notes || null };
     const { error } = editId
       ? await supabase.from('debts').update(payload).eq('id', editId)
@@ -109,8 +121,8 @@ const DebtsPage = () => {
     }
   };
 
-  const openNew = () => { setEditId(null); setForm({ creditor_name: '', total_amount: '', paid_amount: '', due_date: '', notes: '' }); setDialogOpen(true); };
-  const openEdit = (d: any) => { setEditId(d.id); setForm({ creditor_name: d.creditor_name, total_amount: String(d.total_amount), paid_amount: String(d.paid_amount), due_date: d.due_date || '', notes: d.notes || '' }); setDialogOpen(true); };
+  const openNew = () => { setEditId(null); setFormErrors({}); setForm({ creditor_name: '', total_amount: '', paid_amount: '', due_date: '', notes: '' }); setDialogOpen(true); };
+  const openEdit = (d: any) => { setEditId(d.id); setFormErrors({}); setForm({ creditor_name: d.creditor_name, total_amount: String(d.total_amount), paid_amount: String(d.paid_amount), due_date: d.due_date || '', notes: d.notes || '' }); setDialogOpen(true); };
 
   const totalDebt = debts.reduce((s, d) => s + Number(d.total_amount), 0);
   const totalPaid = debts.reduce((s, d) => s + Number(d.paid_amount), 0);
@@ -275,10 +287,22 @@ const DebtsPage = () => {
         }
       >
           <div className="space-y-4">
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.creditor}</Label><Input value={form.creditor_name} onChange={e => setForm(f => ({ ...f, creditor_name: e.target.value }))} className="rounded-xl h-11" /></div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.creditor}</Label>
+              <Input value={form.creditor_name} onChange={e => setForm(f => ({ ...f, creditor_name: e.target.value }))} className={cn("rounded-xl h-11", formErrors.creditor_name && "border-destructive")} />
+              {formErrors.creditor_name && <p className="text-xs text-destructive">{formErrors.creditor_name}</p>}
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.totalDebt}</Label><Input type="number" min="1" value={form.total_amount} onChange={e => setForm(f => ({ ...f, total_amount: e.target.value }))} className="rounded-xl h-11" /></div>
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.paidAmount}</Label><Input type="number" min="0" value={form.paid_amount} onChange={e => setForm(f => ({ ...f, paid_amount: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.totalDebt}</Label>
+                <Input type="number" min="1" value={form.total_amount} onChange={e => setForm(f => ({ ...f, total_amount: e.target.value }))} className={cn("rounded-xl h-11", formErrors.total_amount && "border-destructive")} />
+                {formErrors.total_amount && <p className="text-xs text-destructive">{formErrors.total_amount}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.paidAmount}</Label>
+                <Input type="number" min="0" value={form.paid_amount} onChange={e => setForm(f => ({ ...f, paid_amount: e.target.value }))} className={cn("rounded-xl h-11", formErrors.paid_amount && "border-destructive")} />
+                {formErrors.paid_amount && <p className="text-xs text-destructive">{formErrors.paid_amount}</p>}
+              </div>
             </div>
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.deadline} ({t.optional})</Label><Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="rounded-xl h-11" /></div>
             <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.notes} ({t.optional})</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="rounded-xl h-11" /></div>

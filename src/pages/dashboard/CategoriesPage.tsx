@@ -57,6 +57,7 @@ const CategoriesPage = () => {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', icon: '📁', color: '#6C63FF', type: 'expense' });
@@ -71,11 +72,20 @@ const CategoriesPage = () => {
 
   const refreshData = () => { invalidate('categories', 'category-tx-counts', 'budgets'); bulk.clear(); };
 
-  const openNew = () => { setEditing(null); setForm({ name: '', icon: '📁', color: '#6C63FF', type: 'expense' }); setDialogOpen(true); };
-  const openEdit = (cat: any) => { setEditing(cat); setForm({ name: cat.name, icon: cat.icon, color: cat.color, type: cat.type }); setDialogOpen(true); };
+  const openNew = () => { setEditing(null); setFormErrors({}); setForm({ name: '', icon: '📁', color: '#6C63FF', type: 'expense' }); setDialogOpen(true); };
+  const openEdit = (cat: any) => { setEditing(cat); setFormErrors({}); setForm({ name: cat.name, icon: cat.icon, color: cat.color, type: cat.type }); setDialogOpen(true); };
 
   const handleSave = async () => {
-    if (!user || !form.name.trim()) return;
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = locale === 'fr' ? 'Le nom est requis' : 'Name is required';
+    else if (form.name.trim().length > 50) errs.name = locale === 'fr' ? 'Max 50 caractères' : 'Max 50 characters';
+    else {
+      const duplicate = categories.find(c => c.name.toLowerCase() === form.name.trim().toLowerCase() && c.id !== editing?.id);
+      if (duplicate) errs.name = locale === 'fr' ? 'Ce nom existe déjà' : 'This name already exists';
+    }
+    setFormErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+    if (!user) return;
     const payload = { user_id: user.id, name: form.name.trim(), icon: form.icon, color: form.color, type: form.type };
     if (editing) {
       const { error } = await supabase.from('categories').update(payload).eq('id', editing.id);
@@ -255,7 +265,19 @@ const CategoriesPage = () => {
         <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader><DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addCategory}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Configurez votre catégorie' : 'Configure your category'}</DialogDescription></DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 pr-1 form-animate">
-            <div className="space-y-2"><Label className="form-label">{t.categoryName}</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={50} className="rounded-xl h-11" /></div>
+            {/* Live preview */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: form.color + '20' }}>{form.icon}</div>
+              <div>
+                <p className="font-medium text-sm">{form.name || (locale === 'fr' ? 'Nom de la catégorie' : 'Category name')}</p>
+                <div className="flex items-center gap-1.5 mt-0.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: form.color }} /><span className="text-xs text-muted-foreground">{form.type === 'expense' ? t.expenseType : t.incomeType}</span></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="form-label">{t.categoryName}</Label>
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={50} className={`rounded-xl h-11 ${formErrors.name ? 'border-destructive' : ''}`} />
+              {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
+            </div>
             <div className="space-y-2"><Label className="form-label">{t.type}</Label>
               <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="expense">📉 {t.expenseType}</SelectItem><SelectItem value="income">📈 {t.incomeType}</SelectItem></SelectContent></Select>
             </div>
