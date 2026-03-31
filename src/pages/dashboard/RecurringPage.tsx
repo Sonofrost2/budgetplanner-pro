@@ -527,6 +527,10 @@ const RecurringPage = () => {
       </ResponsiveFormDialog>
 
       <ConfirmDeleteDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} onConfirm={handleDelete} title={t.confirmDelete} description={t.confirmDeleteMessage} cancelLabel={t.cancel} confirmLabel={t.delete} />
+      <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen} onConfirm={handleBulkDelete}
+        title={locale === 'fr' ? `Supprimer ${bulk.count} récurrence(s)` : `Delete ${bulk.count} recurring`}
+        description={locale === 'fr' ? 'Cette action est irréversible.' : 'This action cannot be undone.'}
+        cancelLabel={t.cancel} confirmLabel={t.delete} />
     </div>
   );
 };
