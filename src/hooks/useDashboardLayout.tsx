@@ -92,5 +92,6 @@ export const WIDGET_LABELS: Record<WidgetId, { fr: string; en: string; icon: str
   budgets: { fr: 'Budgets', en: 'Budgets', icon: '💰' },
   savings: { fr: 'Épargne', en: 'Savings', icon: '🎯' },
   forecast: { fr: 'Prévisions', en: 'Forecast', icon: '📈' },
+  wealth: { fr: 'Patrimoine', en: 'Wealth', icon: '💎' },
   transactions: { fr: 'Transactions', en: 'Transactions', icon: '🔄' },
 };

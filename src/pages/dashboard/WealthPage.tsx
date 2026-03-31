@@ -677,6 +677,16 @@ const WealthPage = () => {
             </Card>
           )}
 
+          {/* 5-Year Projection */}
+          <WealthProjectionChart
+            assets={assets as any}
+            valuations={allValuations}
+            totalSavings={totalSavings}
+            totalDebt={totalDebt}
+            fmt={fmt}
+            isFr={isFr}
+          />
+
           {/* Select asset for history */}
           {!historyAssetId && assets.length > 0 && (
             <Card className="rounded-2xl border-border/50">
