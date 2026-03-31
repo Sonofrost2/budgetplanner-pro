@@ -8,7 +8,7 @@ import {
   Wallet, LayoutDashboard, ArrowUpDown, PieChart, BarChart3, Target, FileText,
   Settings, LogOut, Sun, Moon, Monitor, CreditCard, Shield,
   Tag, Receipt, Search, Crown, Users, Globe,
-  Sparkles, User, ChevronUp
+  Sparkles, User, ChevronUp, Landmark, RefreshCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
