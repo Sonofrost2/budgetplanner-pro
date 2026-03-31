@@ -806,255 +806,30 @@ const SavingsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Contribution Dialog */}
-      <Dialog open={!!addAmountDialog} onOpenChange={() => { setAddAmountDialog(null); setSourceAccountId(''); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{t.addSaving}</DialogTitle>
-            <DialogDescription>
-              {locale === 'fr' ? 'Ajoutez un versement à cet objectif.' : 'Add a contribution to this goal.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="form-label">{t.amount}</Label>
-              <Input type="number" min="0.01" step="0.01" value={addAmount} onChange={e => setAddAmount(e.target.value)} className="rounded-xl h-11 text-lg font-bold" />
-            </div>
-            <div className="space-y-2">
-              <Label className="form-label">
-                {t.savingsSourceAccount} ({t.optional})
-              </Label>
-              <AccountCombobox
-                accounts={accounts}
-                value={sourceAccountId}
-                onValueChange={setSourceAccountId}
-                placeholder={locale === 'fr' ? 'Débiter depuis...' : 'Debit from...'}
-                excludeId={goals.find(g => g.id === addAmountDialog)?.account_id}
-              />
-            </div>
-            {goals.find(g => g.id === addAmountDialog)?.payment_accounts && (
-              <div className="bg-muted/50 rounded-xl p-3 text-sm">
-                <span className="text-muted-foreground">{t.savingsTargetAccount}: </span>
-                <span className="font-medium">
-                  {goals.find(g => g.id === addAmountDialog)?.payment_accounts?.icon}{' '}
-                  {goals.find(g => g.id === addAmountDialog)?.payment_accounts?.name}
-                </span>
-              </div>
-            )}
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => { setAddAmountDialog(null); setSourceAccountId(''); }} className="rounded-xl">{t.cancel}</Button>
-            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleAddAmount} disabled={saving}>
-              {saving ? t.saving : t.save}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddContributionDialog
+        open={!!addAmountDialog}
+        onClose={() => { setAddAmountDialog(null); setSourceAccountId(''); }}
+        amount={addAmount} setAmount={setAddAmount}
+        sourceAccountId={sourceAccountId} setSourceAccountId={setSourceAccountId}
+        accounts={accounts} goal={goals.find(g => g.id === addAmountDialog)}
+        onSave={handleAddAmount} saving={saving} t={t} locale={locale}
+      />
 
-      {/* Withdraw Dialog */}
-      <Dialog open={!!withdrawDialog} onOpenChange={() => { setWithdrawDialog(null); setTargetAccountId(''); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{t.withdrawSaving}</DialogTitle>
-            <DialogDescription>{t.savingsWithdrawDesc}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-muted/50 rounded-xl p-3 text-sm">
-              <span className="text-muted-foreground">{locale === 'fr' ? 'Disponible' : 'Available'}: </span>
-              <span className="font-bold">{fmt(Number(currentGoalForWithdraw?.current_amount || 0))}</span>
-            </div>
-            <div className="space-y-2">
-              <Label className="form-label">{t.withdrawAmount}</Label>
-              <Input
-                type="number" min="0.01" step="0.01"
-                max={currentGoalForWithdraw?.current_amount || 0}
-                value={withdrawAmount}
-                onChange={e => setWithdrawAmount(e.target.value)}
-                className="rounded-xl h-11 text-lg font-bold"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="form-label">
-                {t.savingsTargetAccount} ({t.optional})
-              </Label>
-              <AccountCombobox
-                accounts={accounts}
-                value={targetAccountId}
-                onValueChange={setTargetAccountId}
-                placeholder={locale === 'fr' ? 'Créditer vers...' : 'Credit to...'}
-                excludeId={currentGoalForWithdraw?.account_id}
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => { setWithdrawDialog(null); setTargetAccountId(''); }} className="rounded-xl">{t.cancel}</Button>
-            <Button variant="destructive" className="rounded-xl" onClick={handleWithdraw} disabled={saving}>
-              {saving ? t.saving : t.withdrawSaving}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <WithdrawDialog
+        open={!!withdrawDialog}
+        onClose={() => { setWithdrawDialog(null); setTargetAccountId(''); }}
+        amount={withdrawAmount} setAmount={setWithdrawAmount}
+        targetAccountId={targetAccountId} setTargetAccountId={setTargetAccountId}
+        accounts={accounts} goal={currentGoalForWithdraw}
+        onSave={handleWithdraw} saving={saving} fmt={fmt} t={t} locale={locale}
+      />
 
-      {/* AI Simulation Dialog */}
-      <Dialog open={!!simulationDialog} onOpenChange={() => { setSimulationDialog(null); setSimulation(null); }}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              {t.simulationTitle}
-              {simulationGoal && <span className="text-muted-foreground font-normal">— {simulationGoal.icon} {simulationGoal.name}</span>}
-            </DialogTitle>
-          </DialogHeader>
-          {simulating ? (
-            <div className="py-12 text-center space-y-3">
-              <Sparkles className="w-8 h-8 text-primary mx-auto animate-pulse" />
-              <p className="text-sm text-muted-foreground">{t.simulating}</p>
-            </div>
-          ) : simulation ? (
-            <div className="space-y-6">
-              {/* Summary + Export button */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="bg-muted/50 rounded-xl p-4 flex-1">
-                  <p className="text-sm">{simulation.summary}</p>
-                </div>
-                <Button size="sm" variant="outline" className="rounded-xl shrink-0" onClick={handleExportSimulationPDF}>
-                  <Download className="w-4 h-4 mr-1" />{t.exportPDF}
-                </Button>
-              </div>
-
-              {/* Interest lost banner */}
-              {simulation.interest_lost > 0 && (
-                <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-destructive" />
-                  <span className="text-sm">
-                    <strong>{t.ifYouStopToday}</strong> {fmt(simulation.interest_lost)} {t.inInterest}
-                  </span>
-                </div>
-              )}
-
-              {/* Comparison chart */}
-              {simulation.continue.monthly_projections?.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1">
-                    <BarChart3 className="w-3.5 h-3.5" />
-                    {t.comparisonChart}
-                  </h4>
-                  <div className="h-64 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={simulation.continue.monthly_projections.map((p, i) => ({
-                        month: p.month,
-                        continue_total: p.total,
-                        stop_total: simulation.stop_now.monthly_projections?.[i]?.total ?? p.total,
-                      }))}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                        <XAxis dataKey="month" tick={{ fontSize: 11 }} label={{ value: locale === 'fr' ? 'Mois' : 'Month', position: 'insideBottom', offset: -5, fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: number) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
-                        <Tooltip
-                          formatter={(value: number, name: string) => [fmt(value), name === 'continue_total' ? t.scenarioContinue : t.scenarioStopNow]}
-                          labelFormatter={(label: number) => `${locale === 'fr' ? 'Mois' : 'Month'} ${label}`}
-                          contentStyle={{ borderRadius: '0.75rem', border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))' }}
-                        />
-                        <Legend formatter={(value: string) => value === 'continue_total' ? t.scenarioContinue : t.scenarioStopNow} />
-                        <Line type="monotone" dataKey="continue_total" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
-                        <Line type="monotone" dataKey="stop_total" stroke="hsl(var(--destructive))" strokeWidth={2} strokeDasharray="6 3" dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Dual scenario tabs */}
-              <Tabs defaultValue="continue" className="w-full">
-                <TabsList className="rounded-xl mb-4 w-full">
-                  <TabsTrigger value="continue" className="rounded-lg flex-1 gap-1.5 text-xs">
-                    <TrendingUp className="w-3.5 h-3.5" />{t.scenarioContinue}
-                  </TabsTrigger>
-                  <TabsTrigger value="stop" className="rounded-lg flex-1 gap-1.5 text-xs">
-                    <Lock className="w-3.5 h-3.5" />{t.scenarioStopNow}
-                  </TabsTrigger>
-                </TabsList>
-
-                {(['continue', 'stop'] as const).map(scenario => {
-                  const data = scenario === 'continue' ? simulation.continue : simulation.stop_now;
-                  return (
-                    <TabsContent key={scenario} value={scenario === 'continue' ? 'continue' : 'stop'}>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="bg-primary/10 rounded-xl p-3 text-center">
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome1y}</p>
-                            <p className="text-lg font-bold text-primary mt-1">{fmt(data.interest_income_1y)}</p>
-                          </div>
-                          <div className="bg-primary/10 rounded-xl p-3 text-center">
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome3y}</p>
-                            <p className="text-lg font-bold text-primary mt-1">{fmt(data.interest_income_3y)}</p>
-                          </div>
-                          <div className="bg-primary/10 rounded-xl p-3 text-center">
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.interestIncome5y}</p>
-                            <p className="text-lg font-bold text-primary mt-1">{fmt(data.interest_income_5y)}</p>
-                          </div>
-                        </div>
-
-                        {data.estimated_goal_date && (
-                          <div className="bg-secondary/10 rounded-xl p-3 flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4 text-secondary" />
-                            <span className="text-sm"><strong>{t.estimatedGoalDate}:</strong> {data.estimated_goal_date}</span>
-                          </div>
-                        )}
-
-                        {data.monthly_projections?.length > 0 && (
-                          <div>
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{t.monthlyProjection}</h4>
-                            <div className="overflow-x-auto rounded-xl border border-border/50 max-h-64 overflow-y-auto">
-                              <table className="w-full text-sm">
-                                <thead className="sticky top-0">
-                                  <tr className="bg-muted/50">
-                                    <th className="text-left p-2 font-medium">{locale === 'fr' ? 'Mois' : 'Month'}</th>
-                                    <th className="text-right p-2 font-medium">Capital</th>
-                                    <th className="text-right p-2 font-medium">{locale === 'fr' ? 'Intérêts' : 'Interest'}</th>
-                                    <th className="text-right p-2 font-medium">Total</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {data.monthly_projections.map((p) => (
-                                    <tr key={p.month} className="border-t border-border/30">
-                                      <td className="p-2">{p.month}</td>
-                                      <td className="text-right p-2">{fmt(p.capital)}</td>
-                                      <td className="text-right p-2 text-secondary">{fmt(p.interest_earned)}</td>
-                                      <td className="text-right p-2 font-bold">{fmt(p.total)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </TabsContent>
-                  );
-                })}
-              </Tabs>
-
-              {/* Recommendations */}
-              {simulation.recommendations?.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
-                    <Lightbulb className="w-3.5 h-3.5" />
-                    {t.aiRecommendations}
-                  </h4>
-                  <div className="space-y-2">
-                    {simulation.recommendations.map((r, i) => (
-                      <div key={i} className="bg-muted/40 rounded-lg p-3 text-sm flex gap-2">
-                        <span className="text-primary font-bold">{i + 1}.</span>
-                        <span>{r}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <SimulationDialog
+        open={!!simulationDialog}
+        onClose={() => { setSimulationDialog(null); setSimulation(null); }}
+        goal={simulationGoal} simulation={simulation} simulating={simulating}
+        onExportPDF={handleExportSimulationPDF} fmt={fmt} t={t} locale={locale}
+      />
 
       <ConfirmDeleteDialog
         open={!!deleteId}
