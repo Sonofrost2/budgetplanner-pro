@@ -382,6 +382,7 @@ const RecurringPage = () => {
                 </Card>
               ))}
             </div>
+            </>
           )}
         </TabsContent>
 
