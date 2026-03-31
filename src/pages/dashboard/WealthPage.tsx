@@ -300,7 +300,7 @@ const WealthPage = () => {
     await supabase.from('assets').delete().eq('id', deleteId);
     setDeleteId(null);
     invalidate();
-    toast.success(t.deleted);
+    toast.success(t.delete);
   };
 
   const handleAddValuation = async () => {
