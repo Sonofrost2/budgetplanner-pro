@@ -10,14 +10,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Inbox, TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, ArrowUpDown, Download, X, Sparkles, ArrowLeftRight, AlertTriangle, BarChart3, Loader2, Filter, Clock } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Calendar, CreditCard, Tag, ArrowUpDown, X, ArrowLeftRight, BarChart3, Filter } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -30,34 +24,15 @@ import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useSearchParams } from 'react-router-dom';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
-import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
-import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TransactionForm } from '@/components/dashboard/transactions/TransactionForm';
+import { TransactionList } from '@/components/dashboard/transactions/TransactionList';
+import { BulkModifyDialog, BudgetOverspendDialog } from '@/components/dashboard/transactions/TransactionDialogs';
 
 const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
 type SortOrder = 'asc' | 'desc';
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.04 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 8, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.25, ease: 'easeOut' as const } },
-  exit: { opacity: 0, x: -20, transition: { duration: 0.2 } },
-};
-
-const fadeScale = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: { opacity: 1, scale: 1, transition: { duration: 0.3 } },
-  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
-};
 
 const TransactionsPage = () => {
   const { user } = useAuth();
@@ -691,6 +666,35 @@ const TransactionsPage = () => {
                   <span className="text-xs text-muted-foreground">→</span>
                   <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
                 </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 rounded-lg text-[10px] px-2 border-border/40"
+                    onClick={() => {
+                      const now = new Date();
+                      setStartDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
+                      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                      setEndDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${lastDay}`);
+                    }}
+                  >
+                    {t.thisMonth}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 rounded-lg text-[10px] px-2 border-border/40"
+                    onClick={() => {
+                      const now = new Date();
+                      const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                      setStartDate(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-01`);
+                      const lastDay = new Date(prev.getFullYear(), prev.getMonth() + 1, 0).getDate();
+                      setEndDate(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-${lastDay}`);
+                    }}
+                  >
+                    {t.lastMonth}
+                  </Button>
+                </div>
                 <AnimatePresence>
                   {hasActiveFilters && (
                     <motion.div
@@ -743,150 +747,31 @@ const TransactionsPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.35 }}
       >
-        <Card className={`border border-border/40 rounded-2xl overflow-hidden shadow-[var(--shadow-card)] transition-all duration-300 ${txFetching && !txLoading ? 'opacity-60' : ''}`}>
-          <CardContent className="p-0">
-            {transactions.length === 0 ? (
-              <motion.div
-                className="py-20 text-center"
-                {...fadeScale}
-              >
-                <motion.div
-                  className="w-16 h-16 rounded-2xl bg-muted/50 mx-auto mb-4 flex items-center justify-center"
-                  animate={{ rotate: [0, -5, 5, 0] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-                >
-                  <Inbox className="w-7 h-7 text-muted-foreground/40" />
-                </motion.div>
-                {isEmpty ? (
-                  <>
-                    <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noTransactions}</p>
-                    <p className="text-sm text-muted-foreground/70 mb-5">{t.addFirstTransaction}</p>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button size="sm" className="text-primary-foreground rounded-xl shadow-md" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
-                        <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
-                      </Button>
-                    </motion.div>
-                  </>
-                ) : (
-                  <p className="text-lg font-semibold text-muted-foreground">{t.noResults}</p>
-                )}
-              </motion.div>
-            ) : (
-              <>
-                {/* Sort header */}
-                <div className="flex items-center gap-4 px-5 py-2.5 bg-muted/20 border-b border-border/30 text-xs font-semibold text-muted-foreground">
-                  <div className="w-8 flex-shrink-0"><Checkbox checked={allPageSelected} onCheckedChange={toggleSelectAll} /></div>
-                  <SortButton field="date" current={sortField} order={sortOrder} onSort={toggleSort} label={t.date} />
-                  <div className="flex-1" />
-                  <SortButton field="description" current={sortField} order={sortOrder} onSort={toggleSort} label={t.description} />
-                  <div className="flex-1" />
-                  <SortButton field="amount" current={sortField} order={sortOrder} onSort={toggleSort} label={t.amount} />
-                </div>
-
-                {/* Transaction rows */}
-                <motion.div
-                  className="divide-y divide-border/30"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="show"
-                  key={`${page}-${sortField}-${sortOrder}-${debouncedSearch}`}
-                >
-                  {transactions.map((tx, index) => (
-                    <motion.div
-                      key={tx.id}
-                      variants={itemVariants}
-                      layout
-                      className={`group flex items-center justify-between px-5 py-3 transition-all duration-200 cursor-default ${
-                        selectedIds.has(tx.id)
-                          ? 'bg-primary/5 border-l-2 border-l-primary'
-                          : 'hover:bg-muted/20 border-l-2 border-l-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-8 flex-shrink-0">
-                          <Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => toggleSelect(tx.id)} />
-                        </div>
-
-                        {/* Category icon with color accent */}
-                        <motion.div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 relative"
-                          style={{
-                            background: tx.categories?.color
-                              ? `${tx.categories.color}15`
-                              : 'hsl(var(--muted) / 0.5)',
-                          }}
-                          whileHover={{ scale: 1.1, rotate: 5 }}
-                          transition={{ type: 'spring', stiffness: 400 }}
-                        >
-                          {tx.categories?.icon || '📁'}
-                          {/* Type indicator dot */}
-                          <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
-                        </motion.div>
-
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate leading-tight">{tx.description}</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground/50 flex items-center gap-1 mt-0.5">
-                            <Clock className="w-2.5 h-2.5" />
-                            {locale === 'fr' ? 'Saisi le' : 'Created'} {new Date(tx.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                        <motion.span
-                          className={`text-sm font-bold tabular-nums amount-display px-2 py-1 rounded-lg ${
-                            tx.type === 'income'
-                              ? 'text-secondary bg-secondary/8 amount-glow-green'
-                              : 'text-destructive bg-destructive/8 amount-glow-red'
-                          }`}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: index * 0.02 + 0.1 }}
-                        >
-                          <span className="text-[0.85em] opacity-70 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>{fmt(Number(tx.amount))}
-                        </motion.span>
-
-                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted/60" onClick={() => openEdit(tx)}>
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(tx.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-
-                {/* Pagination */}
-                <div className="flex items-center justify-between px-5 py-3 border-t border-border/30 bg-muted/10">
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {totalCount} {t.results} — {t.page} {page + 1}/{totalPages}
-                  </span>
-                  <div className="flex gap-1.5">
-                    <motion.div whileHover={{ x: -2 }} whileTap={{ scale: 0.95 }}>
-                      <Button variant="outline" size="sm" className="rounded-xl h-8 text-xs border-border/40" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-                        <ChevronLeft className="w-3.5 h-3.5 mr-0.5" />{t.previous}
-                      </Button>
-                    </motion.div>
-                    <motion.div whileHover={{ x: 2 }} whileTap={{ scale: 0.95 }}>
-                      <Button variant="outline" size="sm" className="rounded-xl h-8 text-xs border-border/40" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-                        {t.next}<ChevronRight className="w-3.5 h-3.5 ml-0.5" />
-                      </Button>
-                    </motion.div>
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <TransactionList
+          transactions={transactions}
+          totalCount={totalCount}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAll}
+          allPageSelected={allPageSelected}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSort={toggleSort}
+          onEdit={openEdit}
+          onDelete={(id) => setDeleteId(id)}
+          onAddNew={openNew}
+          isEmpty={isEmpty}
+          fmt={fmt}
+          t={t}
+          locale={locale}
+          isFetching={txFetching && !txLoading}
+        />
       </motion.div>
 
-      {/* Add/Edit Dialog — extracted component */}
+      {/* Add/Edit Dialog */}
       <TransactionForm
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -909,91 +794,31 @@ const TransactionsPage = () => {
 
       {user && <TransferDialog open={transferOpen} onOpenChange={setTransferOpen} accounts={accounts} userId={user.id} t={t} onSuccess={refreshData} />}
 
-      {/* Bulk Modify Dialog */}
-      <Dialog open={bulkModifyOpen} onOpenChange={setBulkModifyOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{t.bulkModify}</DialogTitle>
-            <DialogDescription>{t.selectedCount(selectedIds.size)}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-             <div className="space-y-2">
-              <Label className="form-label">{t.bulkModifyCategory}</Label>
-              <CategoryCombobox
-                categories={categories}
-                value={bulkModifyForm.category_id}
-                onValueChange={v => setBulkModifyForm(f => ({ ...f, category_id: v }))}
-                placeholder={t.selectCategory}
-                groupByType
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="form-label">{t.bulkModifyAccount}</Label>
-              <AccountCombobox
-                accounts={accounts}
-                value={bulkModifyForm.account_id}
-                onValueChange={v => setBulkModifyForm(f => ({ ...f, account_id: v }))}
-                placeholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setBulkModifyOpen(false)} className="rounded-xl">{t.cancel}</Button>
-            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleBulkModify}>{t.applyChanges}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <BulkModifyDialog
+        open={bulkModifyOpen}
+        onOpenChange={setBulkModifyOpen}
+        categories={categories}
+        accounts={accounts}
+        form={bulkModifyForm}
+        setForm={setBulkModifyForm}
+        onApply={handleBulkModify}
+        selectedCount={selectedIds.size}
+        t={t}
+        locale={locale}
+      />
 
-      {/* Budget Overspend Confirmation */}
-      <AlertDialog open={budgetOverspendOpen} onOpenChange={setBudgetOverspendOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              {locale === 'fr' ? 'Budget dépassé' : 'Budget exceeded'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {locale === 'fr'
-                ? `Le budget "${overspendBudgetName}" est déjà consommé à 100%. Souhaitez-vous quand même imputer cette dépense ? Cela créera un dépassement volontaire.`
-                : `The budget "${overspendBudgetName}" is already 100% consumed. Do you still want to record this expense? This will create a voluntary overspend.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">{t.cancel}</AlertDialogCancel>
-            <AlertDialogAction className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleForceOverspend}>
-              {locale === 'fr' ? 'Confirmer le dépassement' : 'Confirm overspend'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <BudgetOverspendDialog
+        open={budgetOverspendOpen}
+        onOpenChange={setBudgetOverspendOpen}
+        budgetName={overspendBudgetName}
+        onConfirm={handleForceOverspend}
+        t={t}
+        locale={locale}
+      />
         </TabsContent>
       </Tabs>
     </motion.div>
   );
 };
-
-/* Sort button sub-component */
-const SortButton = ({ field, current, order, onSort, label }: {
-  field: SortField; current: SortField; order: SortOrder;
-  onSort: (f: SortField) => void; label: string;
-}) => (
-  <button
-    className={`flex items-center gap-1 transition-colors duration-200 ${current === field ? 'text-primary font-bold' : 'hover:text-foreground'}`}
-    onClick={() => onSort(field)}
-  >
-    {label}
-    <ArrowUpDown className={`w-3 h-3 transition-transform duration-200 ${current === field ? 'text-primary' : ''}`} />
-    {current === field && (
-      <motion.span
-        key={order}
-        initial={{ opacity: 0, y: order === 'asc' ? 4 : -4 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-primary text-xs"
-      >
-        {order === 'asc' ? '↑' : '↓'}
-      </motion.span>
-    )}
-  </button>
-);
 
 export default TransactionsPage;
