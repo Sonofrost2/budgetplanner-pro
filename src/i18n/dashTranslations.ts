@@ -244,6 +244,10 @@ export const dashT = {
     forecastsGuideDesc: 'L\'intelligence artificielle analyse vos habitudes financières et projette vos finances sur 6 mois avec des scénarios optimiste, réaliste et pessimiste. Des recommandations personnalisées vous aident à optimiser votre budget.',
     familyGuide: 'Gestion familiale (Premium)',
     familyGuideDesc: 'Créez un groupe familial et invitez vos proches par email. Partagez des budgets communs et visualisez les dépenses de chaque membre. Idéal pour gérer un budget familial collaboratif.',
+    wealthGuide: 'Patrimoine',
+    wealthGuideDesc: 'Centralisez le suivi de tous vos actifs (immobilier, véhicules, investissements, bijoux). Visualisez votre valeur nette, suivez les plus-values et utilisez l\'IA pour estimer la valorisation de vos biens. Exportez le tout en PDF ou Excel.',
+    faqWealth: 'Comment suivre mon patrimoine ?',
+    faqWealthAnswer: 'Depuis la page Patrimoine, ajoutez vos actifs avec leur valeur actuelle et leur coût d\'acquisition. L\'application calcule automatiquement votre valeur nette (actifs + épargne - dettes) et affiche des projections sur 5 ans.',
     // FAQ
     faqChangeCurrency: 'Comment changer ma devise ?',
     faqChangeCurrencyAnswer: 'Allez dans Paramètres et modifiez votre devise préférée. Tous les montants seront affichés dans la devise choisie.',
