@@ -395,6 +395,25 @@ export const useAccountTheoreticalBalances = () => {
   });
 };
 
+// All transactions for account stats (period stats component)
+export const useAccountTransactions = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['account-transactions', user?.id ?? ''],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('id, date, amount, type, account_id, description, category_id')
+        .eq('user_id', user!.id)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      return (data || []) as Transaction[];
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+};
+
 export const useAccountCashCounts = () => {
   const { user } = useAuth();
   return useQuery({

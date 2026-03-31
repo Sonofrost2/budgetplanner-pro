@@ -32,7 +32,7 @@ import CashCountDialog from '@/components/dashboard/CashCountDialog';
 import { AccountsPeriodStats } from '@/components/dashboard/accounts/AccountsPeriodStats';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
-import { useInvalidate, useAccounts, useAccountTheoreticalBalances, useAccountCashCounts } from '@/hooks/useDashboardData';
+import { useInvalidate, useAccounts, useAccountTheoreticalBalances, useAccountCashCounts, useAccountTransactions } from '@/hooks/useDashboardData';
 import type { Account, Transaction } from '@/hooks/useDashboardData';
 
 const getAccountTypes = (t: DashTranslations) => [
@@ -57,6 +57,7 @@ const AccountsPage = () => {
   const { data: accounts = [], isLoading: accLoading } = useAccounts();
   const { data: theoreticalBalances = {}, isLoading: balLoading } = useAccountTheoreticalBalances();
   const { data: cashCounts = {}, isLoading: ccLoading } = useAccountCashCounts();
+  const { data: allTransactions = [], isLoading: txLoading } = useAccountTransactions();
   const loading = accLoading || balLoading;
 
   const [dialogOpen, setDialogOpen] = useState(false);
