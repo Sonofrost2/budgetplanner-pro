@@ -158,7 +158,7 @@ const WealthPage = () => {
   const { data: debts = [] } = useQuery({
     queryKey: ['debts-wealth', user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from('debts').select('total_amount, paid_amount')
+      const { data } = await supabase.from('debts').select('creditor_name, total_amount, paid_amount')
         .eq('user_id', user!.id);
       return data || [];
     },
