@@ -33,25 +33,6 @@ const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
 type SortOrder = 'asc' | 'desc';
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.04 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 8, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.25, ease: 'easeOut' as const } },
-  exit: { opacity: 0, x: -20, transition: { duration: 0.2 } },
-};
-
-const fadeScale = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: { opacity: 1, scale: 1, transition: { duration: 0.3 } },
-  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
-};
 
 const TransactionsPage = () => {
   const { user } = useAuth();
