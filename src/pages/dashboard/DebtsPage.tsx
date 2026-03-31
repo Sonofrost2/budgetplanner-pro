@@ -41,8 +41,18 @@ const DebtsPage = () => {
   const fmt = (n: number) => fmtCurrency(n, locale);
   const refreshData = () => invalidate('debts');
 
+  const validateDebtForm = () => {
+    const errs: Record<string, string> = {};
+    if (!form.creditor_name.trim()) errs.creditor_name = locale === 'fr' ? 'Le nom du créancier est requis' : 'Creditor name is required';
+    if (!form.total_amount || Number(form.total_amount) <= 0) errs.total_amount = locale === 'fr' ? 'Le montant doit être supérieur à 0' : 'Amount must be greater than 0';
+    if (Number(form.paid_amount) < 0) errs.paid_amount = locale === 'fr' ? 'Le montant payé ne peut pas être négatif' : 'Paid amount cannot be negative';
+    if (Number(form.paid_amount) > Number(form.total_amount)) errs.paid_amount = locale === 'fr' ? 'Le montant payé ne peut pas dépasser le total' : 'Paid amount cannot exceed total';
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSave = async () => {
-    if (!user || !form.creditor_name.trim() || Number(form.total_amount) <= 0) return;
+    if (!user || !validateDebtForm()) return;
     const payload = { creditor_name: form.creditor_name.trim(), total_amount: Number(form.total_amount), paid_amount: Number(form.paid_amount) || 0, due_date: form.due_date || null, notes: form.notes || null };
     const { error } = editId
       ? await supabase.from('debts').update(payload).eq('id', editId)
