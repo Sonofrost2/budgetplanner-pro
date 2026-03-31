@@ -15,6 +15,7 @@ const DEFAULT_ORDER: WidgetConfig[] = [
   { id: 'budgets', colSpan: 2, visible: true },
   { id: 'forecast', colSpan: 3, visible: true },
   { id: 'savings', colSpan: 2, visible: true },
+  { id: 'wealth', colSpan: 2, visible: true },
   { id: 'transactions', colSpan: 5, visible: true },
 ];
 
