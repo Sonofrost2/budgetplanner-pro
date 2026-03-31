@@ -812,27 +812,31 @@ const WealthPage = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="form-label">{isFr ? 'Valeur actuelle' : 'Current Value'}</Label>
+              <Label className="form-label">{isFr ? 'Valeur actuelle' : 'Current Value'} *</Label>
               <Input type="number" min="0" step="1" value={form.current_value}
-                onChange={e => setForm(f => ({ ...f, current_value: e.target.value }))}
-                className="rounded-xl h-10 text-lg font-bold" placeholder="0" />
+                onChange={e => { setForm(f => ({ ...f, current_value: e.target.value })); setFormErrors(e => ({ ...e, current_value: '' })); }}
+                className={`rounded-xl h-10 text-lg font-bold ${formErrors.current_value ? 'border-destructive' : ''}`} placeholder="0" />
+              {formErrors.current_value && <p className="text-xs text-destructive">{formErrors.current_value}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label className="form-label">{isFr ? 'Coût d\'acquisition' : 'Acquisition Cost'}</Label>
+              <Label className="form-label">{isFr ? 'Coût d\'acquisition' : 'Acquisition Cost'} ({isFr ? 'optionnel' : 'optional'})</Label>
               <Input type="number" min="0" step="1" value={form.acquisition_cost}
-                onChange={e => setForm(f => ({ ...f, acquisition_cost: e.target.value }))}
-                className="rounded-xl h-10" placeholder="0" />
+                onChange={e => { setForm(f => ({ ...f, acquisition_cost: e.target.value })); setFormErrors(e => ({ ...e, acquisition_cost: '' })); }}
+                className={`rounded-xl h-10 ${formErrors.acquisition_cost ? 'border-destructive' : ''}`} placeholder="0" />
+              {formErrors.acquisition_cost && <p className="text-xs text-destructive">{formErrors.acquisition_cost}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="form-label">{isFr ? 'Date d\'acquisition' : 'Acquisition Date'}</Label>
-              <Input type="date" value={form.acquisition_date}
-                onChange={e => setForm(f => ({ ...f, acquisition_date: e.target.value }))} className="rounded-xl h-10" />
+              <Label className="form-label">{isFr ? 'Date d\'acquisition' : 'Acquisition Date'} ({isFr ? 'optionnel' : 'optional'})</Label>
+              <Input type="date" value={form.acquisition_date} max={new Date().toISOString().split('T')[0]}
+                onChange={e => { setForm(f => ({ ...f, acquisition_date: e.target.value })); setFormErrors(e => ({ ...e, acquisition_date: '' })); }}
+                className={`rounded-xl h-10 ${formErrors.acquisition_date ? 'border-destructive' : ''}`} />
+              {formErrors.acquisition_date && <p className="text-xs text-destructive">{formErrors.acquisition_date}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label className="form-label flex items-center gap-1"><MapPin className="w-3 h-3" />{isFr ? 'Localisation' : 'Location'}</Label>
+              <Label className="form-label flex items-center gap-1"><MapPin className="w-3 h-3" />{isFr ? 'Localisation' : 'Location'} ({isFr ? 'optionnel' : 'optional'})</Label>
               <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                 placeholder={isFr ? 'Ex: Abidjan, Cocody' : 'E.g: Paris, 16th'} className="rounded-xl h-10" />
             </div>
