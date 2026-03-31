@@ -33,6 +33,7 @@ import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TransactionForm } from '@/components/dashboard/transactions/TransactionForm';
 
 const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
