@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Pencil, Trash2, Inbox, Plus, ChevronLeft, ChevronRight, ArrowUpDown, MoreVertical, TrendingUp, TrendingDown, Clock, ChevronsLeft, ChevronsRight, Calendar } from 'lucide-react';
+import { Pencil, Trash2, Inbox, Plus, ChevronLeft, ChevronRight, ArrowUpDown, MoreVertical, TrendingUp, TrendingDown, Clock, ChevronsLeft, ChevronsRight, Calendar, LayoutList, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { Transaction } from '@/hooks/useDashboardData';
@@ -270,6 +270,7 @@ export const TransactionList = ({
 }: TransactionListProps) => {
   const groups = useMemo(() => groupByDate(transactions, locale), [transactions, locale]);
   const isMobile = useIsMobile();
+  const [condensed, setCondensed] = useState(false);
 
   return (
     <Card className={`border border-[hsl(var(--glass-border))] rounded-2xl overflow-hidden shadow-[var(--shadow-glass)] backdrop-blur-sm bg-[hsl(var(--glass))] transition-all duration-300 ${isFetching ? 'opacity-50' : ''}`}>
@@ -310,57 +311,67 @@ export const TransactionList = ({
               <SortButton field="description" current={sortField} order={sortOrder} onSort={onSort} label={t.description} />
               <div className="flex-1" />
               <SortButton field="amount" current={sortField} order={sortOrder} onSort={onSort} label={t.amount} />
+              <div className="ml-auto pl-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-7 w-7 rounded-lg transition-colors ${condensed ? 'bg-primary/10 text-primary' : 'hover:bg-muted/40'}`}
+                  onClick={() => setCondensed(c => !c)}
+                  title={condensed ? (locale === 'fr' ? 'Vue détaillée' : 'Detailed view') : (locale === 'fr' ? 'Vue condensée' : 'Condensed view')}
+                >
+                  {condensed ? <LayoutGrid className="w-3.5 h-3.5" /> : <LayoutList className="w-3.5 h-3.5" />}
+                </Button>
+              </div>
             </div>
 
             {/* Grouped transaction rows */}
             <div>
               {groups.map((group, groupIndex) => (
                 <div key={group.date}>
-                  {/* Date separator — visual timeline style */}
-                  <div className="relative sticky top-0 z-10 px-5 py-2.5 bg-gradient-to-r from-primary/[0.04] via-muted/40 to-secondary/[0.04] backdrop-blur-xl border-b border-border/20">
-                    <div className="flex items-center gap-3">
-                      {/* Calendar badge */}
-                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/15 flex flex-col items-center justify-center">
-                        <Calendar className="w-3 h-3 text-primary/70 mb-0.5" />
-                        <span className="text-[9px] font-extrabold text-primary/80 leading-none">
-                          {new Date(group.date + 'T12:00:00').getDate()}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold text-foreground/80 capitalize">
-                            {group.label}
-                          </span>
-                          <span className="text-[9px] font-medium text-muted-foreground/50 capitalize">
-                            {group.weekday}
-                          </span>
-                          <span className="text-[9px] text-muted-foreground/40 bg-muted/40 px-1.5 py-0.5 rounded-full font-semibold">
-                            {group.txs.length}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {group.income > 0 && (
-                            <span className="text-[10px] font-bold text-secondary tabular-nums">+{fmt(group.income)}</span>
-                          )}
-                          {group.expense > 0 && (
-                            <span className="text-[10px] font-bold text-destructive tabular-nums">-{fmt(group.expense)}</span>
-                          )}
-                          {group.income > 0 && group.expense > 0 && (
-                            <>
-                              <span className="text-muted-foreground/30">·</span>
-                              <span className={`text-[10px] font-bold tabular-nums ${group.income - group.expense >= 0 ? 'text-secondary/70' : 'text-destructive/70'}`}>
-                                = {group.income - group.expense >= 0 ? '+' : '-'}{fmt(Math.abs(group.income - group.expense))}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                  {/* Date separator — compact or detailed */}
+                  {condensed ? (
+                    <div className="sticky top-0 z-10 px-5 py-1.5 bg-muted/30 backdrop-blur-sm border-b border-border/15 flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-foreground/70 capitalize">{group.label}</span>
+                      <span className="text-[9px] text-muted-foreground/40 capitalize">{group.weekday}</span>
+                      <span className="text-[9px] text-muted-foreground/40 bg-muted/40 px-1.5 py-0.5 rounded-full font-semibold">{group.txs.length}</span>
+                      <div className="flex-1" />
+                      {group.income > 0 && <span className="text-[9px] font-bold text-secondary tabular-nums">+{fmt(group.income)}</span>}
+                      {group.expense > 0 && <span className="text-[9px] font-bold text-destructive tabular-nums">-{fmt(group.expense)}</span>}
                     </div>
-                    {/* Timeline line */}
-                    {groupIndex < groups.length - 1 && (
-                      <div className="absolute left-[39px] top-full w-px h-full bg-gradient-to-b from-primary/15 to-transparent pointer-events-none" />
-                    )}
-                  </div>
+                  ) : (
+                    <div className="relative sticky top-0 z-10 px-5 py-2.5 bg-gradient-to-r from-primary/[0.04] via-muted/40 to-secondary/[0.04] backdrop-blur-xl border-b border-border/20">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/15 flex flex-col items-center justify-center">
+                          <Calendar className="w-3 h-3 text-primary/70 mb-0.5" />
+                          <span className="text-[9px] font-extrabold text-primary/80 leading-none">
+                            {new Date(group.date + 'T12:00:00').getDate()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-foreground/80 capitalize">{group.label}</span>
+                            <span className="text-[9px] font-medium text-muted-foreground/50 capitalize">{group.weekday}</span>
+                            <span className="text-[9px] text-muted-foreground/40 bg-muted/40 px-1.5 py-0.5 rounded-full font-semibold">{group.txs.length}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {group.income > 0 && <span className="text-[10px] font-bold text-secondary tabular-nums">+{fmt(group.income)}</span>}
+                            {group.expense > 0 && <span className="text-[10px] font-bold text-destructive tabular-nums">-{fmt(group.expense)}</span>}
+                            {group.income > 0 && group.expense > 0 && (
+                              <>
+                                <span className="text-muted-foreground/30">·</span>
+                                <span className={`text-[10px] font-bold tabular-nums ${group.income - group.expense >= 0 ? 'text-secondary/70' : 'text-destructive/70'}`}>
+                                  = {group.income - group.expense >= 0 ? '+' : '-'}{fmt(Math.abs(group.income - group.expense))}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {groupIndex < groups.length - 1 && (
+                        <div className="absolute left-[39px] top-full w-px h-full bg-gradient-to-b from-primary/15 to-transparent pointer-events-none" />
+                      )}
+                    </div>
+                  )}
 
                   <motion.div
                     variants={containerVariants}
@@ -368,7 +379,57 @@ export const TransactionList = ({
                     animate="show"
                   >
                     {group.txs.map((tx, index) => {
-                      const rowContent = (
+                      const rowContent = condensed ? (
+                        /* ── Condensed row ── */
+                        <motion.div
+                          key={tx.id}
+                          variants={itemVariants}
+                          layout
+                          className={`group relative flex items-center gap-2 px-4 py-1.5 transition-all duration-200 cursor-default border-b border-border/8 last:border-b-0 ${
+                            selectedIds.has(tx.id)
+                              ? 'bg-primary/[0.06] border-l-2 border-l-primary'
+                              : 'hover:bg-[hsl(var(--glass-hover))] border-l-2 border-l-transparent'
+                          }`}
+                          whileTap={{ scale: 0.998 }}
+                        >
+                          <Checkbox className="h-3.5 w-3.5" checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
+                          <span className="text-sm flex-shrink-0">{tx.categories?.icon || '📁'}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
+                          <span className="text-xs font-semibold truncate flex-1 text-foreground/85">{tx.description}</span>
+                          <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 tabular-nums hidden sm:inline">
+                            {tx.categories?.name || '-'}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/40 flex-shrink-0 tabular-nums hidden md:inline">
+                            {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
+                          </span>
+                          <span className={`text-xs font-bold tabular-nums flex-shrink-0 ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
+                            {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
+                          </span>
+                          {/* Desktop: hover actions */}
+                          {!isMobile && (
+                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary" onClick={() => onEdit(tx)}>
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md text-destructive hover:bg-destructive/10" onClick={() => onDelete(tx.id)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                          {isMobile && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md"><MoreVertical className="w-3 h-3" /></Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
+                                <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg"><Pencil className="w-3.5 h-3.5" /> {t.edit}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg"><Trash2 className="w-3.5 h-3.5" /> {t.delete}</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </motion.div>
+                      ) : (
+                        /* ── Detailed row ── */
                         <motion.div
                           key={tx.id}
                           variants={itemVariants}
@@ -384,8 +445,6 @@ export const TransactionList = ({
                             <div className="w-8 flex-shrink-0">
                               <Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
                             </div>
-
-                            {/* Gradient category icon */}
                             <motion.div
                               className="w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0 relative border border-white/10 shadow-sm"
                               style={{ background: getCategoryGradient(tx.categories?.color, tx.type) }}
@@ -393,20 +452,14 @@ export const TransactionList = ({
                               transition={{ type: 'spring', stiffness: 400 }}
                             >
                               {tx.categories?.icon || '📁'}
-                              {/* Glowing type indicator */}
                               <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background shadow-sm ${
-                                tx.type === 'income'
-                                  ? 'bg-secondary shadow-secondary/30'
-                                  : 'bg-destructive shadow-destructive/30'
+                                tx.type === 'income' ? 'bg-secondary shadow-secondary/30' : 'bg-destructive shadow-destructive/30'
                               }`} />
                             </motion.div>
-
                             <div className="min-w-0">
                               <p className="text-sm font-bold truncate leading-tight text-foreground/90">{tx.description}</p>
                               <p className="text-[11px] text-muted-foreground/70 mt-0.5 flex items-center gap-1">
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-muted/30 text-[10px] font-medium">
-                                  {tx.categories?.name || '-'}
-                                </span>
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-muted/30 text-[10px] font-medium">{tx.categories?.name || '-'}</span>
                                 <span className="text-muted-foreground/30">·</span>
                                 {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
                               </p>
@@ -418,15 +471,9 @@ export const TransactionList = ({
                               </p>
                             </div>
                           </div>
-
                           <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                            {/* Animated amount with glow */}
                             <motion.div
-                              className={`relative px-3 py-1.5 rounded-xl text-sm font-extrabold tabular-nums ${
-                                tx.type === 'income'
-                                  ? 'text-secondary'
-                                  : 'text-destructive'
-                              }`}
+                              className={`relative px-3 py-1.5 rounded-xl text-sm font-extrabold tabular-nums ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}
                               style={{
                                 background: tx.type === 'income'
                                   ? 'linear-gradient(135deg, hsl(var(--secondary) / 0.12), hsl(var(--secondary) / 0.04))'
@@ -442,8 +489,6 @@ export const TransactionList = ({
                               <span className="text-[0.82em] opacity-60 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>
                               {fmt(Number(tx.amount))}
                             </motion.div>
-
-                            {/* Desktop: hover actions */}
                             {!isMobile && (
                               <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => onEdit(tx)}>
@@ -454,22 +499,14 @@ export const TransactionList = ({
                                 </Button>
                               </div>
                             )}
-
-                            {/* Mobile: context menu */}
                             {isMobile && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl">
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl"><MoreVertical className="w-4 h-4" /></Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
-                                  <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg">
-                                    <Pencil className="w-3.5 h-3.5" /> {t.edit}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg">
-                                    <Trash2 className="w-3.5 h-3.5" /> {t.delete}
-                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg"><Pencil className="w-3.5 h-3.5" /> {t.edit}</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg"><Trash2 className="w-3.5 h-3.5" /> {t.delete}</DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
@@ -477,7 +514,7 @@ export const TransactionList = ({
                         </motion.div>
                       );
 
-                      if (isMobile) {
+                      if (isMobile && !condensed) {
                         return (
                           <SwipeableRow key={tx.id} onEdit={() => onEdit(tx)} onDelete={() => onDelete(tx.id)}>
                             {rowContent}
