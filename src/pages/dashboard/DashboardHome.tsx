@@ -35,6 +35,7 @@ import { ChartsSection } from '@/components/dashboard/home/ChartsSection';
 import { RecentTransactions } from '@/components/dashboard/home/RecentTransactions';
 import { AccountsSummaryWidget } from '@/components/dashboard/home/AccountsSummaryWidget';
 import { WeeklyPlannerWidget } from '@/components/dashboard/home/WeeklyPlannerWidget';
+import { WealthWidget } from '@/components/dashboard/home/WealthWidget';
 import { SortableWidget } from '@/components/dashboard/home/SortableWidget';
 import { useDashboardLayout, type WidgetId } from '@/hooks/useDashboardLayout';
 import { useAccounts, useTransactionsRange, useBudgets, useSavingsGoals, useChartData } from '@/hooks/useDashboardData';
@@ -254,6 +255,7 @@ const DashboardHome = () => {
     savings: <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />,
     forecast: <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />,
     transactions: <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />,
+    wealth: <WealthWidget fmt={fmt} t={t} locale={locale} />,
   };
 
   if (loading) {
