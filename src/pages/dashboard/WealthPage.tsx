@@ -478,6 +478,7 @@ const WealthPage = () => {
           <TabsTrigger value="overview" className="flex-1 rounded-xl text-xs">{isFr ? 'Vue d\'ensemble' : 'Overview'}</TabsTrigger>
           <TabsTrigger value="assets" className="flex-1 rounded-xl text-xs">{isFr ? 'Mes actifs' : 'My Assets'}</TabsTrigger>
           <TabsTrigger value="evolution" className="flex-1 rounded-xl text-xs">{isFr ? 'Évolution' : 'Evolution'}</TabsTrigger>
+          <TabsTrigger value="analysis" className="flex-1 rounded-xl text-xs">{isFr ? 'Analyse' : 'Analysis'}</TabsTrigger>
         </TabsList>
 
         {/* ─── Overview ─── */}

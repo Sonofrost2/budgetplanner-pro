@@ -138,9 +138,12 @@ const DashboardLayout = () => {
             {/* Sidebar toggle — desktop only */}
             <SidebarTrigger className="hidden lg:flex h-8 w-8 rounded-xl" />
 
-            <h1 className="text-sm font-semibold font-display truncate">
-              {t.welcome}, {profile?.display_name?.split(' ')[0] || 'User'} 👋
-            </h1>
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-sm font-semibold font-display truncate">
+                {t.welcome}, {profile?.display_name?.split(' ')[0] || 'User'} 👋
+              </h1>
+              <DashboardBreadcrumb />
+            </div>
             <div className="flex-1" />
 
             {/* Search trigger */}
