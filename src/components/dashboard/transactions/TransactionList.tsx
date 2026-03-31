@@ -253,7 +253,7 @@ export const TransactionList = ({
         ) : (
           <>
             {/* KPI Summary */}
-            <KPIBar transactions={transactions} fmt={fmt} t={t} />
+            <KPIBar transactions={transactions} fmt={fmt} t={t} locale={locale} />
 
             {/* Sort header */}
             <div className="flex items-center gap-4 px-5 py-2.5 bg-muted/20 border-b border-border/30 text-xs font-semibold text-muted-foreground">
