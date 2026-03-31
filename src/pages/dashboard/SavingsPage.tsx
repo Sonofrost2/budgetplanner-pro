@@ -156,7 +156,7 @@ const SavingsPage = () => {
         }
       }
 
-      await fetchData();
+      await refreshData();
       invalidateCrossModule();
       toast.success(locale === 'fr'
         ? `${updated} objectif(s) recalculé(s) depuis les transactions`
@@ -229,7 +229,7 @@ const SavingsPage = () => {
         }
       }
 
-      await fetchData();
+      await refreshData();
       toast.success(locale === 'fr' ? `${updated} objectif(s) synchronisé(s)` : `${updated} goal(s) synced`);
     } catch (err: any) {
       toast.error(err.message || 'Erreur');
@@ -264,7 +264,7 @@ const SavingsPage = () => {
     }
     setDialogOpen(false);
     setEditGoalId(null);
-    fetchData();
+    refreshData();
     toast.success(t.saved);
   };
 
@@ -316,7 +316,7 @@ const SavingsPage = () => {
       setAddAmountDialog(null);
       setAddAmount('');
       setSourceAccountId('');
-      fetchData();
+      refreshData();
       invalidateCrossModule();
       toast.success(t.saved);
     } catch (err: any) {
@@ -383,7 +383,7 @@ const SavingsPage = () => {
       setWithdrawDialog(null);
       setWithdrawAmount('');
       setTargetAccountId('');
-      fetchData();
+      refreshData();
       invalidateCrossModule();
       toast.success(t.saved);
     } catch (err: any) {
@@ -397,7 +397,7 @@ const SavingsPage = () => {
     if (!deleteId) return;
     await supabase.from('savings_goals').delete().eq('id', deleteId);
     setDeleteId(null);
-    fetchData();
+    refreshData();
   };
 
   // AI Simulation
