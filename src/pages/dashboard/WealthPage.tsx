@@ -125,6 +125,7 @@ const WealthPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [historyAssetId, setHistoryAssetId] = useState<string | null>(null);
   const [aiValuing, setAiValuing] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
     name: '', asset_type: 'real_estate', category: '', acquisition_date: '',
