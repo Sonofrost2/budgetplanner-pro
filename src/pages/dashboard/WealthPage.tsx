@@ -22,12 +22,13 @@ import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis
 import {
   Building2, Car, TrendingUp, Wallet, Plus, Pencil, Trash2, Sparkles,
   MapPin, Calendar, ArrowUpRight, ArrowDownRight, History, Loader2,
-  Gem, Package, BarChart3, Eye
+  Gem, Package, BarChart3, Eye, FileDown, FileSpreadsheet
 } from 'lucide-react';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { WealthProjectionChart } from '@/components/dashboard/wealth/WealthProjectionChart';
+import { exportWealthPDF, exportWealthExcel } from '@/lib/wealthExport';
 
 const ASSET_TYPES = [
   { value: 'real_estate', label_fr: 'Immobilier', label_en: 'Real Estate', icon: '🏠', lucide: Building2, color: 'hsl(var(--primary))' },
@@ -157,7 +158,7 @@ const WealthPage = () => {
   const { data: debts = [] } = useQuery({
     queryKey: ['debts-wealth', user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from('debts').select('total_amount, paid_amount')
+      const { data } = await supabase.from('debts').select('creditor_name, total_amount, paid_amount')
         .eq('user_id', user!.id);
       return data || [];
     },
@@ -186,6 +187,28 @@ const WealthPage = () => {
   const netWorth = totalAssets + totalSavings - totalDebt;
   const totalAcquisition = useMemo(() => assets.reduce((s, a) => s + Number(a.acquisition_cost || 0), 0), [assets]);
   const totalGainLoss = totalAssets - totalAcquisition;
+
+  // Projection data for export
+  const projectionData = useMemo(() => {
+    const defaults: Record<string, number> = { real_estate: 0.05, vehicle: -0.10, financial: 0.07, savings: 0.03, jewelry: 0.03, other: 0.02 };
+    const currentYear = new Date().getFullYear();
+    const data: { year: string; optimistic: number; base: number; pessimistic: number }[] = [];
+    for (let y = 0; y <= 5; y++) {
+      if (y === 0) { data.push({ year: String(currentYear), optimistic: netWorth, base: netWorth, pessimistic: netWorth }); continue; }
+      let baseAssets = 0;
+      assets.forEach(a => { baseAssets += Number(a.current_value) * Math.pow(1 + (defaults[a.asset_type] ?? 0.03), y); });
+      const baseSavings = totalSavings * Math.pow(1.03, y);
+      const baseDebt = totalDebt * Math.pow(0.85, y);
+      const base = baseAssets + baseSavings - baseDebt;
+      data.push({ year: String(currentYear + y), optimistic: Math.round(base * (1 + 0.02 * y)), base: Math.round(base), pessimistic: Math.round(base * (1 - 0.02 * y)) });
+    }
+    return data;
+  }, [assets, netWorth, totalSavings, totalDebt]);
+
+  const handleExport = (type: 'pdf' | 'excel') => {
+    const exportData = { assets: assets as any, savingsGoals, debts: debts as any, netWorth, totalAssets, totalSavings, totalDebt, totalGainLoss, projections: projectionData, pieData, isFr, fmt };
+    type === 'pdf' ? exportWealthPDF(exportData) : exportWealthExcel(exportData);
+  };
 
   const filteredAssets = useMemo(() => {
     let result = [...assets];
@@ -368,10 +391,18 @@ const WealthPage = () => {
           <h1 className="text-xl font-bold font-display">{isFr ? 'Gestion du patrimoine' : 'Wealth Management'}</h1>
           <p className="text-sm text-muted-foreground">{isFr ? 'Suivez et valorisez vos actifs' : 'Track and value your assets'}</p>
         </div>
-        <Button onClick={() => { resetForm(); setEditId(null); setDialogOpen(true); }}
-          className="rounded-xl text-primary-foreground shadow-md" style={{ background: 'var(--gradient-primary)' }}>
-          <Plus className="w-4 h-4 mr-1.5" />{isFr ? 'Ajouter un actif' : 'Add Asset'}
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="rounded-xl h-9 text-xs gap-1.5 glass border-glass-border" onClick={() => handleExport('pdf')}>
+            <FileDown className="w-3.5 h-3.5" /> PDF
+          </Button>
+          <Button variant="outline" size="sm" className="rounded-xl h-9 text-xs gap-1.5 glass border-glass-border" onClick={() => handleExport('excel')}>
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+          </Button>
+          <Button onClick={() => { resetForm(); setEditId(null); setDialogOpen(true); }}
+            className="rounded-xl text-primary-foreground shadow-md h-9" style={{ background: 'var(--gradient-primary)' }}>
+            <Plus className="w-4 h-4 mr-1.5" />{isFr ? 'Ajouter un actif' : 'Add Asset'}
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
