@@ -54,22 +54,22 @@ const AccountsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const typeFilter = searchParams.get('type') || '';
   const initialSearch = searchParams.get('q') || '';
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [theoreticalBalances, setTheoreticalBalances] = useState<Record<string, number>>({});
-  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const { data: accounts = [], isLoading: accLoading } = useAccounts();
+  const { data: theoreticalBalances = {}, isLoading: balLoading } = useAccountTheoreticalBalances();
+  const { data: cashCounts = {}, isLoading: ccLoading } = useAccountCashCounts();
+  const loading = accLoading || balLoading;
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
   const [updateBalanceDialog, setUpdateBalanceDialog] = useState<Account | null>(null);
   const [newRealBalance, setNewRealBalance] = useState('');
   const [form, setForm] = useState({ name: '', type: 'mobile_money', icon: '💳', opening_balance: '0' });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [cashCountAccount, setCashCountAccount] = useState<Account | null>(null);
-  const [cashCounts, setCashCounts] = useState<Record<string, { counted_at: string; total_counted: number }>>({});
   const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [previewCashCount, setPreviewCashCount] = useState<any | null>(null);
