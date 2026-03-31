@@ -57,6 +57,7 @@ const CategoriesPage = () => {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', icon: '📁', color: '#6C63FF', type: 'expense' });
