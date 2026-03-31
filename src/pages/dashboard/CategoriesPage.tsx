@@ -72,8 +72,8 @@ const CategoriesPage = () => {
 
   const refreshData = () => { invalidate('categories', 'category-tx-counts', 'budgets'); bulk.clear(); };
 
-  const openNew = () => { setEditing(null); setForm({ name: '', icon: '📁', color: '#6C63FF', type: 'expense' }); setDialogOpen(true); };
-  const openEdit = (cat: any) => { setEditing(cat); setForm({ name: cat.name, icon: cat.icon, color: cat.color, type: cat.type }); setDialogOpen(true); };
+  const openNew = () => { setEditing(null); setFormErrors({}); setForm({ name: '', icon: '📁', color: '#6C63FF', type: 'expense' }); setDialogOpen(true); };
+  const openEdit = (cat: any) => { setEditing(cat); setFormErrors({}); setForm({ name: cat.name, icon: cat.icon, color: cat.color, type: cat.type }); setDialogOpen(true); };
 
   const handleSave = async () => {
     if (!user || !form.name.trim()) return;
