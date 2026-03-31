@@ -402,6 +402,7 @@ const WealthPage = () => {
             className="rounded-xl text-primary-foreground shadow-md h-9" style={{ background: 'var(--gradient-primary)' }}>
             <Plus className="w-4 h-4 mr-1.5" />{isFr ? 'Ajouter un actif' : 'Add Asset'}
           </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
