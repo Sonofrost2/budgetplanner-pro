@@ -33,6 +33,7 @@ import { exportToCSV, exportToExcel } from '@/lib/export';
 import BudgetGlobalStats from '@/components/dashboard/budgets/BudgetGlobalStats';
 import BudgetAnalysisTab from '@/components/dashboard/tabs/BudgetAnalysisTab';
 import BudgetEvolutionTab from '@/components/dashboard/tabs/BudgetEvolutionTab';
+import { BudgetForm } from '@/components/dashboard/budgets/BudgetForm';
 
 const PERIOD_MULTIPLIER: Record<string, number> = {
   daily: 365, weekly: 52, monthly: 12, quarterly: 4, semi_annual: 2, yearly: 1,
