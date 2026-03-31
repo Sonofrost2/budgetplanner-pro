@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -30,12 +31,36 @@ interface TransactionListProps {
   locale: string;
 }
 
+/** Group transactions by date and render date separators */
+const groupByDate = (transactions: Transaction[], locale: string) => {
+  const groups: { date: string; label: string; txs: Transaction[] }[] = [];
+  let current: typeof groups[number] | null = null;
+
+  for (const tx of transactions) {
+    const d = tx.date;
+    if (!current || current.date !== d) {
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      let label: string;
+      if (d === today) label = locale === 'fr' ? "Aujourd'hui" : 'Today';
+      else if (d === yesterday) label = locale === 'fr' ? 'Hier' : 'Yesterday';
+      else label = new Date(d).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      current = { date: d, label, txs: [] };
+      groups.push(current);
+    }
+    current.txs.push(tx);
+  }
+  return groups;
+};
+
 export const TransactionList = ({
   transactions, totalCount, page, totalPages,
   onPageChange, selectedIds, onToggleSelect, onToggleSelectAll, allPageSelected,
   sortField, sortOrder, onSort, onEdit, onDelete, onAddNew,
   isEmpty, fmt, t, locale,
 }: TransactionListProps) => {
+  const groups = useMemo(() => groupByDate(transactions, locale), [transactions, locale]);
+
   return (
     <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden">
       <CardContent className="p-0">
@@ -70,36 +95,53 @@ export const TransactionList = ({
               <SortButton field="amount" current={sortField} order={sortOrder} onSort={onSort} label={t.amount} />
             </div>
 
-            <div className="divide-y divide-border/50">
-              {transactions.map(tx => (
-                <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors ${selectedIds.has(tx.id) ? 'bg-primary/5' : ''}`}>
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 flex-shrink-0">
-                      <Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center text-lg flex-shrink-0">
-                      {tx.categories?.icon || '📁'}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold truncate">{tx.description}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/60">
-                        {locale === 'fr' ? 'Saisi le' : 'Created'} {new Date(tx.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`text-sm font-bold tabular-nums amount-display ${tx.type === 'income' ? 'text-secondary amount-glow-green' : 'text-destructive amount-glow-red'}`}>
-                      <span className="text-[0.85em] opacity-70 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>{fmt(Number(tx.amount))}
+            <div>
+              {groups.map(group => (
+                <div key={group.date}>
+                  {/* Date separator */}
+                  <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-2 bg-muted/50 backdrop-blur-sm border-b border-border/30">
+                    <div className="h-px flex-1 bg-border/40" />
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">
+                      {group.label}
                     </span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => onEdit(tx)}>
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive" onClick={() => onDelete(tx.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <span className="text-[10px] text-muted-foreground/60">
+                      ({group.txs.length})
+                    </span>
+                    <div className="h-px flex-1 bg-border/40" />
+                  </div>
+                  <div className="divide-y divide-border/50">
+                    {group.txs.map(tx => (
+                      <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 hover:bg-muted/30 transition-colors ${selectedIds.has(tx.id) ? 'bg-primary/5' : ''}`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 flex-shrink-0">
+                            <Checkbox checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center text-lg flex-shrink-0">
+                            {tx.categories?.icon || '📁'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate">{tx.description}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/60">
+                              {locale === 'fr' ? 'Saisi le' : 'Created'} {new Date(tx.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`text-sm font-bold tabular-nums amount-display ${tx.type === 'income' ? 'text-secondary amount-glow-green' : 'text-destructive amount-glow-red'}`}>
+                            <span className="text-[0.85em] opacity-70 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>{fmt(Number(tx.amount))}
+                          </span>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => onEdit(tx)}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive" onClick={() => onDelete(tx.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}

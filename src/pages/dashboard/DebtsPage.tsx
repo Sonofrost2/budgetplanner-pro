@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -13,11 +13,12 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Landmark, Pencil, Trash2, Sparkles, Loader2, TrendingDown, Target, Lightbulb } from 'lucide-react';
+import { Plus, Landmark, Pencil, Trash2, Sparkles, Loader2, TrendingDown, Target, Lightbulb, Search, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import ReactMarkdown from 'react-markdown';
+import { exportToCSV, exportToExcel } from '@/lib/export';
 
 const DebtsPage = () => {
   const { user } = useAuth();

@@ -1,11 +1,15 @@
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { useReceipts } from '@/hooks/useDashboardData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Receipt, Inbox, Printer } from 'lucide-react';
+import { Receipt, Inbox, Printer, Download, Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { exportToCSV, exportToExcel } from '@/lib/export';
+import { toast } from 'sonner';
 
 const printReceipt = (receipt: any, locale: string) => {
   const dateStr = new Date(receipt.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -32,19 +36,105 @@ const ReceiptsPage = () => {
   const { locale } = useLanguage();
   const t = dashT[locale];
   const { data: receipts = [], isLoading: loading } = useReceipts();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+
+  const filtered = useMemo(() => {
+    let result = receipts as any[];
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(r => r.plan_name.toLowerCase().includes(q) || r.payment_token?.toLowerCase().includes(q));
+    }
+    if (statusFilter) result = result.filter(r => r.status === statusFilter);
+    return result;
+  }, [receipts, searchQuery, statusFilter]);
+
+  const statuses = useMemo(() => [...new Set((receipts as any[]).map(r => r.status))], [receipts]);
+
+  const handleExportCSV = () => {
+    const rows = filtered.map((r: any) => ({
+      Plan: r.plan_name,
+      Amount: r.amount,
+      Currency: r.currency,
+      Status: r.status,
+      Date: new Date(r.created_at).toISOString().split('T')[0],
+      Ref: r.payment_token || '',
+    }));
+    if (!exportToCSV(rows, 'receipts')) toast.info(t.noReceipts);
+  };
+
+  const handleExportExcel = () => {
+    const rows = filtered.map((r: any) => ({
+      Plan: r.plan_name,
+      Amount: r.amount,
+      Currency: r.currency,
+      Status: r.status,
+      Date: new Date(r.created_at).toISOString().split('T')[0],
+      Ref: r.payment_token || '',
+    }));
+    if (!exportToExcel(rows, 'receipts')) toast.info(t.noReceipts);
+  };
 
   if (loading) return <div className="space-y-6"><Skeleton className="h-8 w-40" />{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>;
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold font-display">{t.receipts}</h2>
-      {receipts.length === 0 ? (
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h2 className="text-2xl font-bold font-display">{t.receipts}</h2>
+        {receipts.length > 0 && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCSV} className="rounded-xl"><Download className="w-4 h-4 mr-1" /> CSV</Button>
+            <Button variant="outline" size="sm" onClick={handleExportExcel} className="rounded-xl"><Download className="w-4 h-4 mr-1" /> Excel</Button>
+          </div>
+        )}
+      </div>
+
+      {/* Filters */}
+      {receipts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={locale === 'fr' ? 'Rechercher par plan ou ref...' : 'Search by plan or ref...'}
+              className="pl-9 pr-8 rounded-xl h-10"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setStatusFilter('')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border
+                ${!statusFilter ? 'bg-primary text-primary-foreground border-primary' : 'bg-background/60 text-muted-foreground border-border/40 hover:bg-background/80'}`}
+            >
+              {locale === 'fr' ? 'Tous' : 'All'}
+            </button>
+            {statuses.map(s => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(statusFilter === s ? '' : s)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border capitalize
+                  ${statusFilter === s ? 'bg-primary text-primary-foreground border-primary' : 'bg-background/60 text-muted-foreground border-border/40 hover:bg-background/80'}`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
         <Card className="border-none shadow-[var(--shadow-card)]"><CardContent className="py-16 text-center"><Inbox className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-medium text-muted-foreground">{t.noReceipts}</p></CardContent></Card>
       ) : (
         <Card className="border-none shadow-[var(--shadow-card)]">
           <CardContent className="p-0">
             <div className="divide-y divide-border">
-              {receipts.map((r: any) => (
+              {filtered.map((r: any) => (
                 <div key={r.id} className="flex items-center justify-between px-6 py-4 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-3">
                     <Receipt className="w-5 h-5 text-primary" />
