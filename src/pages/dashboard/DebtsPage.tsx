@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -13,11 +13,12 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Landmark, Pencil, Trash2, Sparkles, Loader2, TrendingDown, Target, Lightbulb } from 'lucide-react';
+import { Plus, Landmark, Pencil, Trash2, Sparkles, Loader2, TrendingDown, Target, Lightbulb, Search, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import ReactMarkdown from 'react-markdown';
+import { exportToCSV, exportToExcel } from '@/lib/export';
 
 const DebtsPage = () => {
   const { user } = useAuth();
@@ -38,9 +39,33 @@ const DebtsPage = () => {
   const [aiPlan, setAiPlan] = useState<any>(null);
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const [aiPlanOpen, setAiPlanOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paid' | 'overdue'>('all');
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const refreshData = () => invalidate('debts');
+
+  const filteredDebts = useMemo(() => {
+    let result = [...debts];
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(d => d.creditor_name.toLowerCase().includes(q) || d.notes?.toLowerCase().includes(q));
+    }
+    if (statusFilter === 'active') result = result.filter(d => Number(d.total_amount) - Number(d.paid_amount) > 0 && !(d.due_date && new Date(d.due_date) < new Date()));
+    else if (statusFilter === 'paid') result = result.filter(d => Number(d.total_amount) - Number(d.paid_amount) <= 0);
+    else if (statusFilter === 'overdue') result = result.filter(d => d.due_date && new Date(d.due_date) < new Date() && Number(d.total_amount) - Number(d.paid_amount) > 0);
+    return result;
+  }, [debts, searchQuery, statusFilter]);
+
+  const handleExportCSV = () => {
+    const rows = filteredDebts.map(d => ({ [t.creditor]: d.creditor_name, [t.totalDebt]: d.total_amount, [t.paidAmount]: d.paid_amount, [t.remainingDebt]: Number(d.total_amount) - Number(d.paid_amount), [t.deadline]: d.due_date || '', [t.notes]: d.notes || '' }));
+    if (!exportToCSV(rows, 'debts')) toast.info(locale === 'fr' ? 'Aucune dette' : 'No debts');
+  };
+
+  const handleExportExcel = () => {
+    const rows = filteredDebts.map(d => ({ [t.creditor]: d.creditor_name, [t.totalDebt]: d.total_amount, [t.paidAmount]: d.paid_amount, [t.remainingDebt]: Number(d.total_amount) - Number(d.paid_amount), [t.deadline]: d.due_date || '', [t.notes]: d.notes || '' }));
+    if (!exportToExcel(rows, 'debts')) toast.info(locale === 'fr' ? 'Aucune dette' : 'No debts');
+  };
 
   const validateDebtForm = () => {
     const errs: Record<string, string> = {};
@@ -143,7 +168,13 @@ const DebtsPage = () => {
           <h2 className="text-2xl font-bold font-display">{t.debts}</h2>
           {debts.length > 0 && <p className="text-sm text-muted-foreground mt-1">{fmt(totalPaid)} / {fmt(totalDebt)} {locale === 'fr' ? 'remboursé' : 'repaid'} — {locale === 'fr' ? 'Reste' : 'Remaining'}: <span className="font-semibold text-destructive">{fmt(totalRemaining)}</span></p>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {debts.length > 0 && (
+            <>
+              <Button size="sm" variant="outline" className="rounded-xl" onClick={handleExportCSV}><Download className="w-4 h-4 mr-1" /> CSV</Button>
+              <Button size="sm" variant="outline" className="rounded-xl" onClick={handleExportExcel}><Download className="w-4 h-4 mr-1" /> Excel</Button>
+            </>
+          )}
           {debts.length > 0 && debts.some(d => Number(d.total_amount) - Number(d.paid_amount) > 0) && (
             <Button size="sm" variant="outline" className="rounded-xl" onClick={handleAIPlan} disabled={aiPlanLoading}>
               <Sparkles className="w-4 h-4 mr-1" />{locale === 'fr' ? 'Plan IA' : 'AI Plan'}
@@ -153,11 +184,38 @@ const DebtsPage = () => {
         </div>
       </div>
 
-      {debts.length === 0 ? (
+      {/* Search & filters */}
+      {debts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={locale === 'fr' ? 'Rechercher un créancier...' : 'Search creditor...'} className="pl-9 pr-8 rounded-xl h-10" />
+            {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-3.5 h-3.5" /></button>}
+          </div>
+          <div className="flex gap-1.5">
+            {(['all', 'active', 'paid', 'overdue'] as const).map(s => {
+              const labels: Record<string, string> = locale === 'fr'
+                ? { all: 'Tous', active: 'En cours', paid: 'Soldés', overdue: 'En retard' }
+                : { all: 'All', active: 'Active', paid: 'Paid off', overdue: 'Overdue' };
+              return (
+                <button key={s} onClick={() => setStatusFilter(s)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border
+                    ${statusFilter === s ? 'bg-primary text-primary-foreground border-primary' : 'bg-background/60 text-muted-foreground border-border/40 hover:bg-background/80'}`}>
+                  {labels[s]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {filteredDebts.length === 0 && debts.length === 0 ? (
         <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><Landmark className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-semibold text-muted-foreground mb-2">{locale === 'fr' ? 'Aucune dette enregistrée' : 'No debts recorded'}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button></CardContent></Card>
+      ) : filteredDebts.length === 0 ? (
+        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-12 text-center"><p className="text-muted-foreground">{t.noResults}</p></CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {debts.map(d => {
+          {filteredDebts.map(d => {
             const total = Number(d.total_amount); const paid = Number(d.paid_amount); const remaining = total - paid;
             const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
             const isOverdue = d.due_date && new Date(d.due_date) < new Date() && remaining > 0;
