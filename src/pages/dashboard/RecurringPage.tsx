@@ -352,10 +352,11 @@ const RecurringPage = () => {
               </CardContent>
             </Card>
           ) : (
-          {bulk.hasSelection && (
-            <BulkActionBar count={bulk.count} onDelete={() => setBulkDeleteOpen(true)} onClear={bulk.clear} />
-          )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <>
+              {bulk.hasSelection && (
+                <BulkActionBar count={bulk.count} onDelete={() => setBulkDeleteOpen(true)} onClear={bulk.clear} />
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredItems.map(r => (
                 <Card key={r.id} className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl ${!r.active ? 'opacity-50' : ''} ${bulk.selectedIds.has(r.id) ? 'ring-2 ring-primary' : ''}`}>
                   <CardHeader className="pb-3">
