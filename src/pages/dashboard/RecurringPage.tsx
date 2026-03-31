@@ -124,8 +124,8 @@ const RecurringPage = () => {
     setDeleteId(null); refreshData();
   };
 
-  const openNew = () => { setEditId(null); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: new Date().toISOString().split('T')[0], active: true }); setDialogOpen(true); };
-  const openEdit = (r: any) => { setEditId(r.id); setForm({ description: r.description, amount: String(r.amount), type: r.type, category_id: r.category_id || '', account_id: r.account_id || '', frequency: r.frequency, next_date: r.next_date, active: r.active }); setDialogOpen(true); };
+  const openNew = () => { setEditId(null); setFormErrors({}); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: new Date().toISOString().split('T')[0], active: true }); setDialogOpen(true); };
+  const openEdit = (r: any) => { setEditId(r.id); setFormErrors({}); setForm({ description: r.description, amount: String(r.amount), type: r.type, category_id: r.category_id || '', account_id: r.account_id || '', frequency: r.frequency, next_date: r.next_date, active: r.active }); setDialogOpen(true); };
 
   // AI Detection
   const runAiDetection = async () => {

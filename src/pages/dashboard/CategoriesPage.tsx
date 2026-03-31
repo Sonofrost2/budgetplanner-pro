@@ -76,7 +76,16 @@ const CategoriesPage = () => {
   const openEdit = (cat: any) => { setEditing(cat); setFormErrors({}); setForm({ name: cat.name, icon: cat.icon, color: cat.color, type: cat.type }); setDialogOpen(true); };
 
   const handleSave = async () => {
-    if (!user || !form.name.trim()) return;
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = locale === 'fr' ? 'Le nom est requis' : 'Name is required';
+    else if (form.name.trim().length > 50) errs.name = locale === 'fr' ? 'Max 50 caractères' : 'Max 50 characters';
+    else {
+      const duplicate = categories.find(c => c.name.toLowerCase() === form.name.trim().toLowerCase() && c.id !== editing?.id);
+      if (duplicate) errs.name = locale === 'fr' ? 'Ce nom existe déjà' : 'This name already exists';
+    }
+    setFormErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+    if (!user) return;
     const payload = { user_id: user.id, name: form.name.trim(), icon: form.icon, color: form.color, type: form.type };
     if (editing) {
       const { error } = await supabase.from('categories').update(payload).eq('id', editing.id);
