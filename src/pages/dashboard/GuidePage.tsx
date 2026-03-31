@@ -5,7 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { BookOpen, HelpCircle, Play, ArrowRight, CreditCard, Tag, ArrowUpDown, PieChart, Target, FileText, BarChart3, Users, Sparkles, RefreshCw, Layers } from 'lucide-react';
+import { BookOpen, HelpCircle, Play, ArrowRight, CreditCard, Tag, ArrowUpDown, PieChart, Target, FileText, BarChart3, Users, Sparkles, RefreshCw, Layers, Gem } from 'lucide-react';
 
 const GuidePage = () => {
   const { locale } = useLanguage();
