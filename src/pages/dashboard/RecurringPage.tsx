@@ -93,8 +93,17 @@ const RecurringPage = () => {
     quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly,
   };
 
+  const validateRecurringForm = () => {
+    const errs: Record<string, string> = {};
+    if (!form.description.trim()) errs.description = locale === 'fr' ? 'La description est requise' : 'Description is required';
+    if (!form.amount || Number(form.amount) <= 0) errs.amount = locale === 'fr' ? 'Le montant doit être supérieur à 0' : 'Amount must be greater than 0';
+    if (!form.next_date) errs.next_date = locale === 'fr' ? 'La date est requise' : 'Date is required';
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSave = async () => {
-    if (!user || !form.description.trim() || Number(form.amount) <= 0 || !form.next_date) return;
+    if (!user || !validateRecurringForm()) return;
     const payload = { description: form.description.trim(), amount: Number(form.amount), type: form.type, category_id: form.category_id || null, account_id: form.account_id || null, frequency: form.frequency, next_date: form.next_date, active: form.active };
     const { error } = editId
       ? await supabase.from('recurring_transactions').update(payload).eq('id', editId)
