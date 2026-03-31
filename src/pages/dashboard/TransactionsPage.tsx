@@ -666,6 +666,35 @@ const TransactionsPage = () => {
                   <span className="text-xs text-muted-foreground">→</span>
                   <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
                 </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 rounded-lg text-[10px] px-2 border-border/40"
+                    onClick={() => {
+                      const now = new Date();
+                      setStartDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
+                      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                      setEndDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${lastDay}`);
+                    }}
+                  >
+                    {t.thisMonth}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 rounded-lg text-[10px] px-2 border-border/40"
+                    onClick={() => {
+                      const now = new Date();
+                      const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                      setStartDate(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-01`);
+                      const lastDay = new Date(prev.getFullYear(), prev.getMonth() + 1, 0).getDate();
+                      setEndDate(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-${lastDay}`);
+                    }}
+                  >
+                    {t.lastMonth}
+                  </Button>
+                </div>
                 <AnimatePresence>
                   {hasActiveFilters && (
                     <motion.div
