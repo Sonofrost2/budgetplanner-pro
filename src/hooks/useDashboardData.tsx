@@ -541,7 +541,8 @@ export const useInvalidate = () => {
     if (!user) return;
     ['accounts', 'transactions', 'all-transactions', 'paginated-transactions',
      'categories', 'budgets', 'savings-goals', 'debts', 'recurring',
-     'chart-data', 'receipts', 'reports-data', 'forecast-raw-tx'].forEach(k =>
+     'chart-data', 'receipts', 'reports-data', 'forecast-raw-tx',
+     'account-theoretical-balances', 'account-cash-counts', 'savings-page-data'].forEach(k =>
       queryClient.invalidateQueries({ queryKey: [k, user.id] })
     );
     // Also invalidate range-based transaction queries
