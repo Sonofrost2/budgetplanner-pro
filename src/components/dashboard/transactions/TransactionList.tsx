@@ -270,6 +270,7 @@ export const TransactionList = ({
 }: TransactionListProps) => {
   const groups = useMemo(() => groupByDate(transactions, locale), [transactions, locale]);
   const isMobile = useIsMobile();
+  const [condensed, setCondensed] = useState(false);
 
   return (
     <Card className={`border border-[hsl(var(--glass-border))] rounded-2xl overflow-hidden shadow-[var(--shadow-glass)] backdrop-blur-sm bg-[hsl(var(--glass))] transition-all duration-300 ${isFetching ? 'opacity-50' : ''}`}>
