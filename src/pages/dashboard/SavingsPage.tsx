@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { useInvalidate } from '@/hooks/useDashboardData';
+import { useInvalidate, useSavingsPageData } from '@/hooks/useDashboardData';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
 
 interface SavingsContribution {
@@ -63,12 +63,13 @@ const SavingsPage = () => {
   const t = dashT[locale];
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get('q') || '';
-  const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const { data: savingsData, isLoading: loading, refetch: refetchSavings } = useSavingsPageData();
+  const goals = savingsData?.goals ?? [];
+  const accounts = savingsData?.accounts ?? [];
+  const contributions = savingsData?.contributions ?? {};
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [sortField, setSortField] = useState<'name' | 'current_amount' | 'target_amount'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [contributions, setContributions] = useState<Record<string, SavingsContribution[]>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editGoalId, setEditGoalId] = useState<string | null>(null);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
@@ -82,7 +83,6 @@ const SavingsPage = () => {
     monthly_contribution: '', start_date: '', contribution_day: '',
     is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
   });
-  const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -116,145 +116,7 @@ const SavingsPage = () => {
     return result;
   }, [goals, searchQuery, sortField, sortOrder]);
 
-  const fetchData = useCallback(async () => {
-    if (!user) return;
-    const [goalsRes, accRes] = await Promise.all([
-      supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance, opening_balance)').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('payment_accounts').select('*').eq('user_id', user.id),
-    ]);
-
-    const goalsData = goalsRes.data || [];
-    setAccounts(accRes.data || []);
-
-    // Collect all account_ids linked to savings goals
-    const savingsAccountIds = goalsData
-      .map((g: any) => g.account_id)
-      .filter((id: string | null): id is string => !!id);
-
-    // Build a map: account_id → goal for fast lookup
-    const accountToGoal = new Map<string, any>();
-    for (const g of goalsData) {
-      if (g.account_id) accountToGoal.set(g.account_id, g);
-    }
-
-    // Goals WITHOUT linked account (use 🎯 note matching)
-    const goalsWithoutAccount = goalsData.filter((g: any) => !g.account_id);
-
-    // Fetch transactions in parallel
-    const txPromises: PromiseLike<any>[] = [];
-
-    // 1) All transactions on savings-linked accounts (primary source of truth)
-    if (savingsAccountIds.length > 0) {
-      txPromises.push(
-        supabase.from('transactions')
-          .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
-          .eq('user_id', user.id)
-          .in('account_id', savingsAccountIds)
-          .order('date', { ascending: false })
-          .limit(2000)
-          .then(r => r)
-      );
-    }
-
-    // 2) 🎯 note transactions ONLY for goals without linked account
-    if (goalsWithoutAccount.length > 0) {
-      txPromises.push(
-        supabase.from('transactions')
-          .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
-          .eq('user_id', user.id)
-          .like('notes', '🎯 %')
-          .order('date', { ascending: false })
-          .limit(500)
-          .then(r => r)
-      );
-    }
-
-    const txResults = await Promise.all(txPromises);
-
-    const contribMap: Record<string, SavingsContribution[]> = {};
-    const seenTxIds = new Set<string>();
-    for (const goal of goalsData) {
-      contribMap[goal.id] = [];
-    }
-
-    // Process account-linked transactions first (highest priority, no ambiguity)
-    if (txResults.length > 0 && savingsAccountIds.length > 0) {
-      const accountTxs = txResults[0]?.data || [];
-      for (const tx of accountTxs) {
-        const goal = accountToGoal.get(tx.account_id);
-        if (!goal) continue;
-        seenTxIds.add(tx.id);
-
-        const contribType: 'deposit' | 'withdrawal' = tx.type === 'income' ? 'deposit' : 'withdrawal';
-        contribMap[goal.id].push({
-          id: tx.id,
-          amount: tx.amount,
-          date: tx.date,
-          type: contribType,
-          account_name: (tx.payment_accounts as any)?.name,
-          account_icon: (tx.payment_accounts as any)?.icon,
-          description: tx.description,
-        });
-      }
-    }
-
-    // Process 🎯 note transactions for goals WITHOUT linked account
-    const noteResultIdx = savingsAccountIds.length > 0 ? 1 : 0;
-    if (goalsWithoutAccount.length > 0 && txResults[noteResultIdx]) {
-      const noteTxs = txResults[noteResultIdx]?.data || [];
-      for (const tx of noteTxs) {
-        if (seenTxIds.has(tx.id)) continue; // Already matched by account
-        const hasTargetNote = tx.notes?.startsWith('🎯 ');
-        if (!hasTargetNote) continue;
-        const goalNameFromNote = tx.notes!.replace('🎯 ', '');
-        const goal = goalsWithoutAccount.find((g: any) => g.name === goalNameFromNote);
-        if (!goal) continue;
-        seenTxIds.add(tx.id);
-
-        const contribType: 'deposit' | 'withdrawal' = tx.type === 'income' ? 'deposit' : 'withdrawal';
-        contribMap[goal.id].push({
-          id: tx.id,
-          amount: tx.amount,
-          date: tx.date,
-          type: contribType,
-          account_name: (tx.payment_accounts as any)?.name,
-          account_icon: (tx.payment_accounts as any)?.icon,
-          description: tx.description,
-        });
-      }
-    }
-
-    // Sort each goal's contributions by date desc
-    for (const goalId of Object.keys(contribMap)) {
-      contribMap[goalId].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }
-
-    // Recalculate current_amount from opening_balance + net transactions for goals with linked accounts
-    const updatedGoals: typeof goalsData = [];
-    for (const goal of goalsData) {
-      if (goal.account_id) {
-        const contribs = contribMap[goal.id];
-        const openingBalance = Number((goal.payment_accounts as any)?.opening_balance) || 0;
-        const netFromTx = contribs.reduce((sum, c) => sum + (c.type === 'deposit' ? c.amount : -c.amount), 0);
-        const computedAmount = openingBalance + netFromTx;
-        // Update if there's a significant discrepancy (> 0.5)
-        if (Math.abs(computedAmount - Number(goal.current_amount)) > 0.5) {
-          await supabase.from('savings_goals').update({ current_amount: computedAmount }).eq('id', goal.id);
-          updatedGoals.push({ ...goal, current_amount: computedAmount } as any);
-        } else {
-          updatedGoals.push(goal);
-        }
-      } else {
-        updatedGoals.push(goal);
-      }
-    }
-
-    setGoals(updatedGoals);
-    setContributions(contribMap);
-    setLoading(false);
-  }, [user]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const refreshData = async () => { await refetchSavings(); };
 
   // Force recalculate all current_amounts from transactions
   const [recalculating, setRecalculating] = useState(false);
@@ -294,7 +156,7 @@ const SavingsPage = () => {
         }
       }
 
-      await fetchData();
+      await refreshData();
       invalidateCrossModule();
       toast.success(locale === 'fr'
         ? `${updated} objectif(s) recalculé(s) depuis les transactions`
@@ -367,7 +229,7 @@ const SavingsPage = () => {
         }
       }
 
-      await fetchData();
+      await refreshData();
       toast.success(locale === 'fr' ? `${updated} objectif(s) synchronisé(s)` : `${updated} goal(s) synced`);
     } catch (err: any) {
       toast.error(err.message || 'Erreur');
@@ -402,7 +264,7 @@ const SavingsPage = () => {
     }
     setDialogOpen(false);
     setEditGoalId(null);
-    fetchData();
+    refreshData();
     toast.success(t.saved);
   };
 
@@ -454,7 +316,7 @@ const SavingsPage = () => {
       setAddAmountDialog(null);
       setAddAmount('');
       setSourceAccountId('');
-      fetchData();
+      refreshData();
       invalidateCrossModule();
       toast.success(t.saved);
     } catch (err: any) {
@@ -521,7 +383,7 @@ const SavingsPage = () => {
       setWithdrawDialog(null);
       setWithdrawAmount('');
       setTargetAccountId('');
-      fetchData();
+      refreshData();
       invalidateCrossModule();
       toast.success(t.saved);
     } catch (err: any) {
@@ -535,7 +397,7 @@ const SavingsPage = () => {
     if (!deleteId) return;
     await supabase.from('savings_goals').delete().eq('id', deleteId);
     setDeleteId(null);
-    fetchData();
+    refreshData();
   };
 
   // AI Simulation
