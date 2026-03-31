@@ -120,8 +120,8 @@ const DebtsPage = () => {
     }
   };
 
-  const openNew = () => { setEditId(null); setForm({ creditor_name: '', total_amount: '', paid_amount: '', due_date: '', notes: '' }); setDialogOpen(true); };
-  const openEdit = (d: any) => { setEditId(d.id); setForm({ creditor_name: d.creditor_name, total_amount: String(d.total_amount), paid_amount: String(d.paid_amount), due_date: d.due_date || '', notes: d.notes || '' }); setDialogOpen(true); };
+  const openNew = () => { setEditId(null); setFormErrors({}); setForm({ creditor_name: '', total_amount: '', paid_amount: '', due_date: '', notes: '' }); setDialogOpen(true); };
+  const openEdit = (d: any) => { setEditId(d.id); setFormErrors({}); setForm({ creditor_name: d.creditor_name, total_amount: String(d.total_amount), paid_amount: String(d.paid_amount), due_date: d.due_date || '', notes: d.notes || '' }); setDialogOpen(true); };
 
   const totalDebt = debts.reduce((s, d) => s + Number(d.total_amount), 0);
   const totalPaid = debts.reduce((s, d) => s + Number(d.paid_amount), 0);
