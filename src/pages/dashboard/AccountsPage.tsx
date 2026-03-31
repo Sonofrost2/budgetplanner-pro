@@ -32,7 +32,7 @@ import CashCountDialog from '@/components/dashboard/CashCountDialog';
 import { AccountsPeriodStats } from '@/components/dashboard/accounts/AccountsPeriodStats';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
-import { useInvalidate } from '@/hooks/useDashboardData';
+import { useInvalidate, useAccounts, useAccountTheoreticalBalances, useAccountCashCounts } from '@/hooks/useDashboardData';
 import type { Account, Transaction } from '@/hooks/useDashboardData';
 
 const getAccountTypes = (t: DashTranslations) => [
