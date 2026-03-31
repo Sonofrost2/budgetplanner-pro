@@ -28,7 +28,7 @@ const TYPE_LABELS: Record<string, { fr: string; en: string }> = {
 
 interface Props {
   fmt: (n: number) => string;
-  t: Record<string, string>;
+  t: any;
   locale: string;
 }
 
