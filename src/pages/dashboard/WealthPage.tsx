@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import WealthAnalysisTab from '@/components/dashboard/wealth/WealthAnalysisTab';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -478,6 +479,7 @@ const WealthPage = () => {
           <TabsTrigger value="overview" className="flex-1 rounded-xl text-xs">{isFr ? 'Vue d\'ensemble' : 'Overview'}</TabsTrigger>
           <TabsTrigger value="assets" className="flex-1 rounded-xl text-xs">{isFr ? 'Mes actifs' : 'My Assets'}</TabsTrigger>
           <TabsTrigger value="evolution" className="flex-1 rounded-xl text-xs">{isFr ? 'Évolution' : 'Evolution'}</TabsTrigger>
+          <TabsTrigger value="analysis" className="flex-1 rounded-xl text-xs">{isFr ? 'Analyse' : 'Analysis'}</TabsTrigger>
         </TabsList>
 
         {/* ─── Overview ─── */}
@@ -748,6 +750,11 @@ const WealthPage = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* ─── Analysis ─── */}
+        <TabsContent value="analysis">
+          <WealthAnalysisTab assets={assets} valuations={allValuations} totalSavings={totalSavings} totalDebt={totalDebt} fmt={fmt} isFr={isFr} />
         </TabsContent>
       </Tabs>
 
