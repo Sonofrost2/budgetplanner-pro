@@ -211,9 +211,11 @@ const DebtsPage = () => {
 
       {filteredDebts.length === 0 && debts.length === 0 ? (
         <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><Landmark className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-semibold text-muted-foreground mb-2">{locale === 'fr' ? 'Aucune dette enregistrée' : 'No debts recorded'}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button></CardContent></Card>
+      ) : filteredDebts.length === 0 ? (
+        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-12 text-center"><p className="text-muted-foreground">{t.noResults}</p></CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {debts.map(d => {
+          {filteredDebts.map(d => {
             const total = Number(d.total_amount); const paid = Number(d.paid_amount); const remaining = total - paid;
             const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
             const isOverdue = d.due_date && new Date(d.due_date) < new Date() && remaining > 0;
