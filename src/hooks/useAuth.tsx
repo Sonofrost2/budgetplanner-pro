@@ -53,6 +53,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         emailRedirectTo: window.location.origin,
       },
     });
+    // Send welcome email (fire-and-forget)
+    if (!error) {
+      supabase.functions.invoke('send-email', {
+        body: { template: 'welcome', to: email, data: { displayName } },
+      }).catch(err => console.error('Welcome email error:', err));
+    }
     return { error: error as Error | null };
   };
 

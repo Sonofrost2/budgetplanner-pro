@@ -52,14 +52,15 @@ Deno.serve(async (req) => {
 
     for (const userId of uniqueUserIds) {
       // Get user budgets + savings goals + month transactions in parallel
-      const [budgetsRes, savingsRes, monthTxsRes, profileRes] = await Promise.all([
+      const [budgetsRes, savingsRes, monthTxsRes, profileRes, authRes] = await Promise.all([
         supabase.from("budgets").select("id, amount, category_id, categories(name)")
           .eq("user_id", userId).eq("budget_type", "expense").eq("period", "monthly"),
         supabase.from("savings_goals").select("*, payment_accounts(name, opening_balance)")
           .eq("user_id", userId),
         supabase.from("transactions").select("amount, category_id, date, type, account_id, notes, description")
           .eq("user_id", userId).gte("date", monthStart),
-        supabase.from("profiles").select("locale, currency").eq("user_id", userId).single(),
+        supabase.from("profiles").select("locale, currency, display_name").eq("user_id", userId).single(),
+        supabase.auth.admin.getUserById(userId),
       ]);
 
       const userBudgets = budgetsRes.data || [];
@@ -202,6 +203,33 @@ Deno.serve(async (req) => {
         totalSent += result.sent || 0;
       } catch (e) {
         console.error(`Push error for user ${userId}:`, e);
+      }
+
+      // Also send weekly summary email via Resend
+      const userEmail = authRes.data?.user?.email;
+      if (userEmail) {
+        const totalIncome = monthTxs.filter((tx: any) => tx.type === "income").reduce((s: number, tx: any) => s + Number(tx.amount), 0);
+        const totalExpense = expenseTxs.reduce((s: number, tx: any) => s + Number(tx.amount), 0);
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+            body: JSON.stringify({
+              template: "weekly-summary",
+              to: userEmail,
+              data: {
+                displayName: profileRes.data?.display_name || userEmail,
+                totalIncome: fmtAmount(totalIncome),
+                totalExpense: fmtAmount(totalExpense),
+                netBalance: fmtAmount(totalIncome - totalExpense),
+                currency,
+                budgetAlerts: delta < 0 ? (isFr ? `Dépassement de ${fmtAmount(Math.abs(delta))} cette semaine` : `Overspent by ${fmtAmount(Math.abs(delta))} this week`) : "",
+              },
+            }),
+          });
+        } catch (e) {
+          console.error(`Email error for user ${userId}:`, e);
+        }
       }
     }
 

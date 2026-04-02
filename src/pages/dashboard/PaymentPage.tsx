@@ -183,6 +183,25 @@ const PaymentPage = () => {
           }
           setSubscription({ ...pendingSubs[0], status: 'active' } as Subscription);
           toast.success(t.subscriptionActivated);
+
+          // Send payment confirmation email
+          const planId = params.get('plan');
+          const confirmedPlan = plans.find(p => p.id === planId);
+          if (confirmedPlan) {
+            const { data: profile } = await supabase.from('profiles').select('display_name').eq('user_id', user.id).single();
+            supabase.functions.invoke('send-email', {
+              body: {
+                template: 'payment-confirmation',
+                to: user.email,
+                data: {
+                  displayName: profile?.display_name || user.email,
+                  planName: confirmedPlan.name,
+                  amount: getPrice(confirmedPlan),
+                  currency,
+                },
+              },
+            }).catch(err => console.error('Payment email error:', err));
+          }
         }
         window.history.replaceState({}, '', '/dashboard/payment');
       };
