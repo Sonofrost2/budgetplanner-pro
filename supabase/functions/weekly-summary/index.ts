@@ -204,6 +204,33 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.error(`Push error for user ${userId}:`, e);
       }
+
+      // Also send weekly summary email via Resend
+      const userEmail = authRes.data?.user?.email;
+      if (userEmail) {
+        const totalIncome = monthTxs.filter((tx: any) => tx.type === "income").reduce((s: number, tx: any) => s + Number(tx.amount), 0);
+        const totalExpense = expenseTxs.reduce((s: number, tx: any) => s + Number(tx.amount), 0);
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+            body: JSON.stringify({
+              template: "weekly-summary",
+              to: userEmail,
+              data: {
+                displayName: profileRes.data?.display_name || userEmail,
+                totalIncome: fmtAmount(totalIncome),
+                totalExpense: fmtAmount(totalExpense),
+                netBalance: fmtAmount(totalIncome - totalExpense),
+                currency,
+                budgetAlerts: delta < 0 ? (isFr ? `Dépassement de ${fmtAmount(Math.abs(delta))} cette semaine` : `Overspent by ${fmtAmount(Math.abs(delta))} this week`) : "",
+              },
+            }),
+          });
+        } catch (e) {
+          console.error(`Email error for user ${userId}:`, e);
+        }
+      }
     }
 
     return new Response(JSON.stringify({ sent: totalSent, users: uniqueUserIds.length }), {
