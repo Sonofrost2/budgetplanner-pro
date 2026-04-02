@@ -52,14 +52,15 @@ Deno.serve(async (req) => {
 
     for (const userId of uniqueUserIds) {
       // Get user budgets + savings goals + month transactions in parallel
-      const [budgetsRes, savingsRes, monthTxsRes, profileRes] = await Promise.all([
+      const [budgetsRes, savingsRes, monthTxsRes, profileRes, authRes] = await Promise.all([
         supabase.from("budgets").select("id, amount, category_id, categories(name)")
           .eq("user_id", userId).eq("budget_type", "expense").eq("period", "monthly"),
         supabase.from("savings_goals").select("*, payment_accounts(name, opening_balance)")
           .eq("user_id", userId),
         supabase.from("transactions").select("amount, category_id, date, type, account_id, notes, description")
           .eq("user_id", userId).gte("date", monthStart),
-        supabase.from("profiles").select("locale, currency").eq("user_id", userId).single(),
+        supabase.from("profiles").select("locale, currency, display_name").eq("user_id", userId).single(),
+        supabase.auth.admin.getUserById(userId),
       ]);
 
       const userBudgets = budgetsRes.data || [];
