@@ -76,8 +76,9 @@ const AccountsPage = () => {
   const [previewCashCount, setPreviewCashCount] = useState<any | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type'>('name');
+  const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type' | 'discrepancy'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showDiscrepancyOnly, setShowDiscrepancyOnly] = useState(false);
 
   const filteredAccounts = useMemo(() => {
     let result = accounts;
@@ -86,15 +87,27 @@ const AccountsPage = () => {
       const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean);
       result = result.filter(a => terms.some(q => a.name.toLowerCase().includes(q) || a.type.toLowerCase().includes(q)));
     }
+    if (showDiscrepancyOnly) {
+      result = result.filter(a => {
+        const theoretical = theoreticalBalances[a.id] ?? Number(a.opening_balance || 0);
+        const real = Number(a.real_balance);
+        return Math.abs(real - theoretical) > 0.01;
+      });
+    }
     result = [...result].sort((a, b) => {
       let cmp = 0;
       if (sortField === 'name') cmp = a.name.localeCompare(b.name);
       else if (sortField === 'real_balance') cmp = Number(a.real_balance) - Number(b.real_balance);
       else if (sortField === 'type') cmp = a.type.localeCompare(b.type);
+      else if (sortField === 'discrepancy') {
+        const discA = Math.abs(Number(a.real_balance) - (theoreticalBalances[a.id] ?? Number(a.opening_balance || 0)));
+        const discB = Math.abs(Number(b.real_balance) - (theoreticalBalances[b.id] ?? Number(b.opening_balance || 0)));
+        cmp = discA - discB;
+      }
       return sortOrder === 'desc' ? -cmp : cmp;
     });
     return result;
-  }, [accounts, typeFilter, searchQuery, sortField, sortOrder]);
+  }, [accounts, typeFilter, searchQuery, sortField, sortOrder, showDiscrepancyOnly, theoreticalBalances]);
 
   const bulk = useBulkSelection(filteredAccounts);
 
