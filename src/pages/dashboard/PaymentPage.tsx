@@ -137,21 +137,25 @@ const PaymentPage = () => {
     try {
       const price = getPrice(plan);
       const desc = t.subscriptionDesc(plan.name);
-      const { data, error } = await supabase.functions.invoke('paydunya-checkout', {
+      const { data, error } = await supabase.functions.invoke('paystack-checkout', {
         body: {
-          action: 'create', amount: price, description: desc,
-          return_url: window.location.origin + '/dashboard/payment?success=true&plan=' + plan.id,
-          cancel_url: window.location.origin + '/dashboard/payment?canceled=true',
+          action: 'initialize',
+          amount: price,
+          email: user.email,
+          currency: currency || 'XOF',
+          description: desc,
+          callback_url: window.location.origin + '/dashboard/payment?success=true&plan=' + plan.id,
+          metadata: { plan_id: plan.id, plan_name: plan.name, user_id: user.id },
         },
       });
       if (error) throw error;
-      if (data?.response_code === '00' && data?.response_text) {
-        await supabase.from('subscriptions').insert({ user_id: user.id, plan_id: plan.id, status: 'pending', payment_method: 'paydunya', last_payment_token: data.token || null });
-        await supabase.from('payment_receipts').insert({ user_id: user.id, plan_name: plan.name, amount: price, currency, status: 'pending', payment_token: data.token || null });
-        window.open(data.response_text, '_blank');
+      if (data?.status && data?.data?.authorization_url) {
+        await supabase.from('subscriptions').insert({ user_id: user.id, plan_id: plan.id, status: 'pending', payment_method: 'paystack', last_payment_token: data.data.reference || null });
+        await supabase.from('payment_receipts').insert({ user_id: user.id, plan_name: plan.name, amount: price, currency, status: 'pending', payment_token: data.data.reference || null });
+        window.open(data.data.authorization_url, '_blank');
         toast.success(t.redirectingPayment);
       } else {
-        toast.error(data?.response_text || t.paymentError);
+        toast.error(data?.message || t.paymentError);
       }
     } catch (err: any) {
       toast.error(err.message || 'Error');
