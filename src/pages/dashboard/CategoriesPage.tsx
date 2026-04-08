@@ -25,14 +25,6 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { exportToCSV, exportToExcel } from '@/lib/export';
-import CategoryEvolutionChart from '@/components/dashboard/categories/CategoryEvolutionChart';
-import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
-import { toast } from 'sonner';
-import { Skeleton } from '@/components/ui/skeleton';
-import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
-import BulkActionBar from '@/components/dashboard/BulkActionBar';
-import { useBulkSelection } from '@/hooks/useBulkSelection';
-import { exportToCSV, exportToExcel } from '@/lib/export';
 
 const ICONS = ['🛒', '🚗', '🏠', '🎮', '💊', '💰', '💻', '📚', '👗', '🍽️', '✈️', '🎬', '📱', '💡', '🏥', '🎁', '🔧', '📁'];
 const COLORS = ['#22C55E', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981', '#6366F1', '#EC4899', '#14B8A6', '#F97316'];
