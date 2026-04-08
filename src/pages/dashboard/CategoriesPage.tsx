@@ -13,7 +13,18 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Inbox } from 'lucide-react';
+import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
+import { InputField } from '@/components/ui/input-field';
+import { FormSection } from '@/components/ui/form-section';
+import { Plus, Pencil, Trash2, Inbox, Tag, Palette } from 'lucide-react';
+import CategoryEvolutionChart from '@/components/dashboard/categories/CategoryEvolutionChart';
+import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
+import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
+import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import BulkActionBar from '@/components/dashboard/BulkActionBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
+import { exportToCSV, exportToExcel } from '@/lib/export';
 import CategoryEvolutionChart from '@/components/dashboard/categories/CategoryEvolutionChart';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
@@ -261,32 +272,80 @@ const CategoriesPage = () => {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
-          <DialogHeader><DialogTitle className="text-xl font-bold">{editing ? t.edit : t.addCategory}</DialogTitle><DialogDescription>{locale === 'fr' ? 'Configurez votre catégorie' : 'Configure your category'}</DialogDescription></DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 pr-1 form-animate">
-            {/* Live preview */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: form.color + '20' }}>{form.icon}</div>
-              <div>
-                <p className="font-medium text-sm">{form.name || (locale === 'fr' ? 'Nom de la catégorie' : 'Category name')}</p>
-                <div className="flex items-center gap-1.5 mt-0.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: form.color }} /><span className="text-xs text-muted-foreground">{form.type === 'expense' ? t.expenseType : t.incomeType}</span></div>
+      <ResponsiveFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editing ? t.edit : t.addCategory}
+        description={locale === 'fr' ? 'Configurez votre catégorie' : 'Configure your category'}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button>
+          </>
+        }
+      >
+        <div className="space-y-5 form-animate">
+          {/* Live preview */}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl" style={{ background: form.color + '20' }}>{form.icon}</div>
+            <div>
+              <p className="font-semibold text-sm">{form.name || (locale === 'fr' ? 'Nom de la catégorie' : 'Category name')}</p>
+              <div className="flex items-center gap-1.5 mt-0.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: form.color }} /><span className="text-xs text-muted-foreground">{form.type === 'expense' ? t.expenseType : t.incomeType}</span></div>
+            </div>
+          </div>
+
+          <FormSection title={locale === 'fr' ? 'Informations' : 'Details'} icon={<Tag className="w-3.5 h-3.5" />}>
+            <InputField
+              label={t.categoryName}
+              icon={<Tag className="w-3.5 h-3.5" />}
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              maxLength={50}
+              charCount
+              error={formErrors.name}
+              placeholder={locale === 'fr' ? 'Ex: Alimentation, Transport...' : 'E.g: Food, Transport...'}
+            />
+            <div className="space-y-1.5">
+              <Label className="form-label">{t.type}</Label>
+              <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
+                <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="expense">📉 {t.expenseType}</SelectItem>
+                  <SelectItem value="income">📈 {t.incomeType}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </FormSection>
+
+          <FormSection title={locale === 'fr' ? 'Apparence' : 'Appearance'} icon={<Palette className="w-3.5 h-3.5" />}>
+            <div className="space-y-1.5">
+              <Label className="form-label">{t.iconLabel}</Label>
+              <div className="grid grid-cols-9 gap-1.5">
+                {ICONS.map(ic => (
+                  <button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))}
+                    className={`text-xl p-2 rounded-xl border-2 transition-all ${form.icon === ic ? 'border-primary bg-primary/10 scale-110 shadow-sm' : 'border-border hover:bg-muted hover:scale-105'}`}>
+                    {ic}
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="form-label">{t.categoryName}</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={50} className={`rounded-xl h-11 ${formErrors.name ? 'border-destructive' : ''}`} />
-              {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
+            <div className="space-y-1.5">
+              <Label className="form-label">{t.colorLabel}</Label>
+              <div className="flex flex-wrap gap-2.5">
+                {COLORS.map(c => (
+                  <button key={c} onClick={() => setForm(f => ({ ...f, color: c }))}
+                    className={`w-9 h-9 rounded-full border-[3px] transition-all ${form.color === c ? 'border-foreground scale-110 shadow-md' : 'border-transparent hover:scale-110'}`}
+                    style={{ background: c }} />
+                ))}
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <Input type="color" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className="w-10 h-8 p-0 border-none cursor-pointer rounded-lg" />
+                <span className="text-[10px] text-muted-foreground font-mono">{form.color}</span>
+              </div>
             </div>
-            <div className="space-y-2"><Label className="form-label">{t.type}</Label>
-              <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="expense">📉 {t.expenseType}</SelectItem><SelectItem value="income">📈 {t.incomeType}</SelectItem></SelectContent></Select>
-            </div>
-            <div className="space-y-2"><Label className="form-label">{t.iconLabel}</Label><div className="flex flex-wrap gap-2">{ICONS.map(ic => (<button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))} className={`text-xl p-1.5 rounded-lg border-2 transition-all ${form.icon === ic ? 'border-primary bg-primary/10 scale-110' : 'border-border hover:bg-muted'}`}>{ic}</button>))}</div></div>
-            <div className="space-y-2"><Label className="form-label">{t.colorLabel}</Label><div className="flex flex-wrap gap-2">{COLORS.map(c => (<button key={c} onClick={() => setForm(f => ({ ...f, color: c }))} className={`w-8 h-8 rounded-full border-2 transition-transform ${form.color === c ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'}`} style={{ background: c }} />))}</div><Input type="color" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className="w-16 h-8 p-0 border-none" /></div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0"><Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button><Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave}>{t.save}</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </FormSection>
+        </div>
+      </ResponsiveFormDialog>
 
       {/* Bulk Modify Dialog */}
       <Dialog open={bulkModifyOpen} onOpenChange={setBulkModifyOpen}>
