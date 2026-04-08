@@ -14,6 +14,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
+import { InputField } from '@/components/ui/input-field';
+import { FormSection } from '@/components/ui/form-section';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -772,89 +774,110 @@ const WealthPage = () => {
           </>
         }
       >
-        <div className="space-y-4 py-2">
-          <div className="flex gap-3">
-            <div className="space-y-1.5 flex-1">
-              <Label className="form-label">{isFr ? 'Nom de l\'actif' : 'Asset Name'} *</Label>
-              <Input value={form.name} onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFormErrors(e => ({ ...e, name: '' })); }}
-                placeholder={isFr ? 'Ex: Terrain Bingerville' : 'E.g: Downtown Apartment'} className={`rounded-xl h-10 ${formErrors.name ? 'border-destructive' : ''}`} />
-              {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
+        <div className="space-y-5 py-2 form-animate">
+          <FormSection title={isFr ? 'Identification' : 'Identification'} icon={<Package className="w-3.5 h-3.5" />}>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <InputField
+                  label={isFr ? 'Nom de l\'actif' : 'Asset Name'}
+                  value={form.name}
+                  onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFormErrors(e => ({ ...e, name: '' })); }}
+                  error={formErrors.name}
+                  placeholder={isFr ? 'Ex: Terrain Bingerville' : 'E.g: Downtown Apartment'}
+                />
+              </div>
+              <div className="space-y-1.5 pt-[1.375rem]">
+                <Select value={form.icon} onValueChange={v => setForm(f => ({ ...f, icon: v }))}>
+                  <SelectTrigger className="rounded-xl h-11 w-16"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ICONS.map(ic => <SelectItem key={ic} value={ic}>{ic}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="form-label">{isFr ? 'Icône' : 'Icon'}</Label>
-              <Select value={form.icon} onValueChange={v => setForm(f => ({ ...f, icon: v }))}>
-                <SelectTrigger className="rounded-xl h-10 w-16"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ICONS.map(ic => <SelectItem key={ic} value={ic}>{ic}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="form-label">{isFr ? 'Type d\'actif' : 'Asset Type'}</Label>
+                <Select value={form.asset_type} onValueChange={v => setForm(f => ({ ...f, asset_type: v, category: '', icon: ASSET_TYPES.find(t => t.value === v)?.icon || f.icon }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ASSET_TYPES.filter(t => t.value !== 'savings').map(t => (
+                      <SelectItem key={t.value} value={t.value}>{t.icon} {t[isFr ? 'label_fr' : 'label_en']}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="form-label">{isFr ? 'Catégorie' : 'Category'}</Label>
+                <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={isFr ? 'Choisir...' : 'Choose...'} /></SelectTrigger>
+                  <SelectContent>
+                    {(CATEGORIES[form.asset_type] || CATEGORIES.other).map(c => (
+                      <SelectItem key={c[isFr ? 'label_fr' : 'label_en']} value={c[isFr ? 'label_fr' : 'label_en']}>
+                        {c[isFr ? 'label_fr' : 'label_en']}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
+          </FormSection>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="form-label">{isFr ? 'Type d\'actif' : 'Asset Type'}</Label>
-              <Select value={form.asset_type} onValueChange={v => setForm(f => ({ ...f, asset_type: v, category: '', icon: ASSET_TYPES.find(t => t.value === v)?.icon || f.icon }))}>
-                <SelectTrigger className="rounded-xl h-10"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ASSET_TYPES.filter(t => t.value !== 'savings').map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.icon} {t[isFr ? 'label_fr' : 'label_en']}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="form-label">{isFr ? 'Catégorie' : 'Category'}</Label>
-              <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-                <SelectTrigger className="rounded-xl h-10"><SelectValue placeholder={isFr ? 'Choisir...' : 'Choose...'} /></SelectTrigger>
-                <SelectContent>
-                  {(CATEGORIES[form.asset_type] || CATEGORIES.other).map(c => (
-                    <SelectItem key={c[isFr ? 'label_fr' : 'label_en']} value={c[isFr ? 'label_fr' : 'label_en']}>
-                      {c[isFr ? 'label_fr' : 'label_en']}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="form-label">{isFr ? 'Valeur actuelle' : 'Current Value'} *</Label>
-              <Input type="number" min="0" step="1" value={form.current_value}
+          <FormSection title={isFr ? 'Valorisation' : 'Valuation'} icon={<TrendingUp className="w-3.5 h-3.5" />}>
+            <div className="grid grid-cols-2 gap-3">
+              <InputField
+                label={(isFr ? 'Valeur actuelle' : 'Current Value') + ' *'}
+                prefix={isFr ? 'FCFA' : '$'}
+                type="number"
+                min="0"
+                step="1"
+                value={form.current_value}
                 onChange={e => { setForm(f => ({ ...f, current_value: e.target.value })); setFormErrors(e => ({ ...e, current_value: '' })); }}
-                className={`rounded-xl h-10 text-lg font-bold ${formErrors.current_value ? 'border-destructive' : ''}`} placeholder="0" />
-              {formErrors.current_value && <p className="text-xs text-destructive">{formErrors.current_value}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="form-label">{isFr ? 'Coût d\'acquisition' : 'Acquisition Cost'} ({isFr ? 'optionnel' : 'optional'})</Label>
-              <Input type="number" min="0" step="1" value={form.acquisition_cost}
+                error={formErrors.current_value}
+                placeholder="0"
+                className="text-lg font-bold"
+              />
+              <InputField
+                label={`${isFr ? 'Coût d\'acquisition' : 'Acquisition Cost'} (${isFr ? 'optionnel' : 'optional'})`}
+                prefix={isFr ? 'FCFA' : '$'}
+                type="number"
+                min="0"
+                step="1"
+                value={form.acquisition_cost}
                 onChange={e => { setForm(f => ({ ...f, acquisition_cost: e.target.value })); setFormErrors(e => ({ ...e, acquisition_cost: '' })); }}
-                className={`rounded-xl h-10 ${formErrors.acquisition_cost ? 'border-destructive' : ''}`} placeholder="0" />
-              {formErrors.acquisition_cost && <p className="text-xs text-destructive">{formErrors.acquisition_cost}</p>}
+                error={formErrors.acquisition_cost}
+                placeholder="0"
+              />
             </div>
-          </div>
+          </FormSection>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="form-label">{isFr ? 'Date d\'acquisition' : 'Acquisition Date'} ({isFr ? 'optionnel' : 'optional'})</Label>
-              <Input type="date" value={form.acquisition_date} max={new Date().toISOString().split('T')[0]}
+          <FormSection title={isFr ? 'Détails complémentaires' : 'Additional Details'} icon={<MapPin className="w-3.5 h-3.5" />} collapsible defaultOpen={!!form.acquisition_date || !!form.location || !!form.notes}>
+            <div className="grid grid-cols-2 gap-3">
+              <InputField
+                label={`${isFr ? 'Date d\'acquisition' : 'Acquisition Date'} (${isFr ? 'optionnel' : 'optional'})`}
+                type="date"
+                value={form.acquisition_date}
+                max={new Date().toISOString().split('T')[0]}
                 onChange={e => { setForm(f => ({ ...f, acquisition_date: e.target.value })); setFormErrors(e => ({ ...e, acquisition_date: '' })); }}
-                className={`rounded-xl h-10 ${formErrors.acquisition_date ? 'border-destructive' : ''}`} />
-              {formErrors.acquisition_date && <p className="text-xs text-destructive">{formErrors.acquisition_date}</p>}
+                error={formErrors.acquisition_date}
+              />
+              <InputField
+                label={`${isFr ? 'Localisation' : 'Location'} (${isFr ? 'optionnel' : 'optional'})`}
+                icon={<MapPin className="w-3.5 h-3.5" />}
+                value={form.location}
+                onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                placeholder={isFr ? 'Ex: Abidjan, Cocody' : 'E.g: Paris, 16th'}
+              />
             </div>
-            <div className="space-y-1.5">
-              <Label className="form-label flex items-center gap-1"><MapPin className="w-3 h-3" />{isFr ? 'Localisation' : 'Location'} ({isFr ? 'optionnel' : 'optional'})</Label>
-              <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                placeholder={isFr ? 'Ex: Abidjan, Cocody' : 'E.g: Paris, 16th'} className="rounded-xl h-10" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="form-label">{t.notes} ({isFr ? 'optionnel' : 'optional'})</Label>
-            <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              rows={2} className="rounded-xl resize-none" placeholder={isFr ? 'Détails supplémentaires...' : 'Additional details...'} />
-          </div>
+            <InputField
+              label={`${t.notes} (${isFr ? 'optionnel' : 'optional'})`}
+              value={form.notes}
+              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              maxLength={200}
+              charCount
+              placeholder={isFr ? 'Détails supplémentaires...' : 'Additional details...'}
+            />
+          </FormSection>
         </div>
       </ResponsiveFormDialog>
 
