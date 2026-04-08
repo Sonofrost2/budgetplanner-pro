@@ -275,6 +275,7 @@ const AccountsPage = () => {
             { value: 'name', label: locale === 'fr' ? 'Nom' : 'Name' },
             { value: 'real_balance', label: locale === 'fr' ? 'Solde' : 'Balance' },
             { value: 'type', label: t.type },
+            { value: 'discrepancy', label: locale === 'fr' ? 'Écart' : 'Discrepancy' },
           ]}
           sortValue={sortField}
           onSortChange={v => setSortField(v as any)}
