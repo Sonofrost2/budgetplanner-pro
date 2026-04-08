@@ -1,12 +1,13 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { InputField } from '@/components/ui/input-field';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
-import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,11 +34,12 @@ interface TransactionFormProps {
   canUseAISuggestions: boolean;
   t: DashTranslations;
   locale: string;
+  currency?: string;
 }
 
 export const TransactionForm = ({
   open, onOpenChange, editing, form, setForm, errors, saving, onSave,
-  categories, accounts, recentDescriptions, canUseAISuggestions, t, locale,
+  categories, accounts, recentDescriptions, canUseAISuggestions, t, locale, currency = 'FCFA',
 }: TransactionFormProps) => {
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -92,6 +94,7 @@ export const TransactionForm = ({
       }
     >
       <div className="space-y-4 py-2 form-animate">
+        {/* Type selector */}
         <div className="space-y-2">
           <Label className="form-label">{t.type}</Label>
           <div className="grid grid-cols-2 gap-2">
@@ -107,19 +110,30 @@ export const TransactionForm = ({
             </motion.button>
           </div>
         </div>
+
+        {/* Amount & Date */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="form-label">{t.amount}</Label>
-            <Input type="number" min="0.01" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-              className={`rounded-xl h-11 text-lg font-bold pl-4 ${errors.amount ? 'border-destructive' : ''}`} placeholder="0" />
-            {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label className="form-label flex items-center gap-1.5"><Calendar className="w-3 h-3" />{t.date}</Label>
-            <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className={`rounded-xl h-11 ${errors.date ? 'border-destructive' : ''}`} />
-            {errors.date && <p className="text-xs text-destructive">{errors.date}</p>}
-          </div>
+          <InputField
+            type="number" min="0.01" step="0.01"
+            value={form.amount}
+            onChange={e => setForm(f => ({ ...f, amount: (e.target as HTMLInputElement).value }))}
+            prefix={currency}
+            label={t.amount}
+            error={errors.amount}
+            placeholder="0"
+            className={errors.amount ? 'border-destructive' : ''}
+          />
+          <InputField
+            type="date"
+            value={form.date}
+            onChange={e => setForm(f => ({ ...f, date: (e.target as HTMLInputElement).value }))}
+            icon={<Calendar className="w-3 h-3" />}
+            label={t.date}
+            error={errors.date}
+          />
         </div>
+
+        {/* Description with AI */}
         <div className="space-y-2 relative z-30">
           <div className="flex items-center justify-between">
             <Label className="form-label flex items-center gap-1.5"><FileText className="w-3 h-3" />{t.description}</Label>
@@ -195,6 +209,8 @@ export const TransactionForm = ({
             )}
           </AnimatePresence>
         </div>
+
+        {/* Category */}
         <div className="space-y-2">
           <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
           <CategoryCombobox
@@ -204,6 +220,8 @@ export const TransactionForm = ({
             placeholder={locale === 'fr' ? 'Rechercher une catégorie...' : 'Search category...'}
           />
         </div>
+
+        {/* Account */}
         <div className="space-y-2">
           <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
           <AccountCombobox
@@ -213,8 +231,20 @@ export const TransactionForm = ({
             placeholder={locale === 'fr' ? 'Rechercher un compte...' : 'Search account...'}
           />
         </div>
+
+        {/* Notes with char counter */}
         <div className="space-y-2">
-          <Label className="form-label">{t.notes} <span className="text-muted-foreground/50 font-normal normal-case">({locale === 'fr' ? 'optionnel' : 'optional'})</span></Label>
+          <div className="flex items-center justify-between">
+            <Label className="form-label flex items-center gap-1.5">
+              <StickyNote className="w-3 h-3" />
+              {t.notes} <span className="text-muted-foreground/50 font-normal normal-case">({locale === 'fr' ? 'optionnel' : 'optional'})</span>
+            </Label>
+            {form.notes && (
+              <span className={`text-[10px] tabular-nums ${form.notes.length > 450 ? 'text-destructive' : 'text-muted-foreground/50'}`}>
+                {form.notes.length}/500
+              </span>
+            )}
+          </div>
           <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} maxLength={500} rows={2}
             className={`rounded-xl resize-none ${errors.notes ? 'border-destructive' : ''}`} placeholder={locale === 'fr' ? 'Ajoutez une note...' : 'Add a note...'} />
           {errors.notes && <p className="text-xs text-destructive">{errors.notes}</p>}
