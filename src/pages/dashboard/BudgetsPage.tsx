@@ -246,7 +246,7 @@ const BudgetsPage = () => {
     if (bulkModifyForm.period) updates.period = bulkModifyForm.period;
     if (bulkModifyForm.category_id) updates.category_id = bulkModifyForm.category_id;
     if (Object.keys(updates).length === 0) { toast.error(t.noChange); return; }
-    const { error } = await supabase.from('budgets').update(updates).in('id', ids);
+    const { error } = await supabase.from('budgets').update(updates as any).in('id', ids);
     if (error) { toast.error(error.message); return; }
     setBulkModifyOpen(false); setBulkModifyForm({ period: '', category_id: '' });
     refreshData();

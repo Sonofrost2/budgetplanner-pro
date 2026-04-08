@@ -217,7 +217,7 @@ const TransactionsPage = () => {
     if (bulkModifyForm.category_id) updates.category_id = bulkModifyForm.category_id;
     if (bulkModifyForm.account_id) updates.account_id = bulkModifyForm.account_id;
     if (Object.keys(updates).length === 0) { toast.error(t.noChange); return; }
-    const { error } = await supabase.from('transactions').update(updates).in('id', ids);
+    const { error } = await supabase.from('transactions').update(updates as any).in('id', ids);
     if (error) { toast.error(error.message); return; }
     if (updates.account_id) {
       const affectedAccounts = new Set<string>();
