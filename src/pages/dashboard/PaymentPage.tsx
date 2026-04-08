@@ -137,21 +137,25 @@ const PaymentPage = () => {
     try {
       const price = getPrice(plan);
       const desc = t.subscriptionDesc(plan.name);
-      const { data, error } = await supabase.functions.invoke('paydunya-checkout', {
+      const { data, error } = await supabase.functions.invoke('paystack-checkout', {
         body: {
-          action: 'create', amount: price, description: desc,
-          return_url: window.location.origin + '/dashboard/payment?success=true&plan=' + plan.id,
-          cancel_url: window.location.origin + '/dashboard/payment?canceled=true',
+          action: 'initialize',
+          amount: price,
+          email: user.email,
+          currency: currency || 'XOF',
+          description: desc,
+          callback_url: window.location.origin + '/dashboard/payment?success=true&plan=' + plan.id,
+          metadata: { plan_id: plan.id, plan_name: plan.name, user_id: user.id },
         },
       });
       if (error) throw error;
-      if (data?.response_code === '00' && data?.response_text) {
-        await supabase.from('subscriptions').insert({ user_id: user.id, plan_id: plan.id, status: 'pending', payment_method: 'paydunya', last_payment_token: data.token || null });
-        await supabase.from('payment_receipts').insert({ user_id: user.id, plan_name: plan.name, amount: price, currency, status: 'pending', payment_token: data.token || null });
-        window.open(data.response_text, '_blank');
+      if (data?.status && data?.data?.authorization_url) {
+        await supabase.from('subscriptions').insert({ user_id: user.id, plan_id: plan.id, status: 'pending', payment_method: 'paystack', last_payment_token: data.data.reference || null });
+        await supabase.from('payment_receipts').insert({ user_id: user.id, plan_name: plan.name, amount: price, currency, status: 'pending', payment_token: data.data.reference || null });
+        window.open(data.data.authorization_url, '_blank');
         toast.success(t.redirectingPayment);
       } else {
-        toast.error(data?.response_text || t.paymentError);
+        toast.error(data?.message || t.paymentError);
       }
     } catch (err: any) {
       toast.error(err.message || 'Error');
@@ -172,14 +176,32 @@ const PaymentPage = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('success') === 'true' && params.get('plan')) {
+    const reference = params.get('reference') || params.get('trxref');
+    if ((params.get('success') === 'true' && params.get('plan')) || reference) {
       const confirmSub = async () => {
         if (!user) return;
+
+        // Verify payment with Paystack if reference is available
+        if (reference) {
+          try {
+            const { data: verifyData } = await supabase.functions.invoke('paystack-checkout', {
+              body: { action: 'verify', reference },
+            });
+            if (!verifyData?.status || verifyData?.data?.status !== 'success') {
+              toast.error(locale === 'fr' ? 'Le paiement n\'a pas été confirmé' : 'Payment was not confirmed');
+              window.history.replaceState({}, '', '/dashboard/payment');
+              return;
+            }
+          } catch (e) {
+            console.error('Verification error:', e);
+          }
+        }
+
         const { data: pendingSubs } = await supabase.from('subscriptions').select('*').eq('user_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }).limit(1);
         if (pendingSubs && pendingSubs.length > 0) {
           await supabase.from('subscriptions').update({ status: 'active', current_period_start: new Date().toISOString(), current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() }).eq('id', pendingSubs[0].id);
           if (pendingSubs[0].last_payment_token) {
-            await supabase.from('payment_receipts').update({ status: 'confirmed' }).eq('payment_token', pendingSubs[0].last_payment_token).eq('user_id', user.id);
+            await supabase.from('payment_receipts').update({ status: 'confirmed' } as any).eq('payment_token', pendingSubs[0].last_payment_token).eq('user_id', user.id);
           }
           setSubscription({ ...pendingSubs[0], status: 'active' } as Subscription);
           toast.success(t.subscriptionActivated);
@@ -454,7 +476,7 @@ const PaymentPage = () => {
         <Shield className="w-4 h-4 text-muted-foreground" />
         <p className="text-xs text-muted-foreground font-medium">{t.paymentMethods}</p>
         <div className="flex flex-wrap gap-2">
-          {['🟠 Orange Money', '🟡 MTN Money', '🔵 Moov Money', '🌊 Wave', '💳 Carte bancaire'].map(m => (
+          {['💳 Carte bancaire', '📱 Mobile Money', '🏦 Virement bancaire'].map(m => (
             <Badge key={m} variant="secondary" className="text-[10px] font-medium rounded-full px-2.5 py-0.5 bg-muted/50 border-0">
               {m}
             </Badge>
