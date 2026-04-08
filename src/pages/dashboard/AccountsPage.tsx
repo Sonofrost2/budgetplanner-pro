@@ -295,6 +295,26 @@ const AccountsPage = () => {
           allLabel={locale === 'fr' ? 'Tous' : 'All'}
           totalCount={accounts.length}
         />
+        {/* Discrepancy filter toggle */}
+        <div className="flex items-center gap-2 mt-2">
+          <Button
+            size="sm"
+            variant={showDiscrepancyOnly ? 'default' : 'outline'}
+            className={`rounded-xl text-xs gap-1.5 ${showDiscrepancyOnly ? 'text-primary-foreground' : ''}`}
+            style={showDiscrepancyOnly ? { background: 'var(--gradient-primary)' } : undefined}
+            onClick={() => setShowDiscrepancyOnly(!showDiscrepancyOnly)}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            {locale === 'fr' ? 'Avec écart' : 'With discrepancy'}
+            {(() => {
+              const count = accounts.filter(a => {
+                const theoretical = theoreticalBalances[a.id] ?? Number(a.opening_balance || 0);
+                return Math.abs(Number(a.real_balance) - theoretical) > 0.01;
+              }).length;
+              return count > 0 ? <span className="ml-1 px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive text-[10px] font-bold">{count}</span> : null;
+            })()}
+          </Button>
+        </div>
       )}
 
 
