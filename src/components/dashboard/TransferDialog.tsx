@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { InputField } from '@/components/ui/input-field';
+import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,9 +24,10 @@ interface TransferDialogProps {
   t: DashTranslations;
   onSuccess: () => void;
   defaultFromAccountId?: string;
+  currency?: string;
 }
 
-export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSuccess, defaultFromAccountId }: TransferDialogProps) => {
+export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSuccess, defaultFromAccountId, currency = 'FCFA' }: TransferDialogProps) => {
   const [fromAccountId, setFromAccountId] = useState(defaultFromAccountId || '');
   const [toAccountId, setToAccountId] = useState('');
   const [amount, setAmount] = useState('');
@@ -87,82 +89,14 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
   const toAcc = accounts.find(a => a.id === toAccountId);
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">{t.transfer}</DialogTitle>
-          <DialogDescription>{t.transferDesc}</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-5 py-2">
-          {fromAcc && toAcc && (
-            <div className="flex items-center justify-center gap-3 p-3 rounded-xl bg-muted/50">
-              <div className="text-center">
-                <span className="text-2xl">{fromAcc.icon}</span>
-                <p className="text-xs font-medium mt-1">{fromAcc.name}</p>
-              </div>
-              <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
-              <div className="text-center">
-                <span className="text-2xl">{toAcc.icon}</span>
-                <p className="text-xs font-medium mt-1">{toAcc.name}</p>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {t.fromAccount}
-            </Label>
-            <AccountCombobox
-              accounts={accounts}
-              value={fromAccountId}
-              onValueChange={setFromAccountId}
-              placeholder={t.selectAccount}
-              error={!!errors.from}
-            />
-            {errors.from && <p className="text-xs text-destructive">{errors.from}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {t.toAccount}
-            </Label>
-            <AccountCombobox
-              accounts={accounts}
-              value={toAccountId}
-              onValueChange={setToAccountId}
-              placeholder={t.selectAccount}
-              excludeId={fromAccountId}
-              error={!!errors.to}
-            />
-            {errors.to && <p className="text-xs text-destructive">{errors.to}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.amount}</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              placeholder="0"
-              className={`rounded-xl h-11 text-lg font-bold ${errors.amount ? 'border-destructive' : ''}`}
-            />
-            {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.description} ({t.optional})</Label>
-            <Input
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              maxLength={200}
-              placeholder={t.transferDescPlaceholder}
-              className="rounded-xl h-11"
-            />
-          </div>
-        </div>
-
-        <DialogFooter className="gap-2 sm:gap-0">
+    <ResponsiveFormDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title={t.transfer}
+      description={t.transferDesc}
+      className="sm:max-w-lg"
+      footer={
+        <>
           <Button variant="outline" onClick={() => handleOpenChange(false)} className="rounded-xl">{t.cancel}</Button>
           <Button
             className="text-primary-foreground rounded-xl min-w-[120px]"
@@ -172,8 +106,68 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
           >
             {saving ? t.saving : t.transfer}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="space-y-5 py-2">
+        {fromAcc && toAcc && (
+          <div className="flex items-center justify-center gap-3 p-3 rounded-xl bg-muted/50">
+            <div className="text-center">
+              <span className="text-2xl">{fromAcc.icon}</span>
+              <p className="text-xs font-medium mt-1">{fromAcc.name}</p>
+            </div>
+            <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
+            <div className="text-center">
+              <span className="text-2xl">{toAcc.icon}</span>
+              <p className="text-xs font-medium mt-1">{toAcc.name}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <Label className="form-label">{t.fromAccount}</Label>
+          <AccountCombobox
+            accounts={accounts}
+            value={fromAccountId}
+            onValueChange={setFromAccountId}
+            placeholder={t.selectAccount}
+            error={!!errors.from}
+          />
+          {errors.from && <p className="text-xs text-destructive">{errors.from}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label className="form-label">{t.toAccount}</Label>
+          <AccountCombobox
+            accounts={accounts}
+            value={toAccountId}
+            onValueChange={setToAccountId}
+            placeholder={t.selectAccount}
+            excludeId={fromAccountId}
+            error={!!errors.to}
+          />
+          {errors.to && <p className="text-xs text-destructive">{errors.to}</p>}
+        </div>
+
+        <InputField
+          type="number" step="0.01"
+          value={amount}
+          onChange={e => setAmount((e.target as HTMLInputElement).value)}
+          prefix={currency}
+          label={t.amount}
+          error={errors.amount}
+          placeholder="0"
+        />
+
+        <InputField
+          value={description}
+          onChange={e => setDescription((e.target as HTMLInputElement).value)}
+          maxLength={200}
+          charCount
+          label={`${t.description} (${t.optional})`}
+          placeholder={t.transferDescPlaceholder}
+        />
+      </div>
+    </ResponsiveFormDialog>
   );
 };

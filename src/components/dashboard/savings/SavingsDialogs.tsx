@@ -1,22 +1,13 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { InputField } from '@/components/ui/input-field';
+import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
+import { Label } from '@/components/ui/label';
 import { Sparkles, TrendingUp, Lock, Lightbulb, BarChart3, Download } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
-
-interface SavingsContribution {
-  id: string;
-  amount: number;
-  date: string;
-  type: 'deposit' | 'withdrawal';
-  account_name?: string;
-  account_icon?: string;
-  description?: string;
-}
 
 interface ScenarioData {
   monthly_projections: { month: number; capital: number; interest_earned: number; total: number }[];
@@ -37,88 +28,97 @@ interface SimulationResult {
 // ─── Add Contribution Dialog ──────────────────────────
 export const AddContributionDialog = ({
   open, onClose, amount, setAmount, sourceAccountId, setSourceAccountId,
-  accounts, goal, onSave, saving, t, locale
+  accounts, goal, onSave, saving, t, locale, currency = 'FCFA'
 }: {
   open: boolean; onClose: () => void; amount: string; setAmount: (v: string) => void;
   sourceAccountId: string; setSourceAccountId: (v: string) => void;
   accounts: Account[]; goal: SavingsGoal | undefined;
-  onSave: () => void; saving: boolean; t: any; locale: string;
+  onSave: () => void; saving: boolean; t: any; locale: string; currency?: string;
 }) => (
-  <Dialog open={open} onOpenChange={onClose}>
-    <DialogContent className="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle className="text-xl font-bold">{t.addSaving}</DialogTitle>
-        <DialogDescription>
-          {locale === 'fr' ? 'Ajoutez un versement à cet objectif.' : 'Add a contribution to this goal.'}
-        </DialogDescription>
-      </DialogHeader>
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label className="form-label">{t.amount}</Label>
-          <Input type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className="rounded-xl h-11 text-lg font-bold" />
-        </div>
-        <div className="space-y-2">
-          <Label className="form-label">{t.savingsSourceAccount} ({t.optional})</Label>
-          <AccountCombobox accounts={accounts} value={sourceAccountId} onValueChange={setSourceAccountId}
-            placeholder={locale === 'fr' ? 'Débiter depuis...' : 'Debit from...'} excludeId={goal?.account_id} />
-        </div>
-        {goal?.payment_accounts && (
-          <div className="bg-muted/50 rounded-xl p-3 text-sm">
-            <span className="text-muted-foreground">{t.savingsTargetAccount}: </span>
-            <span className="font-medium">{goal.payment_accounts?.icon} {goal.payment_accounts?.name}</span>
-          </div>
-        )}
-      </div>
-      <DialogFooter className="gap-2 sm:gap-0">
+  <ResponsiveFormDialog
+    open={open}
+    onOpenChange={onClose}
+    title={t.addSaving}
+    description={locale === 'fr' ? 'Ajoutez un versement à cet objectif.' : 'Add a contribution to this goal.'}
+    className="sm:max-w-md"
+    footer={
+      <>
         <Button variant="outline" onClick={onClose} className="rounded-xl">{t.cancel}</Button>
         <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={onSave} disabled={saving}>
           {saving ? t.saving : t.save}
         </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+      </>
+    }
+  >
+    <div className="space-y-4">
+      <InputField
+        type="number" min="0.01" step="0.01"
+        value={amount}
+        onChange={e => setAmount((e.target as HTMLInputElement).value)}
+        prefix={currency}
+        label={t.amount}
+        placeholder="0"
+      />
+      <div className="space-y-2">
+        <Label className="form-label">{t.savingsSourceAccount} ({t.optional})</Label>
+        <AccountCombobox accounts={accounts} value={sourceAccountId} onValueChange={setSourceAccountId}
+          placeholder={locale === 'fr' ? 'Débiter depuis...' : 'Debit from...'} excludeId={goal?.account_id} />
+      </div>
+      {goal?.payment_accounts && (
+        <div className="bg-muted/50 rounded-xl p-3 text-sm">
+          <span className="text-muted-foreground">{t.savingsTargetAccount}: </span>
+          <span className="font-medium">{goal.payment_accounts?.icon} {goal.payment_accounts?.name}</span>
+        </div>
+      )}
+    </div>
+  </ResponsiveFormDialog>
 );
 
 // ─── Withdraw Dialog ──────────────────────────────────
 export const WithdrawDialog = ({
   open, onClose, amount, setAmount, targetAccountId, setTargetAccountId,
-  accounts, goal, onSave, saving, fmt, t, locale
+  accounts, goal, onSave, saving, fmt, t, locale, currency = 'FCFA'
 }: {
   open: boolean; onClose: () => void; amount: string; setAmount: (v: string) => void;
   targetAccountId: string; setTargetAccountId: (v: string) => void;
   accounts: Account[]; goal: SavingsGoal | undefined;
-  onSave: () => void; saving: boolean; fmt: (n: number) => string; t: any; locale: string;
+  onSave: () => void; saving: boolean; fmt: (n: number) => string; t: any; locale: string; currency?: string;
 }) => (
-  <Dialog open={open} onOpenChange={onClose}>
-    <DialogContent className="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle className="text-xl font-bold">{t.withdrawSaving}</DialogTitle>
-        <DialogDescription>{t.savingsWithdrawDesc}</DialogDescription>
-      </DialogHeader>
-      <div className="space-y-4">
-        <div className="bg-muted/50 rounded-xl p-3 text-sm">
-          <span className="text-muted-foreground">{locale === 'fr' ? 'Disponible' : 'Available'}: </span>
-          <span className="font-bold">{fmt(Number(goal?.current_amount || 0))}</span>
-        </div>
-        <div className="space-y-2">
-          <Label className="form-label">{t.withdrawAmount}</Label>
-          <Input type="number" min="0.01" step="0.01" max={goal?.current_amount || 0}
-            value={amount} onChange={e => setAmount(e.target.value)} className="rounded-xl h-11 text-lg font-bold" />
-        </div>
-        <div className="space-y-2">
-          <Label className="form-label">{t.savingsTargetAccount} ({t.optional})</Label>
-          <AccountCombobox accounts={accounts} value={targetAccountId} onValueChange={setTargetAccountId}
-            placeholder={locale === 'fr' ? 'Créditer vers...' : 'Credit to...'} excludeId={goal?.account_id} />
-        </div>
-      </div>
-      <DialogFooter className="gap-2 sm:gap-0">
+  <ResponsiveFormDialog
+    open={open}
+    onOpenChange={onClose}
+    title={t.withdrawSaving}
+    description={t.savingsWithdrawDesc}
+    className="sm:max-w-md"
+    footer={
+      <>
         <Button variant="outline" onClick={onClose} className="rounded-xl">{t.cancel}</Button>
         <Button variant="destructive" className="rounded-xl" onClick={onSave} disabled={saving}>
           {saving ? t.saving : t.withdrawSaving}
         </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+      </>
+    }
+  >
+    <div className="space-y-4">
+      <div className="bg-muted/50 rounded-xl p-3 text-sm">
+        <span className="text-muted-foreground">{locale === 'fr' ? 'Disponible' : 'Available'}: </span>
+        <span className="font-bold">{fmt(Number(goal?.current_amount || 0))}</span>
+      </div>
+      <InputField
+        type="number" min="0.01" step="0.01" max={goal?.current_amount || 0}
+        value={amount}
+        onChange={e => setAmount((e.target as HTMLInputElement).value)}
+        prefix={currency}
+        label={t.withdrawAmount}
+        placeholder="0"
+      />
+      <div className="space-y-2">
+        <Label className="form-label">{t.savingsTargetAccount} ({t.optional})</Label>
+        <AccountCombobox accounts={accounts} value={targetAccountId} onValueChange={setTargetAccountId}
+          placeholder={locale === 'fr' ? 'Créditer vers...' : 'Credit to...'} excludeId={goal?.account_id} />
+      </div>
+    </div>
+  </ResponsiveFormDialog>
 );
 
 // ─── AI Simulation Dialog ─────────────────────────────

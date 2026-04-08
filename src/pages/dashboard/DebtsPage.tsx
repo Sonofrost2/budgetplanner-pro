@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
+import { InputField } from '@/components/ui/input-field';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Landmark, Pencil, Trash2, Sparkles, Loader2, TrendingDown, Target, Lightbulb, Search, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -373,26 +374,56 @@ const DebtsPage = () => {
           </>
         }
       >
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.creditor}</Label>
-              <Input value={form.creditor_name} onChange={e => setForm(f => ({ ...f, creditor_name: e.target.value }))} className={cn("rounded-xl h-11", formErrors.creditor_name && "border-destructive")} />
-              {formErrors.creditor_name && <p className="text-xs text-destructive">{formErrors.creditor_name}</p>}
-            </div>
+          <div className="space-y-4 form-animate">
+            <InputField
+              value={form.creditor_name}
+              onChange={e => setForm(f => ({ ...f, creditor_name: (e.target as HTMLInputElement).value }))}
+              icon={<Landmark className="w-3 h-3" />}
+              label={t.creditor}
+              error={formErrors.creditor_name}
+              placeholder={locale === 'fr' ? 'Ex: Banque Atlantique' : 'E.g: Bank of America'}
+            />
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.totalDebt}</Label>
-                <Input type="number" min="1" value={form.total_amount} onChange={e => setForm(f => ({ ...f, total_amount: e.target.value }))} className={cn("rounded-xl h-11", formErrors.total_amount && "border-destructive")} />
-                {formErrors.total_amount && <p className="text-xs text-destructive">{formErrors.total_amount}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.paidAmount}</Label>
-                <Input type="number" min="0" value={form.paid_amount} onChange={e => setForm(f => ({ ...f, paid_amount: e.target.value }))} className={cn("rounded-xl h-11", formErrors.paid_amount && "border-destructive")} />
-                {formErrors.paid_amount && <p className="text-xs text-destructive">{formErrors.paid_amount}</p>}
-              </div>
+              <InputField
+                type="number" min="1"
+                value={form.total_amount}
+                onChange={e => setForm(f => ({ ...f, total_amount: (e.target as HTMLInputElement).value }))}
+                prefix="FCFA"
+                label={t.totalDebt}
+                error={formErrors.total_amount}
+                placeholder="0"
+              />
+              <InputField
+                type="number" min="0"
+                value={form.paid_amount}
+                onChange={e => setForm(f => ({ ...f, paid_amount: (e.target as HTMLInputElement).value }))}
+                prefix="FCFA"
+                label={t.paidAmount}
+                error={formErrors.paid_amount}
+                placeholder="0"
+              />
             </div>
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.deadline} ({t.optional})</Label><Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} className="rounded-xl h-11" /></div>
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.notes} ({t.optional})</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="rounded-xl h-11" /></div>
+            {Number(form.total_amount) > 0 && Number(form.paid_amount) >= 0 && (
+              <div className="rounded-xl bg-muted/40 p-3 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">{t.remainingDebt}</span>
+                <span className="text-sm font-bold text-destructive">{fmt(Math.max(0, Number(form.total_amount) - Number(form.paid_amount)))}</span>
+              </div>
+            )}
+            <InputField
+              type="date"
+              value={form.due_date}
+              onChange={e => setForm(f => ({ ...f, due_date: (e.target as HTMLInputElement).value }))}
+              icon={<Target className="w-3 h-3" />}
+              label={`${t.deadline} (${t.optional})`}
+            />
+            <InputField
+              value={form.notes}
+              onChange={e => setForm(f => ({ ...f, notes: (e.target as HTMLInputElement).value }))}
+              maxLength={200}
+              charCount
+              label={`${t.notes} (${t.optional})`}
+              placeholder={locale === 'fr' ? 'Notes...' : 'Notes...'}
+            />
           </div>
       </ResponsiveFormDialog>
 

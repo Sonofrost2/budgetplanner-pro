@@ -18,6 +18,7 @@ import {
   DrawerClose,
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 
 interface ResponsiveFormDialogProps {
   open: boolean;
@@ -27,6 +28,8 @@ interface ResponsiveFormDialogProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  /** Progress percentage (0-100) shown as a bar at the top */
+  progress?: number;
 }
 
 export function ResponsiveFormDialog({
@@ -37,22 +40,30 @@ export function ResponsiveFormDialog({
   children,
   footer,
   className,
+  progress,
 }: ResponsiveFormDialogProps) {
   const isMobile = useIsMobile();
+
+  const progressBar = typeof progress === 'number' ? (
+    <div className="px-4 pt-2">
+      <Progress value={progress} className="h-1 rounded-full [&>div]:bg-primary" />
+    </div>
+  ) : null;
 
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className={cn("max-h-[90vh]", className)}>
-          <DrawerHeader className="text-left">
+        <DrawerContent className={cn("max-h-[92vh]", className)}>
+          {progressBar}
+          <DrawerHeader className="text-left pb-1">
             <DrawerTitle className="text-xl font-bold">{title}</DrawerTitle>
-            {description && <DrawerDescription>{description}</DrawerDescription>}
+            {description && <DrawerDescription className="text-xs">{description}</DrawerDescription>}
           </DrawerHeader>
           <div className="px-4 pb-2 overflow-y-auto flex-1 form-animate">
             {children}
           </div>
           {footer && (
-            <DrawerFooter className="pt-2">
+            <DrawerFooter className="pt-2 pb-4">
               {footer}
             </DrawerFooter>
           )}
@@ -64,9 +75,10 @@ export function ResponsiveFormDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn("sm:max-w-xl md:max-w-2xl max-h-[85vh] flex flex-col", className)}>
+        {progressBar}
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+          {description && <DialogDescription className="text-xs">{description}</DialogDescription>}
         </DialogHeader>
         <div className="overflow-y-auto flex-1 pr-1 form-animate">
           {children}
