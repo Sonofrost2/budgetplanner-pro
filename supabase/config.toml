@@ -3,6 +3,9 @@ project_id = "sfcwoftgzxplbexcmzva"
 [functions.paydunya-checkout]
 verify_jwt = false
 
+[functions.paystack-checkout]
+verify_jwt = false
+
 [functions.ai-forecast]
 verify_jwt = false
 
