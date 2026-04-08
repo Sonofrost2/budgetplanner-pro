@@ -896,20 +896,27 @@ const WealthPage = () => {
         }
       >
         <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label className="form-label">{isFr ? 'Nouvelle valeur' : 'New Value'}</Label>
-            <Input type="number" min="0" value={valuationValue}
-              onChange={e => setValuationValue(e.target.value)} className="rounded-xl h-10 text-lg font-bold" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="form-label">{t.date}</Label>
-            <Input type="date" value={valuationDate} onChange={e => setValuationDate(e.target.value)} className="rounded-xl h-10" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="form-label">{t.notes}</Label>
-            <Input value={valuationNotes} onChange={e => setValuationNotes(e.target.value)}
-              placeholder={isFr ? 'Raison de la réévaluation...' : 'Reason for revaluation...'} className="rounded-xl h-10" />
-          </div>
+          <InputField
+            label={isFr ? 'Nouvelle valeur' : 'New Value'}
+            prefix={isFr ? 'FCFA' : '$'}
+            type="number"
+            min="0"
+            value={valuationValue}
+            onChange={e => setValuationValue(e.target.value)}
+            className="text-lg font-bold"
+          />
+          <InputField
+            label={t.date}
+            type="date"
+            value={valuationDate}
+            onChange={e => setValuationDate(e.target.value)}
+          />
+          <InputField
+            label={t.notes}
+            value={valuationNotes}
+            onChange={e => setValuationNotes(e.target.value)}
+            placeholder={isFr ? 'Raison de la réévaluation...' : 'Reason for revaluation...'}
+          />
         </div>
       </ResponsiveFormDialog>
 
