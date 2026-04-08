@@ -23,8 +23,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
+import { InputField } from '@/components/ui/input-field';
+import { FormSection } from '@/components/ui/form-section';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator } from 'lucide-react';
+import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AddContributionDialog, WithdrawDialog, SimulationDialog } from '@/components/dashboard/savings/SavingsDialogs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -655,156 +658,169 @@ const SavingsPage = () => {
       )}
 
       {/* Create/Edit Goal Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditGoalId(null); }}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{editGoalId ? t.editGoal : t.addGoal}</DialogTitle>
-            <DialogDescription>{locale === 'fr' ? (editGoalId ? 'Modifiez votre objectif d\'épargne' : 'Définissez un objectif d\'épargne') : (editGoalId ? 'Edit your savings goal' : 'Set a savings goal')}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 pr-1 form-animate">
-            {/* ── Base section (always visible) ── */}
-            <div className="space-y-2">
-              <Label className="form-label">{t.goalName}</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} maxLength={100} className="rounded-xl h-11" />
-            </div>
-            <div className="space-y-2">
+      <ResponsiveFormDialog
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditGoalId(null); }}
+        title={editGoalId ? t.editGoal : t.addGoal}
+        description={locale === 'fr' ? (editGoalId ? 'Modifiez votre objectif d\'épargne' : 'Définissez un objectif d\'épargne') : (editGoalId ? 'Edit your savings goal' : 'Set a savings goal')}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
+            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleCreateOrEdit}>{t.save}</Button>
+          </>
+        }
+      >
+        <div className="space-y-5 form-animate">
+          <FormSection title={locale === 'fr' ? 'Objectif' : 'Goal'} icon={<Target className="w-3.5 h-3.5" />}>
+            <InputField
+              label={t.goalName}
+              icon={<Target className="w-3.5 h-3.5" />}
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              maxLength={100}
+              charCount
+              placeholder={locale === 'fr' ? 'Ex: Vacances, Voiture...' : 'E.g: Vacation, Car...'}
+            />
+            <div className="space-y-1.5">
               <Label className="form-label">{t.iconLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {icons.map(ic => (
                   <button key={ic} onClick={() => setForm(f => ({ ...f, icon: ic }))}
-                    className={`text-xl p-1.5 rounded-lg border-2 transition-colors ${form.icon === ic ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'}`}>
+                    className={`text-xl p-2 rounded-xl border-2 transition-all ${form.icon === ic ? 'border-primary bg-primary/10 scale-110 shadow-sm' : 'border-border hover:bg-muted hover:scale-105'}`}>
                     {ic}
                   </button>
                 ))}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="form-label">{t.targetAmount}</Label>
-                <Input type="number" min="1" step="0.01" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} className="rounded-xl h-11" />
+              <InputField
+                label={t.targetAmount}
+                prefix={locale === 'fr' ? 'FCFA' : '$'}
+                type="number"
+                min="1"
+                step="0.01"
+                value={form.target_amount}
+                onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))}
+              />
+              <InputField
+                label={t.savingsMonthlyContribution}
+                prefix={locale === 'fr' ? 'FCFA' : '$'}
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.monthly_contribution}
+                onChange={e => setForm(f => ({ ...f, monthly_contribution: e.target.value }))}
+                placeholder={locale === 'fr' ? 'Ex: 50 000' : 'E.g. 500'}
+              />
+            </div>
+          </FormSection>
+
+          <FormSection title={locale === 'fr' ? 'Paramètres avancés' : 'Advanced settings'} icon={<CalendarDays className="w-3.5 h-3.5" />} collapsible defaultOpen={!!form.account_id || !!form.start_date}>
+            <div className="space-y-1.5">
+              <Label className="form-label">{t.savingsTargetAccount} ({t.optional})</Label>
+              <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="form-label">{t.contributionDay}</Label>
+                <Select value={form.contribution_day || '__none__'} onValueChange={v => setForm(f => ({ ...f, contribution_day: v === '__none__' ? '' : v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {Array.from({ length: 31 }, (_, i) => <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="form-label">{t.savingsMonthlyContribution}</Label>
-                <Input type="number" min="0" step="0.01" value={form.monthly_contribution} onChange={e => setForm(f => ({ ...f, monthly_contribution: e.target.value }))} className="rounded-xl h-11" placeholder={locale === 'fr' ? 'Ex: 50 000' : 'E.g. 500'} />
-              </div>
+              <InputField
+                label={t.startDate}
+                type="date"
+                value={form.start_date}
+                onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
+              />
+              <InputField
+                label={locale === 'fr' ? 'Date de fin' : 'End date'}
+                type="date"
+                value={form.deadline}
+                onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
+              />
             </div>
 
-            {/* ── Advanced section (collapsible) ── */}
-            <details className="group">
-              <summary className="flex items-center gap-2 cursor-pointer select-none py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                <svg className="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                {locale === 'fr' ? '⚙️ Paramètres avancés' : '⚙️ Advanced settings'}
-              </summary>
-              <div className="space-y-4 mt-3 pl-1 border-l-2 border-border/40 ml-1.5">
-                <div className="space-y-2 pl-3">
-                  <Label className="form-label">
-                    {t.savingsTargetAccount} ({t.optional})
-                  </Label>
-                  <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
-                </div>
-                <div className="grid grid-cols-3 gap-4 pl-3">
-                  <div className="space-y-2">
-                    <Label className="form-label">{t.contributionDay}</Label>
-                    <Select value={form.contribution_day || '__none__'} onValueChange={v => setForm(f => ({ ...f, contribution_day: v === '__none__' ? '' : v }))}>
-                      <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder="—" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">—</SelectItem>
-                        {Array.from({ length: 31 }, (_, i) => <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="form-label">{t.startDate}</Label>
-                    <Input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} className="rounded-xl h-11" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="form-label">{locale === 'fr' ? 'Date de fin' : 'End date'}</Label>
-                    <Input type="date" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} className="rounded-xl h-11" />
-                  </div>
-                </div>
-
-                {/* Locked toggle */}
-                <div className="flex items-center justify-between bg-muted/50 rounded-xl p-3 ml-3">
-                  <div className="flex items-center gap-2">
-                    {form.is_locked ? <Lock className="w-4 h-4 text-destructive" /> : <Unlock className="w-4 h-4 text-secondary" />}
-                    <div>
-                      <p className="text-sm font-medium">{form.is_locked ? t.savingsIsLocked : t.savingsIsAvailable}</p>
-                      <p className="text-xs text-muted-foreground">{locale === 'fr' ? 'Empêche les retraits si bloquée' : 'Prevents withdrawals if locked'}</p>
-                    </div>
-                  </div>
-                  <Switch checked={form.is_locked} onCheckedChange={v => setForm(f => ({ ...f, is_locked: v }))} />
+            {/* Locked toggle */}
+            <div className="flex items-center justify-between bg-muted/50 rounded-xl p-3">
+              <div className="flex items-center gap-2">
+                {form.is_locked ? <Lock className="w-4 h-4 text-destructive" /> : <Unlock className="w-4 h-4 text-secondary" />}
+                <div>
+                  <p className="text-sm font-medium">{form.is_locked ? t.savingsIsLocked : t.savingsIsAvailable}</p>
+                  <p className="text-xs text-muted-foreground">{locale === 'fr' ? 'Empêche les retraits si bloquée' : 'Prevents withdrawals if locked'}</p>
                 </div>
               </div>
-            </details>
+              <Switch checked={form.is_locked} onCheckedChange={v => setForm(f => ({ ...f, is_locked: v }))} />
+            </div>
+          </FormSection>
 
-            {/* ── Bank & Interest section (collapsible) ── */}
-            <details className="group">
-              <summary className="flex items-center gap-2 cursor-pointer select-none py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                <svg className="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                {locale === 'fr' ? '🏦 Banque & Intérêts' : '🏦 Bank & Interest'}
-              </summary>
-              <div className="space-y-4 mt-3 pl-1 border-l-2 border-border/40 ml-1.5">
-                <div className="space-y-2 pl-3">
-                  <Label className="form-label">{t.bankName} ({t.optional})</Label>
-                  {(() => {
-                    const bankOptions = [
-                      'SGCI', 'BICICI', 'CORIS BANK', 'BOA', 'NSIA Banque', 'SIB', 'BDU',
-                      'Ecobank', 'UBA', 'SCB', 'BACI', 'Orange Bank', 'MTN MoMo', 'Wave',
-                      'Bridge Bank', 'Banque Atlantique', 'BGFI Bank', 'Standard Chartered',
-                      'Orabank', 'Access Bank', 'BNI', 'BIAO-CI',
-                    ];
-                    const existingBanks = goals.map(g => (g as any).bank_name).filter(Boolean) as string[];
-                    const allBanks = [...new Set([...bankOptions, ...existingBanks])].sort();
-                    const showCustomInput = customBankMode || (form.bank_name !== '' && !allBanks.includes(form.bank_name));
-                    return (
-                      <>
-                        <Select
-                          value={showCustomInput ? '__custom__' : (form.bank_name || '__none__')}
-                          onValueChange={v => {
-                            if (v === '__custom__') { setCustomBankMode(true); setForm(f => ({ ...f, bank_name: '' })); }
-                            else if (v === '__none__') { setCustomBankMode(false); setForm(f => ({ ...f, bank_name: '' })); }
-                            else { setCustomBankMode(false); setForm(f => ({ ...f, bank_name: v })); }
-                          }}
-                        >
-                          <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.bankNamePlaceholder} /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">{locale === 'fr' ? '— Aucune —' : '— None —'}</SelectItem>
-                            {allBanks.map(bank => <SelectItem key={bank} value={bank}>{bank}</SelectItem>)}
-                            <SelectItem value="__custom__">{locale === 'fr' ? '✏️ Autre...' : '✏️ Other...'}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {showCustomInput && <Input autoFocus value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} className="rounded-xl h-11 mt-2" placeholder={t.bankNamePlaceholder} />}
-                      </>
-                    );
-                  })()}
-                </div>
-                <div className="grid grid-cols-2 gap-4 pl-3">
-                  <div className="space-y-2">
-                    <Label className="form-label">{t.interestRate}</Label>
-                    <Input type="number" min="0" step="0.01" value={form.interest_rate} onChange={e => setForm(f => ({ ...f, interest_rate: e.target.value }))} className="rounded-xl h-11" placeholder="Ex: 3.5" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="form-label">{t.interestFrequency}</Label>
-                    <Select value={form.interest_frequency} onValueChange={v => setForm(f => ({ ...f, interest_frequency: v }))}>
-                      <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+          <FormSection title={locale === 'fr' ? 'Banque & Intérêts' : 'Bank & Interest'} icon={<Building2 className="w-3.5 h-3.5" />} collapsible defaultOpen={!!form.bank_name || !!form.interest_rate}>
+            <div className="space-y-1.5">
+              <Label className="form-label">{t.bankName} ({t.optional})</Label>
+              {(() => {
+                const bankOptions = [
+                  'SGCI', 'BICICI', 'CORIS BANK', 'BOA', 'NSIA Banque', 'SIB', 'BDU',
+                  'Ecobank', 'UBA', 'SCB', 'BACI', 'Orange Bank', 'MTN MoMo', 'Wave',
+                  'Bridge Bank', 'Banque Atlantique', 'BGFI Bank', 'Standard Chartered',
+                  'Orabank', 'Access Bank', 'BNI', 'BIAO-CI',
+                ];
+                const existingBanks = goals.map(g => (g as any).bank_name).filter(Boolean) as string[];
+                const allBanks = [...new Set([...bankOptions, ...existingBanks])].sort();
+                const showCustomInput = customBankMode || (form.bank_name !== '' && !allBanks.includes(form.bank_name));
+                return (
+                  <>
+                    <Select
+                      value={showCustomInput ? '__custom__' : (form.bank_name || '__none__')}
+                      onValueChange={v => {
+                        if (v === '__custom__') { setCustomBankMode(true); setForm(f => ({ ...f, bank_name: '' })); }
+                        else if (v === '__none__') { setCustomBankMode(false); setForm(f => ({ ...f, bank_name: '' })); }
+                        else { setCustomBankMode(false); setForm(f => ({ ...f, bank_name: v })); }
+                      }}
+                    >
+                      <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.bankNamePlaceholder} /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="monthly">{t.interestMonthly}</SelectItem>
-                        <SelectItem value="quarterly">{t.interestQuarterly}</SelectItem>
-                        <SelectItem value="semi_annual">{t.interestSemiAnnual}</SelectItem>
-                        <SelectItem value="yearly">{t.interestYearly}</SelectItem>
+                        <SelectItem value="__none__">{locale === 'fr' ? '— Aucune —' : '— None —'}</SelectItem>
+                        {allBanks.map(bank => <SelectItem key={bank} value={bank}>{bank}</SelectItem>)}
+                        <SelectItem value="__custom__">{locale === 'fr' ? '✏️ Autre...' : '✏️ Other...'}</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
+                    {showCustomInput && <InputField autoFocus value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} placeholder={t.bankNamePlaceholder} />}
+                  </>
+                );
+              })()}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <InputField
+                label={t.interestRate}
+                icon={<Percent className="w-3.5 h-3.5" />}
+                suffix="%"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.interest_rate}
+                onChange={e => setForm(f => ({ ...f, interest_rate: e.target.value }))}
+                placeholder="Ex: 3.5"
+              />
+              <div className="space-y-1.5">
+                <Label className="form-label">{t.interestFrequency}</Label>
+                <Select value={form.interest_frequency} onValueChange={v => setForm(f => ({ ...f, interest_frequency: v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">{t.interestMonthly}</SelectItem>
+                    <SelectItem value="quarterly">{t.interestQuarterly}</SelectItem>
+                    <SelectItem value="semi_annual">{t.interestSemiAnnual}</SelectItem>
+                    <SelectItem value="yearly">{t.interestYearly}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </details>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
-            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleCreateOrEdit}>{t.save}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </div>
+          </FormSection>
+        </div>
+      </ResponsiveFormDialog>
 
       <AddContributionDialog
         open={!!addAmountDialog}

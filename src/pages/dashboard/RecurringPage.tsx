@@ -7,16 +7,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRecurring, useCategories, useAccounts, useInvalidate } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
+import { InputField } from '@/components/ui/input-field';
+import { FormSection } from '@/components/ui/form-section';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Plus, RefreshCw, Pencil, Trash2, Sparkles, Check, X, Zap, TrendingDown, TrendingUp, Loader2 } from 'lucide-react';
+import { Plus, RefreshCw, Pencil, Trash2, Sparkles, Check, X, Zap, TrendingDown, TrendingUp, Loader2, FileText, CalendarDays, Repeat, Tag, CreditCard } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -483,48 +483,82 @@ const RecurringPage = () => {
           </>
         }
       >
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.description}</Label>
-              <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className={`rounded-xl h-11 ${formErrors.description ? 'border-destructive' : ''}`} />
-              {formErrors.description && <p className="text-xs text-destructive">{formErrors.description}</p>}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.amount}</Label>
-                <Input type="number" min="1" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className={`rounded-xl h-11 text-lg font-bold ${formErrors.amount ? 'border-destructive' : ''}`} />
-                {formErrors.amount && <p className="text-xs text-destructive">{formErrors.amount}</p>}
+          <div className="space-y-5 form-animate">
+            <FormSection title={locale === 'fr' ? 'Informations' : 'Details'} icon={<FileText className="w-3.5 h-3.5" />}>
+              <InputField
+                label={t.description}
+                icon={<FileText className="w-3.5 h-3.5" />}
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                error={formErrors.description}
+                maxLength={100}
+                charCount
+                placeholder={locale === 'fr' ? 'Ex: Loyer, Abonnement...' : 'E.g: Rent, Subscription...'}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <InputField
+                  label={t.amount}
+                  prefix={locale === 'fr' ? 'FCFA' : '$'}
+                  type="number"
+                  min="1"
+                  value={form.amount}
+                  onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                  error={formErrors.amount}
+                  className="text-lg font-bold"
+                />
+                <div className="space-y-1.5">
+                  <Label className="form-label flex items-center gap-1.5"><Tag className="w-3.5 h-3.5 text-muted-foreground" />{t.type}</Label>
+                  <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
+                    <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="expense">📉 {t.expenseType}</SelectItem>
+                      <SelectItem value="income">📈 {t.incomeType}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.type}</Label>
-                <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="expense">{t.expenseType}</SelectItem><SelectItem value="income">{t.incomeType}</SelectItem></SelectContent></Select>
+            </FormSection>
+
+            <FormSection title={locale === 'fr' ? 'Planification' : 'Schedule'} icon={<CalendarDays className="w-3.5 h-3.5" />}>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="form-label flex items-center gap-1.5"><Repeat className="w-3.5 h-3.5 text-muted-foreground" />{t.frequency}</Label>
+                  <Select value={form.frequency} onValueChange={v => setForm(f => ({ ...f, frequency: v }))}>
+                    <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">{t.daily}</SelectItem>
+                      <SelectItem value="weekly">{t.weekly}</SelectItem>
+                      <SelectItem value="monthly">{t.monthly}</SelectItem>
+                      <SelectItem value="quarterly">{t.quarterly}</SelectItem>
+                      <SelectItem value="semi_annual">{t.semiAnnual}</SelectItem>
+                      <SelectItem value="yearly">{t.yearly}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <InputField
+                  label={t.nextDate}
+                  icon={<CalendarDays className="w-3.5 h-3.5" />}
+                  type="date"
+                  value={form.next_date}
+                  onChange={e => setForm(f => ({ ...f, next_date: e.target.value }))}
+                  error={formErrors.next_date}
+                />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.frequency}</Label>
-                <Select value={form.frequency} onValueChange={v => setForm(f => ({ ...f, frequency: v }))}>
-                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">{t.daily}</SelectItem>
-                    <SelectItem value="weekly">{t.weekly}</SelectItem>
-                    <SelectItem value="monthly">{t.monthly}</SelectItem>
-                    <SelectItem value="quarterly">{t.quarterly}</SelectItem>
-                    <SelectItem value="semi_annual">{t.semiAnnual}</SelectItem>
-                    <SelectItem value="yearly">{t.yearly}</SelectItem>
-                  </SelectContent>
+            </FormSection>
+
+            <FormSection title={locale === 'fr' ? 'Classification' : 'Classification'} icon={<Tag className="w-3.5 h-3.5" />} collapsible defaultOpen={!!form.category_id || !!form.account_id}>
+              <div className="space-y-1.5">
+                <Label className="form-label">{t.category} ({t.optional})</Label>
+                <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger>
+                  <SelectContent>{categories.filter(c => c.type === form.type).map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.nextDate}</Label>
-                <Input type="date" value={form.next_date} onChange={e => setForm(f => ({ ...f, next_date: e.target.value }))} className={`rounded-xl h-11 ${formErrors.next_date ? 'border-destructive' : ''}`} />
-                {formErrors.next_date && <p className="text-xs text-destructive">{formErrors.next_date}</p>}
+              <div className="space-y-1.5">
+                <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3.5 h-3.5 text-muted-foreground" />{t.account} ({t.optional})</Label>
+                <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
               </div>
-            </div>
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.category} ({t.optional})</Label>
-              <Select value={form.category_id} onValueChange={v => setForm(f => ({ ...f, category_id: v }))}><SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={t.selectCategory} /></SelectTrigger><SelectContent>{categories.filter(c => c.type === form.type).map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}</SelectContent></Select>
-            </div>
-            <div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.account} ({t.optional})</Label>
-              <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
-            </div>
+            </FormSection>
           </div>
       </ResponsiveFormDialog>
 
