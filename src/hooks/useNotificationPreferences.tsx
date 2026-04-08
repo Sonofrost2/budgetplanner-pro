@@ -89,7 +89,8 @@ export const useNotificationPreferences = () => {
     setSaving(true);
     const { error } = await supabase
       .from('notification_preferences')
-      .upsert({ user_id: user.id, [key]: value }, { onConflict: 'user_id' });
+      .update({ [key]: value } as any)
+      .eq('user_id', user.id);
     setSaving(false);
     if (error) toast.error(error.message);
   }, [user]);
