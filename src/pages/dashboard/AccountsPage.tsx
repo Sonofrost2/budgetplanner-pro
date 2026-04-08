@@ -267,6 +267,7 @@ const AccountsPage = () => {
 
       {/* Search + Sort + Type filter */}
       {accounts.length > 0 && (
+        <>
         <FilterToolbar
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
@@ -295,8 +296,7 @@ const AccountsPage = () => {
           allLabel={locale === 'fr' ? 'Tous' : 'All'}
           totalCount={accounts.length}
         />
-        {/* Discrepancy filter toggle */}
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2">
           <Button
             size="sm"
             variant={showDiscrepancyOnly ? 'default' : 'outline'}
@@ -315,6 +315,7 @@ const AccountsPage = () => {
             })()}
           </Button>
         </div>
+        </>
       )}
 
 
