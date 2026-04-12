@@ -473,6 +473,9 @@ Deno.serve(async (req) => {
           alerts.push({
             title: isFr ? "🔍 Écart de solde détecté" : "🔍 Balance discrepancy",
             body: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString()} (${isFr ? "réel" : "actual"}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? "théorique" : "calculated"}: ${Math.round(theoreticalBalance).toLocaleString()})`,
+            notification_type: "balance_discrepancy",
+            dedup_key: `balance_disc_${account.id}_${todayStr}`,
+            reference_id: account.id,
           });
         }
       }
