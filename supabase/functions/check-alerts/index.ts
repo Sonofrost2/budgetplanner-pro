@@ -429,6 +429,9 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? "🚨 Dette en retard" : "🚨 Overdue debt",
               body: `${debt.creditor_name}: ${Math.round(remaining).toLocaleString()} ${isFr ? "en retard de" : "overdue by"} ${Math.abs(daysUntilDue)} ${isFr ? "jours" : "days"}`,
+              notification_type: "debt_overdue",
+              dedup_key: `debt_overdue_${debt.id}_${todayStr}`,
+              reference_id: debt.id,
             });
           } else if (daysUntilDue <= 7) {
             alerts.push({
@@ -436,11 +439,17 @@ Deno.serve(async (req) => {
                 ? (isFr ? "⚠️ Dette due aujourd'hui" : "⚠️ Debt due today")
                 : (isFr ? `⚠️ Échéance dette dans ${daysUntilDue}j` : `⚠️ Debt due in ${daysUntilDue}d`),
               body: `${debt.creditor_name}: ${Math.round(remaining).toLocaleString()}`,
+              notification_type: "debt_due_soon",
+              dedup_key: `debt_due_${debt.id}_${todayStr}`,
+              reference_id: debt.id,
             });
           } else if (daysUntilDue <= 30) {
             alerts.push({
               title: isFr ? `📋 Échéance dette dans ${daysUntilDue}j` : `📋 Debt due in ${daysUntilDue}d`,
               body: `${debt.creditor_name}: ${Math.round(remaining).toLocaleString()}`,
+              notification_type: "debt_upcoming",
+              dedup_key: `debt_upcoming_${debt.id}_${todayStr}`,
+              reference_id: debt.id,
             });
           }
         }
