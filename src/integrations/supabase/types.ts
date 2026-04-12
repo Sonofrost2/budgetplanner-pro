@@ -952,6 +952,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_notifications: { Args: never; Returns: number }
       get_account_theoretical_balances: {
         Args: { p_user_id: string }
         Returns: {
