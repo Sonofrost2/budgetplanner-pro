@@ -223,11 +223,17 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? "🎉 Objectif atteint !" : "🎉 Target reached!",
               body: `${catIcon} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? "au-dessus" : "above"}`,
+              notification_type: "budget_goal_reached",
+              dedup_key: `budget_goal_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           } else if (prefBudgetAlerts && pastExpectedDay) {
             alerts.push({
               title: isFr ? `📊 Objectif à ${Math.round(pct)}%` : `📊 Target at ${Math.round(pct)}%`,
               body: `${catIcon} ${budget.name}: ${isFr ? "manque" : "missing"} ${Math.round(amount - spent).toLocaleString()}`,
+              notification_type: "budget_target_behind",
+              dedup_key: `budget_target_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           }
         }
