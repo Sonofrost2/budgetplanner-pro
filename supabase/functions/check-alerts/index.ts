@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
         supabase.from("profiles").select("locale").eq("user_id", userId).single(),
         supabase.from("payment_accounts").select("id, name, icon, real_balance, opening_balance").eq("user_id", userId),
         supabase.from("transactions").select("account_id, amount, type")
-          .eq("user_id", userId).not("account_id", "is", null).limit(100000),
+          .eq("user_id", userId).not("account_id", "is", null),
         supabase.from("notification_preferences").select("*").eq("user_id", userId).maybeSingle(),
       ]);
 
