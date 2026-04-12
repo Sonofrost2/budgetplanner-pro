@@ -74,7 +74,6 @@ async function encryptPayload(
   const clientPublicKeyBytes = base64UrlDecode(subscriptionPublicKey);
   const authBytes = base64UrlDecode(subscriptionAuth);
 
-  // Generate ephemeral ECDH key pair
   const serverKeys = await crypto.subtle.generateKey(
     { name: "ECDH", namedCurve: "P-256" },
     true,
@@ -85,7 +84,6 @@ async function encryptPayload(
     await crypto.subtle.exportKey("raw", serverKeys.publicKey)
   );
 
-  // Import client public key
   const clientPublicKey = await crypto.subtle.importKey(
     "raw",
     clientPublicKeyBytes,
@@ -94,7 +92,6 @@ async function encryptPayload(
     []
   );
 
-  // ECDH shared secret
   const sharedSecret = new Uint8Array(
     await crypto.subtle.deriveBits(
       { name: "ECDH", public: clientPublicKey },
@@ -103,12 +100,9 @@ async function encryptPayload(
     )
   );
 
-  // Generate random salt
   const salt = crypto.getRandomValues(new Uint8Array(16));
-
   const encoder = new TextEncoder();
 
-  // RFC 8291: IKM = HKDF(sharedSecret, auth, "WebPush: info" || 0x00 || client_pub || server_pub, 32)
   const keyInfoInput = concatUint8(
     encoder.encode("WebPush: info\0"),
     clientPublicKeyBytes,
@@ -116,19 +110,15 @@ async function encryptPayload(
   );
   const ikm = await hkdfSha256(sharedSecret, authBytes, keyInfoInput, 32);
 
-  // Content encryption key: HKDF(ikm, salt, "Content-Encoding: aes128gcm\0", 16)
   const cekInfo = encoder.encode("Content-Encoding: aes128gcm\0");
   const contentEncryptionKey = await hkdfSha256(ikm, salt, cekInfo, 16);
 
-  // Nonce: HKDF(ikm, salt, "Content-Encoding: nonce\0", 12)
   const nonceInfo = encoder.encode("Content-Encoding: nonce\0");
   const nonce = await hkdfSha256(ikm, salt, nonceInfo, 12);
 
-  // aes128gcm record: payload + delimiter (0x02) 
   const payloadBytes = encoder.encode(payload);
   const plaintext = concatUint8(payloadBytes, new Uint8Array([2]));
 
-  // Encrypt with AES-128-GCM
   const key = await crypto.subtle.importKey(
     "raw",
     contentEncryptionKey,
@@ -141,10 +131,9 @@ async function encryptPayload(
     await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, plaintext)
   );
 
-  // aes128gcm header: salt(16) + rs(4) + idlen(1) + keyid(65)
   const rs = new Uint8Array(4);
   const dv = new DataView(rs.buffer);
-  dv.setUint32(0, 4096); // record size
+  dv.setUint32(0, 4096);
 
   const header = concatUint8(
     salt,
@@ -166,26 +155,15 @@ async function importVapidPrivateKey(privateKeyBase64: string, publicKeyBase64: 
   const rawPrivate = base64UrlDecode(privateKeyBase64);
   const rawPublic = base64UrlDecode(publicKeyBase64);
   
-  console.log(`VAPID key lengths: private=${rawPrivate.length}, public=${rawPublic.length}`);
-  
   if (rawPrivate.length !== 32) {
     throw new Error(`Invalid VAPID private key length: ${rawPrivate.length} (expected 32)`);
   }
 
-  // Use JWK import which is most reliable across Deno versions
-  // Extract x and y from the uncompressed public key (0x04 || x || y)
   const x = base64UrlEncode(rawPublic.slice(1, 33));
   const y = base64UrlEncode(rawPublic.slice(33, 65));
   const d = base64UrlEncode(rawPrivate);
   
-  const jwk = {
-    kty: "EC",
-    crv: "P-256",
-    x,
-    y,
-    d,
-    ext: true,
-  };
+  const jwk = { kty: "EC", crv: "P-256", x, y, d, ext: true };
 
   return crypto.subtle.importKey(
     "jwk",
@@ -221,23 +199,19 @@ async function createVapidJwt(
     )
   );
 
-  // ECDSA signature: Deno returns DER format, convert to raw r||s (64 bytes)
   let rawSig: Uint8Array;
   if (signature.length === 64) {
     rawSig = signature;
   } else {
-    // Parse DER: 0x30 <len> 0x02 <rlen> <r> 0x02 <slen> <s>
     rawSig = new Uint8Array(64);
-    let offset = 2; // skip 0x30 <total_len>
-    // r
-    offset++; // skip 0x02
+    let offset = 2;
+    offset++;
     const rLen = signature[offset++];
     const rStart = rLen > 32 ? offset + (rLen - 32) : offset;
     const rDest = rLen < 32 ? 32 - rLen : 0;
     rawSig.set(signature.slice(rStart, rStart + Math.min(rLen, 32)), rDest);
     offset += rLen;
-    // s
-    offset++; // skip 0x02
+    offset++;
     const sLen = signature[offset++];
     const sStart = sLen > 32 ? offset + (sLen - 32) : offset;
     const sDest = sLen < 32 ? 64 - sLen : 32;
@@ -308,7 +282,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { user_id, title, body, icon, data } = await req.json();
+    const { user_id, title, body, icon, data, notification_type, dedup_key, reference_id, channel } = await req.json();
 
     if (!user_id || !title) {
       return new Response(
@@ -320,6 +294,23 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── Dedup check: skip if already sent today with the same key ──
+    if (dedup_key) {
+      const { data: existing } = await supabase
+        .from("notification_history")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("dedup_key", dedup_key)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        return new Response(
+          JSON.stringify({ sent: 0, reason: "dedup_skipped", dedup_key }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Get all push subscriptions for this user
     const { data: subs, error } = await supabase
       .from("push_subscriptions")
@@ -328,6 +319,18 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
     if (!subs || subs.length === 0) {
+      // Still log even if no subscription (for history tracking)
+      if (notification_type) {
+        await supabase.from("notification_history").insert({
+          user_id,
+          channel: "push",
+          notification_type: notification_type || "general",
+          title,
+          body: body || null,
+          reference_id: reference_id || null,
+          dedup_key: dedup_key || null,
+        }).single();
+      }
       return new Response(
         JSON.stringify({ sent: 0, reason: "no_subscriptions" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -377,6 +380,19 @@ Deno.serve(async (req) => {
     // Clean up expired subscriptions
     if (expired.length > 0) {
       await supabase.from("push_subscriptions").delete().in("id", expired);
+    }
+
+    // ── Log to notification_history ──
+    if (sent > 0 || notification_type) {
+      await supabase.from("notification_history").insert({
+        user_id,
+        channel: channel || "push",
+        notification_type: notification_type || "general",
+        title,
+        body: body || null,
+        reference_id: reference_id || null,
+        dedup_key: dedup_key || null,
+      }).single();
     }
 
     return new Response(
