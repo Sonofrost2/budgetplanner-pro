@@ -426,36 +426,8 @@ Deno.serve(async (req) => {
       }
       } // end if prefBalance
 
-      // ────── Large transaction alerts ──────
-      if (prefLargeTransaction) {
-        const todaysTxs = allTxs.filter((tx: any) => tx.date === todayStr);
-        for (const tx of todaysTxs) {
-          if (Number(tx.amount) >= prefLargeThreshold) {
-            const typeLabel = tx.type === "income" ? (isFr ? "revenu" : "income") : (isFr ? "dépense" : "expense");
-            alerts.push({
-              title: isFr ? "💰 Grosse transaction détectée" : "💰 Large transaction detected",
-              body: `${Math.round(Number(tx.amount)).toLocaleString()} (${typeLabel})`,
-            });
-          }
-        }
-      }
-
-      // ────── Low balance alerts ──────
-      if (prefLowBalance) {
-        for (const account of accounts) {
-          const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
-          const txSum = acctTxs.reduce((sum: number, tx: any) => {
-            return sum + (tx.type === "income" ? Number(tx.amount) : -Number(tx.amount));
-          }, 0);
-          const theoreticalBalance = Number(account.opening_balance) + txSum;
-          if (theoreticalBalance < prefLowBalanceThreshold && theoreticalBalance >= 0) {
-            alerts.push({
-              title: isFr ? "⚠️ Solde bas" : "⚠️ Low balance",
-              body: `${account.icon} ${account.name}: ${Math.round(theoreticalBalance).toLocaleString()} (${isFr ? "seuil" : "threshold"}: ${Math.round(prefLowBalanceThreshold).toLocaleString()})`,
-            });
-          }
-        }
-      }
+      // Large transaction & low balance alerts are handled in real-time
+      // by the SQL trigger (notify_on_transaction_insert) — not duplicated here.
 
       // Send push for each alert
       for (const alert of alerts) {
