@@ -487,7 +487,7 @@ Deno.serve(async (req) => {
       // Send push for each alert
       for (const alert of alerts) {
         try {
-          await fetch(`${supabaseUrl}/functions/v1/push-notify`, {
+          const pushRes = await fetch(`${supabaseUrl}/functions/v1/push-notify`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -502,7 +502,10 @@ Deno.serve(async (req) => {
               reference_id: alert.reference_id,
             }),
           });
-          totalAlerts++;
+          const pushResult = await pushRes.json();
+          if (pushResult.reason !== "dedup_skipped") {
+            totalAlerts++;
+          }
         } catch (e) {
           console.error(`Push failed for user ${userId}:`, e);
         }
