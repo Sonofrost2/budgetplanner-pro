@@ -497,6 +497,9 @@ Deno.serve(async (req) => {
               user_id: userId,
               title: alert.title,
               body: alert.body,
+              notification_type: alert.notification_type,
+              dedup_key: alert.dedup_key,
+              reference_id: alert.reference_id,
             }),
           });
           totalAlerts++;
