@@ -186,21 +186,33 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? "⚠️ Budget dépassé" : "⚠️ Budget exceeded",
               body: `${catIcon} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}`,
+              notification_type: "budget_exceeded",
+              dedup_key: `budget_exceeded_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           } else if (prefBudgetAlerts && pct >= threshold) {
             alerts.push({
               title: isFr ? `📊 Budget à ${Math.round(pct)}%` : `📊 Budget at ${Math.round(pct)}%`,
               body: `${catIcon} ${budget.name} (${isFr ? "seuil" : "threshold"} ${threshold}%)`,
+              notification_type: "budget_threshold",
+              dedup_key: `budget_threshold_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           } else if (prefBudgetProjections && projection > amount && pct >= 40 && daysToExceed < daysRemaining && daysToExceed > 0) {
             alerts.push({
               title: isFr ? `📈 Dépassement estimé dans ~${daysToExceed}j` : `📈 Projected to exceed in ~${daysToExceed}d`,
               body: `${catIcon} ${budget.name}: ${isFr ? "projection" : "projection"} ${Math.round(projection).toLocaleString()} (${Math.round((projection / amount) * 100)}%)`,
+              notification_type: "budget_projection",
+              dedup_key: `budget_proj_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           } else if (prefGoalReached && pct < 50 && daysElapsed > daysTotal * 0.7) {
             alerts.push({
               title: isFr ? "🎉 Budget maîtrisé !" : "🎉 Budget under control!",
               body: `${catIcon} ${budget.name}: ${Math.round(amount - spent).toLocaleString()} ${isFr ? "économisés" : "saved"}`,
+              notification_type: "budget_controlled",
+              dedup_key: `budget_ctrl_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           }
         } else {
