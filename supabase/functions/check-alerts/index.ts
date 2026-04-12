@@ -286,6 +286,8 @@ Deno.serve(async (req) => {
             body: isFr
               ? `${Math.round(todaySpent).toLocaleString()} dépensés (${Math.round(dailyPct)}% de ${Math.round(dailyBudgetTarget).toLocaleString()})`
               : `${Math.round(todaySpent).toLocaleString()} spent (${Math.round(dailyPct)}% of ${Math.round(dailyBudgetTarget).toLocaleString()})`,
+            notification_type: "daily_budget_exceeded",
+            dedup_key: `daily_exceeded_${todayStr}`,
           });
         } else if (dailyPct >= 80) {
           alerts.push({
@@ -293,6 +295,8 @@ Deno.serve(async (req) => {
             body: isFr
               ? `${Math.round(todaySpent).toLocaleString()} / ${Math.round(dailyBudgetTarget).toLocaleString()} (${Math.round(dailyPct)}%)`
               : `${Math.round(todaySpent).toLocaleString()} / ${Math.round(dailyBudgetTarget).toLocaleString()} (${Math.round(dailyPct)}%)`,
+            notification_type: "daily_budget_warning",
+            dedup_key: `daily_warning_${todayStr}`,
           });
         }
       }
@@ -312,6 +316,9 @@ Deno.serve(async (req) => {
               ? (isFr ? "📋 Échéance aujourd'hui" : "📋 Due today")
               : (isFr ? `📋 Échéance dans ${daysUntil}j` : `📋 Due in ${daysUntil}d`),
             body: `${rec.description}: ${Math.round(Number(rec.amount)).toLocaleString()} (${typeLabel})`,
+            notification_type: "recurring_reminder",
+            dedup_key: `recurring_${rec.id}_${todayStr}`,
+            reference_id: rec.id,
           });
         }
       }
