@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     let totalAlerts = 0;
 
     for (const userId of uniqueUserIds) {
-      const alerts: { title: string; body: string }[] = [];
+      const alerts: { title: string; body: string; notification_type: string; dedup_key: string; reference_id?: string }[] = [];
 
       // Fetch all data needed in parallel (including notification preferences)
       const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, recurringRes, profileRes, accountsRes, accountTxRes, prefsRes] = await Promise.all([
@@ -186,21 +186,33 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? "⚠️ Budget dépassé" : "⚠️ Budget exceeded",
               body: `${catIcon} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}`,
+              notification_type: "budget_exceeded",
+              dedup_key: `budget_exceeded_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           } else if (prefBudgetAlerts && pct >= threshold) {
             alerts.push({
               title: isFr ? `📊 Budget à ${Math.round(pct)}%` : `📊 Budget at ${Math.round(pct)}%`,
               body: `${catIcon} ${budget.name} (${isFr ? "seuil" : "threshold"} ${threshold}%)`,
+              notification_type: "budget_threshold",
+              dedup_key: `budget_threshold_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           } else if (prefBudgetProjections && projection > amount && pct >= 40 && daysToExceed < daysRemaining && daysToExceed > 0) {
             alerts.push({
               title: isFr ? `📈 Dépassement estimé dans ~${daysToExceed}j` : `📈 Projected to exceed in ~${daysToExceed}d`,
               body: `${catIcon} ${budget.name}: ${isFr ? "projection" : "projection"} ${Math.round(projection).toLocaleString()} (${Math.round((projection / amount) * 100)}%)`,
+              notification_type: "budget_projection",
+              dedup_key: `budget_proj_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           } else if (prefGoalReached && pct < 50 && daysElapsed > daysTotal * 0.7) {
             alerts.push({
               title: isFr ? "🎉 Budget maîtrisé !" : "🎉 Budget under control!",
               body: `${catIcon} ${budget.name}: ${Math.round(amount - spent).toLocaleString()} ${isFr ? "économisés" : "saved"}`,
+              notification_type: "budget_controlled",
+              dedup_key: `budget_ctrl_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           }
         } else {
@@ -211,11 +223,17 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? "🎉 Objectif atteint !" : "🎉 Target reached!",
               body: `${catIcon} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? "au-dessus" : "above"}`,
+              notification_type: "budget_goal_reached",
+              dedup_key: `budget_goal_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           } else if (prefBudgetAlerts && pastExpectedDay) {
             alerts.push({
               title: isFr ? `📊 Objectif à ${Math.round(pct)}%` : `📊 Target at ${Math.round(pct)}%`,
               body: `${catIcon} ${budget.name}: ${isFr ? "manque" : "missing"} ${Math.round(amount - spent).toLocaleString()}`,
+              notification_type: "budget_target_behind",
+              dedup_key: `budget_target_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           }
         }
@@ -228,6 +246,9 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? `📅 Dépense prévue dans ${daysUntil}j` : `📅 Expense due in ${daysUntil}d`,
               body: `${catIcon} ${budget.name}: ${Math.round(amount).toLocaleString()}`,
+              notification_type: "budget_upcoming_expense",
+              dedup_key: `budget_exp_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           }
         }
@@ -265,6 +286,8 @@ Deno.serve(async (req) => {
             body: isFr
               ? `${Math.round(todaySpent).toLocaleString()} dépensés (${Math.round(dailyPct)}% de ${Math.round(dailyBudgetTarget).toLocaleString()})`
               : `${Math.round(todaySpent).toLocaleString()} spent (${Math.round(dailyPct)}% of ${Math.round(dailyBudgetTarget).toLocaleString()})`,
+            notification_type: "daily_budget_exceeded",
+            dedup_key: `daily_exceeded_${todayStr}`,
           });
         } else if (dailyPct >= 80) {
           alerts.push({
@@ -272,6 +295,8 @@ Deno.serve(async (req) => {
             body: isFr
               ? `${Math.round(todaySpent).toLocaleString()} / ${Math.round(dailyBudgetTarget).toLocaleString()} (${Math.round(dailyPct)}%)`
               : `${Math.round(todaySpent).toLocaleString()} / ${Math.round(dailyBudgetTarget).toLocaleString()} (${Math.round(dailyPct)}%)`,
+            notification_type: "daily_budget_warning",
+            dedup_key: `daily_warning_${todayStr}`,
           });
         }
       }
@@ -291,6 +316,9 @@ Deno.serve(async (req) => {
               ? (isFr ? "📋 Échéance aujourd'hui" : "📋 Due today")
               : (isFr ? `📋 Échéance dans ${daysUntil}j` : `📋 Due in ${daysUntil}d`),
             body: `${rec.description}: ${Math.round(Number(rec.amount)).toLocaleString()} (${typeLabel})`,
+            notification_type: "recurring_reminder",
+            dedup_key: `recurring_${rec.id}_${todayStr}`,
+            reference_id: rec.id,
           });
         }
       }
@@ -304,6 +332,9 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? "🎉 Objectif épargne atteint !" : "🎉 Savings goal reached!",
               body: `${goal.icon} ${goal.name}`,
+              notification_type: "savings_goal_reached",
+              dedup_key: `savings_reached_${goal.id}_${todayStr}`,
+              reference_id: goal.id,
             });
           }
           continue;
@@ -332,6 +363,9 @@ Deno.serve(async (req) => {
           alerts.push({
             title: isFr ? "🐷 Jour de cotisation !" : "🐷 Contribution day!",
             body: `${goal.icon} ${isFr ? "C'est le jour de cotisation pour" : "Today is contribution day for"} ${goal.name}${monthlyAmount > 0 ? ` (${Math.round(monthlyAmount).toLocaleString()})` : ""}`,
+            notification_type: "savings_contribution_day",
+            dedup_key: `savings_contrib_${goal.id}_${todayStr}`,
+            reference_id: goal.id,
           });
         } else if (goal.contribution_day) {
           const daysUntil = goal.contribution_day >= todayDay ? goal.contribution_day - todayDay : 0;
@@ -339,6 +373,9 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? `🐷 Cotisation dans ${daysUntil}j` : `🐷 Contribution in ${daysUntil}d`,
               body: `${goal.icon} ${goal.name}: ${Math.round(Number(goal.monthly_contribution || 0)).toLocaleString()}`,
+              notification_type: "savings_contribution_upcoming",
+              dedup_key: `savings_upcoming_${goal.id}_${todayStr}`,
+              reference_id: goal.id,
             });
           }
         }
@@ -358,6 +395,9 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? "🐷 Rappel épargne" : "🐷 Savings reminder",
               body: `${goal.icon} ${isFr ? "Aucun versement ce mois pour" : "No contribution this month for"} ${goal.name}`,
+              notification_type: "savings_no_contribution",
+              dedup_key: `savings_nocontrib_${goal.id}_${todayStr}`,
+              reference_id: goal.id,
             });
           }
         } else if (totalContributed < monthlyNeeded * 0.9) {
@@ -365,6 +405,9 @@ Deno.serve(async (req) => {
           alerts.push({
             title: isFr ? `🐷 Épargne insuffisante (${pct}%)` : `🐷 Insufficient savings (${pct}%)`,
             body: `${goal.icon} ${goal.name}: ${Math.round(totalContributed)} / ${Math.round(monthlyNeeded)}`,
+            notification_type: "savings_insufficient",
+            dedup_key: `savings_insuf_${goal.id}_${todayStr}`,
+            reference_id: goal.id,
           });
         }
       }
@@ -386,6 +429,9 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? "🚨 Dette en retard" : "🚨 Overdue debt",
               body: `${debt.creditor_name}: ${Math.round(remaining).toLocaleString()} ${isFr ? "en retard de" : "overdue by"} ${Math.abs(daysUntilDue)} ${isFr ? "jours" : "days"}`,
+              notification_type: "debt_overdue",
+              dedup_key: `debt_overdue_${debt.id}_${todayStr}`,
+              reference_id: debt.id,
             });
           } else if (daysUntilDue <= 7) {
             alerts.push({
@@ -393,11 +439,17 @@ Deno.serve(async (req) => {
                 ? (isFr ? "⚠️ Dette due aujourd'hui" : "⚠️ Debt due today")
                 : (isFr ? `⚠️ Échéance dette dans ${daysUntilDue}j` : `⚠️ Debt due in ${daysUntilDue}d`),
               body: `${debt.creditor_name}: ${Math.round(remaining).toLocaleString()}`,
+              notification_type: "debt_due_soon",
+              dedup_key: `debt_due_${debt.id}_${todayStr}`,
+              reference_id: debt.id,
             });
           } else if (daysUntilDue <= 30) {
             alerts.push({
               title: isFr ? `📋 Échéance dette dans ${daysUntilDue}j` : `📋 Debt due in ${daysUntilDue}d`,
               body: `${debt.creditor_name}: ${Math.round(remaining).toLocaleString()}`,
+              notification_type: "debt_upcoming",
+              dedup_key: `debt_upcoming_${debt.id}_${todayStr}`,
+              reference_id: debt.id,
             });
           }
         }
@@ -421,6 +473,9 @@ Deno.serve(async (req) => {
           alerts.push({
             title: isFr ? "🔍 Écart de solde détecté" : "🔍 Balance discrepancy",
             body: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString()} (${isFr ? "réel" : "actual"}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? "théorique" : "calculated"}: ${Math.round(theoreticalBalance).toLocaleString()})`,
+            notification_type: "balance_discrepancy",
+            dedup_key: `balance_disc_${account.id}_${todayStr}`,
+            reference_id: account.id,
           });
         }
       }
@@ -442,6 +497,9 @@ Deno.serve(async (req) => {
               user_id: userId,
               title: alert.title,
               body: alert.body,
+              notification_type: alert.notification_type,
+              dedup_key: alert.dedup_key,
+              reference_id: alert.reference_id,
             }),
           });
           totalAlerts++;

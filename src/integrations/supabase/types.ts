@@ -372,6 +372,42 @@ export type Database = {
           },
         ]
       }
+      notification_history: {
+        Row: {
+          body: string | null
+          channel: string
+          dedup_key: string | null
+          id: string
+          notification_type: string
+          reference_id: string | null
+          sent_at: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          dedup_key?: string | null
+          id?: string
+          notification_type: string
+          reference_id?: string | null
+          sent_at?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          dedup_key?: string | null
+          id?: string
+          notification_type?: string
+          reference_id?: string | null
+          sent_at?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           balance_discrepancy: boolean
