@@ -332,6 +332,9 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? "🎉 Objectif épargne atteint !" : "🎉 Savings goal reached!",
               body: `${goal.icon} ${goal.name}`,
+              notification_type: "savings_goal_reached",
+              dedup_key: `savings_reached_${goal.id}_${todayStr}`,
+              reference_id: goal.id,
             });
           }
           continue;
@@ -360,6 +363,9 @@ Deno.serve(async (req) => {
           alerts.push({
             title: isFr ? "🐷 Jour de cotisation !" : "🐷 Contribution day!",
             body: `${goal.icon} ${isFr ? "C'est le jour de cotisation pour" : "Today is contribution day for"} ${goal.name}${monthlyAmount > 0 ? ` (${Math.round(monthlyAmount).toLocaleString()})` : ""}`,
+            notification_type: "savings_contribution_day",
+            dedup_key: `savings_contrib_${goal.id}_${todayStr}`,
+            reference_id: goal.id,
           });
         } else if (goal.contribution_day) {
           const daysUntil = goal.contribution_day >= todayDay ? goal.contribution_day - todayDay : 0;
@@ -367,6 +373,9 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? `🐷 Cotisation dans ${daysUntil}j` : `🐷 Contribution in ${daysUntil}d`,
               body: `${goal.icon} ${goal.name}: ${Math.round(Number(goal.monthly_contribution || 0)).toLocaleString()}`,
+              notification_type: "savings_contribution_upcoming",
+              dedup_key: `savings_upcoming_${goal.id}_${todayStr}`,
+              reference_id: goal.id,
             });
           }
         }
@@ -386,6 +395,9 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? "🐷 Rappel épargne" : "🐷 Savings reminder",
               body: `${goal.icon} ${isFr ? "Aucun versement ce mois pour" : "No contribution this month for"} ${goal.name}`,
+              notification_type: "savings_no_contribution",
+              dedup_key: `savings_nocontrib_${goal.id}_${todayStr}`,
+              reference_id: goal.id,
             });
           }
         } else if (totalContributed < monthlyNeeded * 0.9) {
@@ -393,6 +405,9 @@ Deno.serve(async (req) => {
           alerts.push({
             title: isFr ? `🐷 Épargne insuffisante (${pct}%)` : `🐷 Insufficient savings (${pct}%)`,
             body: `${goal.icon} ${goal.name}: ${Math.round(totalContributed)} / ${Math.round(monthlyNeeded)}`,
+            notification_type: "savings_insufficient",
+            dedup_key: `savings_insuf_${goal.id}_${todayStr}`,
+            reference_id: goal.id,
           });
         }
       }
