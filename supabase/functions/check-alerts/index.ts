@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     let totalAlerts = 0;
 
     for (const userId of uniqueUserIds) {
-      const alerts: { title: string; body: string }[] = [];
+      const alerts: { title: string; body: string; notification_type: string; dedup_key: string; reference_id?: string }[] = [];
 
       // Fetch all data needed in parallel (including notification preferences)
       const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, recurringRes, profileRes, accountsRes, accountTxRes, prefsRes] = await Promise.all([
