@@ -246,6 +246,9 @@ Deno.serve(async (req) => {
             alerts.push({
               title: isFr ? `📅 Dépense prévue dans ${daysUntil}j` : `📅 Expense due in ${daysUntil}d`,
               body: `${catIcon} ${budget.name}: ${Math.round(amount).toLocaleString()}`,
+              notification_type: "budget_upcoming_expense",
+              dedup_key: `budget_exp_${budget.id}_${todayStr}`,
+              reference_id: budget.id,
             });
           }
         }
