@@ -721,24 +721,11 @@ const SavingsPage = () => {
       <SavingsSummaryTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
       <SavingsControlTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
 
-      {goals.length === 0 ? (
-        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
-          <CardContent className="py-16 text-center">
-            <PiggyBank className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
-            <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
-              setEditGoalId(null);
-              setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
-              setCustomBankMode(false);
-              setDialogOpen(true);
-            }}>
-              <Plus className="w-4 h-4 mr-1" />{t.addGoal}
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {goals.map(g => (
+      {(() => {
+        const activeGoals = goals.filter(g => (g as any).status !== 'completed');
+        const completedGoals = goals.filter(g => (g as any).status === 'completed');
+
+        const renderGoalCard = (g: typeof goals[0]) => (
             <SavingsGoalCard
               key={g.id}
               goal={g}
@@ -773,10 +760,58 @@ const SavingsPage = () => {
               }}
               onDelete={() => setDeleteId(g.id)}
               onSimulate={() => handleSimulate(g.id)}
+              onCapitalizeInterest={Number((g as any).interest_rate) > 0 && g.account_id ? () => handleCapitalizeInterest(g.id) : undefined}
+              isCapitalizing={capitalizingGoalId === g.id}
+              onArchive={(g as any).status !== 'completed' && Number(g.current_amount) >= Number(g.target_amount) ? () => handleArchive(g.id) : undefined}
+              onReinvest={(g as any).status === 'completed' ? () => handleReinvest(g.id) : undefined}
+              onReactivate={(g as any).status === 'completed' ? () => handleReactivate(g.id) : undefined}
             />
-          ))}
-        </div>
-      )}
+        );
+
+        return (
+          <>
+            {activeGoals.length === 0 && completedGoals.length === 0 ? (
+              <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+                <CardContent className="py-16 text-center">
+                  <PiggyBank className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
+                  <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+                    setEditGoalId(null);
+                    setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+                    setCustomBankMode(false);
+                    setDialogOpen(true);
+                  }}>
+                    <Plus className="w-4 h-4 mr-1" />{t.addGoal}
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {activeGoals.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                      <Target className="w-4 h-4" /> {t.activeGoals} ({activeGoals.length})
+                    </h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {activeGoals.map(renderGoalCard)}
+                    </div>
+                  </div>
+                )}
+                {completedGoals.length > 0 && (
+                  <div className="space-y-4 mt-8">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-secondary flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" /> {t.completedGoals} ({completedGoals.length})
+                    </h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {completedGoals.map(renderGoalCard)}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        );
+      })()}
 
       {/* Create/Edit Goal Dialog */}
       <ResponsiveFormDialog
