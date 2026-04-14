@@ -27,7 +27,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent } from 'lucide-react';
+import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent, CheckCircle2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AddContributionDialog, WithdrawDialog, SimulationDialog } from '@/components/dashboard/savings/SavingsDialogs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -244,32 +244,62 @@ const SavingsPage = () => {
 
   const handleCreateOrEdit = async () => {
     if (!user || !form.name.trim() || Number(form.target_amount) <= 0) return;
-    const payload = {
-      name: form.name.trim(),
-      target_amount: Number(form.target_amount),
-      icon: form.icon || '🎯',
-      deadline: form.deadline || null,
-      account_id: form.account_id || null,
-      monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
-      start_date: form.start_date || null,
-      contribution_day: form.contribution_day ? Number(form.contribution_day) : null,
-      is_locked: form.is_locked,
-      interest_rate: form.interest_rate ? Number(form.interest_rate) : 0,
-      interest_frequency: form.interest_frequency || 'yearly',
-      bank_name: form.bank_name?.trim() || null,
-    };
+    setSaving(true);
+    try {
+      let accountId = form.account_id || null;
 
-    if (editGoalId) {
-      const { error } = await supabase.from('savings_goals').update(payload).eq('id', editGoalId);
-      if (error) { toast.error(error.message); return; }
-    } else {
-      const { error } = await supabase.from('savings_goals').insert({ user_id: user.id, ...payload });
-      if (error) { toast.error(error.message); return; }
+      // Auto-create savings account if no account selected (only on create)
+      if (!editGoalId && !accountId) {
+        const accountName = `${t.savings} - ${form.name.trim()}`;
+        const { data: newAccount, error: accErr } = await supabase
+          .from('payment_accounts')
+          .insert({
+            user_id: user.id,
+            name: accountName,
+            type: 'savings',
+            icon: form.icon || '🎯',
+            opening_balance: 0,
+            real_balance: 0,
+          })
+          .select('id')
+          .single();
+        if (accErr) { toast.error(accErr.message); setSaving(false); return; }
+        accountId = newAccount.id;
+        toast.info(t.autoAccountCreated);
+      }
+
+      const payload = {
+        name: form.name.trim(),
+        target_amount: Number(form.target_amount),
+        icon: form.icon || '🎯',
+        deadline: form.deadline || null,
+        account_id: accountId,
+        monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
+        start_date: form.start_date || null,
+        contribution_day: form.contribution_day ? Number(form.contribution_day) : null,
+        is_locked: form.is_locked,
+        interest_rate: form.interest_rate ? Number(form.interest_rate) : 0,
+        interest_frequency: form.interest_frequency || 'yearly',
+        bank_name: form.bank_name?.trim() || null,
+      };
+
+      if (editGoalId) {
+        const { error } = await supabase.from('savings_goals').update(payload).eq('id', editGoalId);
+        if (error) { toast.error(error.message); setSaving(false); return; }
+      } else {
+        const { error } = await supabase.from('savings_goals').insert({ user_id: user.id, ...payload });
+        if (error) { toast.error(error.message); setSaving(false); return; }
+      }
+      setDialogOpen(false);
+      setEditGoalId(null);
+      refreshData();
+      invalidateCrossModule();
+      toast.success(t.saved);
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setSaving(false);
     }
-    setDialogOpen(false);
-    setEditGoalId(null);
-    refreshData();
-    toast.success(t.saved);
   };
 
   const handleAddAmount = async () => {
@@ -402,6 +432,97 @@ const SavingsPage = () => {
     await supabase.from('savings_goals').delete().eq('id', deleteId);
     setDeleteId(null);
     refreshData();
+  };
+
+  // Archive / Reactivate goal
+  const handleArchive = async (goalId: string) => {
+    const { error } = await supabase.from('savings_goals').update({ status: 'completed' } as any).eq('id', goalId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t.goalArchived);
+    refreshData();
+  };
+
+  const handleReactivate = async (goalId: string) => {
+    const { error } = await supabase.from('savings_goals').update({ status: 'active' } as any).eq('id', goalId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t.goalReactivated);
+    refreshData();
+  };
+
+  // Reinvest: create new goal from completed goal's balance
+  const [reinvestDialog, setReinvestDialog] = useState<string | null>(null);
+  const handleReinvest = (goalId: string) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+    // Pre-fill form with existing data
+    setEditGoalId(null);
+    setForm({
+      name: '', target_amount: '', icon: '🎯', deadline: '',
+      account_id: goal.account_id || '',
+      monthly_contribution: goal.monthly_contribution ? String(goal.monthly_contribution) : '',
+      start_date: new Date().toISOString().split('T')[0],
+      contribution_day: (goal as any).contribution_day ? String((goal as any).contribution_day) : '',
+      is_locked: (goal as any).is_locked || false,
+      interest_rate: (goal as any).interest_rate ? String((goal as any).interest_rate) : '',
+      interest_frequency: (goal as any).interest_frequency || 'yearly',
+      bank_name: (goal as any).bank_name || '',
+    });
+    setCustomBankMode(false);
+    setDialogOpen(true);
+    // Archive the old goal
+    handleArchive(goalId);
+  };
+
+  // Capitalize interest
+  const [capitalizingGoalId, setCapitalizingGoalId] = useState<string | null>(null);
+  const handleCapitalizeInterest = async (goalId: string) => {
+    if (!user) return;
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal || !goal.account_id) return;
+    const rate = Number((goal as any).interest_rate) || 0;
+    if (rate <= 0) return;
+
+    setCapitalizingGoalId(goalId);
+    try {
+      const freq = (goal as any).interest_frequency || 'yearly';
+      const currentAmount = Number(goal.current_amount);
+      
+      // Calculate period interest based on frequency
+      let periodRate: number;
+      let periodLabel: string;
+      if (freq === 'monthly') { periodRate = rate / 100 / 12; periodLabel = locale === 'fr' ? 'mensuel' : 'monthly'; }
+      else if (freq === 'quarterly') { periodRate = rate / 100 / 4; periodLabel = locale === 'fr' ? 'trimestriel' : 'quarterly'; }
+      else if (freq === 'semi_annual') { periodRate = rate / 100 / 2; periodLabel = locale === 'fr' ? 'semestriel' : 'semi-annual'; }
+      else { periodRate = rate / 100; periodLabel = locale === 'fr' ? 'annuel' : 'yearly'; }
+
+      const interestAmount = Math.round(currentAmount * periodRate);
+      if (interestAmount <= 0) {
+        toast.info(t.noInterestDue);
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      const desc = `${locale === 'fr' ? 'Intérêts' : 'Interest'} ${periodLabel} - ${goal.name} (${rate}%)`;
+
+      const { error } = await supabase.from('transactions').insert({
+        user_id: user.id,
+        type: 'income',
+        amount: interestAmount,
+        description: desc,
+        account_id: goal.account_id,
+        date: today,
+        notes: `💰 ${goal.icon} ${goal.name}`,
+      });
+      if (error) throw error;
+
+      toast.success(`${t.interestCapitalized}: +${fmt(interestAmount)}`);
+      refreshData();
+      invalidateCrossModule();
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setCapitalizingGoalId(null);
+    }
   };
 
   // AI Simulation
@@ -600,24 +721,11 @@ const SavingsPage = () => {
       <SavingsSummaryTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
       <SavingsControlTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
 
-      {goals.length === 0 ? (
-        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
-          <CardContent className="py-16 text-center">
-            <PiggyBank className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
-            <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
-              setEditGoalId(null);
-              setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
-              setCustomBankMode(false);
-              setDialogOpen(true);
-            }}>
-              <Plus className="w-4 h-4 mr-1" />{t.addGoal}
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {goals.map(g => (
+      {(() => {
+        const activeGoals = goals.filter(g => (g as any).status !== 'completed');
+        const completedGoals = goals.filter(g => (g as any).status === 'completed');
+
+        const renderGoalCard = (g: typeof goals[0]) => (
             <SavingsGoalCard
               key={g.id}
               goal={g}
@@ -652,10 +760,58 @@ const SavingsPage = () => {
               }}
               onDelete={() => setDeleteId(g.id)}
               onSimulate={() => handleSimulate(g.id)}
+              onCapitalizeInterest={Number((g as any).interest_rate) > 0 && g.account_id ? () => handleCapitalizeInterest(g.id) : undefined}
+              isCapitalizing={capitalizingGoalId === g.id}
+              onArchive={(g as any).status !== 'completed' && Number(g.current_amount) >= Number(g.target_amount) ? () => handleArchive(g.id) : undefined}
+              onReinvest={(g as any).status === 'completed' ? () => handleReinvest(g.id) : undefined}
+              onReactivate={(g as any).status === 'completed' ? () => handleReactivate(g.id) : undefined}
             />
-          ))}
-        </div>
-      )}
+        );
+
+        return (
+          <>
+            {activeGoals.length === 0 && completedGoals.length === 0 ? (
+              <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
+                <CardContent className="py-16 text-center">
+                  <PiggyBank className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
+                  <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+                    setEditGoalId(null);
+                    setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+                    setCustomBankMode(false);
+                    setDialogOpen(true);
+                  }}>
+                    <Plus className="w-4 h-4 mr-1" />{t.addGoal}
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {activeGoals.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                      <Target className="w-4 h-4" /> {t.activeGoals} ({activeGoals.length})
+                    </h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {activeGoals.map(renderGoalCard)}
+                    </div>
+                  </div>
+                )}
+                {completedGoals.length > 0 && (
+                  <div className="space-y-4 mt-8">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-secondary flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" /> {t.completedGoals} ({completedGoals.length})
+                    </h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {completedGoals.map(renderGoalCard)}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        );
+      })()}
 
       {/* Create/Edit Goal Dialog */}
       <ResponsiveFormDialog
