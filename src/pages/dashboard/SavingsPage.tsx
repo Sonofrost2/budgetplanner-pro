@@ -244,32 +244,62 @@ const SavingsPage = () => {
 
   const handleCreateOrEdit = async () => {
     if (!user || !form.name.trim() || Number(form.target_amount) <= 0) return;
-    const payload = {
-      name: form.name.trim(),
-      target_amount: Number(form.target_amount),
-      icon: form.icon || '🎯',
-      deadline: form.deadline || null,
-      account_id: form.account_id || null,
-      monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
-      start_date: form.start_date || null,
-      contribution_day: form.contribution_day ? Number(form.contribution_day) : null,
-      is_locked: form.is_locked,
-      interest_rate: form.interest_rate ? Number(form.interest_rate) : 0,
-      interest_frequency: form.interest_frequency || 'yearly',
-      bank_name: form.bank_name?.trim() || null,
-    };
+    setSaving(true);
+    try {
+      let accountId = form.account_id || null;
 
-    if (editGoalId) {
-      const { error } = await supabase.from('savings_goals').update(payload).eq('id', editGoalId);
-      if (error) { toast.error(error.message); return; }
-    } else {
-      const { error } = await supabase.from('savings_goals').insert({ user_id: user.id, ...payload });
-      if (error) { toast.error(error.message); return; }
+      // Auto-create savings account if no account selected (only on create)
+      if (!editGoalId && !accountId) {
+        const accountName = `${t.savings} - ${form.name.trim()}`;
+        const { data: newAccount, error: accErr } = await supabase
+          .from('payment_accounts')
+          .insert({
+            user_id: user.id,
+            name: accountName,
+            type: 'savings',
+            icon: form.icon || '🎯',
+            opening_balance: 0,
+            real_balance: 0,
+          })
+          .select('id')
+          .single();
+        if (accErr) { toast.error(accErr.message); setSaving(false); return; }
+        accountId = newAccount.id;
+        toast.info(t.autoAccountCreated);
+      }
+
+      const payload = {
+        name: form.name.trim(),
+        target_amount: Number(form.target_amount),
+        icon: form.icon || '🎯',
+        deadline: form.deadline || null,
+        account_id: accountId,
+        monthly_contribution: form.monthly_contribution ? Number(form.monthly_contribution) : 0,
+        start_date: form.start_date || null,
+        contribution_day: form.contribution_day ? Number(form.contribution_day) : null,
+        is_locked: form.is_locked,
+        interest_rate: form.interest_rate ? Number(form.interest_rate) : 0,
+        interest_frequency: form.interest_frequency || 'yearly',
+        bank_name: form.bank_name?.trim() || null,
+      };
+
+      if (editGoalId) {
+        const { error } = await supabase.from('savings_goals').update(payload).eq('id', editGoalId);
+        if (error) { toast.error(error.message); setSaving(false); return; }
+      } else {
+        const { error } = await supabase.from('savings_goals').insert({ user_id: user.id, ...payload });
+        if (error) { toast.error(error.message); setSaving(false); return; }
+      }
+      setDialogOpen(false);
+      setEditGoalId(null);
+      refreshData();
+      invalidateCrossModule();
+      toast.success(t.saved);
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setSaving(false);
     }
-    setDialogOpen(false);
-    setEditGoalId(null);
-    refreshData();
-    toast.success(t.saved);
   };
 
   const handleAddAmount = async () => {
