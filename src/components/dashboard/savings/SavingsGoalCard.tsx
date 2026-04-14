@@ -339,22 +339,45 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
       {/* ── Footer ── */}
       <Separator />
       <div className="p-4 flex gap-2 flex-wrap">
-        {!done && (
+        {!done && (goal as any).status !== 'completed' && (
           <Button onClick={onAddSaving} className="flex-1 rounded-xl text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
             <Plus className="w-4 h-4 mr-2" />{t.addSaving}
           </Button>
         )}
-        {Number(goal.current_amount) > 0 && !(goal as any).is_locked && (
+        {Number(goal.current_amount) > 0 && !(goal as any).is_locked && (goal as any).status !== 'completed' && (
           <Button onClick={onWithdraw} variant="outline" className="flex-1 rounded-xl">
             <ArrowUpRight className="w-4 h-4 mr-2" />{t.withdrawSaving}
           </Button>
         )}
-        {Number(goal.current_amount) > 0 && (goal as any).is_locked && (
+        {Number(goal.current_amount) > 0 && (goal as any).is_locked && (goal as any).status !== 'completed' && (
           <Button variant="outline" className="flex-1 rounded-xl opacity-50 cursor-not-allowed" disabled>
             <Lock className="w-4 h-4 mr-2" />{t.savingsLocked}
           </Button>
         )}
-        {onSimulate && (
+        {onCapitalizeInterest && (goal as any).status !== 'completed' && (
+          <Button onClick={onCapitalizeInterest} variant="outline" className="rounded-xl" size="sm" disabled={isCapitalizing}
+            title={t.capitalizeInterest}>
+            <Coins className={`w-4 h-4 mr-1.5 text-amber-500 ${isCapitalizing ? 'animate-spin' : ''}`} />
+            <span className="text-xs">{isCapitalizing ? t.capitalizingInterest : t.capitalizeInterest}</span>
+          </Button>
+        )}
+        {onArchive && (
+          <Button onClick={onArchive} variant="outline" className="rounded-xl" size="sm" title={t.archiveGoal}>
+            <Archive className="w-4 h-4 mr-1.5 text-secondary" />
+            <span className="text-xs">{t.archiveGoal}</span>
+          </Button>
+        )}
+        {onReinvest && (
+          <Button onClick={onReinvest} className="flex-1 rounded-xl text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+            <ArrowRight className="w-4 h-4 mr-2" />{t.reinvestGoal}
+          </Button>
+        )}
+        {onReactivate && (
+          <Button onClick={onReactivate} variant="outline" className="flex-1 rounded-xl">
+            <RotateCcw className="w-4 h-4 mr-2" />{t.reactivateGoal}
+          </Button>
+        )}
+        {onSimulate && (goal as any).status !== 'completed' && (
           <Button onClick={onSimulate} variant="outline" className="rounded-xl" size="icon" title={t.simulateAI}>
             <Sparkles className="w-4 h-4 text-primary" />
           </Button>
