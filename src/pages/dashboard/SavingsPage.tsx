@@ -434,6 +434,97 @@ const SavingsPage = () => {
     refreshData();
   };
 
+  // Archive / Reactivate goal
+  const handleArchive = async (goalId: string) => {
+    const { error } = await supabase.from('savings_goals').update({ status: 'completed' } as any).eq('id', goalId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t.goalArchived);
+    refreshData();
+  };
+
+  const handleReactivate = async (goalId: string) => {
+    const { error } = await supabase.from('savings_goals').update({ status: 'active' } as any).eq('id', goalId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t.goalReactivated);
+    refreshData();
+  };
+
+  // Reinvest: create new goal from completed goal's balance
+  const [reinvestDialog, setReinvestDialog] = useState<string | null>(null);
+  const handleReinvest = (goalId: string) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+    // Pre-fill form with existing data
+    setEditGoalId(null);
+    setForm({
+      name: '', target_amount: '', icon: '🎯', deadline: '',
+      account_id: goal.account_id || '',
+      monthly_contribution: goal.monthly_contribution ? String(goal.monthly_contribution) : '',
+      start_date: new Date().toISOString().split('T')[0],
+      contribution_day: (goal as any).contribution_day ? String((goal as any).contribution_day) : '',
+      is_locked: (goal as any).is_locked || false,
+      interest_rate: (goal as any).interest_rate ? String((goal as any).interest_rate) : '',
+      interest_frequency: (goal as any).interest_frequency || 'yearly',
+      bank_name: (goal as any).bank_name || '',
+    });
+    setCustomBankMode(false);
+    setDialogOpen(true);
+    // Archive the old goal
+    handleArchive(goalId);
+  };
+
+  // Capitalize interest
+  const [capitalizingGoalId, setCapitalizingGoalId] = useState<string | null>(null);
+  const handleCapitalizeInterest = async (goalId: string) => {
+    if (!user) return;
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal || !goal.account_id) return;
+    const rate = Number((goal as any).interest_rate) || 0;
+    if (rate <= 0) return;
+
+    setCapitalizingGoalId(goalId);
+    try {
+      const freq = (goal as any).interest_frequency || 'yearly';
+      const currentAmount = Number(goal.current_amount);
+      
+      // Calculate period interest based on frequency
+      let periodRate: number;
+      let periodLabel: string;
+      if (freq === 'monthly') { periodRate = rate / 100 / 12; periodLabel = locale === 'fr' ? 'mensuel' : 'monthly'; }
+      else if (freq === 'quarterly') { periodRate = rate / 100 / 4; periodLabel = locale === 'fr' ? 'trimestriel' : 'quarterly'; }
+      else if (freq === 'semi_annual') { periodRate = rate / 100 / 2; periodLabel = locale === 'fr' ? 'semestriel' : 'semi-annual'; }
+      else { periodRate = rate / 100; periodLabel = locale === 'fr' ? 'annuel' : 'yearly'; }
+
+      const interestAmount = Math.round(currentAmount * periodRate);
+      if (interestAmount <= 0) {
+        toast.info(t.noInterestDue);
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      const desc = `${locale === 'fr' ? 'Intérêts' : 'Interest'} ${periodLabel} - ${goal.name} (${rate}%)`;
+
+      const { error } = await supabase.from('transactions').insert({
+        user_id: user.id,
+        type: 'income',
+        amount: interestAmount,
+        description: desc,
+        account_id: goal.account_id,
+        date: today,
+        notes: `💰 ${goal.icon} ${goal.name}`,
+      });
+      if (error) throw error;
+
+      toast.success(`${t.interestCapitalized}: +${fmt(interestAmount)}`);
+      refreshData();
+      invalidateCrossModule();
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur');
+    } finally {
+      setCapitalizingGoalId(null);
+    }
+  };
+
   // AI Simulation
   const handleSimulate = async (goalId: string) => {
     const goal = goals.find(g => g.id === goalId);
