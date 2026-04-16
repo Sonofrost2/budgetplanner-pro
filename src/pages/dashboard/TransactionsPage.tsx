@@ -65,10 +65,8 @@ const TransactionsPage = () => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [aiSuggesting, setAiSuggesting] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [transferOpen, setTransferOpen] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [budgetOverspendOpen, setBudgetOverspendOpen] = useState(false);
   const [overspendBudgetName, setOverspendBudgetName] = useState('');
 
