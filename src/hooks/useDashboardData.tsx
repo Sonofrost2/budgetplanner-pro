@@ -50,7 +50,7 @@ export const useAccounts = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('payment_accounts').select('*')
-        .eq('user_id', user!.id).order('created_at', { ascending: true });
+        .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: true });
       if (error) throw error;
       return (data ?? []) as Account[];
     },
@@ -66,7 +66,7 @@ export const useCategories = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('categories').select('*')
-        .eq('user_id', user!.id).order('type').order('name');
+        .eq('user_id', user!.id).is('deleted_at', null).order('type').order('name');
       if (error) throw error;
       return (data ?? []) as Category[];
     },
@@ -82,7 +82,7 @@ export const useBudgets = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('budgets').select('*, categories(name, icon, color)')
-        .eq('user_id', user!.id).order('created_at', { ascending: false });
+        .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as Budget[];
     },
@@ -98,7 +98,7 @@ export const useSavingsGoals = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('savings_goals').select('*, payment_accounts(name, icon, real_balance)')
-        .eq('user_id', user!.id).order('created_at', { ascending: false });
+        .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as SavingsGoal[];
     },
@@ -114,7 +114,7 @@ export const useDebts = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('debts').select('*')
-        .eq('user_id', user!.id).order('created_at', { ascending: false });
+        .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as Debt[];
     },
@@ -130,7 +130,7 @@ export const useRecurring = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('recurring_transactions').select('*, categories(name, icon, color)')
-        .eq('user_id', user!.id).order('next_date', { ascending: true });
+        .eq('user_id', user!.id).is('deleted_at', null).order('next_date', { ascending: true });
       if (error) throw error;
       return (data ?? []) as RecurringTransaction[];
     },
@@ -165,6 +165,7 @@ export const useAllTransactions = () => {
         .from('transactions')
         .select('*, categories(name, icon, color), payment_accounts(name, icon)')
         .eq('user_id', user!.id)
+        .is('deleted_at', null)
         .order('date', { ascending: false })
         .limit(10000);
       if (error) throw error;
