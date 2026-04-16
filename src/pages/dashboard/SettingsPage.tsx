@@ -251,6 +251,12 @@ const SettingsPage = () => {
         </CardContent>
       </Card>
 
+      {/* Phase E — Export complet JSON (RGPD) */}
+      <DataExportCard />
+
+      {/* Phase E — Corbeille */}
+      <TrashCard />
+
       {/* Password Dialog */}
       <Dialog open={passwordDialog} onOpenChange={setPasswordDialog}>
         <DialogContent className="sm:max-w-md">
