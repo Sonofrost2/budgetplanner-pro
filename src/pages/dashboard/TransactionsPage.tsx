@@ -373,37 +373,7 @@ const TransactionsPage = () => {
     toast.success(t.delete + ' ✓');
   };
 
-  const handleAISuggest = async () => {
-    if (!canUseAISuggestions) return;
-    setAiSuggesting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-suggest', {
-        body: {
-          description: form.description, type: form.type,
-          categories: categories.filter(c => c.type === form.type).map(c => ({ id: c.id, name: c.name })),
-          accounts: accounts.map(a => ({ id: a.id, name: a.name })), locale,
-        },
-      });
-      if (error) throw error;
-      if (data?.description) setForm(f => ({ ...f, description: data.description }));
-      if (data?.category_id) setForm(f => ({ ...f, category_id: data.category_id }));
-      if (data?.amount) setForm(f => ({ ...f, amount: String(data.amount) }));
-      if (data?.account_id) setForm(f => ({ ...f, account_id: data.account_id }));
-      toast.success(t.aiSuggest);
-    } catch (e: any) {
-      toast.error(e.message || 'AI error');
-    } finally {
-      setAiSuggesting(false);
-    }
-  };
-
-  const descriptionSuggestions = useMemo(() => {
-    if (!form.description || form.description.length < 2) return [];
-    const q = form.description.toLowerCase();
-    return recentDescriptions
-      .filter(tx => tx.description.toLowerCase().includes(q))
-      .slice(0, 5);
-  }, [form.description, recentDescriptions]);
+  // AI suggest and description suggestions are handled inside TransactionForm component
 
   if (loading) {
     return (
