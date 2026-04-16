@@ -453,8 +453,8 @@ export const useSavingsPageData = () => {
     queryKey: ['savings-page-data', user?.id ?? ''],
     queryFn: async () => {
       const [goalsRes, accRes] = await Promise.all([
-        supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance, opening_balance)').eq('user_id', user!.id).order('created_at', { ascending: false }),
-        supabase.from('payment_accounts').select('*').eq('user_id', user!.id),
+        supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance, opening_balance)').eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: false }),
+        supabase.from('payment_accounts').select('*').eq('user_id', user!.id).is('deleted_at', null),
       ]);
       if (goalsRes.error) throw goalsRes.error;
 
@@ -470,7 +470,7 @@ export const useSavingsPageData = () => {
         txPromises.push(
           supabase.from('transactions')
             .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
-            .eq('user_id', user!.id).in('account_id', savingsAccountIds)
+            .eq('user_id', user!.id).is('deleted_at', null).in('account_id', savingsAccountIds)
             .order('date', { ascending: false }).limit(2000)
         );
       }
@@ -478,7 +478,7 @@ export const useSavingsPageData = () => {
         txPromises.push(
           supabase.from('transactions')
             .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
-            .eq('user_id', user!.id).like('notes', '🎯 %')
+            .eq('user_id', user!.id).is('deleted_at', null).like('notes', '🎯 %')
             .order('date', { ascending: false }).limit(500)
         );
       }
