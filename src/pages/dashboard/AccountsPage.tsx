@@ -195,6 +195,20 @@ const AccountsPage = () => {
 
   const handleDelete = async () => {
     if (!deleteId) return;
+    // Check for linked active savings goals
+    const { data: linkedGoals } = await supabase
+      .from('savings_goals')
+      .select('id, name')
+      .eq('account_id', deleteId)
+      .in('status', ['active']);
+    if (linkedGoals && linkedGoals.length > 0) {
+      const names = linkedGoals.map(g => g.name).join(', ');
+      toast.error(locale === 'fr'
+        ? `Impossible : compte lié à ${linkedGoals.length} objectif(s) d'épargne actif(s) (${names})`
+        : `Cannot delete: linked to ${linkedGoals.length} active savings goal(s) (${names})`);
+      setDeleteId(null);
+      return;
+    }
     await supabase.from('payment_accounts').delete().eq('id', deleteId);
     setDeleteId(null);
     refreshAll();

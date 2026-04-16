@@ -69,9 +69,9 @@ const DebtsPage = () => {
   const bulk = useBulkSelection(filteredDebts);
 
   const handleBulkDelete = async () => {
-    for (const id of bulk.selectedIds) {
-      await supabase.from('debts').delete().eq('id', id);
-    }
+    const ids = Array.from(bulk.selectedIds);
+    const { error } = await supabase.from('debts').delete().in('id', ids);
+    if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
     bulk.clear();
     setBulkDeleteOpen(false);
     refreshData();
