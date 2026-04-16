@@ -45,12 +45,12 @@ export const HealthScoreWidget = () => {
       <Progress value={data.score} className="h-2" />
       <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border/40">
         <div className="flex items-center gap-1.5">
-          <TrendingUp className="w-3 h-3 text-emerald-500" />
+          <TrendingUp className="w-3 h-3 text-secondary" />
           <span className="text-muted-foreground">{fr ? 'Épargne' : 'Savings'}</span>
           <span className="font-semibold ml-auto">{data.savings_rate}%</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <TrendingDown className="w-3 h-3 text-amber-500" />
+          <TrendingDown className="w-3 h-3 text-primary" />
           <span className="text-muted-foreground">{fr ? 'Dette' : 'Debt'}</span>
           <span className="font-semibold ml-auto">{data.debt_ratio}%</span>
         </div>
