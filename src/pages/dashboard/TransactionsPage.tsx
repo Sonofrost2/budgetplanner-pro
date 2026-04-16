@@ -203,6 +203,10 @@ const TransactionsPage = () => {
 
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
+    // Collect affected account IDs before deleting
+    const affectedAccountIds = new Set<string>();
+    ids.forEach(id => { const tx = transactions.find(t => t.id === id); if (tx?.account_id) affectedAccountIds.add(tx.account_id); });
+    
     const { error } = await supabase.from('transactions').delete().in('id', ids);
     if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
     setSelectedIds(new Set());
@@ -286,34 +290,36 @@ const TransactionsPage = () => {
       .eq('control_type', 'max');
     if (!budgets || budgets.length === 0) return true;
 
-    const budget = budgets[0];
-    const now = new Date();
-    let sd: string, ed: string;
-    if (budget.period === 'weekly') {
-      const d = new Date(now); d.setDate(d.getDate() - d.getDay());
-      sd = d.toISOString().split('T')[0];
-      const e = new Date(d); e.setDate(e.getDate() + 6);
-      ed = e.toISOString().split('T')[0];
-    } else if (budget.period === 'yearly') {
-      sd = `${now.getFullYear()}-01-01`;
-      ed = `${now.getFullYear()}-12-31`;
-    } else {
-      sd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-      ed = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${lastDay}`;
-    }
+    // Check ALL budgets for this category, not just the first one
+    for (const budget of budgets) {
+      const now = new Date();
+      let sd: string, ed: string;
+      if (budget.period === 'weekly') {
+        const d = new Date(now); d.setDate(d.getDate() - d.getDay());
+        sd = d.toISOString().split('T')[0];
+        const e = new Date(d); e.setDate(e.getDate() + 6);
+        ed = e.toISOString().split('T')[0];
+      } else if (budget.period === 'yearly') {
+        sd = `${now.getFullYear()}-01-01`;
+        ed = `${now.getFullYear()}-12-31`;
+      } else {
+        sd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        ed = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${lastDay}`;
+      }
 
-    const { data: spentData } = await supabase.rpc('get_budget_spending', {
-      p_user_id: user.id, p_category_id: form.category_id, p_type: 'expense',
-      p_start_date: sd, p_end_date: ed,
-    });
-    const spent = Number(spentData) || 0;
-    const newTotal = spent + Number(form.amount);
+      const { data: spentData } = await supabase.rpc('get_budget_spending', {
+        p_user_id: user.id, p_category_id: form.category_id, p_type: 'expense',
+        p_start_date: sd, p_end_date: ed,
+      });
+      const spent = Number(spentData) || 0;
+      const newTotal = spent + Number(form.amount);
 
-    if (newTotal > Number(budget.amount)) {
-      setOverspendBudgetName(budget.name);
-      setBudgetOverspendOpen(true);
-      return false;
+      if (newTotal > Number(budget.amount)) {
+        setOverspendBudgetName(budget.name);
+        setBudgetOverspendOpen(true);
+        return false;
+      }
     }
     return true;
   };
