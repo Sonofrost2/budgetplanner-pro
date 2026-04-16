@@ -15,8 +15,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Landmark, Pencil, Trash2, Sparkles, Loader2, TrendingDown, Target, Lightbulb, Search, X, Download } from 'lucide-react';
+import { Plus, Landmark, Pencil, Trash2, Sparkles, Loader2, TrendingDown, Target, Lightbulb, Search, X, Download, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAccounts } from '@/hooks/useDashboardData';
+import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
@@ -32,14 +34,16 @@ const DebtsPage = () => {
   const { invalidate } = useInvalidate();
 
   const { data: debts = [], isLoading: loading } = useDebts();
+  const { data: accounts = [] } = useAccounts();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ creditor_name: '', total_amount: '', paid_amount: '', due_date: '', notes: '' });
+  const [form, setForm] = useState({ creditor_name: '', total_amount: '', paid_amount: '', due_date: '', notes: '', account_id: '' });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payDialog, setPayDialog] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState('');
+  const [payAccountId, setPayAccountId] = useState('');
   const [aiPlan, setAiPlan] = useState<any>(null);
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const [aiPlanOpen, setAiPlanOpen] = useState(false);
@@ -65,9 +69,9 @@ const DebtsPage = () => {
   const bulk = useBulkSelection(filteredDebts);
 
   const handleBulkDelete = async () => {
-    for (const id of bulk.selectedIds) {
-      await supabase.from('debts').delete().eq('id', id);
-    }
+    const ids = Array.from(bulk.selectedIds);
+    const { error } = await supabase.from('debts').delete().in('id', ids);
+    if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
     bulk.clear();
     setBulkDeleteOpen(false);
     refreshData();
@@ -96,7 +100,7 @@ const DebtsPage = () => {
 
   const handleSave = async () => {
     if (!user || !validateDebtForm()) return;
-    const payload = { creditor_name: form.creditor_name.trim(), total_amount: Number(form.total_amount), paid_amount: Number(form.paid_amount) || 0, due_date: form.due_date || null, notes: form.notes || null };
+    const payload = { creditor_name: form.creditor_name.trim(), total_amount: Number(form.total_amount), paid_amount: Number(form.paid_amount) || 0, due_date: form.due_date || null, notes: form.notes || null, account_id: form.account_id || null };
     const { error } = editId
       ? await supabase.from('debts').update(payload).eq('id', editId)
       : await supabase.from('debts').insert({ ...payload, user_id: user.id });
@@ -110,9 +114,27 @@ const DebtsPage = () => {
     if (!payDialog || Number(payAmount) <= 0) return;
     const debt = debts.find(d => d.id === payDialog);
     if (!debt) return;
-    const newPaid = Math.min(Number(debt.paid_amount) + Number(payAmount), Number(debt.total_amount));
+    const amount = Number(payAmount);
+    const newPaid = Math.min(Number(debt.paid_amount) + amount, Number(debt.total_amount));
+    
+    // Create an expense transaction for the payment
+    const accountId = payAccountId || (debt as any).account_id || null;
+    const today = new Date().toISOString().split('T')[0];
+    const { error: txError } = await supabase.from('transactions').insert({
+      user_id: user!.id,
+      type: 'expense',
+      amount,
+      description: `${locale === 'fr' ? 'Remboursement dette' : 'Debt payment'}: ${debt.creditor_name}`,
+      account_id: accountId,
+      date: today,
+      notes: `🏦 ${debt.creditor_name}`,
+    });
+    if (txError) { toast.error(txError.message); return; }
+
+    // Update paid_amount on the debt
     await supabase.from('debts').update({ paid_amount: newPaid }).eq('id', payDialog);
-    setPayDialog(null); setPayAmount('');
+    setPayDialog(null); setPayAmount(''); setPayAccountId('');
+    invalidate('paginated-transactions', 'accounts', 'chart-data', 'transactions', 'all-transactions');
     refreshData();
     toast.success(t.saved);
   };
@@ -163,8 +185,8 @@ const DebtsPage = () => {
     }
   };
 
-  const openNew = () => { setEditId(null); setFormErrors({}); setForm({ creditor_name: '', total_amount: '', paid_amount: '', due_date: '', notes: '' }); setDialogOpen(true); };
-  const openEdit = (d: any) => { setEditId(d.id); setFormErrors({}); setForm({ creditor_name: d.creditor_name, total_amount: String(d.total_amount), paid_amount: String(d.paid_amount), due_date: d.due_date || '', notes: d.notes || '' }); setDialogOpen(true); };
+  const openNew = () => { setEditId(null); setFormErrors({}); setForm({ creditor_name: '', total_amount: '', paid_amount: '', due_date: '', notes: '', account_id: '' }); setDialogOpen(true); };
+  const openEdit = (d: any) => { setEditId(d.id); setFormErrors({}); setForm({ creditor_name: d.creditor_name, total_amount: String(d.total_amount), paid_amount: String(d.paid_amount), due_date: d.due_date || '', notes: d.notes || '', account_id: d.account_id || '' }); setDialogOpen(true); };
 
   const totalDebt = debts.reduce((s, d) => s + Number(d.total_amount), 0);
   const totalPaid = debts.reduce((s, d) => s + Number(d.paid_amount), 0);
@@ -416,6 +438,15 @@ const DebtsPage = () => {
               icon={<Target className="w-3 h-3" />}
               label={`${t.deadline} (${t.optional})`}
             />
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{locale === 'fr' ? 'Compte de remboursement' : 'Repayment account'} ({t.optional})</Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={form.account_id}
+                onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
+                placeholder={locale === 'fr' ? 'Sélectionner un compte...' : 'Select account...'}
+              />
+            </div>
             <InputField
               value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: (e.target as HTMLInputElement).value }))}
@@ -427,10 +458,24 @@ const DebtsPage = () => {
           </div>
       </ResponsiveFormDialog>
 
-      <Dialog open={!!payDialog} onOpenChange={() => setPayDialog(null)}>
+      <Dialog open={!!payDialog} onOpenChange={() => { setPayDialog(null); setPayAccountId(''); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>{locale === 'fr' ? 'Rembourser' : 'Make payment'}</DialogTitle></DialogHeader>
-          <div className="space-y-4"><div className="space-y-2"><Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.amount}</Label><Input type="number" min="0.01" value={payAmount} onChange={e => setPayAmount(e.target.value)} className="rounded-xl h-11 text-lg font-bold" /></div></div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.amount}</Label>
+              <Input type="number" min="0.01" value={payAmount} onChange={e => setPayAmount(e.target.value)} className="rounded-xl h-11 text-lg font-bold" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{locale === 'fr' ? 'Compte source' : 'Source account'}</Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={payAccountId || (debts.find(d => d.id === payDialog) as any)?.account_id || ''}
+                onValueChange={v => setPayAccountId(v)}
+                placeholder={locale === 'fr' ? 'Sélectionner un compte...' : 'Select account...'}
+              />
+            </div>
+          </div>
           <DialogFooter className="gap-2 sm:gap-0"><Button variant="outline" onClick={() => setPayDialog(null)} className="rounded-xl">{t.cancel}</Button><Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handlePay}>{t.save}</Button></DialogFooter>
         </DialogContent>
       </Dialog>

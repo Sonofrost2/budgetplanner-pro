@@ -292,9 +292,15 @@ const SavingsPage = () => {
       }
       setDialogOpen(false);
       setEditGoalId(null);
+      // If reinvesting, archive the old goal now that new one is saved
+      if (reinvestSourceGoalId) {
+        await supabase.from('savings_goals').update({ status: 'completed' } as any).eq('id', reinvestSourceGoalId);
+        setReinvestSourceGoalId(null);
+        toast.success(locale === 'fr' ? 'Ancien objectif archivé et nouveau créé' : 'Old goal archived and new one created');
+      } else {
+        toast.success(t.saved);
+      }
       refreshData();
-      invalidateCrossModule();
-      toast.success(t.saved);
     } catch (err: any) {
       toast.error(err.message || 'Erreur');
     } finally {
@@ -451,10 +457,12 @@ const SavingsPage = () => {
 
   // Reinvest: create new goal from completed goal's balance
   const [reinvestDialog, setReinvestDialog] = useState<string | null>(null);
+  const [reinvestSourceGoalId, setReinvestSourceGoalId] = useState<string | null>(null);
   const handleReinvest = (goalId: string) => {
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
-    // Pre-fill form with existing data
+    // Store old goal ID — archive ONLY after new form is saved
+    setReinvestSourceGoalId(goalId);
     setEditGoalId(null);
     setForm({
       name: '', target_amount: '', icon: '🎯', deadline: '',
@@ -469,11 +477,10 @@ const SavingsPage = () => {
     });
     setCustomBankMode(false);
     setDialogOpen(true);
-    // Archive the old goal
-    handleArchive(goalId);
+    // DO NOT archive here — archive only after user validates the new form
   };
 
-  // Capitalize interest
+  // Capitalize interest — with temporal guardrail
   const [capitalizingGoalId, setCapitalizingGoalId] = useState<string | null>(null);
   const handleCapitalizeInterest = async (goalId: string) => {
     if (!user) return;
@@ -482,12 +489,28 @@ const SavingsPage = () => {
     const rate = Number((goal as any).interest_rate) || 0;
     if (rate <= 0) return;
 
+    // Check last_capitalized_at to prevent duplicate capitalizations
+    const freq = (goal as any).interest_frequency || 'yearly';
+    const lastCap = (goal as any).last_capitalized_at ? new Date((goal as any).last_capitalized_at) : null;
+    if (lastCap) {
+      const now = new Date();
+      const diffMs = now.getTime() - lastCap.getTime();
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      const minDays: Record<string, number> = { monthly: 25, quarterly: 80, semi_annual: 160, yearly: 350 };
+      const required = minDays[freq] || 350;
+      if (diffDays < required) {
+        const nextDate = new Date(lastCap.getTime() + required * 86400000);
+        toast.error(locale === 'fr'
+          ? `Prochaine capitalisation possible le ${nextDate.toLocaleDateString('fr-FR')}`
+          : `Next capitalization available on ${nextDate.toLocaleDateString('en-US')}`);
+        return;
+      }
+    }
+
     setCapitalizingGoalId(goalId);
     try {
-      const freq = (goal as any).interest_frequency || 'yearly';
       const currentAmount = Number(goal.current_amount);
       
-      // Calculate period interest based on frequency
       let periodRate: number;
       let periodLabel: string;
       if (freq === 'monthly') { periodRate = rate / 100 / 12; periodLabel = locale === 'fr' ? 'mensuel' : 'monthly'; }
@@ -514,6 +537,9 @@ const SavingsPage = () => {
         notes: `💰 ${goal.icon} ${goal.name}`,
       });
       if (error) throw error;
+
+      // Update last_capitalized_at
+      await supabase.from('savings_goals').update({ last_capitalized_at: new Date().toISOString() } as any).eq('id', goalId);
 
       toast.success(`${t.interestCapitalized}: +${fmt(interestAmount)}`);
       refreshData();

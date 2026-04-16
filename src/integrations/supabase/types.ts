@@ -247,6 +247,7 @@ export type Database = {
       }
       debts: {
         Row: {
+          account_id: string | null
           created_at: string | null
           creditor_name: string
           due_date: string | null
@@ -258,6 +259,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_id?: string | null
           created_at?: string | null
           creditor_name: string
           due_date?: string | null
@@ -269,6 +271,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_id?: string | null
           created_at?: string | null
           creditor_name?: string
           due_date?: string | null
@@ -279,7 +282,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "debts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       family_groups: {
         Row: {
@@ -679,6 +690,7 @@ export type Database = {
           interest_frequency: string | null
           interest_rate: number | null
           is_locked: boolean
+          last_capitalized_at: string | null
           monthly_contribution: number | null
           name: string
           start_date: string | null
@@ -699,6 +711,7 @@ export type Database = {
           interest_frequency?: string | null
           interest_rate?: number | null
           is_locked?: boolean
+          last_capitalized_at?: string | null
           monthly_contribution?: number | null
           name: string
           start_date?: string | null
@@ -719,6 +732,7 @@ export type Database = {
           interest_frequency?: string | null
           interest_rate?: number | null
           is_locked?: boolean
+          last_capitalized_at?: string | null
           monthly_contribution?: number | null
           name?: string
           start_date?: string | null
