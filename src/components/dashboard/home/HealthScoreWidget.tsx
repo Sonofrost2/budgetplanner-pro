@@ -8,8 +8,8 @@ import { useLanguage } from '@/i18n/LanguageContext';
 
 export const HealthScoreWidget = () => {
   const { user } = useAuth();
-  const { language } = useLanguage();
-  const fr = language === 'fr';
+  const { locale } = useLanguage();
+  const fr = locale === 'fr';
   const [data, setData] = useState<HealthScore | null>(null);
   const [loading, setLoading] = useState(true);
 
