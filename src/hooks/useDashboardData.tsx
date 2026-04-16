@@ -206,9 +206,9 @@ export const useReportsData = (locale: string) => {
 
       const [txRes, catRes] = await Promise.all([
         supabase.from('transactions').select('type, amount, date, description, categories(name)')
-          .eq('user_id', user!.id).gte('date', twelveAgo).order('date', { ascending: false }),
+          .eq('user_id', user!.id).is('deleted_at', null).gte('date', twelveAgo).order('date', { ascending: false }),
         supabase.from('transactions').select('amount, categories(name, color)')
-          .eq('user_id', user!.id).eq('type', 'expense').gte('date', monthStart).lte('date', monthEnd),
+          .eq('user_id', user!.id).is('deleted_at', null).eq('type', 'expense').gte('date', monthStart).lte('date', monthEnd),
       ]);
       if (txRes.error) throw txRes.error;
 
@@ -258,7 +258,7 @@ export const useForecastRawTx = () => {
       const sixAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('transactions').select('type, amount, date, category_id, categories(name)')
-        .eq('user_id', user!.id).gte('date', sixAgo);
+        .eq('user_id', user!.id).is('deleted_at', null).gte('date', sixAgo);
       if (error) throw error;
       return data ?? [];
     },
@@ -289,7 +289,8 @@ export const usePaginatedTransactions = (options: {
       let query = supabase
         .from('transactions')
         .select('*, categories(name, icon, color), payment_accounts(name, icon)', { count: 'exact' })
-        .eq('user_id', user!.id);
+        .eq('user_id', user!.id)
+        .is('deleted_at', null);
 
       if (type && type !== 'all') query = query.eq('type', type);
       if (categoryId && categoryId !== 'all') query = query.eq('category_id', categoryId);
@@ -337,6 +338,7 @@ export const useTransactionsRange = (start: string, end: string) => {
         .from('transactions')
         .select('*, categories(name, icon, color)')
         .eq('user_id', user!.id)
+        .is('deleted_at', null)
         .gte('date', start).lte('date', end)
         .order('date', { ascending: false }).limit(5000);
       if (error) throw error;
@@ -362,7 +364,7 @@ export const useChartData = (locale: string) => {
       const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('transactions').select('type, amount, date')
-        .eq('user_id', user!.id).gte('date', sixMonthsAgo);
+        .eq('user_id', user!.id).is('deleted_at', null).gte('date', sixMonthsAgo);
       if (error) throw error;
       return months.map(m => {
         const monthTxs = (data || []).filter(tx => {
@@ -410,6 +412,7 @@ export const useAccountTransactions = () => {
         .from('transactions')
         .select('id, date, amount, type, account_id, description, category_id')
         .eq('user_id', user!.id)
+        .is('deleted_at', null)
         .order('date', { ascending: false });
       if (error) throw error;
       return (data || []) as Transaction[];
