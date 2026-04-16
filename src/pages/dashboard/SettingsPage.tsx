@@ -18,6 +18,7 @@ import { exportToCSV } from '@/lib/export';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import { DataExportCard } from '@/components/dashboard/settings/DataExportCard';
 import { TrashCard } from '@/components/dashboard/settings/TrashCard';
+import { ArchivedItemsCard } from '@/components/dashboard/settings/ArchivedItemsCard';
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -256,6 +257,9 @@ const SettingsPage = () => {
 
       {/* Phase E — Corbeille */}
       <TrashCard />
+
+      {/* Phase F — Éléments archivés */}
+      <ArchivedItemsCard locale={locale} />
 
       {/* Password Dialog */}
       <Dialog open={passwordDialog} onOpenChange={setPasswordDialog}>
