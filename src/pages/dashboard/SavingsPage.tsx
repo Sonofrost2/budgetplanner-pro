@@ -7,6 +7,7 @@ import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { useInvalidate, useSavingsPageData } from '@/hooks/useDashboardData';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
+import { savingsGoalSchema, validateForm } from '@/lib/validationSchemas';
 
 interface SavingsContribution {
   id: string;
@@ -243,7 +244,19 @@ const SavingsPage = () => {
   };
 
   const handleCreateOrEdit = async () => {
-    if (!user || !form.name.trim() || Number(form.target_amount) <= 0) return;
+    if (!user) return;
+    const result = validateForm(savingsGoalSchema(locale), form);
+    if (result.success === false) {
+      // Show first error as toast since savings form doesn't have inline errors yet
+      const firstErr = Object.values(result.errors)[0];
+      if (firstErr) toast.error(firstErr);
+      return;
+    }
+    // Cross-field: paid_amount <= total_amount for debt schema handled separately
+    if (Number(form.paid_amount) > Number(form.total_amount)) {
+      toast.error(locale === 'fr' ? 'Le montant payé ne peut pas dépasser le total' : 'Paid amount cannot exceed total');
+      return;
+    }
     setSaving(true);
     try {
       let accountId = form.account_id || null;
