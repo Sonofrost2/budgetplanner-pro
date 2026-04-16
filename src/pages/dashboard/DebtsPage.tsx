@@ -25,6 +25,7 @@ import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import ReactMarkdown from 'react-markdown';
 import { exportToCSV, exportToExcel } from '@/lib/export';
+import { debtSchema, validateForm } from '@/lib/validationSchemas';
 
 const DebtsPage = () => {
   const { user } = useAuth();
@@ -89,13 +90,15 @@ const DebtsPage = () => {
   };
 
   const validateDebtForm = () => {
-    const errs: Record<string, string> = {};
-    if (!form.creditor_name.trim()) errs.creditor_name = locale === 'fr' ? 'Le nom du créancier est requis' : 'Creditor name is required';
-    if (!form.total_amount || Number(form.total_amount) <= 0) errs.total_amount = locale === 'fr' ? 'Le montant doit être supérieur à 0' : 'Amount must be greater than 0';
-    if (Number(form.paid_amount) < 0) errs.paid_amount = locale === 'fr' ? 'Le montant payé ne peut pas être négatif' : 'Paid amount cannot be negative';
-    if (Number(form.paid_amount) > Number(form.total_amount)) errs.paid_amount = locale === 'fr' ? 'Le montant payé ne peut pas dépasser le total' : 'Paid amount cannot exceed total';
-    setFormErrors(errs);
-    return Object.keys(errs).length === 0;
+    const result = validateForm(debtSchema(locale), form);
+    if (result.success === false) { setFormErrors(result.errors); return false; }
+    // Cross-field: paid <= total
+    if (form.paid_amount && Number(form.paid_amount) > Number(form.total_amount)) {
+      setFormErrors({ paid_amount: locale === 'fr' ? 'Le montant payé ne peut pas dépasser le total' : 'Paid amount cannot exceed total' });
+      return false;
+    }
+    setFormErrors({});
+    return true;
   };
 
   const handleSave = async () => {

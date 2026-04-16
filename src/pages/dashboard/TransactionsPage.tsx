@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TransactionForm } from '@/components/dashboard/transactions/TransactionForm';
 import { TransactionList } from '@/components/dashboard/transactions/TransactionList';
 import { BulkModifyDialog, BudgetOverspendDialog } from '@/components/dashboard/transactions/TransactionDialogs';
+import { transactionSchema, validateForm } from '@/lib/validationSchemas';
 
 const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
@@ -64,10 +65,8 @@ const TransactionsPage = () => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [aiSuggesting, setAiSuggesting] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [transferOpen, setTransferOpen] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [budgetOverspendOpen, setBudgetOverspendOpen] = useState(false);
   const [overspendBudgetName, setOverspendBudgetName] = useState('');
 
@@ -255,15 +254,10 @@ const TransactionsPage = () => {
   };
 
   const validate = () => {
-    const errs: Record<string, string> = {};
-    if (!form.description.trim()) errs.description = t.descriptionRequired;
-    if (form.description.trim().length > 200) errs.description = t.maxChars(200);
-    if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
-    if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
-    if (!form.date) errs.date = t.dateRequired;
-    if (form.notes && form.notes.length > 500) errs.notes = t.maxChars(500);
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    const result = validateForm(transactionSchema(t, locale), form);
+    if (result.success === false) { setErrors(result.errors); return false; }
+    setErrors({});
+    return true;
   };
 
   const openNew = () => {
@@ -377,37 +371,7 @@ const TransactionsPage = () => {
     toast.success(t.delete + ' ✓');
   };
 
-  const handleAISuggest = async () => {
-    if (!canUseAISuggestions) return;
-    setAiSuggesting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-suggest', {
-        body: {
-          description: form.description, type: form.type,
-          categories: categories.filter(c => c.type === form.type).map(c => ({ id: c.id, name: c.name })),
-          accounts: accounts.map(a => ({ id: a.id, name: a.name })), locale,
-        },
-      });
-      if (error) throw error;
-      if (data?.description) setForm(f => ({ ...f, description: data.description }));
-      if (data?.category_id) setForm(f => ({ ...f, category_id: data.category_id }));
-      if (data?.amount) setForm(f => ({ ...f, amount: String(data.amount) }));
-      if (data?.account_id) setForm(f => ({ ...f, account_id: data.account_id }));
-      toast.success(t.aiSuggest);
-    } catch (e: any) {
-      toast.error(e.message || 'AI error');
-    } finally {
-      setAiSuggesting(false);
-    }
-  };
-
-  const descriptionSuggestions = useMemo(() => {
-    if (!form.description || form.description.length < 2) return [];
-    const q = form.description.toLowerCase();
-    return recentDescriptions
-      .filter(tx => tx.description.toLowerCase().includes(q))
-      .slice(0, 5);
-  }, [form.description, recentDescriptions]);
+  // AI suggest and description suggestions are handled inside TransactionForm component
 
   if (loading) {
     return (

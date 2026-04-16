@@ -34,6 +34,7 @@ import BudgetGlobalStats from '@/components/dashboard/budgets/BudgetGlobalStats'
 import BudgetAnalysisTab from '@/components/dashboard/tabs/BudgetAnalysisTab';
 import BudgetEvolutionTab from '@/components/dashboard/tabs/BudgetEvolutionTab';
 import { BudgetForm } from '@/components/dashboard/budgets/BudgetForm';
+import { budgetSchema, validateForm } from '@/lib/validationSchemas';
 
 const PERIOD_MULTIPLIER: Record<string, number> = {
   daily: 365, weekly: 52, monthly: 12, quarterly: 4, semi_annual: 2, yearly: 1,
@@ -175,28 +176,21 @@ const BudgetsPage = () => {
 
   const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
 
-  const VALID_PERIODS = ['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'] as const;
-
   const validate = () => {
+    const result = validateForm(budgetSchema(t, locale), form);
+    if (result.success === false) { setErrors(result.errors); return false; }
+    // Extra contextual validations
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = t.nameRequired;
-    if (form.name.trim().length > 100) errs.name = t.maxChars(100);
-    if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
-    if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
-    if (!VALID_PERIODS.includes(form.period as any)) errs.period = locale === 'fr' ? 'Période invalide' : 'Invalid period';
-    // Validate reference_date for periodic budgets
     if (['quarterly', 'semi_annual', 'yearly'].includes(form.period) && !form.reference_date) {
       errs.reference_date = locale === 'fr' ? 'Date de référence requise pour cette période' : 'Reference date required for this period';
     }
-    // Validate active_days for daily budgets
     if (form.period === 'daily') {
       const days = form.active_days.split(',').filter(Boolean);
-      if (days.length === 0) {
-        errs.active_days = locale === 'fr' ? 'Sélectionnez au moins un jour actif' : 'Select at least one active day';
-      }
+      if (days.length === 0) errs.active_days = locale === 'fr' ? 'Sélectionnez au moins un jour actif' : 'Select at least one active day';
     }
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) { setErrors(errs); return false; }
+    setErrors({});
+    return true;
   };
 
   const openNew = (budgetType: string = 'expense') => {
