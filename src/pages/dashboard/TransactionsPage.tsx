@@ -257,9 +257,9 @@ const TransactionsPage = () => {
 
   const validate = () => {
     const result = validateForm(transactionSchema(t, locale), form);
-    if (result.success) { setErrors({}); return true; }
-    setErrors(result.errors);
-    return false;
+    if (!result.success) { setErrors(result.errors); return false; }
+    setErrors({});
+    return true;
   };
 
   const openNew = () => {
