@@ -115,6 +115,8 @@ export type Database = {
           alert_threshold: number | null
           amount: number
           budget_type: string
+          carried_amount: number
+          carry_over: boolean
           category_id: string | null
           control_type: string
           created_at: string
@@ -123,6 +125,7 @@ export type Database = {
           id: string
           name: string
           occurrence_frequency: string | null
+          paused_at: string | null
           period: string
           reference_date: string | null
           updated_at: string
@@ -133,6 +136,8 @@ export type Database = {
           alert_threshold?: number | null
           amount: number
           budget_type?: string
+          carried_amount?: number
+          carry_over?: boolean
           category_id?: string | null
           control_type?: string
           created_at?: string
@@ -141,6 +146,7 @@ export type Database = {
           id?: string
           name: string
           occurrence_frequency?: string | null
+          paused_at?: string | null
           period?: string
           reference_date?: string | null
           updated_at?: string
@@ -151,6 +157,8 @@ export type Database = {
           alert_threshold?: number | null
           amount?: number
           budget_type?: string
+          carried_amount?: number
+          carry_over?: boolean
           category_id?: string | null
           control_type?: string
           created_at?: string
@@ -159,6 +167,7 @@ export type Database = {
           id?: string
           name?: string
           occurrence_frequency?: string | null
+          paused_at?: string | null
           period?: string
           reference_date?: string | null
           updated_at?: string
@@ -220,36 +229,50 @@ export type Database = {
       }
       categories: {
         Row: {
+          archived_at: string | null
           color: string
           created_at: string
           deleted_at: string | null
           icon: string
           id: string
           name: string
+          parent_category_id: string | null
           type: string
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           color?: string
           created_at?: string
           deleted_at?: string | null
           icon?: string
           id?: string
           name: string
+          parent_category_id?: string | null
           type?: string
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           color?: string
           created_at?: string
           deleted_at?: string | null
           icon?: string
           id?: string
           name?: string
+          parent_category_id?: string | null
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_category_id_fkey"
+            columns: ["parent_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       debts: {
         Row: {
@@ -259,8 +282,11 @@ export type Database = {
           deleted_at: string | null
           due_date: string | null
           id: string
+          interest_rate: number
+          interest_type: string
           notes: string | null
           paid_amount: number | null
+          payment_schedule: Json
           total_amount: number
           updated_at: string | null
           user_id: string
@@ -272,8 +298,11 @@ export type Database = {
           deleted_at?: string | null
           due_date?: string | null
           id?: string
+          interest_rate?: number
+          interest_type?: string
           notes?: string | null
           paid_amount?: number | null
+          payment_schedule?: Json
           total_amount: number
           updated_at?: string | null
           user_id: string
@@ -285,8 +314,11 @@ export type Database = {
           deleted_at?: string | null
           due_date?: string | null
           id?: string
+          interest_rate?: number
+          interest_type?: string
           notes?: string | null
           paid_amount?: number | null
+          payment_schedule?: Json
           total_amount?: number
           updated_at?: string | null
           user_id?: string
@@ -499,6 +531,7 @@ export type Database = {
       }
       payment_accounts: {
         Row: {
+          archived_at: string | null
           created_at: string
           deleted_at: string | null
           icon: string
@@ -511,6 +544,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           deleted_at?: string | null
           icon?: string
@@ -523,6 +557,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           deleted_at?: string | null
           icon?: string
@@ -565,6 +600,39 @@ export type Database = {
           payment_token?: string | null
           plan_name?: string
           status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      period_closures: {
+        Row: {
+          created_at: string
+          id: string
+          locked: boolean
+          notes: string | null
+          period_end: string
+          period_start: string
+          snapshot: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          locked?: boolean
+          notes?: string | null
+          period_end: string
+          period_start: string
+          snapshot?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          locked?: boolean
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          snapshot?: Json
           user_id?: string
         }
         Relationships: []
@@ -641,9 +709,11 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           description: string
+          end_date: string | null
           frequency: string | null
           id: string
           next_date: string
+          skipped_dates: string[]
           type: string | null
           user_id: string
         }
@@ -655,9 +725,11 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           description: string
+          end_date?: string | null
           frequency?: string | null
           id?: string
           next_date: string
+          skipped_dates?: string[]
           type?: string | null
           user_id: string
         }
@@ -669,9 +741,11 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           description?: string
+          end_date?: string | null
           frequency?: string | null
           id?: string
           next_date?: string
+          skipped_dates?: string[]
           type?: string | null
           user_id?: string
         }
@@ -692,6 +766,33 @@ export type Database = {
           },
         ]
       }
+      saved_filters: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          scope: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name: string
+          scope?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
+          scope?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       savings_goals: {
         Row: {
           account_id: string | null
@@ -709,6 +810,7 @@ export type Database = {
           last_capitalized_at: string | null
           monthly_contribution: number | null
           name: string
+          paused_at: string | null
           start_date: string | null
           status: string
           target_amount: number
@@ -731,6 +833,7 @@ export type Database = {
           last_capitalized_at?: string | null
           monthly_contribution?: number | null
           name: string
+          paused_at?: string | null
           start_date?: string | null
           status?: string
           target_amount: number
@@ -753,6 +856,7 @@ export type Database = {
           last_capitalized_at?: string | null
           monthly_contribution?: number | null
           name?: string
+          paused_at?: string | null
           start_date?: string | null
           status?: string
           target_amount?: number
@@ -897,6 +1001,48 @@ export type Database = {
           },
         ]
       }
+      transaction_templates: {
+        Row: {
+          account_id: string | null
+          amount: number | null
+          category_id: string | null
+          created_at: string
+          description: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+          use_count: number
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number | null
+          category_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          name: string
+          type?: string
+          updated_at?: string
+          use_count?: number
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number | null
+          category_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+          use_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           account_id: string | null
@@ -909,6 +1055,9 @@ export type Database = {
           id: string
           linked_transfer_id: string | null
           notes: string | null
+          parent_transaction_id: string | null
+          receipt_url: string | null
+          tags: string[]
           type: string
           updated_at: string
           user_id: string
@@ -924,6 +1073,9 @@ export type Database = {
           id?: string
           linked_transfer_id?: string | null
           notes?: string | null
+          parent_transaction_id?: string | null
+          receipt_url?: string | null
+          tags?: string[]
           type: string
           updated_at?: string
           user_id: string
@@ -939,6 +1091,9 @@ export type Database = {
           id?: string
           linked_transfer_id?: string | null
           notes?: string | null
+          parent_transaction_id?: string | null
+          receipt_url?: string | null
+          tags?: string[]
           type?: string
           updated_at?: string
           user_id?: string
@@ -961,6 +1116,13 @@ export type Database = {
           {
             foreignKeyName: "transactions_linked_transfer_id_fkey"
             columns: ["linked_transfer_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_parent_transaction_id_fkey"
+            columns: ["parent_transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
             referencedColumns: ["id"]
@@ -996,6 +1158,7 @@ export type Database = {
       }
       cleanup_old_deleted: { Args: never; Returns: Json }
       cleanup_old_notifications: { Args: never; Returns: number }
+      compute_health_score: { Args: { p_user_id: string }; Returns: Json }
       get_account_theoretical_balances: {
         Args: { p_user_id: string }
         Returns: {
@@ -1012,6 +1175,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: number
+      }
+      get_budgets_spending: {
+        Args: { p_end_date: string; p_start_date: string; p_user_id: string }
+        Returns: {
+          category_id: string
+          total: number
+          type: string
+        }[]
       }
       get_family_member_profiles: {
         Args: { p_group_id: string }
