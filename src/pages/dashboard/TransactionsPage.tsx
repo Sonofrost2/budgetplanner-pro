@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TransactionForm } from '@/components/dashboard/transactions/TransactionForm';
 import { TransactionList } from '@/components/dashboard/transactions/TransactionList';
 import { BulkModifyDialog, BudgetOverspendDialog } from '@/components/dashboard/transactions/TransactionDialogs';
+import { transactionSchema, validateForm } from '@/lib/validationSchemas';
 
 const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
@@ -255,15 +256,10 @@ const TransactionsPage = () => {
   };
 
   const validate = () => {
-    const errs: Record<string, string> = {};
-    if (!form.description.trim()) errs.description = t.descriptionRequired;
-    if (form.description.trim().length > 200) errs.description = t.maxChars(200);
-    if (!form.amount || Number(form.amount) <= 0) errs.amount = t.invalidAmount;
-    if (Number(form.amount) > 999999999) errs.amount = t.amountTooHigh;
-    if (!form.date) errs.date = t.dateRequired;
-    if (form.notes && form.notes.length > 500) errs.notes = t.maxChars(500);
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    const result = validateForm(transactionSchema(t, locale), form);
+    if (result.success) { setErrors({}); return true; }
+    setErrors(result.errors);
+    return false;
   };
 
   const openNew = () => {
