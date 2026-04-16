@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/i18n/LanguageContext';
 
 export const DataExportCard = () => {
-  const { language } = useLanguage();
-  const fr = language === 'fr';
+  const { locale } = useLanguage();
+  const fr = locale === 'fr';
   const [loading, setLoading] = useState(false);
 
   const handleExport = async () => {

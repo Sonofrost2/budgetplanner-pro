@@ -28,8 +28,8 @@ interface DeletedRow {
 
 export const TrashCard = () => {
   const { user } = useAuth();
-  const { language } = useLanguage();
-  const fr = language === 'fr';
+  const { locale } = useLanguage();
+  const fr = locale === 'fr';
   const [data, setData] = useState<Record<TableKey, DeletedRow[]>>({} as Record<TableKey, DeletedRow[]>);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<TableKey>('transactions');
@@ -108,7 +108,7 @@ export const TrashCard = () => {
           <TabsList className="flex flex-wrap h-auto">
             {TABLES.map(t => (
               <TabsTrigger key={t.key} value={t.key} className="text-xs">
-                {t.label[language as 'fr' | 'en']} {data[t.key]?.length ? `(${data[t.key].length})` : ''}
+                {t.label[locale as 'fr' | 'en']} {data[t.key]?.length ? `(${data[t.key].length})` : ''}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -135,7 +135,7 @@ export const TrashCard = () => {
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">{getDisplay(row, t.key)}</p>
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              {left <= 3 && <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                              {left <= 3 && <AlertTriangle className="w-3 h-3 text-warning" />}
                               {fr ? `Supprimé le ${new Date(row.deleted_at).toLocaleDateString('fr-FR')} • ${left}j restant(s)` : `Deleted ${new Date(row.deleted_at).toLocaleDateString('en-US')} • ${left}d left`}
                             </p>
                           </div>

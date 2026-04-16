@@ -20,7 +20,7 @@ export const DuplicateWarningDialog = ({ open, onOpenChange, duplicates, onConfi
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            <AlertTriangle className="w-5 h-5 text-warning" />
             {fr ? 'Possible doublon détecté' : 'Possible duplicate detected'}
           </DialogTitle>
           <DialogDescription>
@@ -48,7 +48,7 @@ export const DuplicateWarningDialog = ({ open, onOpenChange, duplicates, onConfi
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {fr ? 'Annuler' : 'Cancel'}
           </Button>
-          <Button onClick={onConfirm} className="bg-amber-500 hover:bg-amber-600 text-white">
+          <Button onClick={onConfirm} className="bg-warning hover:bg-warning/90 text-warning-foreground">
             {fr ? 'Enregistrer quand même' : 'Save anyway'}
           </Button>
         </DialogFooter>
