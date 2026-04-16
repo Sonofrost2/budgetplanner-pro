@@ -1,135 +1,177 @@
+# Audit Métier — Budget Planner
+
+## 1. Transactions (cœur du système)
+
+**Process actuel** : création → validation inline → vérification dépassement budget → insertion Supabase → invalidation cache croisée (comptes, budgets, charts). Pagination server-side. Tri, filtres, recherche débounced.
 
 
-# Audit complet de Budget Planner
+| #   | Problème                                                                                                                                                                                                                                               | Impact                                                                                                 | Priorité |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | -------- |
+| T1  | **Pas de recalcul solde compte après save/delete** — `recalculate_account_balance` est un **no-op** (fonction vide). Le `real_balance` ne se met jamais à jour automatiquement **(c'est l'utilisateur qui doit mettre à jour le solde réel donc N/A)** | Écart croissant entre solde affiché et réalité**c'est l'utilisateur qui doit le faire mannuellement** | N/A      |
+| T2  | **Budget overspend check incomplet** — Ne vérifie que `budgets[0]`. Si plusieurs budgets partagent la même catégorie, les autres sont ignorés                                                                                                          | Faux sentiment de sécurité                                                                             | Haute    |
+| T3  | **Bulk delete sans recalcul compte** — `handleBulkDelete` supprime les transactions mais ne recalcule pas les soldes (contrairement à `handleBulkModify` qui le fait)                                                                                  | Soldes incohérents                                                                                     | Haute    |
+| T4  | **Duplication de la logique AI suggest** — Handler identique dans `TransactionsPage.tsx` ET `TransactionForm.tsx`                                                                                                                                      | Maintenance double                                                                                     | Moyenne  |
+| T5  | **Pas d'annulation de transfert** — 2 transactions liées créées, aucun moyen d'inverser un transfert erroné                                                                                                                                            | UX frustrant                                                                                           | Moyenne  |
+| T6  | **Pas de validation de date future** — Aucun avertissement pour 2050. Pas de date minimum                                                                                                                                                              | Données aberrantes                                                                                     | Basse    |
 
-## 1. Architecture & Code Quality
-
-### Fichiers trop volumineux (dette technique)
-Les pages principales dépassent largement les 500 lignes, rendant la maintenance difficile :
-- `SavingsPage.tsx` : **1021 lignes** — logique métier, formulaires, simulation IA, PDF export, tout dans un seul fichier
-- `TransactionsPage.tsx` : **824 lignes**
-- `BudgetsPage.tsx` : **755 lignes**
-- `AccountsPage.tsx` : **744 lignes**
-- `RecurringPage.tsx` : **574 lignes**
-
-**Recommandation** : Extraire les handlers (CRUD, AI, export) dans des hooks custom dédiés (`useSavingsActions`, `useTransactionActions`, etc.) et les formulaires en composants séparés.
-
-### Patterns incohérents
-- **Fetching data** : `SettingsPage` et `DashboardLayout` utilisent `useEffect` + `supabase.from()` directement, tandis que le reste utilise TanStack Query. Il faut migrer `SettingsPage` et `DashboardLayout` vers React Query pour la cohérence et le cache.
-- **Type casting** : Nombreux `as any` dans `SavingsPage` (ex: `(goal as any).interest_rate`, `(goal as any).is_locked`). Les types Supabase ne sont pas synchronisés avec les colonnes réelles.
-- **Validation** : `TransactionsPage` utilise de la validation manuelle inline, tandis que la mémoire projet prescrit Zod + React Hook Form. Aucune page n'utilise réellement Zod.
 
 ---
 
-## 2. Sécurité
+## 2. Comptes
 
-### Points positifs
-- RLS activé sur toutes les tables avec des politiques correctes
-- `notification_history` protégé contre les écritures client
-- `user_roles` verrouillé (INSERT/UPDATE/DELETE refusés côté client)
-- Trigger `handle_new_user` + `create_default_categories` en `SECURITY DEFINER`
-- Confirmation email requise (pas d'auto-confirm)
+**Process actuel** : création (type/icône/solde initial) → solde théorique calculé client-side (`opening_balance + income - expense`) → solde réel manuel (PV d'espèces).
 
-### Problèmes identifiés
-- **Pas de Google OAuth** : La mémoire projet et les bonnes pratiques demandent d'ajouter Google Auth pour les inscriptions/connexions.
-- **Pas de validation Zod côté client** : Les formulaires de login/signup n'ont qu'une validation basique (`password.length < 8`). Pas de protection contre les injections dans les descriptions de transactions.
-- **`notify_on_transaction_insert` contient la clé anon en dur** : Le trigger SQL embarque la clé anon Supabase dans le code source. Ce n'est pas critique (clé publique) mais c'est une mauvaise pratique.
-- **SettingsPage : incohérence mot de passe** : Le dialog dit "min. 6 caractères" mais la validation vérifie `< 8`. Le formulaire Signup utilise `minLength={6}` en HTML mais vérifie `< 8` en JS.
-- **`delete-account` edge function** : Ne liste pas les tables `assets`, `asset_valuations`, `notification_history`, `notification_preferences` dans le nettoyage. Des données orphelines resteront après suppression.
+
+| #   | Problème                                                                                                                                                         | Impact               | Priorité |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | -------- |
+| A1  | **Suppression compte avec transactions liées** — Aucun avertissement. Transactions deviennent orphelines (`account_id = NULL`). Perte de traçabilité silencieuse | Perte de données     | Haute    |
+| A2  | **Suppression compte lié à objectif épargne** — L'objectif perd son `account_id` silencieusement, les recalculs cassent                                          | Épargne corrompue    | Haute    |
+| A3  | **Pas de fusion de comptes** — Fréquent avec les comptes auto-créés par le module épargne, doublons qui s'accumulent                                             | Pollution de données | Moyenne  |
+
 
 ---
 
-## 3. UX / Interface
+## 3. Budgets
 
-### Améliorations recommandées
-- **Pas de Google Sign-In** : Ajouter le bouton Google sur les pages Login et Signup pour réduire la friction d'inscription.
-- **Loading states** : Les boutons montrent juste `...` pendant le chargement — utiliser un spinner `Loader2` avec le texte pour un meilleur feedback.
-- **État vide (empty states)** : Plusieurs pages n'ont pas d'état vide illustré (transactions, budgets). Ajouter des illustrations + CTA.
-- **Accessibilité** : Aucun `aria-label` sur les boutons icônes (search, notification bell). Les contrastes du glassmorphism peuvent être insuffisants.
-- **Mobile** : La sidebar est cachée sur mobile avec `hidden lg:block` et remplacée par `MobileBottomNav`, mais la barre de recherche ⌘K n'est pas facilement accessible sur mobile (petit bouton).
-- **Dashboard trop dense** : 8 widgets affichés simultanément. Considérer un mode "compact" par défaut avec expansion à la demande.
+**Process actuel** : création → liaison catégorie obligatoire → calcul spending via RPC → annualisation pour budgets non-mensuels → alerte au seuil.
 
----
 
-## 4. Performance
+| #   | Problème                                                                                                                          | Impact                   | Priorité |
+| --- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | -------- |
+| B1  | **Spending query N+1** — Chaque budget déclenche un RPC individuel. 20 budgets = 20 requêtes parallèles + 20 pour l'annuel        | Performance              | Moyenne  |
+| B2  | **Pas de budget transversal** — Budget DOIT être lié à une catégorie. Impossible de faire un budget "Provisions" multi-catégories | Limitation fonctionnelle | Moyenne  |
+| B3  | `**as any` omniprésent** — `budget_type`, `control_type` ne sont pas dans les types Supabase générés                              | Risque runtime           | Moyenne  |
 
-### Points positifs
-- Pagination server-side pour les transactions
-- `manualChunks` dans Vite pour le code splitting
-- `staleTime` configuré sur les requêtes React Query
-- PWA avec Workbox et pré-cache
 
-### Améliorations
-- **Lazy loading des pages** : Toutes les pages dashboard sont importées statiquement dans `App.tsx`. Utiliser `React.lazy()` + `Suspense` pour les charger à la demande (réduction du bundle initial d'environ 30-40%).
-- **SavingsPage charge tout en une requête** : `useSavingsPageData` récupère tous les objectifs + toutes les transactions associées. Pour les utilisateurs avec beaucoup de données, cela peut être lent.
-- **Images/avatars** : Pas de gestion d'images optimisée. Les avatars pourraient utiliser un CDN/resize.
+B4       Prévoir aussi le cas où le budget est atteint pour la période donnée et proposer à l'utilisateur de reconduire le budget pour la même période prochaine (cas des budgets ponctuels ou des prévisions à court terme)
 
----
+## 4. Épargne
 
-## 5. Fonctionnalités manquantes ou incomplètes
+**Process actuel** : création objectif → auto-création compte → versements via transfert atomique → recalcul depuis transactions (bouton manuel) → simulation IA → archivage/réinvestissement.
 
-| Fonctionnalité | État | Priorité |
-|---|---|---|
-| Rappels de cotisation épargne (contribution_day) | Pas implémenté dans `check-alerts` | Haute |
-| Notification objectif atteint (100%) | Pas de trigger/check automatique | Haute |
-| Google OAuth | Absent | Haute |
-| Import CSV/bancaire de transactions | Absent | Moyenne |
-| Historique des notifications (page UI) | Table existe, pas de page | Moyenne |
-| Multi-devise (conversion) | Devise unique par profil | Basse |
-| Recherche full-text | Recherche `ilike` basique | Basse |
-| Mode sombre/clair automatique selon OS | `useTheme` existe mais pas testé | Basse |
+
+| #   | Problème                                                                                                                                                                                           | Impact                 | Priorité     |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------ |
+| S1  | **Capitalisation d'intérêts sans garde-fou temporel** — Le bouton peut être cliqué 10 fois le même jour, chaque clic crée une transaction d'intérêts. Aucun tracking de la dernière capitalisation | Double/triple comptage | **Critique** |
+| S2  | **Réinvestissement archive immédiatement** — `handleReinvest` appelle `handleArchive` **avant** que l'utilisateur valide le formulaire. S'il annule → l'ancien objectif est déjà archivé           | Archivage prématuré    | Haute        |
+| S3  | **Versement sans validation du solde source** — On peut verser 10M FCFA même si le compte source a 0                                                                                               | Données aberrantes     | Haute        |
+| S4  | **Formulaire quasi sans validation** — Seul check : `name.trim()` et `target_amount > 0`. Pas de contrôle sur `contribution_day` (1-31), `interest_rate` (0-100), dates cohérentes                 | Données invalides      | Haute        |
+| S5  | **Sync basé sur patterns textuels** — Cherche "épargne", "cag", "🎯" dans les descriptions. Fragile et faux positifs                                                                               | Sync incorrect         | Moyenne      |
+
 
 ---
 
-## 6. Edge Functions
+## 5. Dettes
 
-### Problèmes
-- **Imports `esm.sh`** : Toutes les edge functions importent depuis `esm.sh` sans version pinned pour certaines dépendances. Risque de breaking changes.
-- **CORS headers** : Les headers CORS sont définis manuellement dans chaque function. Devrait utiliser l'import depuis `@supabase/supabase-js/cors` (v2.95+).
-- **`delete-account`** : Tables manquantes dans la liste de nettoyage (voir section sécurité).
-- **Pas de validation d'entrée** : La plupart des edge functions ne valident pas les inputs avec Zod.
+**Process actuel** : création → paiements partiels (update `paid_amount`) → progression → plan IA.
 
----
 
-## 7. Plan d'action recommandé (par priorité)
+| #   | Problème                                                                                                                                                                                           | Impact                           | Priorité     |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------ |
+| D1  | **Paiement de dette NON lié aux transactions** — `handlePay` met juste à jour `paid_amount` directement. Aucune transaction expense créée. Le remboursement est invisible dans les flux financiers | **Incohérence comptable totale** | **Critique** |
+| D2  | **Pas de lien compte** — La dette n'a pas de `account_id`. On ne sait pas d'où vient l'argent du remboursement                                                                                     | Traçabilité nulle                | Haute        |
+| D3  | **Pas d'alerte d'échéance** — `check-alerts` ne vérifie pas les `due_date` proches des dettes                                                                                                      | Retards silencieux               | Haute        |
+| D4  | **Bulk delete en boucle séquentielle** — `for...of` avec `await` au lieu d'un `.in('id', ids)`                                                                                                     | Performance + échec partiel      | Moyenne      |
 
-### Phase 1 — Corrections critiques
-1. **Ajouter Google OAuth** (Login + Signup)
-2. **Corriger `delete-account`** : ajouter les tables manquantes (`assets`, `asset_valuations`, `notification_history`, `notification_preferences`)
-3. **Lazy loading** des pages dashboard dans `App.tsx`
-4. **Implémenter les rappels de cotisation** dans `check-alerts`
-
-### Phase 2 — Qualité & cohérence
-5. **Migrer SettingsPage** vers React Query
-6. **Extraire les hooks d'actions** des pages volumineuses (SavingsPage, TransactionsPage)
-7. **Fixer les types** : supprimer les `as any` dans SavingsPage en synchronisant les types
-8. **Uniformiser les loading states** (spinner au lieu de `...`)
-9. **Corriger l'incohérence mot de passe** (8 caractères partout)
-
-### Phase 3 — Fonctionnalités
-10. **Page historique notifications**
-11. **Import CSV de transactions**
-12. **Notification automatique objectif atteint**
-13. **Empty states** illustrés sur toutes les pages
 
 ---
 
-## Résumé technique
+## 6. Récurrences
+
+
+| #   | Problème                                                                                                               | Impact                  | Priorité |
+| --- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------- | -------- |
+| R1  | **Pas de vérification budget** — Les récurrences créent des transactions sans vérifier si ça dépasse le budget associé | Dépassements silencieux | Haute    |
+| R2  | **Détection IA sans "tout accepter"** — L'utilisateur doit valider chaque pattern un par un                            | UX fastidieux           | Moyenne  |
+
+
+---
+
+## 7. Liens intermodules — Cartographie
 
 ```text
-┌────────────────────────────────────────┐
-│          Score d'audit global          │
-├────────────────┬───────────────────────┤
-│ Sécurité       │ ████████░░  8/10      │
-│ Performance    │ ███████░░░  7/10      │
-│ Code Quality   │ ██████░░░░  6/10      │
-│ UX/UI          │ ████████░░  8/10      │
-│ Fonctionnalités│ ███████░░░  7/10      │
-│ Tests          │ █░░░░░░░░░  1/10      │
-├────────────────┼───────────────────────┤
-│ GLOBAL         │ ██████░░░░  6.2/10    │
-└────────────────┴───────────────────────┘
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Transactions │────▶│   Comptes    │◀────│   Épargne    │
+│              │     │              │     │              │
+│ • create     │     │ • théorique  │     │ • versements │
+│ • transfer   │     │ • réel (PV)  │     │ • intérêts   │
+│ • bulk ops   │     │ • types      │     │ • archivage  │
+└──────┬───────┘     └──────┬───────┘     └──────────────┘
+       │                    │
+       ▼                    │
+┌──────────────┐            │         ┌──────────────┐
+│   Budgets    │            │         │   Dettes     │
+│              │            │         │              │
+│ • spending   │            │         │ • paiements  │
+│ • alertes    │     ❌ Non lié       │ • plan IA    │
+│ • projection │            │         │              │
+└──────────────┘            │         └──────────────┘
+       ❌                   ❌               ❌
+  Récurrences           Comptes           Transactions
+  non vérifiées         non liés          non créées
 ```
 
-L'application est fonctionnellement riche et bien conçue visuellement, mais souffre de dette technique (fichiers monolithiques, types inconsistants, absence de tests) et de quelques lacunes de sécurité mineures. Les corrections de la Phase 1 sont réalisables rapidement et apporteraient le plus de valeur.
+**Liaisons manquantes critiques :**
 
+- Dettes → Transactions (paiements invisibles)
+- Dettes → Comptes (pas de traçabilité source)
+- Récurrences → Budgets (pas de vérification dépassement)
+- Comptes → Épargne (suppression sans protection)
+
+---
+
+## 8. Formulaires & Validation
+
+
+| Module       | État actuel                | Manques                                                              |
+| ------------ | -------------------------- | -------------------------------------------------------------------- |
+| Transactions | Validation inline manuelle | Pas de Zod. Pas de date future. Pas de montant max contextuel        |
+| Budgets      | Validation inline          | Pas de Zod. `expected_day` non borné                                 |
+| Épargne      | **Quasi absente**          | Pas de Zod. Pas de validation interest_rate, contribution_day, dates |
+| Dettes       | Validation inline          | Pas de Zod. Pas de validation due_date futur                         |
+| Comptes      | Name non vide              | Pas de doublon de nom                                                |
+
+
+---
+
+## 9. Calculs à risque
+
+
+| Calcul                  | Risque                                                                |
+| ----------------------- | --------------------------------------------------------------------- |
+| Capitalisation intérêts | **Critique** — Peut être exécuté N fois sans contrôle temporel        |
+| Budget overspend        | **Élevé** — Ne vérifie qu'un seul budget par catégorie                |
+| Solde réel compte       | **Élevé** — `recalculate_account_balance` est vide, jamais mis à jour |
+| Épargne current_amount  | **Moyen** — Recalcul manuel par bouton, pas automatique               |
+
+
+---
+
+## 10. Plan d'action recommandé
+
+### Phase A — Corrections critiques (bugs métier)
+
+1. **Lier paiements dettes aux transactions** — Créer une expense + update `paid_amount` atomiquement, avec choix du compte source
+2. **Garde-fou capitalisation intérêts** — Tracker `last_capitalized_at` sur `savings_goals`, bloquer si période non écoulée
+3. **Corriger le réinvestissement** — Archiver seulement APRÈS validation du nouveau formulaire
+4. **Vérifier TOUS les budgets d'une catégorie** (pas seulement `[0]`)
+5. **Recalculer soldes après bulk delete transactions**
+
+### Phase B — Intégrité intermodule
+
+6. **Ajouter `account_id` aux dettes** (migration DB) pour tracer les remboursements
+7. **Empêcher suppression comptes liés** à des objectifs d'épargne actifs
+8. **Alertes d'échéance dette** dans `check-alerts`
+9. **Vérification budget avant exécution récurrence** dans `process-recurring`
+
+### Phase C — Validation des formulaires
+
+10. **Validation Zod** sur les 4 formulaires principaux
+11. **Plages** : contribution_day (1-31), interest_rate (0-100), dates cohérentes
+12. **Avertissement date future** pour les transactions
+
+### Phase D — Optimisation
+
+13. **Budget spending batch** — Une seule query pour tous les budgets
+14. **Suppression du code AI dupliqué** dans TransactionsPage
+15. **Bulk delete dettes** via `.in()` au lieu de boucle
