@@ -178,7 +178,7 @@ const BudgetsPage = () => {
 
   const validate = () => {
     const result = validateForm(budgetSchema(t, locale), form);
-    if (!result.success) { setErrors(result.errors); return false; }
+    if (result.success === false) { setErrors(result.errors); return false; }
     // Extra contextual validations
     const errs: Record<string, string> = {};
     if (['quarterly', 'semi_annual', 'yearly'].includes(form.period) && !form.reference_date) {
