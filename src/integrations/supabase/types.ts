@@ -118,6 +118,7 @@ export type Database = {
           category_id: string | null
           control_type: string
           created_at: string
+          deleted_at: string | null
           expected_day: number | null
           id: string
           name: string
@@ -135,6 +136,7 @@ export type Database = {
           category_id?: string | null
           control_type?: string
           created_at?: string
+          deleted_at?: string | null
           expected_day?: number | null
           id?: string
           name: string
@@ -152,6 +154,7 @@ export type Database = {
           category_id?: string | null
           control_type?: string
           created_at?: string
+          deleted_at?: string | null
           expected_day?: number | null
           id?: string
           name?: string
@@ -219,6 +222,7 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          deleted_at: string | null
           icon: string
           id: string
           name: string
@@ -228,6 +232,7 @@ export type Database = {
         Insert: {
           color?: string
           created_at?: string
+          deleted_at?: string | null
           icon?: string
           id?: string
           name: string
@@ -237,6 +242,7 @@ export type Database = {
         Update: {
           color?: string
           created_at?: string
+          deleted_at?: string | null
           icon?: string
           id?: string
           name?: string
@@ -250,6 +256,7 @@ export type Database = {
           account_id: string | null
           created_at: string | null
           creditor_name: string
+          deleted_at: string | null
           due_date: string | null
           id: string
           notes: string | null
@@ -262,6 +269,7 @@ export type Database = {
           account_id?: string | null
           created_at?: string | null
           creditor_name: string
+          deleted_at?: string | null
           due_date?: string | null
           id?: string
           notes?: string | null
@@ -274,6 +282,7 @@ export type Database = {
           account_id?: string | null
           created_at?: string | null
           creditor_name?: string
+          deleted_at?: string | null
           due_date?: string | null
           id?: string
           notes?: string | null
@@ -491,6 +500,7 @@ export type Database = {
       payment_accounts: {
         Row: {
           created_at: string
+          deleted_at: string | null
           icon: string
           id: string
           name: string
@@ -502,6 +512,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           icon?: string
           id?: string
           name: string
@@ -513,6 +524,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           icon?: string
           id?: string
           name?: string
@@ -627,6 +639,7 @@ export type Database = {
           amount: number
           category_id: string | null
           created_at: string | null
+          deleted_at: string | null
           description: string
           frequency: string | null
           id: string
@@ -640,6 +653,7 @@ export type Database = {
           amount: number
           category_id?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           description: string
           frequency?: string | null
           id?: string
@@ -653,6 +667,7 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           description?: string
           frequency?: string | null
           id?: string
@@ -685,6 +700,7 @@ export type Database = {
           created_at: string
           current_amount: number
           deadline: string | null
+          deleted_at: string | null
           icon: string
           id: string
           interest_frequency: string | null
@@ -706,6 +722,7 @@ export type Database = {
           created_at?: string
           current_amount?: number
           deadline?: string | null
+          deleted_at?: string | null
           icon?: string
           id?: string
           interest_frequency?: string | null
@@ -727,6 +744,7 @@ export type Database = {
           created_at?: string
           current_amount?: number
           deadline?: string | null
+          deleted_at?: string | null
           icon?: string
           id?: string
           interest_frequency?: string | null
@@ -886,6 +904,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           date: string
+          deleted_at: string | null
           description: string
           id: string
           linked_transfer_id: string | null
@@ -900,6 +919,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           date?: string
+          deleted_at?: string | null
           description: string
           id?: string
           linked_transfer_id?: string | null
@@ -914,6 +934,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           date?: string
+          deleted_at?: string | null
           description?: string
           id?: string
           linked_transfer_id?: string | null
@@ -969,6 +990,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_transfer: {
+        Args: { p_transaction_id: string; p_user_id: string }
+        Returns: Json
+      }
+      cleanup_old_deleted: { Args: never; Returns: Json }
       cleanup_old_notifications: { Args: never; Returns: number }
       get_account_theoretical_balances: {
         Args: { p_user_id: string }
@@ -1037,6 +1063,18 @@ export type Database = {
       recalculate_account_balance: {
         Args: { p_account_id: string }
         Returns: undefined
+      }
+      update_transfer: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_description: string
+          p_from_account_id: string
+          p_to_account_id: string
+          p_transaction_id: string
+          p_user_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

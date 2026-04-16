@@ -50,7 +50,7 @@ export const useAccounts = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('payment_accounts').select('*')
-        .eq('user_id', user!.id).order('created_at', { ascending: true });
+        .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: true });
       if (error) throw error;
       return (data ?? []) as Account[];
     },
@@ -66,7 +66,7 @@ export const useCategories = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('categories').select('*')
-        .eq('user_id', user!.id).order('type').order('name');
+        .eq('user_id', user!.id).is('deleted_at', null).order('type').order('name');
       if (error) throw error;
       return (data ?? []) as Category[];
     },
@@ -82,7 +82,7 @@ export const useBudgets = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('budgets').select('*, categories(name, icon, color)')
-        .eq('user_id', user!.id).order('created_at', { ascending: false });
+        .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as Budget[];
     },
@@ -98,7 +98,7 @@ export const useSavingsGoals = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('savings_goals').select('*, payment_accounts(name, icon, real_balance)')
-        .eq('user_id', user!.id).order('created_at', { ascending: false });
+        .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as SavingsGoal[];
     },
@@ -114,7 +114,7 @@ export const useDebts = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('debts').select('*')
-        .eq('user_id', user!.id).order('created_at', { ascending: false });
+        .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as Debt[];
     },
@@ -130,7 +130,7 @@ export const useRecurring = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('recurring_transactions').select('*, categories(name, icon, color)')
-        .eq('user_id', user!.id).order('next_date', { ascending: true });
+        .eq('user_id', user!.id).is('deleted_at', null).order('next_date', { ascending: true });
       if (error) throw error;
       return (data ?? []) as RecurringTransaction[];
     },
@@ -165,6 +165,7 @@ export const useAllTransactions = () => {
         .from('transactions')
         .select('*, categories(name, icon, color), payment_accounts(name, icon)')
         .eq('user_id', user!.id)
+        .is('deleted_at', null)
         .order('date', { ascending: false })
         .limit(10000);
       if (error) throw error;
@@ -205,9 +206,9 @@ export const useReportsData = (locale: string) => {
 
       const [txRes, catRes] = await Promise.all([
         supabase.from('transactions').select('type, amount, date, description, categories(name)')
-          .eq('user_id', user!.id).gte('date', twelveAgo).order('date', { ascending: false }),
+          .eq('user_id', user!.id).is('deleted_at', null).gte('date', twelveAgo).order('date', { ascending: false }),
         supabase.from('transactions').select('amount, categories(name, color)')
-          .eq('user_id', user!.id).eq('type', 'expense').gte('date', monthStart).lte('date', monthEnd),
+          .eq('user_id', user!.id).is('deleted_at', null).eq('type', 'expense').gte('date', monthStart).lte('date', monthEnd),
       ]);
       if (txRes.error) throw txRes.error;
 
@@ -257,7 +258,7 @@ export const useForecastRawTx = () => {
       const sixAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('transactions').select('type, amount, date, category_id, categories(name)')
-        .eq('user_id', user!.id).gte('date', sixAgo);
+        .eq('user_id', user!.id).is('deleted_at', null).gte('date', sixAgo);
       if (error) throw error;
       return data ?? [];
     },
@@ -288,7 +289,8 @@ export const usePaginatedTransactions = (options: {
       let query = supabase
         .from('transactions')
         .select('*, categories(name, icon, color), payment_accounts(name, icon)', { count: 'exact' })
-        .eq('user_id', user!.id);
+        .eq('user_id', user!.id)
+        .is('deleted_at', null);
 
       if (type && type !== 'all') query = query.eq('type', type);
       if (categoryId && categoryId !== 'all') query = query.eq('category_id', categoryId);
@@ -336,6 +338,7 @@ export const useTransactionsRange = (start: string, end: string) => {
         .from('transactions')
         .select('*, categories(name, icon, color)')
         .eq('user_id', user!.id)
+        .is('deleted_at', null)
         .gte('date', start).lte('date', end)
         .order('date', { ascending: false }).limit(5000);
       if (error) throw error;
@@ -361,7 +364,7 @@ export const useChartData = (locale: string) => {
       const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('transactions').select('type, amount, date')
-        .eq('user_id', user!.id).gte('date', sixMonthsAgo);
+        .eq('user_id', user!.id).is('deleted_at', null).gte('date', sixMonthsAgo);
       if (error) throw error;
       return months.map(m => {
         const monthTxs = (data || []).filter(tx => {
@@ -409,6 +412,7 @@ export const useAccountTransactions = () => {
         .from('transactions')
         .select('id, date, amount, type, account_id, description, category_id')
         .eq('user_id', user!.id)
+        .is('deleted_at', null)
         .order('date', { ascending: false });
       if (error) throw error;
       return (data || []) as Transaction[];
@@ -449,8 +453,8 @@ export const useSavingsPageData = () => {
     queryKey: ['savings-page-data', user?.id ?? ''],
     queryFn: async () => {
       const [goalsRes, accRes] = await Promise.all([
-        supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance, opening_balance)').eq('user_id', user!.id).order('created_at', { ascending: false }),
-        supabase.from('payment_accounts').select('*').eq('user_id', user!.id),
+        supabase.from('savings_goals').select('*, payment_accounts(name, icon, real_balance, opening_balance)').eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: false }),
+        supabase.from('payment_accounts').select('*').eq('user_id', user!.id).is('deleted_at', null),
       ]);
       if (goalsRes.error) throw goalsRes.error;
 
@@ -466,7 +470,7 @@ export const useSavingsPageData = () => {
         txPromises.push(
           supabase.from('transactions')
             .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
-            .eq('user_id', user!.id).in('account_id', savingsAccountIds)
+            .eq('user_id', user!.id).is('deleted_at', null).in('account_id', savingsAccountIds)
             .order('date', { ascending: false }).limit(2000)
         );
       }
@@ -474,7 +478,7 @@ export const useSavingsPageData = () => {
         txPromises.push(
           supabase.from('transactions')
             .select('id, amount, date, notes, type, account_id, description, payment_accounts:account_id(name, icon)')
-            .eq('user_id', user!.id).like('notes', '🎯 %')
+            .eq('user_id', user!.id).is('deleted_at', null).like('notes', '🎯 %')
             .order('date', { ascending: false }).limit(500)
         );
       }

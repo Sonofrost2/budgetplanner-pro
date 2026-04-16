@@ -16,6 +16,8 @@ import NotificationPreferencesCard from '@/components/dashboard/settings/Notific
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { exportToCSV } from '@/lib/export';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+import { DataExportCard } from '@/components/dashboard/settings/DataExportCard';
+import { TrashCard } from '@/components/dashboard/settings/TrashCard';
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -248,6 +250,12 @@ const SettingsPage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Phase E — Export complet JSON (RGPD) */}
+      <DataExportCard />
+
+      {/* Phase E — Corbeille */}
+      <TrashCard />
 
       {/* Password Dialog */}
       <Dialog open={passwordDialog} onOpenChange={setPasswordDialog}>
