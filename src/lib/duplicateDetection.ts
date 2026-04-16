@@ -45,3 +45,8 @@ export async function findDuplicateTransactions(params: {
   }
   return data ?? [];
 }
+
+// Backwards-compat alias used by newer Phase E callsites
+export const detectDuplicates = (p: {
+  user_id: string; amount: number; account_id: string | null; date: string; excludeId?: string;
+}) => findDuplicateTransactions({ userId: p.user_id, amount: p.amount, accountId: p.account_id, date: p.date, excludeId: p.excludeId });
