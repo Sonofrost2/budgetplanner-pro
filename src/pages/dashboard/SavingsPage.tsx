@@ -252,11 +252,6 @@ const SavingsPage = () => {
       if (firstErr) toast.error(firstErr);
       return;
     }
-    // Cross-field: paid_amount <= total_amount for debt schema handled separately
-    if (Number(form.paid_amount) > Number(form.total_amount)) {
-      toast.error(locale === 'fr' ? 'Le montant payé ne peut pas dépasser le total' : 'Paid amount cannot exceed total');
-      return;
-    }
     setSaving(true);
     try {
       let accountId = form.account_id || null;
