@@ -1,4 +1,4 @@
 
-The user wants a complete overhaul of the notification/alert/email system — both **content** (tone, structure, messages) and **form** (visual design, channels, UX).
+The user wants a quick filter "Régularisations" in the Transactions page to view only discrepancy adjustment transactions (those linked to the auto-created ⚖️ Régularisation / Adjustment category).
 
-Let me check what exists currently.
+Let me check the Transactions page structure.
