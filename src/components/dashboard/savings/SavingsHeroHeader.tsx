@@ -123,9 +123,9 @@ export const SavingsHeroHeader = ({
               transition={{ duration: 0.5 }}
               className="flex items-baseline gap-3 flex-wrap"
             >
-              <h1 className="text-3xl sm:text-5xl font-bold tracking-tight font-display">
+              <h2 className="text-3xl sm:text-5xl font-bold tracking-tight font-display">
                 <AnimatedNumber value={totalSaved} format={fmt} duration={0.9} />
-              </h1>
+              </h2>
               {totalTarget > 0 && (
                 <span className="text-xs sm:text-sm text-muted-foreground">
                   {isFr ? 'sur' : 'of'} {fmt(totalTarget)}
@@ -133,10 +133,21 @@ export const SavingsHeroHeader = ({
               )}
             </motion.div>
             <p className="text-xs text-muted-foreground mt-1">
-              {goals.length} {isFr ? 'objectif(s)' : 'goal(s)'}
-              {completedCount > 0 && (
-                <> · <span className="text-secondary font-semibold">{completedCount} {isFr ? 'atteint(s)' : 'reached'}</span></>
-              )}
+              {(() => {
+                const n = liveGoals.length;
+                if (n === 0 && completedCount === 0) return isFr
+                  ? '🎯 Définissez votre premier objectif pour démarrer'
+                  : '🎯 Set your first goal to get started';
+                if (globalPct >= 80) return isFr
+                  ? `🔥 ${n} objectif${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''} · vous y êtes presque !`
+                  : `🔥 ${n} active goal${n > 1 ? 's' : ''} · you're almost there!`;
+                if (streak >= 3) return isFr
+                  ? `💪 ${n} objectif${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''} · belle régularité, continuez !`
+                  : `💪 ${n} active goal${n > 1 ? 's' : ''} · great consistency, keep going!`;
+                return isFr
+                  ? `🌱 ${n} objectif${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''}${completedCount > 0 ? ` · ${completedCount} déjà atteint${completedCount > 1 ? 's' : ''}` : ''}`
+                  : `🌱 ${n} active goal${n > 1 ? 's' : ''}${completedCount > 0 ? ` · ${completedCount} already reached` : ''}`;
+              })()}
             </p>
 
             {/* Sparkline */}
