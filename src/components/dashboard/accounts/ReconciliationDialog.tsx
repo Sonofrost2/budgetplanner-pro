@@ -59,15 +59,41 @@ export const ReconciliationDialog = ({
     handleClose(false);
   };
 
+  const ensureRegularizationCategory = async (type: 'income' | 'expense'): Promise<string | null> => {
+    if (!userId) return null;
+    const name = isFr ? 'Régularisation' : 'Adjustment';
+    // Try to find existing
+    const { data: existing } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('type', type)
+      .ilike('name', name)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (existing?.id) return existing.id;
+    // Create it
+    const { data: created, error } = await supabase
+      .from('categories')
+      .insert({ user_id: userId, name, type, icon: '⚖️', color: '#F59E0B' })
+      .select('id')
+      .single();
+    if (error) return null;
+    return created.id;
+  };
+
   const handleCreateAdjustment = async () => {
     if (!userId || absDisc < 0.01) { toast.error(isFr ? 'Aucun écart à régulariser' : 'No discrepancy'); return; }
     setSaving(true);
     const today = new Date().toISOString().split('T')[0];
+    const txType: 'income' | 'expense' = isPositive ? 'income' : 'expense';
     const desc = notes.trim() || (isFr ? `Régularisation d'écart - ${account.name}` : `Discrepancy adjustment - ${account.name}`);
+    const categoryId = await ensureRegularizationCategory(txType);
     const { error } = await supabase.from('transactions').insert({
       user_id: userId,
       account_id: account.id,
-      type: isPositive ? 'income' : 'expense',
+      category_id: categoryId,
+      type: txType,
       amount: absDisc,
       description: desc,
       date: today,
@@ -77,10 +103,11 @@ export const ReconciliationDialog = ({
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(isFr ? 'Transaction d\'écart créée' : 'Discrepancy transaction created');
+    toast.success(isFr ? 'Transaction d\'écart créée (catégorie ⚖️ Régularisation)' : 'Discrepancy transaction created (⚖️ Adjustment category)');
     onResolved();
     handleClose(false);
   };
+
 
   const handleCashCount = () => {
     handleClose(false);
