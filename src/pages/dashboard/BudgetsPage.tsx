@@ -519,16 +519,24 @@ const BudgetsPage = () => {
   };
 
   const renderEmptyState = (budgetType: string) => (
-    <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
-      <CardContent className="py-16 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
-          {budgetType === 'income' ? <TrendingUp className="w-7 h-7 text-muted-foreground/40" /> : <PieChart className="w-7 h-7 text-muted-foreground/40" />}
+    <div className="relative overflow-hidden rounded-3xl border border-border/40 bg-gradient-to-br from-primary/5 via-background to-accent/5 backdrop-blur-sm">
+      <div className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-accent/10 blur-3xl" />
+      <div className="relative py-14 px-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 mx-auto mb-4 flex items-center justify-center text-3xl">
+          {budgetType === 'income' ? '🎯' : '🧭'}
         </div>
-        <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noBudgets}</p>
-        <p className="text-sm text-muted-foreground/70 mb-4">{budgetType === 'income' ? t.createBudgetDescIncome : t.createBudgetDesc}</p>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => openNew(budgetType)}><Plus className="w-4 h-4 mr-1" />{t.addBudget}</Button>
-      </CardContent>
-    </Card>
+        <p className="text-lg font-bold mb-1">{t.noBudgets}</p>
+        <p className="text-sm text-muted-foreground/80 mb-5 max-w-sm mx-auto">
+          {budgetType === 'income'
+            ? t.createBudgetDescIncome
+            : (isFr ? 'Donnez un cadre à vos dépenses — votre Coach vous guide en temps réel.' : 'Frame your spending — your Coach guides you in real time.')}
+        </p>
+        <Button size="sm" className="text-primary-foreground rounded-xl gap-1.5" style={{ background: 'var(--gradient-primary)' }} onClick={() => openNew(budgetType)}>
+          <Plus className="w-4 h-4" />{t.addBudget}
+        </Button>
+      </div>
+    </div>
   );
 
   const renderTabContent = (budgetsList: any[]) => (
@@ -577,16 +585,24 @@ const BudgetsPage = () => {
           <BudgetAnalysisTab />
         </TabsContent>
 
-        <TabsContent value="manage">
+        <TabsContent value="manage" className="space-y-5">
       {budgetLimitReached && <UpgradeBanner message={t.limitBudgetsReached(limits.budgets)} />}
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold font-display">{t.budgets}</h2>
-        <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={handleAiSuggest} disabled={aiLoading}>
-          {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          {t.aiBudgetSuggest}
-        </Button>
-      </div>
+      <BudgetsHeroHeader
+        budgets={budgets}
+        spending={spending}
+        fmt={fmt}
+        locale={locale as 'fr' | 'en'}
+        t={t}
+        onAddNew={() => openNew(activeTab)}
+        onAiSuggest={handleAiSuggest}
+        aiLoading={aiLoading}
+        onAlertClick={() => setActiveMainTab('analysis')}
+      />
+
+      {budgets.length > 0 && (
+        <BudgetCoachInsights budgets={budgets} spending={spending} fmt={fmt} locale={locale as 'fr' | 'en'} />
+      )}
 
       {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} fmt={fmt} onCardClick={(action) => {
         if (action === 'evolution') setActiveMainTab('evolution');
