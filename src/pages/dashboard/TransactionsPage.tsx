@@ -70,6 +70,7 @@ const TransactionsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [transferOpen, setTransferOpen] = useState(false);
+  const [transferDefaults, setTransferDefaults] = useState<{ from?: string; to?: string; amount?: string; description?: string }>({});
   const [budgetOverspendOpen, setBudgetOverspendOpen] = useState(false);
   const [overspendBudgetName, setOverspendBudgetName] = useState('');
 
