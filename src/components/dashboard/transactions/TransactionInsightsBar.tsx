@@ -19,18 +19,20 @@ interface Insight {
 }
 
 export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Props) => {
-  const { monthStart, prevStart, prevEnd } = useMemo(() => {
+  const { monthStart, prevStart, prevEnd, streakWindowStart } = useMemo(() => {
     const now = new Date();
     const ms = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     const ps = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
     const pe = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
-    return { monthStart: ms, prevStart: ps, prevEnd: pe };
+    // Look back 90 days max for streak computation
+    const sw = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90).toISOString().split('T')[0];
+    return { monthStart: ms, prevStart: ps, prevEnd: pe, streakWindowStart: sw };
   }, []);
 
   const { data: insights = [] } = useQuery({
     queryKey: ['tx-insights', userId, monthStart],
     queryFn: async (): Promise<Insight[]> => {
-      const [{ data: cur }, { data: prev }] = await Promise.all([
+      const [{ data: cur }, { data: prev }, { data: streakRows }] = await Promise.all([
         supabase
           .from('transactions')
           .select('amount, type, category_id, description')
@@ -46,9 +48,53 @@ export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Prop
           .is('deleted_at', null)
           .gte('date', prevStart)
           .lte('date', prevEnd),
+        supabase
+          .from('transactions')
+          .select('date')
+          .eq('user_id', userId!)
+          .is('deleted_at', null)
+          .gte('date', streakWindowStart)
+          .order('date', { ascending: false }),
       ]);
 
       const result: Insight[] = [];
+
+      // 0. Streak: consecutive days with at least one transaction (ending today or yesterday)
+      const dateSet = new Set<string>((streakRows ?? []).map((r: any) => r.date));
+      if (dateSet.size > 0) {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        let streak = 0;
+        const cursor = new Date(today);
+        // Allow streak to start from yesterday if no entry today (don't break before user logs today)
+        if (!dateSet.has(todayStr) && dateSet.has(yesterdayStr)) {
+          cursor.setDate(cursor.getDate() - 1);
+        }
+        while (true) {
+          const key = cursor.toISOString().split('T')[0];
+          if (dateSet.has(key)) {
+            streak += 1;
+            cursor.setDate(cursor.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+        if (streak >= 2) {
+          result.push({
+            key: 'streak',
+            icon: <Zap className="w-3.5 h-3.5" />,
+            tone: 'streak',
+            text: locale === 'fr'
+              ? `Streak ${streak} jours 🔥 — continue !`
+              : `${streak}-day streak 🔥 — keep it up!`,
+          });
+        }
+      }
+
       const curTxs = cur ?? [];
       if (!curTxs.length) return result;
 
@@ -97,7 +143,7 @@ export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Prop
       let worst: { id: string; pct: number; delta: number } | null = null;
       for (const [catId, curTotal] of byCat.entries()) {
         const prevTotal = prevByCat.get(catId) || 0;
-        if (prevTotal < 5000) continue; // ignore tiny baselines
+        if (prevTotal < 5000) continue;
         const pct = ((curTotal - prevTotal) / prevTotal) * 100;
         if (pct > 25 && (!worst || pct > worst.pct)) {
           worst = { id: catId, pct, delta: curTotal - prevTotal };
@@ -117,7 +163,7 @@ export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Prop
         }
       }
 
-      return result.slice(0, 3);
+      return result.slice(0, 4);
     },
     enabled: !!userId && categories.length > 0,
     staleTime: 60_000,
