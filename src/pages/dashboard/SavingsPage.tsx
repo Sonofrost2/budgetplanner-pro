@@ -1162,6 +1162,19 @@ const SavingsPage = () => {
         onExportPDF={handleExportSimulationPDF} fmt={fmt} t={t} locale={locale}
       />
 
+      <GoalReachedDialog
+        open={!!reachedDialogGoalId}
+        onOpenChange={(o) => { if (!o) setReachedDialogGoalId(null); }}
+        goal={goals.find(g => g.id === reachedDialogGoalId) ?? null}
+        goals={goals}
+        accounts={accounts}
+        userId={user?.id ?? ''}
+        fmt={fmt}
+        locale={locale}
+        onReinvest={(goalId) => { setReachedDialogGoalId(null); handleReinvest(goalId); }}
+        onSuccess={() => { setReachedDialogGoalId(null); refreshData(); invalidateCrossModule(); }}
+      />
+
       <ConfirmDeleteDialog
         open={!!deleteId}
         onOpenChange={() => setDeleteId(null)}
