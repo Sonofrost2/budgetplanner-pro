@@ -464,6 +464,18 @@ const TransactionsPage = () => {
         canUseAI={canUseAISuggestions}
         onQuickAdd={(parsed) => {
           if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
+          // Transfer flow → open TransferDialog pre-filled
+          if (parsed.type === 'transfer') {
+            if (accounts.length < 2) { toast.error(locale === 'fr' ? 'Crée au moins 2 comptes pour transférer' : 'Create at least 2 accounts to transfer'); return; }
+            setTransferDefaults({
+              from: parsed.from_account_id || accounts[0]?.id,
+              to: parsed.to_account_id || accounts.find(a => a.id !== (parsed.from_account_id || accounts[0]?.id))?.id,
+              amount: parsed.amount != null ? String(parsed.amount) : '',
+              description: parsed.description || '',
+            });
+            setTransferOpen(true);
+            return;
+          }
           setEditing(null);
           setErrors({});
           const fallbackCatId = (categories.find((c: any) => c.type === parsed.type)?.id) || categories[0]?.id || '';
