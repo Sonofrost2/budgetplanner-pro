@@ -28,7 +28,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TransactionForm } from '@/components/dashboard/transactions/TransactionForm';
 import { TransactionList } from '@/components/dashboard/transactions/TransactionList';
 import { BulkModifyDialog, BudgetOverspendDialog } from '@/components/dashboard/transactions/TransactionDialogs';
+import { TransactionsHeroHeader } from '@/components/dashboard/transactions/TransactionsHeroHeader';
+import { TransactionInsightsBar } from '@/components/dashboard/transactions/TransactionInsightsBar';
 import { transactionSchema, validateForm } from '@/lib/validationSchemas';
+import { coachToast } from '@/lib/coachToast';
 
 const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
