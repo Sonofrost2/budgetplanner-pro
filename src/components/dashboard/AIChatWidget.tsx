@@ -13,6 +13,7 @@ import { AICoachAvatar } from './ai/AICoachAvatar';
 import { AIMessageBubble } from './ai/AIMessageBubble';
 import { AIQuickPrompts } from './ai/AIQuickPrompts';
 import { AIConversationList } from './ai/AIConversationList';
+import { isLiveGoal, isLiveAccount, liveSavingsTotal } from '@/lib/savingsLogic';
 
 type Msg = { role: 'user' | 'assistant'; content: string; created_at?: string };
 
@@ -65,7 +66,7 @@ const AIChatWidget = () => {
     if (!user || context) return;
     try {
       const [accRes, budRes, savRes, txRes, profRes, debtRes, recRes, healthRes] = await Promise.all([
-        supabase.from('payment_accounts').select('name, type, real_balance, opening_balance, icon').eq('user_id', user.id),
+        supabase.from('payment_accounts').select('name, type, real_balance, opening_balance, icon, status, archived_at, deleted_at').eq('user_id', user.id).is('deleted_at', null).is('archived_at', null),
         supabase.from('budgets').select('name, amount, period, budget_type, control_type, alert_threshold, category_id, categories(name)').eq('user_id', user.id),
         supabase.from('savings_goals').select('name, current_amount, target_amount, interest_rate, bank_name, deadline, monthly_contribution, is_locked, status, paused_at, deleted_at').eq('user_id', user.id).is('deleted_at', null),
         supabase.from('transactions').select('amount, type, category_id, date, description, categories(name)').eq('user_id', user.id).order('date', { ascending: false }).limit(80),
@@ -82,7 +83,7 @@ const AIChatWidget = () => {
       const monthIncome = monthTxs.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0);
       const monthExpenses = monthTxs.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0);
 
-      const accounts = accRes.data || [];
+      const accounts = (accRes.data || []).filter(isLiveAccount);
       const totalBalance = accounts.reduce((s, a) => s + Number(a.real_balance), 0);
 
       const debts = debtRes.data || [];
@@ -90,7 +91,6 @@ const AIChatWidget = () => {
 
       // Filter to live goals so the AI Coach reasons over the user's actual
       // active savings — not on completed/paused/archived ones.
-      const { isLiveGoal, liveSavingsTotal } = await import('@/lib/savingsLogic');
       const savings = (savRes.data || []).filter(isLiveGoal);
       const totalSaved = liveSavingsTotal(savings);
 
