@@ -107,6 +107,11 @@ export const useSavingsGoals = () => {
   return useQuery({
     queryKey: queryKeys.savingsGoals(user?.id ?? ''),
     queryFn: async () => {
+      // Note: returns ALL non-deleted goals (active/completed/paused/archived).
+      // Consumers (widgets, KPIs) MUST filter through `liveSavingsTotal` /
+      // `isLiveGoal` from `@/lib/savingsLogic` to avoid inflating totals.
+      // Pages dedicated to managing archives/atteints (SavingsPage) consume the
+      // raw list and partition it themselves.
       const { data, error } = await supabase
         .from('savings_goals').select('*, payment_accounts(name, icon, real_balance)')
         .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: false });

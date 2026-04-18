@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Gem, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { useNavigate } from 'react-router-dom';
+import { liveSavingsTotal } from '@/lib/savingsLogic';
 
 const COLORS = [
   'hsl(var(--primary))',
@@ -49,10 +50,14 @@ export const WealthWidget = ({ fmt, t, locale }: Props) => {
   });
 
   const { data: savingsTotal = 0 } = useQuery({
-    queryKey: ['savings-widget-wealth', user?.id],
+    queryKey: ['savings-widget-wealth-live', user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from('savings_goals').select('current_amount').eq('user_id', user!.id);
-      return (data || []).reduce((s, g) => s + Number(g.current_amount), 0);
+      const { data } = await supabase
+        .from('savings_goals')
+        .select('current_amount, status, paused_at, deleted_at')
+        .eq('user_id', user!.id)
+        .is('deleted_at', null);
+      return liveSavingsTotal(data || []);
     },
     enabled: !!user,
     staleTime: 60000,

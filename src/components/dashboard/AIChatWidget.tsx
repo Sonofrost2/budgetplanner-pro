@@ -67,7 +67,7 @@ const AIChatWidget = () => {
       const [accRes, budRes, savRes, txRes, profRes, debtRes, recRes, healthRes] = await Promise.all([
         supabase.from('payment_accounts').select('name, type, real_balance, opening_balance, icon').eq('user_id', user.id),
         supabase.from('budgets').select('name, amount, period, budget_type, control_type, alert_threshold, category_id, categories(name)').eq('user_id', user.id),
-        supabase.from('savings_goals').select('name, current_amount, target_amount, interest_rate, bank_name, deadline, monthly_contribution, is_locked').eq('user_id', user.id),
+        supabase.from('savings_goals').select('name, current_amount, target_amount, interest_rate, bank_name, deadline, monthly_contribution, is_locked, status, paused_at, deleted_at').eq('user_id', user.id).is('deleted_at', null),
         supabase.from('transactions').select('amount, type, category_id, date, description, categories(name)').eq('user_id', user.id).order('date', { ascending: false }).limit(80),
         supabase.from('profiles').select('display_name, currency, locale').eq('user_id', user.id).single(),
         supabase.from('debts').select('creditor_name, total_amount, paid_amount, due_date').eq('user_id', user.id),
@@ -88,8 +88,11 @@ const AIChatWidget = () => {
       const debts = debtRes.data || [];
       const totalDebt = debts.reduce((s, d) => s + (Number(d.total_amount) - Number(d.paid_amount)), 0);
 
-      const savings = savRes.data || [];
-      const totalSaved = savings.reduce((s, g) => s + Number(g.current_amount), 0);
+      // Filter to live goals so the AI Coach reasons over the user's actual
+      // active savings — not on completed/paused/archived ones.
+      const { isLiveGoal, liveSavingsTotal } = await import('@/lib/savingsLogic');
+      const savings = (savRes.data || []).filter(isLiveGoal);
+      const totalSaved = liveSavingsTotal(savings);
 
       // Top 5 expense categories this month
       const catTotals: Record<string, number> = {};
