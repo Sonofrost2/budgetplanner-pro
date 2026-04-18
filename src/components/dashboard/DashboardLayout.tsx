@@ -68,17 +68,38 @@ const DashboardLayout = () => {
     return () => clearTimeout(timer);
   }, [location.pathname]);
 
-  // ⌘K shortcut
+  // ⌘K + g+x shortcuts
   useEffect(() => {
+    let lastG = 0;
+    const goMap: Record<string, string> = {
+      t: '/dashboard/transactions',
+      b: '/dashboard/budgets',
+      s: '/dashboard/savings',
+      a: '/dashboard/accounts',
+      r: '/dashboard/reports',
+      d: '/dashboard',
+      w: '/dashboard/wealth',
+    };
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setSearchOpen(true);
+        return;
+      }
+      const target = e.target as HTMLElement;
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const now = Date.now();
+      if (e.key === 'g') { lastG = now; return; }
+      if (now - lastG < 800 && goMap[e.key]) {
+        e.preventDefault();
+        navigate(goMap[e.key]);
+        lastG = 0;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [navigate]);
 
   if (authLoading) {
     return (
