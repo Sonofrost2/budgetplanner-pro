@@ -536,9 +536,11 @@ export type Database = {
           deleted_at: string | null
           icon: string
           id: string
+          last_activity_at: string | null
           name: string
           opening_balance: number
           real_balance: number
+          status: string
           type: string
           updated_at: string
           user_id: string
@@ -549,9 +551,11 @@ export type Database = {
           deleted_at?: string | null
           icon?: string
           id?: string
+          last_activity_at?: string | null
           name: string
           opening_balance?: number
           real_balance?: number
+          status?: string
           type?: string
           updated_at?: string
           user_id: string
@@ -562,9 +566,11 @@ export type Database = {
           deleted_at?: string | null
           icon?: string
           id?: string
+          last_activity_at?: string | null
           name?: string
           opening_balance?: number
           real_balance?: number
+          status?: string
           type?: string
           updated_at?: string
           user_id?: string
@@ -1159,6 +1165,10 @@ export type Database = {
       cleanup_old_deleted: { Args: never; Returns: Json }
       cleanup_old_notifications: { Args: never; Returns: number }
       compute_health_score: { Args: { p_user_id: string }; Returns: Json }
+      get_account_drilldown: {
+        Args: { p_account_id: string; p_user_id: string }
+        Returns: Json
+      }
       get_account_theoretical_balances: {
         Args: { p_user_id: string }
         Returns: {
@@ -1182,6 +1192,16 @@ export type Database = {
           category_id: string
           total: number
           type: string
+        }[]
+      }
+      get_dormant_accounts: {
+        Args: { p_days?: number; p_user_id: string }
+        Returns: {
+          days_inactive: number
+          icon: string
+          id: string
+          name: string
+          real_balance: number
         }[]
       }
       get_family_member_profiles: {
