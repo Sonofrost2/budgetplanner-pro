@@ -114,6 +114,7 @@ const SavingsPage = () => {
     try { localStorage.setItem('savings-show-completed', showCompleted ? '1' : '0'); } catch {}
   }, [showCompleted]);
   const notifiedRef = useRef<Set<string>>(new Set());
+  const milestoneRef = useRef<Map<string, Set<number>>>(new Map());
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const { invalidate } = useInvalidate();
@@ -156,7 +157,7 @@ const SavingsPage = () => {
       const withAccount = goalsData.filter(g => g.account_id);
       const accountIds = withAccount.map(g => g.account_id!);
       if (accountIds.length === 0) {
-        toast.info(locale === 'fr' ? 'Aucun objectif avec compte lié' : 'No goals with linked accounts');
+        coachToast.remind(locale === 'fr' ? 'Aucun objectif avec compte lié' : 'No goals with linked accounts');
         setRecalculating(false);
         return;
       }
@@ -181,11 +182,11 @@ const SavingsPage = () => {
 
       await refreshData();
       invalidateCrossModule();
-      toast.success(locale === 'fr'
+      coachToast.saved(locale === 'fr'
         ? `${updated} objectif(s) recalculé(s) depuis les transactions`
         : `${updated} goal(s) recalculated from transactions`);
     } catch (err: any) {
-      toast.error(err.message || 'Erreur');
+      coachToast.fail(err.message || 'Erreur');
     } finally {
       setRecalculating(false);
     }
@@ -205,7 +206,7 @@ const SavingsPage = () => {
         .limit(1000);
 
       if (!txs || txs.length === 0) {
-        toast.info(locale === 'fr' ? 'Aucune transaction d\'épargne trouvée' : 'No savings transactions found');
+        coachToast.remind(locale === 'fr' ? 'Aucune transaction d\'épargne trouvée' : 'No savings transactions found');
         setSyncing(false);
         return;
       }
@@ -253,9 +254,9 @@ const SavingsPage = () => {
       }
 
       await refreshData();
-      toast.success(locale === 'fr' ? `${updated} objectif(s) synchronisé(s)` : `${updated} goal(s) synced`);
+      coachToast.saved(locale === 'fr' ? `${updated} objectif(s) synchronisé(s)` : `${updated} goal(s) synced`);
     } catch (err: any) {
-      toast.error(err.message || 'Erreur');
+      coachToast.fail(err.message || 'Erreur');
     } finally {
       setSyncing(false);
     }
@@ -469,17 +470,45 @@ const SavingsPage = () => {
   // Archive / Reactivate goal
   const handleArchive = async (goalId: string) => {
     const { error } = await supabase.from('savings_goals').update({ status: 'completed' } as any).eq('id', goalId);
-    if (error) { toast.error(error.message); return; }
-    toast.success(t.goalArchived);
+    if (error) { coachToast.fail(error.message); return; }
+    coachToast.win(t.goalArchived);
     refreshData();
   };
 
   const handleReactivate = async (goalId: string) => {
     const { error } = await supabase.from('savings_goals').update({ status: 'active' } as any).eq('id', goalId);
-    if (error) { toast.error(error.message); return; }
-    toast.success(t.goalReactivated);
+    if (error) { coachToast.fail(error.message); return; }
+    coachToast.saved(t.goalReactivated);
     refreshData();
   };
+
+  // Detect milestones (25/50/75%) — coach toast on threshold crossings
+  useEffect(() => {
+    if (!goals || goals.length === 0) return;
+    for (const g of goals) {
+      const target = Number(g.target_amount);
+      if (target <= 0) continue;
+      const pct = Math.floor((Number(g.current_amount) / target) * 100);
+      const status = (g as any).status;
+      if (status === 'completed' || status === 'archived') continue;
+      if (!milestoneRef.current.has(g.id)) milestoneRef.current.set(g.id, new Set());
+      const fired = milestoneRef.current.get(g.id)!;
+      const thresholds = [25, 50, 75];
+      for (const th of thresholds) {
+        if (pct >= th && !fired.has(th)) {
+          fired.add(th);
+          // Skip the very first render (no baseline) — only fire on later updates
+          if (fired.size > 1 || pct >= th + 5) {
+            coachToast.win(
+              locale === 'fr'
+                ? `${g.icon} ${g.name} : ${th}% atteint — continuez !`
+                : `${g.icon} ${g.name}: ${th}% reached — keep going!`
+            );
+          }
+        }
+      }
+    }
+  }, [goals, locale]);
 
   // Detect newly-reached goals and prompt user (Réinvestir / Garder / Archiver)
   useEffect(() => {
@@ -604,11 +633,11 @@ const SavingsPage = () => {
       // Update last_capitalized_at
       await supabase.from('savings_goals').update({ last_capitalized_at: new Date().toISOString() } as any).eq('id', goalId);
 
-      toast.success(`${t.interestCapitalized}: +${fmt(interestAmount)}`);
+      coachToast.money(`${t.interestCapitalized}: +${fmt(interestAmount)}`);
       refreshData();
       invalidateCrossModule();
     } catch (err: any) {
-      toast.error(err.message || 'Erreur');
+      coachToast.fail(err.message || 'Erreur');
     } finally {
       setCapitalizingGoalId(null);
     }
@@ -884,11 +913,22 @@ const SavingsPage = () => {
         return (
           <>
             {activeGoals.length === 0 && completedGoals.length === 0 ? (
-              <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
-                <CardContent className="py-16 text-center">
-                  <PiggyBank className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGoals}</p>
-                  <Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
+              <Card className="relative overflow-hidden border-0 rounded-3xl bg-gradient-to-br from-primary/5 via-secondary/5 to-transparent">
+                <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full blur-3xl opacity-30 bg-secondary" />
+                <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full blur-3xl opacity-25 bg-primary" />
+                <CardContent className="relative py-16 text-center">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/15 to-secondary/15 ring-1 ring-border/40 mb-5">
+                    <PiggyBank className="w-10 h-10 text-primary" />
+                  </div>
+                  <p className="text-xl font-bold font-display mb-2">
+                    {locale === 'fr' ? 'Prêt à passer à l\'action ?' : 'Ready to take action?'}
+                  </p>
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto mb-5">
+                    {locale === 'fr'
+                      ? 'Votre Coach vous accompagne — créez votre premier objectif et commencez par un petit défi atteignable 💡'
+                      : 'Your Coach is here for you — create your first goal and start with a small achievable challenge 💡'}
+                  </p>
+                  <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
                     setEditGoalId(null);
                     setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
                     setCustomBankMode(false);
