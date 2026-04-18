@@ -1,48 +1,80 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageSquare, X, Send, Sparkles, Loader2, Trash2, RotateCcw } from 'lucide-react';
+import { X, Send, Sparkles, Loader2, Trash2, RotateCcw, History, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
-import { toast } from 'sonner';
+import { coachToast } from '@/lib/coachToast';
+import { useAIConversations, type AIMessage } from '@/hooks/useAIConversations';
+import { AICoachAvatar } from './ai/AICoachAvatar';
+import { AIMessageBubble } from './ai/AIMessageBubble';
+import { AIQuickPrompts } from './ai/AIQuickPrompts';
+import { AIConversationList } from './ai/AIConversationList';
 
-type Msg = { role: 'user' | 'assistant'; content: string };
+type Msg = { role: 'user' | 'assistant'; content: string; created_at?: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
+
+const QUICK_PROMPTS_FR = [
+  '📊 Fais le bilan de mes finances ce mois',
+  '💰 Comment optimiser mon épargne ?',
+  '🎯 Stratégie pour rembourser mes dettes',
+  '🔮 Que prévoir pour les 3 prochains mois ?',
+];
+const QUICK_PROMPTS_EN = [
+  '📊 Review my finances this month',
+  '💰 How to optimize my savings?',
+  '🎯 Strategy to pay off my debts',
+  '🔮 What to expect for the next 3 months?',
+];
+
+const buildFollowUps = (last: string, locale: 'fr' | 'en'): string[] => {
+  const text = last.toLowerCase();
+  const fr = locale === 'fr';
+  const out: string[] = [];
+  if (/épargn|savings/.test(text)) out.push(fr ? '🎯 Simule un objectif d\'épargne' : '🎯 Simulate a savings goal');
+  if (/dette|debt/.test(text)) out.push(fr ? '💳 Plan de remboursement détaillé' : '💳 Detailed repayment plan');
+  if (/budget|cadre/.test(text)) out.push(fr ? '📊 Analyse mes dépassements' : '📊 Analyze my overshoots');
+  if (/investis|invest/.test(text)) out.push(fr ? '⚖️ Compare risque vs rendement' : '⚖️ Risk vs return');
+  if (out.length < 2) out.push(fr ? '✨ Donne-moi une action prioritaire' : '✨ Give me one priority action');
+  if (out.length < 3) out.push(fr ? '📈 Projection sur 6 mois' : '📈 6-month projection');
+  return out.slice(0, 3);
+};
 
 const AIChatWidget = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { currency } = useProfile();
-  const t = dashT[locale];
   const [open, setOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [context, setContext] = useState<any>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [showJump, setShowJump] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch enriched user context on first open
+  const { conversations, refresh, loadMessages, archiveConversation, deleteConversation } = useAIConversations();
+
   const fetchContext = useCallback(async () => {
     if (!user || context) return;
     try {
-      const [accRes, budRes, savRes, txRes, profRes, debtRes, recRes] = await Promise.all([
+      const [accRes, budRes, savRes, txRes, profRes, debtRes, recRes, healthRes] = await Promise.all([
         supabase.from('payment_accounts').select('name, type, real_balance, opening_balance, icon').eq('user_id', user.id),
         supabase.from('budgets').select('name, amount, period, budget_type, control_type, alert_threshold, category_id, categories(name)').eq('user_id', user.id),
-        supabase.from('savings_goals').select('name, current_amount, target_amount, interest_rate, bank_name, deadline, monthly_contribution, is_locked, start_date').eq('user_id', user.id),
-        supabase.from('transactions').select('amount, type, category_id, date, description, categories(name)').eq('user_id', user.id).order('date', { ascending: false }).limit(100),
+        supabase.from('savings_goals').select('name, current_amount, target_amount, interest_rate, bank_name, deadline, monthly_contribution, is_locked').eq('user_id', user.id),
+        supabase.from('transactions').select('amount, type, category_id, date, description, categories(name)').eq('user_id', user.id).order('date', { ascending: false }).limit(80),
         supabase.from('profiles').select('display_name, currency, locale').eq('user_id', user.id).single(),
-        supabase.from('debts').select('creditor_name, total_amount, paid_amount, due_date, notes').eq('user_id', user.id),
+        supabase.from('debts').select('creditor_name, total_amount, paid_amount, due_date').eq('user_id', user.id),
         supabase.from('recurring_transactions').select('description, amount, type, frequency, next_date, active, categories(name)').eq('user_id', user.id).eq('active', true),
+        supabase.rpc('compute_health_score', { p_user_id: user.id }),
       ]);
 
-      // Compute summary stats
       const transactions = txRes.data || [];
       const now = new Date();
       const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -58,29 +90,30 @@ const AIChatWidget = () => {
 
       const savings = savRes.data || [];
       const totalSaved = savings.reduce((s, g) => s + Number(g.current_amount), 0);
-      const totalTarget = savings.reduce((s, g) => s + Number(g.target_amount), 0);
+
+      // Top 5 expense categories this month
+      const catTotals: Record<string, number> = {};
+      monthTxs.filter(tx => tx.type === 'expense').forEach(tx => {
+        const name = (tx.categories as any)?.name || 'Autre';
+        catTotals[name] = (catTotals[name] || 0) + Number(tx.amount);
+      });
+      const topCategories = Object.entries(catTotals).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n, v]) => ({ name: n, total: v }));
 
       setContext({
         summary: {
-          totalBalance,
-          monthIncome,
-          monthExpenses,
+          totalBalance, monthIncome, monthExpenses,
           savingsRate: monthIncome > 0 ? Math.round(((monthIncome - monthExpenses) / monthIncome) * 100) : 0,
-          totalDebt,
-          totalSaved,
-          totalSavingsTarget: totalTarget,
-          accountCount: accounts.length,
-          budgetCount: (budRes.data || []).length,
+          totalDebt, totalSaved, accountCount: accounts.length, budgetCount: (budRes.data || []).length,
+          healthScore: (healthRes.data as any)?.score,
         },
-        accounts: accounts.map(a => ({ name: a.name, type: a.type, balance: a.real_balance, icon: a.icon })),
+        topCategoriesThisMonth: topCategories,
+        accounts: accounts.map(a => ({ name: a.name, type: a.type, balance: a.real_balance })),
         budgets: (budRes.data || []).map(b => ({ name: b.name, amount: b.amount, period: b.period, type: b.budget_type, category: (b.categories as any)?.name })),
-        savings: savings.map(s => ({ name: s.name, current: s.current_amount, target: s.target_amount, rate: s.interest_rate, bank: s.bank_name, deadline: s.deadline, monthly: s.monthly_contribution, locked: s.is_locked })),
+        savings: savings.map(s => ({ name: s.name, current: s.current_amount, target: s.target_amount, rate: s.interest_rate, deadline: s.deadline })),
         debts: debts.map(d => ({ creditor: d.creditor_name, total: d.total_amount, paid: d.paid_amount, remaining: Number(d.total_amount) - Number(d.paid_amount), dueDate: d.due_date })),
-        recurring: (recRes.data || []).map(r => ({ description: r.description, amount: r.amount, type: r.type, frequency: r.frequency, nextDate: r.next_date, category: (r.categories as any)?.name })),
-        recentTransactions: transactions.slice(0, 30).map(tx => ({ amount: tx.amount, type: tx.type, date: tx.date, description: tx.description, category: (tx.categories as any)?.name })),
-        profile: profRes.data,
-        currency,
-        locale,
+        recurring: (recRes.data || []).map(r => ({ description: r.description, amount: r.amount, type: r.type, frequency: r.frequency, nextDate: r.next_date })),
+        recentTransactions: transactions.slice(0, 25).map(tx => ({ amount: tx.amount, type: tx.type, date: tx.date, description: tx.description, category: (tx.categories as any)?.name })),
+        profile: profRes.data, currency, locale,
       });
     } catch { /* ignore */ }
   }, [user, context, currency, locale]);
@@ -93,8 +126,17 @@ const AIChatWidget = () => {
   }, [open, fetchContext]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages]);
+    if (!showJump) {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    }
+  }, [messages, showJump]);
+
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    setShowJump(!atBottom);
+  };
 
   const streamChat = async (allMessages: Msg[]) => {
     const resp = await fetch(CHAT_URL, {
@@ -103,23 +145,28 @@ const AIChatWidget = () => {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages: allMessages, context }),
+      body: JSON.stringify({
+        messages: allMessages.map(({ role, content }) => ({ role, content })),
+        context,
+        conversationId,
+      }),
     });
 
-    if (resp.status === 429) { toast.error(locale === 'fr' ? 'Trop de requêtes, réessayez.' : 'Too many requests, try again.'); throw new Error('Rate limited'); }
-    if (resp.status === 402) { toast.error(locale === 'fr' ? 'Crédits IA épuisés.' : 'AI credits exhausted.'); throw new Error('Payment required'); }
-    if (!resp.ok || !resp.body) throw new Error('Stream failed');
+    if (resp.status === 429) { coachToast.fail(locale === 'fr' ? 'Trop de requêtes, réessayez.' : 'Too many requests, try again.'); throw new Error('Rate limited'); }
+    if (resp.status === 402) { coachToast.fail(locale === 'fr' ? 'Crédits IA épuisés.' : 'AI credits exhausted.'); throw new Error('Payment required'); }
+    if (!resp.ok || !resp.body) { coachToast.fail(locale === 'fr' ? 'Erreur du service IA' : 'AI service error'); throw new Error('Stream failed'); }
+
+    const newConvId = resp.headers.get('x-conversation-id');
+    if (newConvId && newConvId !== conversationId) setConversationId(newConvId);
 
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
-    let assistantSoFar = '';
+    let buffer = ''; let assistantSoFar = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-
       let idx: number;
       while ((idx = buffer.indexOf('\n')) !== -1) {
         let line = buffer.slice(0, idx);
@@ -138,7 +185,7 @@ const AIChatWidget = () => {
               if (last?.role === 'assistant') {
                 return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
               }
-              return [...prev, { role: 'assistant', content: assistantSoFar }];
+              return [...prev, { role: 'assistant', content: assistantSoFar, created_at: new Date().toISOString() }];
             });
           }
         } catch { buffer = line + '\n' + buffer; break; }
@@ -149,12 +196,13 @@ const AIChatWidget = () => {
   const send = async (text?: string) => {
     const msg = text || input.trim();
     if (!msg || isLoading) return;
-    const userMsg: Msg = { role: 'user', content: msg };
+    const userMsg: Msg = { role: 'user', content: msg, created_at: new Date().toISOString() };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
     try {
       await streamChat([...messages, userMsg]);
+      setTimeout(() => refresh(), 600); // refresh sidebar (title may have updated)
     } catch (e) {
       console.error(e);
     } finally {
@@ -165,43 +213,81 @@ const AIChatWidget = () => {
   const refreshContext = () => {
     setContext(null);
     setTimeout(() => fetchContext(), 100);
-    toast.success(locale === 'fr' ? 'Contexte actualisé' : 'Context refreshed');
+    coachToast.saved(locale === 'fr' ? 'Contexte actualisé' : 'Context refreshed');
   };
 
-  const suggestionsFr = [
-    '📊 Analyse mon mois en cours',
-    '💡 Comment réduire mes dépenses ?',
-    '🏦 Quels investissements pour moi ?',
-    '📋 Bilan financier complet',
-    '🎯 Optimiser mon épargne',
-    '💳 Plan de remboursement dettes',
-  ];
-  const suggestionsEn = [
-    '📊 Analyze my current month',
-    '💡 How to reduce my expenses?',
-    '🏦 What investments for me?',
-    '📋 Full financial review',
-    '🎯 Optimize my savings',
-    '💳 Debt repayment plan',
-  ];
-  const suggestions = locale === 'fr' ? suggestionsFr : suggestionsEn;
+  const newConversation = () => {
+    setMessages([]);
+    setConversationId(null);
+    setShowHistory(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const openConversation = async (id: string) => {
+    setConversationId(id);
+    setShowHistory(false);
+    const msgs = await loadMessages(id);
+    setMessages(msgs.filter(m => m.role !== 'system').map((m: AIMessage) => ({
+      role: m.role as 'user' | 'assistant', content: m.content, created_at: m.created_at,
+    })));
+  };
+
+  const handleArchive = async (id: string) => {
+    await archiveConversation(id);
+    if (id === conversationId) newConversation();
+    coachToast.warn(locale === 'fr' ? 'Conversation archivée' : 'Conversation archived');
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteConversation(id);
+    if (id === conversationId) newConversation();
+    coachToast.warn(locale === 'fr' ? 'Conversation supprimée' : 'Conversation deleted');
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      send();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  };
+
+  const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')?.content || '';
+  const followUps = lastAssistant ? buildFollowUps(lastAssistant, locale) : [];
+  const quickPrompts = locale === 'fr' ? QUICK_PROMPTS_FR : QUICK_PROMPTS_EN;
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating action button */}
       <AnimatePresence>
         {!open && (
           <motion.div
-            initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
             className="fixed bottom-6 right-6 z-50"
           >
-            <Button
-              onClick={() => setOpen(true)}
-              className="h-14 w-14 rounded-full shadow-lg text-primary-foreground"
-              style={{ background: 'var(--gradient-primary)' }}
-            >
-              <Sparkles className="w-6 h-6" />
-            </Button>
+            <div className="relative group">
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{ background: 'var(--gradient-primary)' }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 2.4, repeat: Infinity }}
+              />
+              <Button
+                onClick={() => setOpen(true)}
+                className="relative h-14 w-14 rounded-full shadow-xl text-primary-foreground"
+                style={{ background: 'var(--gradient-primary)' }}
+              >
+                <Sparkles className="w-6 h-6" />
+              </Button>
+              <span className="absolute -top-1 -right-1 text-[10px] bg-accent text-accent-foreground rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">✨</span>
+              <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap text-xs bg-foreground text-background px-2 py-1 rounded-md shadow-lg">
+                {locale === 'fr' ? 'Coach IA' : 'AI Coach'}
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -214,122 +300,151 @@ const AIChatWidget = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-6 right-6 z-50 w-[400px] max-w-[calc(100vw-2rem)] h-[580px] max-h-[calc(100vh-6rem)] flex flex-col rounded-2xl border border-border/50 shadow-xl bg-background overflow-hidden"
+            className="fixed bottom-6 right-6 z-50 w-[480px] max-w-[calc(100vw-2rem)] h-[640px] max-h-[calc(100vh-6rem)] flex rounded-2xl border border-border/40 shadow-2xl bg-background/95 backdrop-blur-xl overflow-hidden"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/50" style={{ background: 'var(--gradient-primary)' }}>
-              <div className="flex items-center gap-2 text-primary-foreground">
-                <Sparkles className="w-5 h-5" />
-                <span className="font-bold text-sm">{locale === 'fr' ? 'Conseiller IA' : 'AI Advisor'}</span>
-                {context && <span className="text-[10px] opacity-70 bg-primary-foreground/20 px-1.5 py-0.5 rounded-full">{locale === 'fr' ? 'Contexte chargé' : 'Context loaded'}</span>}
-              </div>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10" onClick={refreshContext} title={locale === 'fr' ? 'Actualiser les données' : 'Refresh data'}>
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10" onClick={() => { setMessages([]); setContext(null); }}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10" onClick={() => setOpen(false)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+            {/* Decorative blob */}
+            <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full opacity-20 blur-3xl pointer-events-none" style={{ background: 'var(--gradient-primary)' }} />
+            <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full opacity-10 blur-3xl pointer-events-none bg-accent" />
 
-            {/* Messages */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages.length === 0 && (
-                <div className="space-y-4">
-                  <div className="text-center space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      {locale === 'fr'
-                        ? '👋 Bonjour ! Je suis votre conseiller financier IA. J\'ai accès à vos comptes, budgets, épargne, dettes et transactions pour des conseils personnalisés.'
-                        : '👋 Hi! I\'m your AI financial advisor. I have access to your accounts, budgets, savings, debts and transactions for personalized advice.'}
-                    </p>
+            {/* Sidebar */}
+            <AnimatePresence>
+              {showHistory && (
+                <motion.div initial={{ width: 0 }} animate={{ width: 'auto' }} exit={{ width: 0 }} className="overflow-hidden">
+                  <AIConversationList
+                    conversations={conversations}
+                    activeId={conversationId}
+                    onSelect={openConversation}
+                    onNew={newConversation}
+                    onArchive={handleArchive}
+                    onDelete={handleDelete}
+                    locale={locale as 'fr' | 'en'}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Main column */}
+            <div className="flex-1 flex flex-col relative z-10 min-w-0">
+              {/* Header */}
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/40" style={{ background: 'var(--gradient-primary)' }}>
+                <div className="flex items-center gap-2.5 text-primary-foreground min-w-0">
+                  <AICoachAvatar size="sm" pulsing />
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm leading-tight">{locale === 'fr' ? 'Coach Financier' : 'Financial Coach'}</p>
+                    <p className="text-[10px] opacity-80 leading-tight">{locale === 'fr' ? 'Votre conseiller dédié' : 'Your dedicated advisor'}</p>
+                  </div>
+                </div>
+                <div className="flex gap-0.5">
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={() => setShowHistory(s => !s)} title={locale === 'fr' ? 'Historique' : 'History'}>
+                    <History className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={refreshContext} title={locale === 'fr' ? 'Rafraîchir contexte' : 'Refresh context'}>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={newConversation} title={locale === 'fr' ? 'Nouvelle conversation' : 'New conversation'}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={() => setOpen(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto p-3 space-y-3">
+                {messages.length === 0 && (
+                  <div className="space-y-4 py-3">
+                    <div className="flex flex-col items-center text-center gap-3">
+                      <AICoachAvatar size="lg" pulsing />
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">
+                          {locale === 'fr' ? 'Bonjour 👋 Je suis votre Coach Financier' : 'Hi 👋 I\'m your Financial Coach'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                          {locale === 'fr'
+                            ? 'J\'ai accès à vos comptes, budgets, épargne et dettes pour des conseils chiffrés et actionnables.'
+                            : 'I have access to your accounts, budgets, savings and debts for actionable advice.'}
+                        </p>
+                      </div>
+                    </div>
                     {context?.summary && (
                       <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="bg-muted/30 rounded-lg p-2">
+                        <div className="bg-card/60 backdrop-blur border border-border/40 rounded-xl p-2">
                           <span className="text-muted-foreground">{locale === 'fr' ? 'Solde total' : 'Total balance'}</span>
                           <p className="font-bold text-foreground">{Math.round(context.summary.totalBalance).toLocaleString()}</p>
                         </div>
-                        <div className="bg-muted/30 rounded-lg p-2">
+                        <div className="bg-card/60 backdrop-blur border border-border/40 rounded-xl p-2">
                           <span className="text-muted-foreground">{locale === 'fr' ? 'Taux épargne' : 'Savings rate'}</span>
                           <p className="font-bold text-foreground">{context.summary.savingsRate}%</p>
                         </div>
-                        {context.summary.totalDebt > 0 && (
-                          <div className="bg-destructive/10 rounded-lg p-2">
-                            <span className="text-muted-foreground">{locale === 'fr' ? 'Dettes restantes' : 'Remaining debt'}</span>
-                            <p className="font-bold text-destructive">{Math.round(context.summary.totalDebt).toLocaleString()}</p>
+                        {typeof context.summary.healthScore === 'number' && (
+                          <div className="bg-card/60 backdrop-blur border border-border/40 rounded-xl p-2 col-span-2">
+                            <span className="text-muted-foreground">{locale === 'fr' ? 'Santé financière' : 'Financial health'}</span>
+                            <p className="font-bold text-foreground">{context.summary.healthScore}/100</p>
                           </div>
                         )}
-                        <div className="bg-muted/30 rounded-lg p-2">
-                          <span className="text-muted-foreground">{locale === 'fr' ? 'Épargne cumulée' : 'Total savings'}</span>
-                          <p className="font-bold text-foreground">{Math.round(context.summary.totalSaved).toLocaleString()}</p>
-                        </div>
                       </div>
                     )}
+                    <AIQuickPrompts prompts={quickPrompts} onPick={send} variant="cards" />
                   </div>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {suggestions.map(s => (
-                      <button key={s} onClick={() => send(s)} className="text-xs px-3 py-1.5 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/60 text-foreground transition-colors">
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
-                    m.role === 'user'
-                      ? 'bg-primary text-primary-foreground rounded-br-md'
-                      : 'bg-muted/50 text-foreground rounded-bl-md'
-                  }`}>
-                    {m.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-1.5 [&>ul]:mb-1.5 [&>ol]:mb-1.5 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
-                      </div>
-                    ) : m.content}
-                  </div>
-                </div>
-              ))}
-              {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-                <div className="flex justify-start">
-                  <div className="bg-muted/50 rounded-2xl rounded-bl-md px-4 py-3">
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Quick follow-up suggestions after assistant response */}
-            {messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && !isLoading && (
-              <div className="px-3 pb-1 flex gap-1.5 overflow-x-auto">
-                {(locale === 'fr'
-                  ? ['Détaille davantage', 'Et pour mon épargne ?', 'Quels risques ?']
-                  : ['More details', 'What about savings?', 'What are the risks?']
-                ).map(s => (
-                  <button key={s} onClick={() => send(s)} className="text-[11px] px-2.5 py-1 rounded-full border border-border/50 bg-muted/20 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap shrink-0">
-                    {s}
-                  </button>
+                )}
+                {messages.map((m, i) => (
+                  <AIMessageBubble
+                    key={i}
+                    role={m.role}
+                    content={m.content}
+                    timestamp={m.created_at}
+                    streaming={isLoading && i === messages.length - 1 && m.role === 'assistant'}
+                  />
                 ))}
+                {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+                  <div className="flex gap-2 justify-start">
+                    <AICoachAvatar size="sm" pulsing />
+                    <div className="bg-card/70 backdrop-blur border border-border/40 rounded-2xl rounded-bl-sm px-3 py-2.5 flex items-center gap-1.5">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">{locale === 'fr' ? 'Coach réfléchit…' : 'Coach thinking…'}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* Input */}
-            <form onSubmit={e => { e.preventDefault(); send(); }} className="p-3 border-t border-border/50 flex gap-2">
-              <Input
-                ref={inputRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder={locale === 'fr' ? 'Posez votre question...' : 'Ask your question...'}
-                className="flex-1 rounded-xl text-sm h-9"
-                disabled={isLoading}
-              />
-              <Button type="submit" size="icon" className="h-9 w-9 rounded-xl text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} disabled={isLoading || !input.trim()}>
-                <Send className="w-4 h-4" />
-              </Button>
-            </form>
+              {/* Jump to bottom */}
+              <AnimatePresence>
+                {showJump && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                    onClick={() => { setShowJump(false); scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); }}
+                    className="absolute bottom-32 right-4 z-20 bg-foreground text-background rounded-full shadow-lg px-3 py-1.5 text-xs flex items-center gap-1"
+                  >
+                    <ChevronDown className="w-3 h-3" /> {locale === 'fr' ? 'Bas' : 'Bottom'}
+                  </motion.button>
+                )}
+              </AnimatePresence>
+
+              {/* Follow-up suggestions */}
+              {followUps.length > 0 && !isLoading && (
+                <div className="px-3 pb-1.5 pt-1 border-t border-border/30">
+                  <AIQuickPrompts prompts={followUps} onPick={send} />
+                </div>
+              )}
+
+              {/* Composer */}
+              <form onSubmit={e => { e.preventDefault(); send(); }} className="p-2.5 border-t border-border/40 bg-background/60 backdrop-blur flex gap-2 items-end">
+                <Textarea
+                  ref={inputRef as any}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  placeholder={locale === 'fr' ? 'Pose ta question… (Entrée pour envoyer)' : 'Ask a question… (Enter to send)'}
+                  className="flex-1 rounded-xl text-sm min-h-[40px] max-h-32 resize-none py-2"
+                  rows={1}
+                  disabled={isLoading}
+                />
+                <Button type="submit" size="icon" className="h-10 w-10 rounded-xl text-primary-foreground shrink-0" style={{ background: 'var(--gradient-primary)' }} disabled={isLoading || !input.trim()}>
+                  <Send className="w-4 h-4" />
+                </Button>
+              </form>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

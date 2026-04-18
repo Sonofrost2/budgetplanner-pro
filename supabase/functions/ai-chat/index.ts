@@ -1,37 +1,88 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SYSTEM_PROMPT = `Tu es **Coach Financier**, un conseiller personnel chaleureux, proactif et expert intégré dans Budget Planner Pro.
+
+🎯 PERSONA
+- Ton chaleureux, encourageant, jamais culpabilisant. Tu félicites les efforts.
+- Tu parles à la 2e personne (tu/vous selon le contexte) avec une touche complice.
+- Tu vas droit au but : pas de blabla, des chiffres réels, des conseils actionnables.
+
+📋 FORMAT DE RÉPONSE (OBLIGATOIRE)
+- **Markdown systématique** : titres ##, listes à puces, **gras** sur les chiffres clés, tableaux pour les comparaisons.
+- **~250 mots maximum** sauf si l'utilisateur demande explicitement une analyse approfondie.
+- **Toujours conclure** par une section "✨ Ce que je te suggère" avec 1-2 actions concrètes chiffrées.
+
+⚡ ACTIONS INLINE (très important)
+Quand pertinent, propose des actions cliquables en utilisant ces tags exactement (ils seront remplacés par des boutons) :
+- \`[ACTION:create_budget|Catégorie|Montant]\` — pour créer un cadre de dépense
+- \`[ACTION:create_savings_goal|Nom|Cible]\` — pour créer un objectif d'épargne
+- \`[ACTION:view_module|budgets|transactions|savings|debts|wealth|recurring]\` — pour ouvrir un module
+
+Exemple : "Tu pourrais cadrer tes loisirs à 50 000 FCFA. [ACTION:create_budget|Loisirs|50000]"
+
+📊 RÈGLES MÉTIER
+- Base TOUS tes conseils sur le contexte réel (summary, accounts, budgets, savings, debts, recurring, recentTransactions).
+- Si l'utilisateur demande un bilan : utilise summary.totalBalance, savingsRate, totalDebt + variations vs mois précédent si visibles.
+- Dettes : propose boule de neige (plus petite d'abord) ou avalanche (taux le plus haut). Calcule le revenu disponible.
+- Épargne : minimum recommandé 20%. Compare aux taux des banques UEMOA si pertinent.
+- Récurrences : intègre les revenus/dépenses récurrents dans les projections.
+- Taux UEMOA : SGCI 3.5%, BOA 3-4%, BICICI 3.25%, Ecobank 2.5-3.5%, Coris 3.5-4%, NSIA 3-3.5%.
+- Investissements : adapte au marché (UEMOA/CEMAC) — DAT, tontines, obligations d'État, microfinance, etc.
+- JAMAIS de garantie de rendement. Précise toujours les risques.
+
+🌍 LANGUE
+- Réponds dans la langue du dernier message utilisateur (FR par défaut).`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, context } = await req.json();
+    const { messages, context, conversationId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `Tu es un conseiller financier personnel intelligent et expert intégré dans l'application Budget Planner Pro. Tu assistes l'utilisateur sur sa gestion financière, ses possibilités d'investissement, d'épargne et de remboursement de dettes.
+    // Auth: extract user from JWT
+    const authHeader = req.headers.get("Authorization") || "";
+    const supabaseAuth = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData } = await supabaseAuth.auth.getUser();
+    const userId = userData?.user?.id;
 
-CONTEXTE FINANCIER COMPLET DE L'UTILISATEUR :
-${context ? JSON.stringify(context, null, 2) : "Non disponible"}
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-RÈGLES :
-- Réponds dans la langue de l'utilisateur (français par défaut, anglais si demandé).
-- Sois concis, précis et actionnable. Utilise des montants chiffrés basés sur les données réelles.
-- Base tes conseils sur le contexte financier réel : comptes (soldes, types), budgets (montants, périodes, catégories), épargne (objectifs, taux, échéances), dettes (montants restants, échéances), transactions récurrentes (fréquences, prochaines dates) et transactions récentes.
-- ANALYSE CONTEXTUELLE: Quand l'utilisateur demande un bilan ou une analyse, utilise les données summary (solde total, taux d'épargne, dette totale) pour donner des chiffres précis.
-- DETTES: Si l'utilisateur a des dettes, propose des stratégies de remboursement (boule de neige vs avalanche). Calcule le revenu disponible (revenus - dépenses du mois).
-- ÉPARGNE: Évalue si le taux d'épargne est suffisant (minimum recommandé: 20%). Propose des optimisations basées sur les taux d'intérêt réels des banques.
-- RÉCURRENCES: Tiens compte des revenus et dépenses récurrentes pour les projections.
-- Pour les investissements, tiens compte de la localisation (marché UEMOA/CEMAC si Afrique de l'Ouest/Centrale) et propose des options adaptées : DAT, comptes épargne, tontines, obligations d'État, microfinance, etc.
-- Ne donne JAMAIS de garantie de rendement. Précise toujours les risques.
-- Si l'utilisateur n'a pas assez de données, demande-lui de renseigner ses comptes et transactions.
-- Utilise le markdown pour formater tes réponses (listes, gras, titres, tableaux).
-- Pour les calculs d'intérêts, utilise le prorata journalier : intérêts = capital × (taux/365) × jours.
-- Taux de référence UEMOA : SGCI (3.5%), BOA (3-4%), BICICI (3.25%), Ecobank (2.5-3.5%), Coris Bank (3.5-4%), NSIA (3-3.5%), Orabank (3-4%), BMS (3.5%), UBA (2.5-3%).`;
+    // Persist user message immediately if we have userId + conversationId
+    let convId = conversationId as string | undefined;
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
+
+    if (userId && lastUserMsg) {
+      if (!convId) {
+        const { data: newConv } = await admin
+          .from("ai_conversations")
+          .insert({ user_id: userId, title: lastUserMsg.content.slice(0, 60) })
+          .select("id")
+          .single();
+        convId = newConv?.id;
+      }
+      if (convId) {
+        await admin.from("ai_messages").insert({
+          conversation_id: convId,
+          user_id: userId,
+          role: "user",
+          content: lastUserMsg.content,
+        });
+      }
+    }
+
+    const systemContent = `${SYSTEM_PROMPT}\n\nCONTEXTE FINANCIER UTILISATEUR :\n${context ? JSON.stringify(context, null, 2) : "Non disponible"}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -41,10 +92,7 @@ RÈGLES :
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
+        messages: [{ role: "system", content: systemContent }, ...messages],
         stream: true,
       }),
     });
@@ -52,32 +100,93 @@ RÈGLES :
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Trop de requêtes, réessayez dans quelques instants." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Crédits IA épuisés. Veuillez recharger votre espace." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "Erreur du service IA" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    // Tee the stream: forward to client AND accumulate to persist + auto-title
+    const [clientStream, persistStream] = response.body!.tee();
+
+    if (userId && convId) {
+      (async () => {
+        try {
+          const reader = persistStream.getReader();
+          const decoder = new TextDecoder();
+          let buf = ""; let full = "";
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            let idx: number;
+            while ((idx = buf.indexOf("\n")) !== -1) {
+              let line = buf.slice(0, idx); buf = buf.slice(idx + 1);
+              if (line.endsWith("\r")) line = line.slice(0, -1);
+              if (!line.startsWith("data: ")) continue;
+              const json = line.slice(6).trim();
+              if (json === "[DONE]") continue;
+              try {
+                const parsed = JSON.parse(json);
+                const c = parsed.choices?.[0]?.delta?.content;
+                if (c) full += c;
+              } catch { /* partial */ }
+            }
+          }
+          if (full.trim()) {
+            await admin.from("ai_messages").insert({
+              conversation_id: convId,
+              user_id: userId,
+              role: "assistant",
+              content: full,
+            });
+
+            // Auto-generate title after 2nd exchange (1 user + 1 assistant just inserted = 2 msgs total = first exchange done)
+            const { count } = await admin
+              .from("ai_messages")
+              .select("id", { count: "exact", head: true })
+              .eq("conversation_id", convId);
+            if ((count || 0) === 2) {
+              try {
+                const titleResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    model: "google/gemini-2.5-flash-lite",
+                    messages: [
+                      { role: "system", content: "Génère un titre court (3-5 mots, sans guillemets, sans ponctuation finale) résumant ce premier échange financier." },
+                      { role: "user", content: `Q: ${lastUserMsg.content.slice(0, 200)}\nR: ${full.slice(0, 400)}` },
+                    ],
+                  }),
+                });
+                if (titleResp.ok) {
+                  const tj = await titleResp.json();
+                  const title = (tj.choices?.[0]?.message?.content || "").trim().replace(/^["']|["']$/g, "").slice(0, 80);
+                  if (title) await admin.from("ai_conversations").update({ title }).eq("id", convId);
+                }
+              } catch (e) { console.error("title gen failed", e); }
+            }
+          }
+        } catch (e) { console.error("persist stream error", e); }
+      })();
+    }
+
+    return new Response(clientStream, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "x-conversation-id": convId || "" },
     });
   } catch (e) {
     console.error("ai-chat error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
