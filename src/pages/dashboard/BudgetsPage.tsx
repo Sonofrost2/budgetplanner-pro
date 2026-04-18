@@ -20,10 +20,13 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { ScrollReveal } from '@/hooks/useScrollReveal';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat, BarChart3 } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat, BarChart3, Target } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { toast } from 'sonner';
+import { coachToast } from '@/lib/coachToast';
+import { BudgetsHeroHeader } from '@/components/dashboard/budgets/BudgetsHeroHeader';
+import { BudgetCoachInsights } from '@/components/dashboard/budgets/BudgetCoachInsights';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
@@ -194,7 +197,7 @@ const BudgetsPage = () => {
   };
 
   const openNew = (budgetType: string = 'expense') => {
-    if (budgetLimitReached) { toast.error(t.limitBudgetsToast(limits.budgets)); return; }
+    if (budgetLimitReached) { coachToast.warn(t.limitBudgetsToast(limits.budgets)); return; }
     const cats = allCategories.filter(c => c.type === budgetType);
     setErrors({}); setEditId(null);
     setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max', expected_day: '', occurrence_frequency: '', reference_date: '', active_days: '' });
@@ -214,24 +217,26 @@ const BudgetsPage = () => {
     const { error } = editId
       ? await supabase.from('budgets').update(payload).eq('id', editId)
       : await supabase.from('budgets').insert({ ...payload, user_id: user.id });
-    if (error) { toast.error(error.message); setSaving(false); return; }
+    if (error) { coachToast.fail(error.message); setSaving(false); return; }
     setSaving(false); setDialogOpen(false); setEditId(null);
     refreshData();
-    toast.success(t.saved);
+    coachToast.saved(editId ? (isFr ? 'Cadre mis à jour 🎯' : 'Budget updated 🎯') : (isFr ? 'Nouveau cadre créé 🎯' : 'New budget created 🎯'));
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    await supabase.from('budgets').delete().eq('id', deleteId);
+    const { error } = await supabase.from('budgets').delete().eq('id', deleteId);
+    if (error) { coachToast.fail(error.message); return; }
     setDeleteId(null); refreshData();
+    coachToast.warn(isFr ? 'Cadre supprimé 🗑️' : 'Budget deleted 🗑️');
   };
 
   const handleBulkDelete = async () => {
     const ids = Array.from(bulk.selectedIds);
     const { error } = await supabase.from('budgets').delete().in('id', ids);
-    if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
+    if (error) { coachToast.fail(error.message); setBulkDeleteOpen(false); return; }
     setBulkDeleteOpen(false); refreshData();
-    toast.success(t.bulkDeleted(ids.length));
+    coachToast.warn(t.bulkDeleted(ids.length));
   };
 
   const handleBulkModify = async () => {
@@ -239,12 +244,12 @@ const BudgetsPage = () => {
     const updates: Record<string, any> = {};
     if (bulkModifyForm.period) updates.period = bulkModifyForm.period;
     if (bulkModifyForm.category_id) updates.category_id = bulkModifyForm.category_id;
-    if (Object.keys(updates).length === 0) { toast.error(t.noChange); return; }
+    if (Object.keys(updates).length === 0) { coachToast.remind(t.noChange); return; }
     const { error } = await supabase.from('budgets').update(updates as any).in('id', ids);
-    if (error) { toast.error(error.message); return; }
+    if (error) { coachToast.fail(error.message); return; }
     setBulkModifyOpen(false); setBulkModifyForm({ period: '', category_id: '' });
     refreshData();
-    toast.success(t.bulkModified(ids.length));
+    coachToast.saved(t.bulkModified(ids.length));
   };
 
   const handleBulkDuplicate = async () => {
@@ -256,9 +261,9 @@ const BudgetsPage = () => {
       budget_type: (b as any).budget_type || 'expense', control_type: (b as any).control_type || 'max',
     }));
     const { error } = await supabase.from('budgets').insert(inserts);
-    if (error) { toast.error(error.message); return; }
+    if (error) { coachToast.fail(error.message); return; }
     refreshData();
-    toast.success(t.bulkDuplicated(inserts.length));
+    coachToast.saved(t.bulkDuplicated(inserts.length));
   };
 
   const handleBulkExport = (format: 'csv' | 'excel') => {
@@ -271,7 +276,7 @@ const BudgetsPage = () => {
       [t.controlType]: (b as any).control_type || 'max',
     }));
     const ok = format === 'csv' ? exportToCSV(data, 'budgets') : exportToExcel(data, 'budgets');
-    if (ok) toast.success(t.saved);
+    if (ok) coachToast.saved(isFr ? 'Export prêt 📤' : 'Export ready 📤');
   };
 
   if (loading) {
@@ -321,7 +326,7 @@ const BudgetsPage = () => {
       if (fnError) throw fnError;
       setAiSuggestions(fnData?.suggestions || []);
     } catch (e: any) {
-      toast.error(e.message || 'AI error');
+      coachToast.fail(e.message || 'AI error');
       setAiSuggestions([]);
     } finally {
       setAiLoading(false);
@@ -514,16 +519,24 @@ const BudgetsPage = () => {
   };
 
   const renderEmptyState = (budgetType: string) => (
-    <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
-      <CardContent className="py-16 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center">
-          {budgetType === 'income' ? <TrendingUp className="w-7 h-7 text-muted-foreground/40" /> : <PieChart className="w-7 h-7 text-muted-foreground/40" />}
+    <div className="relative overflow-hidden rounded-3xl border border-border/40 bg-gradient-to-br from-primary/5 via-background to-accent/5 backdrop-blur-sm">
+      <div className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-accent/10 blur-3xl" />
+      <div className="relative py-14 px-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 mx-auto mb-4 flex items-center justify-center text-3xl">
+          {budgetType === 'income' ? '🎯' : '🧭'}
         </div>
-        <p className="text-lg font-semibold text-muted-foreground mb-2">{t.noBudgets}</p>
-        <p className="text-sm text-muted-foreground/70 mb-4">{budgetType === 'income' ? t.createBudgetDescIncome : t.createBudgetDesc}</p>
-        <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => openNew(budgetType)}><Plus className="w-4 h-4 mr-1" />{t.addBudget}</Button>
-      </CardContent>
-    </Card>
+        <p className="text-lg font-bold mb-1">{t.noBudgets}</p>
+        <p className="text-sm text-muted-foreground/80 mb-5 max-w-sm mx-auto">
+          {budgetType === 'income'
+            ? t.createBudgetDescIncome
+            : (isFr ? 'Donnez un cadre à vos dépenses — votre Coach vous guide en temps réel.' : 'Frame your spending — your Coach guides you in real time.')}
+        </p>
+        <Button size="sm" className="text-primary-foreground rounded-xl gap-1.5" style={{ background: 'var(--gradient-primary)' }} onClick={() => openNew(budgetType)}>
+          <Plus className="w-4 h-4" />{t.addBudget}
+        </Button>
+      </div>
+    </div>
   );
 
   const renderTabContent = (budgetsList: any[]) => (
@@ -572,16 +585,24 @@ const BudgetsPage = () => {
           <BudgetAnalysisTab />
         </TabsContent>
 
-        <TabsContent value="manage">
+        <TabsContent value="manage" className="space-y-5">
       {budgetLimitReached && <UpgradeBanner message={t.limitBudgetsReached(limits.budgets)} />}
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold font-display">{t.budgets}</h2>
-        <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={handleAiSuggest} disabled={aiLoading}>
-          {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          {t.aiBudgetSuggest}
-        </Button>
-      </div>
+      <BudgetsHeroHeader
+        budgets={budgets}
+        spending={spending}
+        fmt={fmt}
+        locale={locale as 'fr' | 'en'}
+        t={t}
+        onAddNew={() => openNew(activeTab)}
+        onAiSuggest={handleAiSuggest}
+        aiLoading={aiLoading}
+        onAlertClick={() => setActiveMainTab('analysis')}
+      />
+
+      {budgets.length > 0 && (
+        <BudgetCoachInsights budgets={budgets} spending={spending} fmt={fmt} locale={locale as 'fr' | 'en'} />
+      )}
 
       {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} fmt={fmt} onCardClick={(action) => {
         if (action === 'evolution') setActiveMainTab('evolution');
