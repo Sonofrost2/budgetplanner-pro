@@ -37,7 +37,45 @@ interface Props {
 export const TransactionsHeroHeader = ({
   userId, fmt, locale, t, onAddNew, onTransfer, canTransfer,
   limitReached, thisMonthCount, monthlyLimit, isPremium,
+  onQuickAdd, canUseAI = true,
 }: Props) => {
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickInput, setQuickInput] = useState('');
+  const [quickLoading, setQuickLoading] = useState(false);
+  const isFr = locale === 'fr';
+
+  const handleQuickParse = async () => {
+    const text = quickInput.trim();
+    if (!text || quickLoading || !onQuickAdd) return;
+    if (limitReached) {
+      toast.error(isFr ? 'Limite mensuelle atteinte' : 'Monthly limit reached');
+      return;
+    }
+    setQuickLoading(true);
+    try {
+      const [{ data: cats }, { data: accs }] = await Promise.all([
+        supabase.from('categories').select('id, name, type').is('deleted_at', null),
+        supabase.from('payment_accounts').select('id, name').is('deleted_at', null).eq('status', 'active'),
+      ]);
+      const { data, error } = await supabase.functions.invoke('ai-quick-parse', {
+        body: { input: text, categories: cats || [], accounts: accs || [], locale },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.description || typeof data.amount !== 'number') {
+        throw new Error(isFr ? 'Saisie non comprise' : 'Could not parse input');
+      }
+      onQuickAdd(data as QuickParsedTransaction);
+      setQuickInput('');
+      setQuickOpen(false);
+      toast.success(isFr ? '✨ Pré-rempli — vérifie et valide' : '✨ Pre-filled — review and save');
+    } catch (e: any) {
+      toast.error(e?.message || (isFr ? 'Erreur IA' : 'AI error'));
+    } finally {
+      setQuickLoading(false);
+    }
+  };
+
   const monthStart = useMemo(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
