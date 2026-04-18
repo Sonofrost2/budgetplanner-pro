@@ -28,7 +28,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TransactionForm } from '@/components/dashboard/transactions/TransactionForm';
 import { TransactionList } from '@/components/dashboard/transactions/TransactionList';
 import { BulkModifyDialog, BudgetOverspendDialog } from '@/components/dashboard/transactions/TransactionDialogs';
+import { TransactionsHeroHeader } from '@/components/dashboard/transactions/TransactionsHeroHeader';
+import { TransactionInsightsBar } from '@/components/dashboard/transactions/TransactionInsightsBar';
 import { transactionSchema, validateForm } from '@/lib/validationSchemas';
+import { coachToast } from '@/lib/coachToast';
 
 const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
@@ -222,7 +225,7 @@ const TransactionsPage = () => {
     setSelectedIds(new Set());
     setBulkDeleteOpen(false);
     refreshData();
-    toast.success(t.bulkDeleted(ids.length));
+    coachToast.saved(t.bulkDeleted(ids.length));
   };
 
   const handleBulkModify = async () => {
@@ -241,7 +244,7 @@ const TransactionsPage = () => {
     }
     setBulkModifyOpen(false); setBulkModifyForm({ category_id: '', account_id: '' });
     setSelectedIds(new Set()); refreshData();
-    toast.success(t.bulkModified(ids.length));
+    coachToast.saved(t.bulkModified(ids.length));
   };
 
   const handleBulkDuplicate = async () => {
@@ -255,7 +258,7 @@ const TransactionsPage = () => {
     const { error } = await supabase.from('transactions').insert(inserts);
     if (error) { toast.error(error.message); return; }
     setSelectedIds(new Set()); refreshData();
-    toast.success(t.bulkDuplicated(inserts.length));
+    coachToast.saved(t.bulkDuplicated(inserts.length));
   };
 
   const toggleSort = (field: SortField) => {
@@ -353,7 +356,7 @@ const TransactionsPage = () => {
     setSaving(false);
     setDialogOpen(false);
     refreshData();
-    toast.success(t.saved);
+    coachToast.money(locale === 'fr' ? 'Transaction enregistrée 💸' : 'Transaction saved 💸');
   };
 
   const handleForceOverspend = async () => {
@@ -370,7 +373,7 @@ const TransactionsPage = () => {
     setSaving(false);
     setDialogOpen(false);
     refreshData();
-    toast.success(t.saved);
+    coachToast.warn(locale === 'fr' ? 'Dépassement enregistré' : 'Overspend recorded');
   };
 
   const handleDelete = async () => {
@@ -379,7 +382,7 @@ const TransactionsPage = () => {
     if (error) { toast.error(error.message); setDeleteId(null); return; }
     setDeleteId(null);
     refreshData();
-    toast.success(t.delete + ' ✓');
+    coachToast.saved(locale === 'fr' ? 'Transaction supprimée' : 'Transaction deleted');
   };
 
   // AI suggest and description suggestions are handled inside TransactionForm component
@@ -404,7 +407,7 @@ const TransactionsPage = () => {
   const isRegularizationActive = regularizationCategoryIds.length > 0 && regularizationCategoryIds.includes(filterCategory);
   const toggleRegularization = () => {
     if (!regularizationCategoryIds.length) {
-      toast.info(locale === 'fr' ? 'Aucune transaction de régularisation pour le moment' : 'No adjustment transactions yet');
+      coachToast.remind(locale === 'fr' ? 'Aucune transaction de régularisation pour le moment' : 'No adjustment transactions yet');
       return;
     }
     setFilterCategory(isRegularizationActive ? 'all' : regularizationCategoryIds[0]);
@@ -444,32 +447,35 @@ const TransactionsPage = () => {
         <TabsContent value="manage">
       {limitReached && <UpgradeBanner message={t.limitReachedTransactions(thisMonthCount, limits.transactionsPerMonth)} />}
 
-      {/* Header */}
-      <motion.div
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-        initial={{ opacity: 0, x: -12 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.15, duration: 0.3 }}
-      >
-        <div>
-          <h2 className="text-2xl font-bold font-display">{t.allTransactions}
-            {!isPremium && <span className="text-sm font-normal text-muted-foreground ml-2">({thisMonthCount}/{limits.transactionsPerMonth})</span>}
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{totalCount} {t.results}</p>
-        </div>
-        <div className="flex gap-2">
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
-              <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
-            </Button>
-          </motion.div>
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button size="sm" className="text-primary-foreground rounded-xl shadow-md hover:shadow-lg transition-shadow" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
-              <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
-            </Button>
-          </motion.div>
-        </div>
-      </motion.div>
+      {/* Hero Header — premium */}
+      <TransactionsHeroHeader
+        userId={user?.id}
+        fmt={fmt}
+        locale={locale as 'fr' | 'en'}
+        t={t}
+        onAddNew={openNew}
+        onTransfer={() => setTransferOpen(true)}
+        canTransfer={accounts.length >= 2}
+        limitReached={limitReached}
+        thisMonthCount={thisMonthCount}
+        monthlyLimit={limits.transactionsPerMonth}
+        isPremium={isPremium}
+      />
+
+      {/* Coach insights chips */}
+      <TransactionInsightsBar
+        userId={user?.id}
+        fmt={fmt}
+        locale={locale as 'fr' | 'en'}
+        categories={categories as any}
+      />
+
+      {/* Result count */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground tabular-nums">
+          <span className="font-bold text-foreground">{totalCount}</span> {t.results}
+        </p>
+      </div>
 
       {/* Filters */}
       <motion.div
