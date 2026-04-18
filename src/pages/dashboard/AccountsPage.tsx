@@ -282,7 +282,19 @@ const AccountsPage = () => {
         <UpgradeBanner message={t.limitAccountsReached(limits.accounts)} />
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <WealthHeroHeader
+        accounts={filteredAccounts}
+        transactions={allTransactions}
+        fmt={fmt}
+        isFr={locale === 'fr'}
+        onNewAccount={openNew}
+        onTransfer={() => setTransferOpen(true)}
+        canTransfer={accounts.length >= 2}
+      />
+
+      <DormantAccountsBanner isFr={locale === 'fr'} />
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           {typeFilter && (
             <button onClick={() => setSearchParams({})} className="text-xs text-muted-foreground hover:text-foreground mb-1 flex items-center gap-1 transition-colors">
@@ -291,12 +303,10 @@ const AccountsPage = () => {
           )}
           <h2 className="text-2xl font-bold font-display">{t.accounts}</h2>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
-            <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
-          </Button>
-          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={accountLimitReached}>
-            <Plus className="w-4 h-4 mr-1" />{t.addAccount}
+        <div className="flex gap-2 items-center flex-wrap">
+          <ViewModeToggle value={viewMode} onChange={setViewMode} isFr={locale === 'fr'} />
+          <Button size="sm" variant={showArchived ? 'default' : 'outline'} className="rounded-xl text-xs gap-1.5" onClick={() => setShowArchived(s => !s)}>
+            <Archive className="w-3.5 h-3.5" />{locale === 'fr' ? 'Archivés' : 'Archived'}
           </Button>
         </div>
       </div>
