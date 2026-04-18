@@ -521,40 +521,20 @@ const SavingsPage = () => {
     }
   }, [goals, locale]);
 
-  // Detect newly-reached goals and prompt user (Réinvestir / Garder / Archiver)
+  // Detect newly-reached goals → open the 4-option GoalReachedDialog
+  // (Réinvestir / Transférer / Convertir en actif / Archiver). Each goal is
+  // prompted at most once per session via `notifiedRef`.
   useEffect(() => {
     if (!goals || goals.length === 0) return;
+    if (reachedDialogGoalId) return; // already showing for another goal
     for (const g of goals) {
       const status = (g as any).status;
       const reached = Number(g.current_amount) >= Number(g.target_amount) && Number(g.target_amount) > 0;
       if (!reached || status === 'completed' || status === 'archived') continue;
       if (notifiedRef.current.has(g.id)) continue;
       notifiedRef.current.add(g.id);
-      toast.success(
-        locale === 'fr' ? `🎉 Objectif atteint : ${g.name}` : `🎉 Goal reached: ${g.name}`,
-        {
-          description: locale === 'fr'
-            ? `Vous avez atteint ${fmt(Number(g.current_amount))}. Réinvestir, garder ouvert, ou archiver ?`
-            : `You reached ${fmt(Number(g.current_amount))}. Reinvest, keep open, or archive?`,
-          duration: 20000,
-          action: {
-            label: locale === 'fr' ? 'Réinvestir' : 'Reinvest',
-            onClick: () => handleReinvest(g.id),
-          },
-          cancel: {
-            label: locale === 'fr' ? 'Garder' : 'Keep',
-            onClick: () => {
-              toast.message(locale === 'fr' ? 'Objectif gardé actif' : 'Goal kept active', {
-                action: {
-                  label: locale === 'fr' ? 'Archiver' : 'Archive',
-                  onClick: () => handleArchive(g.id),
-                },
-              });
-            },
-          },
-        }
-      );
-
+      setReachedDialogGoalId(g.id);
+      break; // one dialog at a time
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goals, locale]);
