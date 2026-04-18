@@ -1,9 +1,9 @@
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Target, Plus, ChevronRight } from 'lucide-react';
+import { Target, Plus, ChevronRight, Flame } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { SavingsRingProgress } from '@/components/dashboard/savings/SavingsRingProgress';
 
 interface SavingsGoal {
   id: string;
@@ -30,8 +30,14 @@ const listItem = {
   }),
 };
 
-export const SavingsWidget = ({ goals, fmt, t }: SavingsWidgetProps) => {
+export const SavingsWidget = ({ goals, fmt, t, locale }: SavingsWidgetProps) => {
   const navigate = useNavigate();
+  const isFr = locale === 'fr';
+
+  const totalSaved = goals.reduce((s, g) => s + Number(g.current_amount), 0);
+  const totalTarget = goals.reduce((s, g) => s + Number(g.target_amount), 0);
+  const globalPct = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
+  const reached = goals.filter(g => g.target_amount > 0 && g.current_amount >= g.target_amount).length;
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
@@ -47,6 +53,28 @@ export const SavingsWidget = ({ goals, fmt, t }: SavingsWidgetProps) => {
             {t.all || 'Voir tout'} <ChevronRight className="w-3 h-3 ml-0.5" />
           </Button>
         </div>
+
+        {/* Mini hero with ring */}
+        {goals.length > 0 && (
+          <div className="px-4 pb-3 flex items-center gap-3">
+            <SavingsRingProgress value={globalPct} size={56} strokeWidth={5} tone={globalPct >= 80 ? 'secondary' : 'primary'}>
+              <span className="text-[11px] font-bold">{globalPct}%</span>
+            </SavingsRingProgress>
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-bold amount-display truncate">{fmt(totalSaved)}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {isFr ? 'sur' : 'of'} {fmt(totalTarget)}
+              </p>
+              {reached > 0 && (
+                <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-secondary/15 text-secondary">
+                  <Flame className="w-2.5 h-2.5" />
+                  {reached} {isFr ? 'atteint' : 'reached'}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="px-4 pb-4">
           {goals.length === 0 ? (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-6">
@@ -59,8 +87,8 @@ export const SavingsWidget = ({ goals, fmt, t }: SavingsWidgetProps) => {
               </Button>
             </motion.div>
           ) : (
-            <div className="space-y-3">
-              {goals.map((goal, i) => {
+            <div className="space-y-2">
+              {goals.slice(0, 3).map((goal, i) => {
                 const pct = goal.target_amount > 0 ? Math.min(100, (goal.current_amount / goal.target_amount) * 100) : 0;
                 return (
                   <motion.div
@@ -71,37 +99,30 @@ export const SavingsWidget = ({ goals, fmt, t }: SavingsWidgetProps) => {
                     animate="show"
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
-                    className="space-y-1.5 p-2 rounded-xl hover:bg-muted/20 transition-all cursor-pointer"
+                    className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-muted/20 transition-all cursor-pointer"
                     onClick={() => navigate(`/dashboard/savings?q=${encodeURIComponent(goal.name)}`)}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <motion.span
-                          className="text-sm"
-                          whileHover={{ scale: 1.3, rotate: 10 }}
-                          transition={{ type: 'spring', stiffness: 400 }}
-                        >
-                          {goal.icon}
-                        </motion.span>
-                        <span className="text-xs font-semibold">{goal.name}</span>
+                    <SavingsRingProgress value={pct} size={32} strokeWidth={3} tone={pct >= 100 ? 'secondary' : 'primary'}>
+                      <span className="text-[10px]">{goal.icon}</span>
+                    </SavingsRingProgress>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-semibold truncate">{goal.name}</span>
+                        <span className="text-[10px] font-bold text-secondary tabular-nums shrink-0">{Math.round(pct)}%</span>
                       </div>
-                      <motion.span
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.08 + 0.2 }}
-                        className="text-[10px] font-bold text-secondary"
-                      >
-                        {Math.round(pct)}%
-                      </motion.span>
-                    </div>
-                    <Progress value={pct} className="h-1.5 rounded-full [&>div]:bg-secondary" />
-                    <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums amount-display">
-                      <span className="text-secondary font-semibold">{fmt(goal.current_amount)}</span>
-                      <span>{fmt(goal.target_amount)}</span>
+                      <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums amount-display">
+                        <span className="text-secondary font-semibold">{fmt(goal.current_amount)}</span>
+                        <span>{fmt(goal.target_amount)}</span>
+                      </div>
                     </div>
                   </motion.div>
                 );
               })}
+              {goals.length > 3 && (
+                <p className="text-[10px] text-center text-muted-foreground pt-1">
+                  +{goals.length - 3} {isFr ? 'autres' : 'more'}
+                </p>
+              )}
             </div>
           )}
         </div>

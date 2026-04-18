@@ -36,6 +36,7 @@ import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjection
 import SavingsEvolutionTab from '@/components/dashboard/tabs/SavingsEvolutionTab';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
+import { coachToast } from '@/lib/coachToast';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
@@ -45,6 +46,8 @@ import { PartialWithdrawDialog } from '@/components/dashboard/savings/PartialWit
 import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSummaryTable';
 import { SavingsControlTable } from '@/components/dashboard/savings/SavingsControlTable';
 import { SavingsGlobalStats } from '@/components/dashboard/savings/SavingsGlobalStats';
+import { SavingsHeroHeader } from '@/components/dashboard/savings/SavingsHeroHeader';
+import { SavingsCoachInsights } from '@/components/dashboard/savings/SavingsCoachInsights';
 
 interface ScenarioData {
   monthly_projections: { month: number; capital: number; interest_earned: number; total: number }[];
@@ -98,6 +101,12 @@ const SavingsPage = () => {
   const [simulating, setSimulating] = useState(false);
   const [customBankMode, setCustomBankMode] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState('manage');
+  const [savingsView, setSavingsView] = useState<'cards' | 'table'>(() => {
+    try { return (localStorage.getItem('savings-view') as 'cards' | 'table') || 'cards'; } catch { return 'cards'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('savings-view', savingsView); } catch {}
+  }, [savingsView]);
   const [showCompleted, setShowCompleted] = useState<boolean>(() => {
     try { return localStorage.getItem('savings-show-completed') === '1'; } catch { return false; }
   });
@@ -375,9 +384,9 @@ const SavingsPage = () => {
       setSourceAccountId('');
       refreshData();
       invalidateCrossModule();
-      toast.success(t.saved);
+      coachToast.money(`${t.savingsContribAdded} ${goal.name}`);
     } catch (err: any) {
-      toast.error(err.message || 'Erreur');
+      coachToast.fail(err.message || 'Erreur');
     } finally {
       setSaving(false);
     }
@@ -442,9 +451,9 @@ const SavingsPage = () => {
       setTargetAccountId('');
       refreshData();
       invalidateCrossModule();
-      toast.success(t.saved);
+      coachToast.saved(t.savingsWithdrawDone);
     } catch (err: any) {
-      toast.error(err.message || 'Erreur');
+      coachToast.fail(err.message || 'Erreur');
     } finally {
       setSaving(false);
     }
@@ -766,10 +775,27 @@ const SavingsPage = () => {
         </TabsContent>
 
         <TabsContent value="manage">
+      <SavingsHeroHeader
+        goals={goals}
+        contributions={contributions}
+        fmt={fmt}
+        isFr={locale === 'fr'}
+        view={savingsView}
+        onViewChange={setSavingsView}
+        onNewGoal={() => {
+          setEditGoalId(null);
+          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+          setCustomBankMode(false);
+          setDialogOpen(true);
+        }}
+      />
+
+      <SavingsCoachInsights goals={goals} contributions={contributions} fmt={fmt} isFr={locale === 'fr'} />
+
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-2xl font-bold font-display">{t.savings}</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-lg font-bold font-display">{t.savings}</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
             {goals.length} {locale === 'fr' ? 'objectif(s)' : 'goal(s)'}
             {goals.length > 0 && ` · ${fmt(goals.reduce((s, g) => s + Number(g.current_amount), 0))} ${locale === 'fr' ? 'épargnés' : 'saved'}`}
           </p>
@@ -793,15 +819,6 @@ const SavingsPage = () => {
                 {goals.filter(g => (g as any).status === 'completed').length}
               </span>
             )}
-          </Button>
-
-          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
-            setEditGoalId(null);
-            setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
-            setCustomBankMode(false);
-            setDialogOpen(true);
-          }}>
-            <Plus className="w-4 h-4 mr-1" />{t.addGoal}
           </Button>
         </div>
       </div>
