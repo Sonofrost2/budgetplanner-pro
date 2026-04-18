@@ -4,6 +4,7 @@ import { Target, Plus, ChevronRight, Flame } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SavingsRingProgress } from '@/components/dashboard/savings/SavingsRingProgress';
+import { isLiveGoal } from '@/lib/savingsLogic';
 
 interface SavingsGoal {
   id: string;
@@ -12,6 +13,9 @@ interface SavingsGoal {
   target_amount: number;
   current_amount: number;
   deadline: string | null;
+  status?: string | null;
+  paused_at?: string | null;
+  deleted_at?: string | null;
 }
 
 interface SavingsWidgetProps {
@@ -30,10 +34,13 @@ const listItem = {
   }),
 };
 
-export const SavingsWidget = ({ goals, fmt, t, locale }: SavingsWidgetProps) => {
+export const SavingsWidget = ({ goals: rawGoals, fmt, t, locale }: SavingsWidgetProps) => {
   const navigate = useNavigate();
   const isFr = locale === 'fr';
 
+  // Only count live goals: completed/archived/paused goals must NOT inflate the
+  // dashboard widget totals. They remain visible in the dedicated Savings page.
+  const goals = rawGoals.filter(isLiveGoal);
   const totalSaved = goals.reduce((s, g) => s + Number(g.current_amount), 0);
   const totalTarget = goals.reduce((s, g) => s + Number(g.target_amount), 0);
   const globalPct = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;

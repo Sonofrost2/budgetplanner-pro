@@ -170,10 +170,16 @@ const WealthPage = () => {
   });
 
   const { data: savingsGoals = [] } = useQuery({
-    queryKey: ['savings-goals-wealth', user?.id],
+    queryKey: ['savings-goals-wealth-live', user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from('savings_goals').select('name, current_amount, target_amount, icon')
-        .eq('user_id', user!.id);
+      // Fetch only LIVE goals — completed/archived/paused must not inflate net worth.
+      const { data } = await supabase
+        .from('savings_goals')
+        .select('name, current_amount, target_amount, icon, status, paused_at, deleted_at')
+        .eq('user_id', user!.id)
+        .is('deleted_at', null)
+        .is('paused_at', null)
+        .eq('status', 'active');
       return data || [];
     },
     enabled: !!user,

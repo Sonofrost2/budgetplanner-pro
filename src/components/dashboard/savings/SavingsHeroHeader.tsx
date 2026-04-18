@@ -7,6 +7,7 @@ import { ResponsiveContainer, AreaChart, Area, Tooltip } from 'recharts';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { SavingsRingProgress } from './SavingsRingProgress';
 import type { SavingsGoal } from '@/hooks/useDashboardData';
+import { isLiveGoal, isReachedGoal } from '@/lib/savingsLogic';
 
 interface SavingsContribution {
   id: string;
@@ -38,10 +39,13 @@ export const SavingsHeroHeader = ({
   onViewChange,
   onNewGoal,
 }: Props) => {
-  const totalSaved = goals.reduce((s, g) => s + Number(g.current_amount), 0);
-  const totalTarget = goals.reduce((s, g) => s + Number(g.target_amount), 0);
+  // Live total only — completed/archived/paused goals appear in the dedicated
+  // 'Atteints / Archivés' tab and must not inflate the headline KPI.
+  const liveGoals = goals.filter(isLiveGoal);
+  const totalSaved = liveGoals.reduce((s, g) => s + Number(g.current_amount), 0);
+  const totalTarget = liveGoals.reduce((s, g) => s + Number(g.target_amount), 0);
   const globalPct = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
-  const completedCount = goals.filter(g => Number(g.current_amount) >= Number(g.target_amount) && Number(g.target_amount) > 0).length;
+  const completedCount = goals.filter(g => isReachedGoal(g) || (g.status && g.status !== 'active')).length;
 
   // 6-month sparkline of net contributions (deposits - withdrawals) per month
   const sparkline = useMemo(() => {

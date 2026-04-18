@@ -126,6 +126,15 @@ const SavingsPage = () => {
 
   const filteredGoals = useMemo(() => {
     let result = [...goals];
+    // Hide completed / archived / paused goals unless the user opts in via the
+    // 'Atteints / Archivés' toggle. Source of truth lives in `savingsLogic`.
+    if (!showCompleted) {
+      result = result.filter(g =>
+        !g.deleted_at &&
+        !(g as any).paused_at &&
+        ((g as any).status ?? 'active') === 'active'
+      );
+    }
     if (searchQuery) {
       const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean);
       result = result.filter(g => terms.some(q => g.name.toLowerCase().includes(q) || (g as any).bank_name?.toLowerCase().includes(q)));
@@ -138,7 +147,7 @@ const SavingsPage = () => {
       return sortOrder === 'desc' ? -cmp : cmp;
     });
     return result;
-  }, [goals, searchQuery, sortField, sortOrder]);
+  }, [goals, searchQuery, sortField, sortOrder, showCompleted]);
 
   const refreshData = async () => { await refetchSavings(); };
 
