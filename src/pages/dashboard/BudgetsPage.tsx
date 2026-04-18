@@ -197,7 +197,7 @@ const BudgetsPage = () => {
   };
 
   const openNew = (budgetType: string = 'expense') => {
-    if (budgetLimitReached) { toast.error(t.limitBudgetsToast(limits.budgets)); return; }
+    if (budgetLimitReached) { coachToast.warn(t.limitBudgetsToast(limits.budgets)); return; }
     const cats = allCategories.filter(c => c.type === budgetType);
     setErrors({}); setEditId(null);
     setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max', expected_day: '', occurrence_frequency: '', reference_date: '', active_days: '' });
@@ -217,24 +217,26 @@ const BudgetsPage = () => {
     const { error } = editId
       ? await supabase.from('budgets').update(payload).eq('id', editId)
       : await supabase.from('budgets').insert({ ...payload, user_id: user.id });
-    if (error) { toast.error(error.message); setSaving(false); return; }
+    if (error) { coachToast.fail(error.message); setSaving(false); return; }
     setSaving(false); setDialogOpen(false); setEditId(null);
     refreshData();
-    toast.success(t.saved);
+    coachToast.saved(editId ? (isFr ? 'Cadre mis à jour 🎯' : 'Budget updated 🎯') : (isFr ? 'Nouveau cadre créé 🎯' : 'New budget created 🎯'));
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    await supabase.from('budgets').delete().eq('id', deleteId);
+    const { error } = await supabase.from('budgets').delete().eq('id', deleteId);
+    if (error) { coachToast.fail(error.message); return; }
     setDeleteId(null); refreshData();
+    coachToast.warn(isFr ? 'Cadre supprimé 🗑️' : 'Budget deleted 🗑️');
   };
 
   const handleBulkDelete = async () => {
     const ids = Array.from(bulk.selectedIds);
     const { error } = await supabase.from('budgets').delete().in('id', ids);
-    if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
+    if (error) { coachToast.fail(error.message); setBulkDeleteOpen(false); return; }
     setBulkDeleteOpen(false); refreshData();
-    toast.success(t.bulkDeleted(ids.length));
+    coachToast.warn(t.bulkDeleted(ids.length));
   };
 
   const handleBulkModify = async () => {
@@ -242,12 +244,12 @@ const BudgetsPage = () => {
     const updates: Record<string, any> = {};
     if (bulkModifyForm.period) updates.period = bulkModifyForm.period;
     if (bulkModifyForm.category_id) updates.category_id = bulkModifyForm.category_id;
-    if (Object.keys(updates).length === 0) { toast.error(t.noChange); return; }
+    if (Object.keys(updates).length === 0) { coachToast.remind(t.noChange); return; }
     const { error } = await supabase.from('budgets').update(updates as any).in('id', ids);
-    if (error) { toast.error(error.message); return; }
+    if (error) { coachToast.fail(error.message); return; }
     setBulkModifyOpen(false); setBulkModifyForm({ period: '', category_id: '' });
     refreshData();
-    toast.success(t.bulkModified(ids.length));
+    coachToast.saved(t.bulkModified(ids.length));
   };
 
   const handleBulkDuplicate = async () => {
@@ -259,9 +261,9 @@ const BudgetsPage = () => {
       budget_type: (b as any).budget_type || 'expense', control_type: (b as any).control_type || 'max',
     }));
     const { error } = await supabase.from('budgets').insert(inserts);
-    if (error) { toast.error(error.message); return; }
+    if (error) { coachToast.fail(error.message); return; }
     refreshData();
-    toast.success(t.bulkDuplicated(inserts.length));
+    coachToast.saved(t.bulkDuplicated(inserts.length));
   };
 
   const handleBulkExport = (format: 'csv' | 'excel') => {
@@ -274,7 +276,7 @@ const BudgetsPage = () => {
       [t.controlType]: (b as any).control_type || 'max',
     }));
     const ok = format === 'csv' ? exportToCSV(data, 'budgets') : exportToExcel(data, 'budgets');
-    if (ok) toast.success(t.saved);
+    if (ok) coachToast.saved(isFr ? 'Export prêt 📤' : 'Export ready 📤');
   };
 
   if (loading) {
@@ -324,7 +326,7 @@ const BudgetsPage = () => {
       if (fnError) throw fnError;
       setAiSuggestions(fnData?.suggestions || []);
     } catch (e: any) {
-      toast.error(e.message || 'AI error');
+      coachToast.fail(e.message || 'AI error');
       setAiSuggestions([]);
     } finally {
       setAiLoading(false);
