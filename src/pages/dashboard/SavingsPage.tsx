@@ -485,19 +485,27 @@ const SavingsPage = () => {
         locale === 'fr' ? `🎉 Objectif atteint : ${g.name}` : `🎉 Goal reached: ${g.name}`,
         {
           description: locale === 'fr'
-            ? `Vous avez atteint ${fmt(Number(g.current_amount))}. Que souhaitez-vous faire ?`
-            : `You reached ${fmt(Number(g.current_amount))}. What's next?`,
-          duration: 15000,
+            ? `Vous avez atteint ${fmt(Number(g.current_amount))}. Réinvestir, garder ouvert, ou archiver ?`
+            : `You reached ${fmt(Number(g.current_amount))}. Reinvest, keep open, or archive?`,
+          duration: 20000,
           action: {
             label: locale === 'fr' ? 'Réinvestir' : 'Reinvest',
             onClick: () => handleReinvest(g.id),
           },
           cancel: {
-            label: locale === 'fr' ? 'Archiver' : 'Archive',
-            onClick: () => handleArchive(g.id),
+            label: locale === 'fr' ? 'Garder' : 'Keep',
+            onClick: () => {
+              toast.message(locale === 'fr' ? 'Objectif gardé actif' : 'Goal kept active', {
+                action: {
+                  label: locale === 'fr' ? 'Archiver' : 'Archive',
+                  onClick: () => handleArchive(g.id),
+                },
+              });
+            },
           },
         }
       );
+
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goals, locale]);
@@ -780,7 +788,13 @@ const SavingsPage = () => {
             {showCompleted
               ? (locale === 'fr' ? 'Masquer atteints' : 'Hide completed')
               : (locale === 'fr' ? 'Voir atteints' : 'Show completed')}
+            {goals.filter(g => (g as any).status === 'completed').length > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-secondary/20 text-secondary">
+                {goals.filter(g => (g as any).status === 'completed').length}
+              </span>
+            )}
           </Button>
+
           <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
             setEditGoalId(null);
             setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
