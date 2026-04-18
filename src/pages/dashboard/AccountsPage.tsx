@@ -17,7 +17,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins, History, BarChart3, Eye, Printer } from 'lucide-react';
+import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins, History, BarChart3, Eye, Printer, Archive } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import AccountsRecapTab from '@/components/dashboard/tabs/AccountsRecapTab';
 import { toast } from 'sonner';
@@ -30,6 +30,14 @@ import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import CashCountDialog from '@/components/dashboard/CashCountDialog';
 import { AccountsPeriodStats } from '@/components/dashboard/accounts/AccountsPeriodStats';
+import { WealthHeroHeader } from '@/components/dashboard/accounts/WealthHeroHeader';
+import { DormantAccountsBanner } from '@/components/dashboard/accounts/DormantAccountsBanner';
+import { AccountCardPremium } from '@/components/dashboard/accounts/AccountCardPremium';
+import { AccountsListView } from '@/components/dashboard/accounts/AccountsListView';
+import { AccountsTreasuryView } from '@/components/dashboard/accounts/AccountsTreasuryView';
+import { AccountDrilldownDrawer } from '@/components/dashboard/accounts/AccountDrilldownDrawer';
+import { ViewModeToggle, type AccountsViewMode } from '@/components/dashboard/accounts/ViewModeToggle';
+import { archiveItem, unarchiveItem } from '@/lib/archive';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { useInvalidate, useAccounts, useAccountTheoreticalBalances, useAccountCashCounts, useAccountTransactions } from '@/hooks/useDashboardData';
@@ -79,9 +87,23 @@ const AccountsPage = () => {
   const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type' | 'discrepancy'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showDiscrepancyOnly, setShowDiscrepancyOnly] = useState(false);
+  const [viewMode, setViewMode] = useState<AccountsViewMode>(() => (localStorage.getItem('accounts-view-mode') as AccountsViewMode) || 'cards');
+  const [drilldownAccount, setDrilldownAccount] = useState<Account | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  useEffect(() => { localStorage.setItem('accounts-view-mode', viewMode); }, [viewMode]);
+
+  const handleArchiveToggle = async (acc: Account) => {
+    const fn = acc.archived_at ? unarchiveItem : archiveItem;
+    const { error } = await fn('payment_accounts', acc.id);
+    if (error) { toast.error(error.message); return; }
+    refreshAll();
+    toast.success(acc.archived_at ? (locale === 'fr' ? 'Désarchivé' : 'Unarchived') : (locale === 'fr' ? 'Archivé' : 'Archived'));
+  };
 
   const filteredAccounts = useMemo(() => {
     let result = accounts;
+    if (!showArchived) result = result.filter(a => !a.archived_at);
     if (typeFilter) result = result.filter(a => a.type === typeFilter);
     if (searchQuery) {
       const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean);
@@ -260,7 +282,19 @@ const AccountsPage = () => {
         <UpgradeBanner message={t.limitAccountsReached(limits.accounts)} />
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <WealthHeroHeader
+        accounts={filteredAccounts}
+        transactions={allTransactions}
+        fmt={fmt}
+        isFr={locale === 'fr'}
+        onNewAccount={openNew}
+        onTransfer={() => setTransferOpen(true)}
+        canTransfer={accounts.length >= 2}
+      />
+
+      <DormantAccountsBanner isFr={locale === 'fr'} />
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           {typeFilter && (
             <button onClick={() => setSearchParams({})} className="text-xs text-muted-foreground hover:text-foreground mb-1 flex items-center gap-1 transition-colors">
@@ -269,12 +303,10 @@ const AccountsPage = () => {
           )}
           <h2 className="text-2xl font-bold font-display">{t.accounts}</h2>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
-            <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
-          </Button>
-          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={accountLimitReached}>
-            <Plus className="w-4 h-4 mr-1" />{t.addAccount}
+        <div className="flex gap-2 items-center flex-wrap">
+          <ViewModeToggle value={viewMode} onChange={setViewMode} isFr={locale === 'fr'} />
+          <Button size="sm" variant={showArchived ? 'default' : 'outline'} className="rounded-xl text-xs gap-1.5" onClick={() => setShowArchived(s => !s)}>
+            <Archive className="w-3.5 h-3.5" />{locale === 'fr' ? 'Archivés' : 'Archived'}
           </Button>
         </div>
       </div>
@@ -362,95 +394,76 @@ const AccountsPage = () => {
             </Button>
           </CardContent>
         </Card>
+      ) : viewMode === 'list' ? (
+        <AccountsListView
+          accounts={filteredAccounts}
+          theoreticalBalances={theoreticalBalances}
+          fmt={fmt}
+          isFr={locale === 'fr'}
+          selectedIds={bulk.selectedIds}
+          onToggle={bulk.toggle}
+          onToggleAll={() => filteredAccounts.forEach(a => bulk.toggle(a.id))}
+          onDrilldown={setDrilldownAccount}
+          onEdit={openEdit}
+          onDelete={setDeleteId}
+          onUpdateBalance={(a) => { setUpdateBalanceDialog(a); setNewRealBalance(String(a.real_balance)); }}
+        />
+      ) : viewMode === 'treasury' ? (
+        <AccountsTreasuryView
+          accounts={filteredAccounts}
+          transactions={allTransactions}
+          theoreticalBalances={theoreticalBalances}
+          fmt={fmt}
+          isFr={locale === 'fr'}
+          selectedIds={bulk.selectedIds}
+          onToggle={bulk.toggle}
+          onUpdateBalance={(a) => { setUpdateBalanceDialog(a); setNewRealBalance(String(a.real_balance)); }}
+          onEdit={openEdit}
+          onDelete={setDeleteId}
+          onCashCount={setCashCountAccount}
+          onViewHistory={async (id) => {
+            setHistoryAccountId(id); setHistoryLoading(true);
+            const { data } = await supabase.from('cash_counts').select('*').eq('account_id', id).order('counted_at', { ascending: false }).limit(20);
+            setHistoryData(data || []); setHistoryLoading(false);
+          }}
+          onDrilldown={setDrilldownAccount}
+          onArchive={handleArchiveToggle}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredAccounts.map(acc => {
-            const theoretical = getTheoreticalBalance(acc.id);
-            const real = Number(acc.real_balance);
-            const discrepancy = real - theoretical;
-            const isSelected = bulk.selectedIds.has(acc.id);
-            return (
-              <Card key={acc.id} className={`card-interactive hover:-translate-y-1 glow-primary ${Math.abs(discrepancy) > 0.01 ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-bold flex items-center gap-2.5">
-                      <Checkbox checked={isSelected} onCheckedChange={() => bulk.toggle(acc.id)} className="mr-1" />
-                      <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center text-xl">
-                        {acc.icon}
-                      </div>
-                      <div>
-                        <span>{acc.name}</span>
-                        <p className="text-[11px] font-normal text-muted-foreground">{getAccountTypes(t).find(at => at.value === acc.type)?.label || acc.type}</p>
-                      </div>
-                    </CardTitle>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => openEdit(acc)}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive" onClick={() => setDeleteId(acc.id)}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-xl bg-muted/40 p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.openingBalance}</p>
-                      <p className="text-sm font-bold">{fmt(Number(acc.opening_balance))}</p>
-                    </div>
-                    <div className="rounded-xl bg-secondary/5 border border-secondary/10 p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.theoreticalBalance}</p>
-                      <p className="text-sm font-bold text-secondary flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />{fmt(theoretical)}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-muted/40 p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.realBalance}</p>
-                      <p className="text-sm font-bold">{fmt(real)}</p>
-                    </div>
-                    <div className={`rounded-xl p-3 ${Math.abs(discrepancy) > 0.01 ? 'bg-destructive/5 border border-destructive/10' : 'bg-muted/40'}`}>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.discrepancy}</p>
-                      <p className={`text-sm font-bold flex items-center gap-1 ${Math.abs(discrepancy) > 0.01 ? 'text-destructive' : 'text-secondary'}`}>
-                        {Math.abs(discrepancy) > 0.01 && <AlertTriangle className="w-3 h-3" />}
-                        {discrepancy >= 0 ? '+' : ''}{fmt(discrepancy)}
-                      </p>
-                    </div>
-                  </div>
-                  {acc.type === 'cash' ? (
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1 text-xs rounded-xl gap-1.5 border-accent text-accent-foreground hover:bg-accent/10" onClick={() => setCashCountAccount(acc)}>
-                          <Coins className="w-3.5 h-3.5 text-accent" />
-                          {t.cashCount}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-xs rounded-xl gap-1" onClick={async () => {
-                          setHistoryAccountId(acc.id);
-                          setHistoryLoading(true);
-                          const { data } = await supabase.from('cash_counts').select('*').eq('account_id', acc.id).order('counted_at', { ascending: false }).limit(20);
-                          setHistoryData(data || []);
-                          setHistoryLoading(false);
-                        }}>
-                          <History className="w-3.5 h-3.5" />
-                          {(t as any).cashCountHistory}
-                        </Button>
-                      </div>
-                      {cashCounts[acc.id] && (
-                        <p className="text-[10px] text-muted-foreground text-center">
-                          {(t as any).lastCount}: {new Date(cashCounts[acc.id].counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')} — {fmt(cashCounts[acc.id].total_counted)}
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <Button variant="outline" size="sm" className="w-full text-xs rounded-xl" onClick={() => { setUpdateBalanceDialog(acc); setNewRealBalance(String(acc.real_balance)); }}>
-                      {t.updateRealBalance}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+          {filteredAccounts.map(acc => (
+            <AccountCardPremium
+              key={acc.id}
+              account={acc}
+              transactions={allTransactions}
+              theoreticalBalance={getTheoreticalBalance(acc.id)}
+              fmt={fmt}
+              isFr={locale === 'fr'}
+              selected={bulk.selectedIds.has(acc.id)}
+              onSelect={() => bulk.toggle(acc.id)}
+              onUpdateBalance={() => { setUpdateBalanceDialog(acc); setNewRealBalance(String(acc.real_balance)); }}
+              onEdit={() => openEdit(acc)}
+              onDelete={() => setDeleteId(acc.id)}
+              onCashCount={() => setCashCountAccount(acc)}
+              onViewHistory={async () => {
+                setHistoryAccountId(acc.id); setHistoryLoading(true);
+                const { data } = await supabase.from('cash_counts').select('*').eq('account_id', acc.id).order('counted_at', { ascending: false }).limit(20);
+                setHistoryData(data || []); setHistoryLoading(false);
+              }}
+              onDrilldown={() => setDrilldownAccount(acc)}
+              onArchive={() => handleArchiveToggle(acc)}
+            />
+          ))}
         </div>
+      )}
+
+      <AccountDrilldownDrawer
+        account={drilldownAccount}
+        onClose={() => setDrilldownAccount(null)}
+        fmt={fmt}
+        isFr={locale === 'fr'}
+        locale={locale}
+      />
       )}
 
       {/* Add/Edit Account Dialog */}
