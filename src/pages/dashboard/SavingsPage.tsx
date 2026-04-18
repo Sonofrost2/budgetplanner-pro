@@ -451,9 +451,9 @@ const SavingsPage = () => {
       setTargetAccountId('');
       refreshData();
       invalidateCrossModule();
-      toast.success(t.saved);
+      coachToast.saved(t.savingsWithdrawDone);
     } catch (err: any) {
-      toast.error(err.message || 'Erreur');
+      coachToast.fail(err.message || 'Erreur');
     } finally {
       setSaving(false);
     }
@@ -775,10 +775,27 @@ const SavingsPage = () => {
         </TabsContent>
 
         <TabsContent value="manage">
+      <SavingsHeroHeader
+        goals={goals}
+        contributions={contributions}
+        fmt={fmt}
+        isFr={locale === 'fr'}
+        view={savingsView}
+        onViewChange={setSavingsView}
+        onNewGoal={() => {
+          setEditGoalId(null);
+          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+          setCustomBankMode(false);
+          setDialogOpen(true);
+        }}
+      />
+
+      <SavingsCoachInsights goals={goals} contributions={contributions} fmt={fmt} isFr={locale === 'fr'} />
+
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-2xl font-bold font-display">{t.savings}</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-lg font-bold font-display">{t.savings}</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
             {goals.length} {locale === 'fr' ? 'objectif(s)' : 'goal(s)'}
             {goals.length > 0 && ` · ${fmt(goals.reduce((s, g) => s + Number(g.current_amount), 0))} ${locale === 'fr' ? 'épargnés' : 'saved'}`}
           </p>
@@ -802,15 +819,6 @@ const SavingsPage = () => {
                 {goals.filter(g => (g as any).status === 'completed').length}
               </span>
             )}
-          </Button>
-
-          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
-            setEditGoalId(null);
-            setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
-            setCustomBankMode(false);
-            setDialogOpen(true);
-          }}>
-            <Plus className="w-4 h-4 mr-1" />{t.addGoal}
           </Button>
         </div>
       </div>
