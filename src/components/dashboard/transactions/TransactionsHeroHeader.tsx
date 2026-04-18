@@ -1,11 +1,22 @@
-import { useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, Sparkles, Zap, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+
+export interface QuickParsedTransaction {
+  description: string;
+  amount: number;
+  type: 'expense' | 'income';
+  category_id?: string;
+  account_id?: string;
+  confidence?: number;
+}
 
 interface Props {
   userId: string | undefined;
@@ -19,6 +30,8 @@ interface Props {
   thisMonthCount: number;
   monthlyLimit: number;
   isPremium: boolean;
+  onQuickAdd?: (parsed: QuickParsedTransaction) => void;
+  canUseAI?: boolean;
 }
 
 export const TransactionsHeroHeader = ({
