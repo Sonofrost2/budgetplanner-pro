@@ -266,13 +266,6 @@ const DashboardHome = () => {
     return undefined;
   }, [period, appliedCustom, isFr]);
 
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return isFr ? 'Bonjour' : 'Good morning';
-    if (hour < 18) return isFr ? 'Bon après-midi' : 'Good afternoon';
-    return isFr ? 'Bonsoir' : 'Good evening';
-  }, [isFr]);
-
   // Widget render map
   const widgetRenderers: Record<WidgetId, ReactNode> = {
     planner: <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} locale={locale} />,
