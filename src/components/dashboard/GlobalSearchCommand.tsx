@@ -11,6 +11,7 @@ import {
 import {
   LayoutDashboard, ArrowUpDown, CreditCard, PieChart, Target, FileText,
   Settings, Tag, BarChart3, Users, Receipt, Crown, Search,
+  Gem, Landmark, RefreshCw, BookOpen,
 } from 'lucide-react';
 
 interface SearchResult {
@@ -73,20 +74,24 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
     navigate(path);
   }, [navigate, onOpenChange]);
 
-  // Navigation pages
-  const navPages: SearchResult[] = useMemo(() => [
-    { id: 'nav-dashboard', label: t.dashboard, icon: <LayoutDashboard className="w-4 h-4" />, action: () => go('/dashboard') },
-    { id: 'nav-transactions', label: t.transactions, icon: <ArrowUpDown className="w-4 h-4" />, action: () => go('/dashboard/transactions') },
-    { id: 'nav-accounts', label: t.accounts, icon: <CreditCard className="w-4 h-4" />, action: () => go('/dashboard/accounts') },
-    { id: 'nav-budgets', label: t.budgets, icon: <PieChart className="w-4 h-4" />, action: () => go('/dashboard/budgets') },
-    { id: 'nav-savings', label: t.savings, icon: <Target className="w-4 h-4" />, action: () => go('/dashboard/savings') },
-    { id: 'nav-categories', label: t.categories, icon: <Tag className="w-4 h-4" />, action: () => go('/dashboard/categories') },
-    { id: 'nav-forecasts', label: t.forecasts, icon: <BarChart3 className="w-4 h-4" />, action: () => go('/dashboard/forecasts') },
-    { id: 'nav-reports', label: t.reports, icon: <FileText className="w-4 h-4" />, action: () => go('/dashboard/reports') },
-    { id: 'nav-family', label: t.family, icon: <Users className="w-4 h-4" />, action: () => go('/dashboard/family') },
+  // Navigation pages — full ERP map with shortcut hints
+  const navPages: (SearchResult & { shortcut?: string })[] = useMemo(() => [
+    { id: 'nav-dashboard', label: t.dashboard, icon: <LayoutDashboard className="w-4 h-4" />, action: () => go('/dashboard'), shortcut: 'g d' },
+    { id: 'nav-transactions', label: t.transactions, icon: <ArrowUpDown className="w-4 h-4" />, action: () => go('/dashboard/transactions'), shortcut: 'g t' },
+    { id: 'nav-recurring', label: (t as any).recurring || 'Recurring', icon: <RefreshCw className="w-4 h-4" />, action: () => go('/dashboard/recurring') },
     { id: 'nav-receipts', label: t.receipts, icon: <Receipt className="w-4 h-4" />, action: () => go('/dashboard/receipts') },
+    { id: 'nav-accounts', label: t.accounts, icon: <CreditCard className="w-4 h-4" />, action: () => go('/dashboard/accounts'), shortcut: 'g a' },
+    { id: 'nav-wealth', label: (t as any).wealth || 'Wealth', icon: <Gem className="w-4 h-4" />, action: () => go('/dashboard/wealth'), shortcut: 'g w' },
+    { id: 'nav-debts', label: (t as any).debts || 'Debts', icon: <Landmark className="w-4 h-4" />, action: () => go('/dashboard/debts') },
+    { id: 'nav-budgets', label: t.budgets, icon: <PieChart className="w-4 h-4" />, action: () => go('/dashboard/budgets'), shortcut: 'g b' },
+    { id: 'nav-savings', label: t.savings, icon: <Target className="w-4 h-4" />, action: () => go('/dashboard/savings'), shortcut: 'g s' },
+    { id: 'nav-forecasts', label: t.forecasts, icon: <BarChart3 className="w-4 h-4" />, action: () => go('/dashboard/forecasts') },
+    { id: 'nav-reports', label: t.reports, icon: <FileText className="w-4 h-4" />, action: () => go('/dashboard/reports'), shortcut: 'g r' },
+    { id: 'nav-categories', label: t.categories, icon: <Tag className="w-4 h-4" />, action: () => go('/dashboard/categories') },
+    { id: 'nav-family', label: t.family, icon: <Users className="w-4 h-4" />, action: () => go('/dashboard/family') },
     { id: 'nav-payment', label: t.payment, icon: <Crown className="w-4 h-4" />, action: () => go('/dashboard/payment') },
     { id: 'nav-settings', label: t.settings, icon: <Settings className="w-4 h-4" />, action: () => go('/dashboard/settings') },
+    { id: 'nav-guide', label: (t as any).guide || 'Guide', icon: <BookOpen className="w-4 h-4" />, action: () => go('/dashboard/guide') },
   ], [t, go]);
 
   const q = query.toLowerCase().trim();
@@ -136,11 +141,16 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
 
         {/* Navigation */}
         {filteredNav.length > 0 && (
-          <CommandGroup heading={isFr ? 'Navigation' : 'Navigation'}>
+          <CommandGroup heading={(t as any).goTo || (isFr ? 'Aller à…' : 'Go to…')}>
             {filteredNav.map(item => (
               <CommandItem key={item.id} onSelect={item.action} className="gap-2.5 cursor-pointer">
                 {item.icon}
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {item.shortcut && (
+                  <kbd className="hidden md:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                    {item.shortcut}
+                  </kbd>
+                )}
               </CommandItem>
             ))}
           </CommandGroup>

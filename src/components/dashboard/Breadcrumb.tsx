@@ -21,6 +21,25 @@ const routeLabels: Record<string, { fr: string; en: string }> = {
   guide: { fr: 'Guide', en: 'Guide' },
 };
 
+// ERP group mapping — keep in sync with AppSidebar
+const groupForRoute: Record<string, { fr: string; en: string }> = {
+  transactions: { fr: 'Opérations', en: 'Operations' },
+  recurring: { fr: 'Opérations', en: 'Operations' },
+  receipts: { fr: 'Opérations', en: 'Operations' },
+  accounts: { fr: 'Trésorerie', en: 'Treasury' },
+  wealth: { fr: 'Trésorerie', en: 'Treasury' },
+  debts: { fr: 'Trésorerie', en: 'Treasury' },
+  budgets: { fr: 'Pilotage', en: 'Piloting' },
+  savings: { fr: 'Pilotage', en: 'Piloting' },
+  forecasts: { fr: 'Pilotage', en: 'Piloting' },
+  reports: { fr: 'Analyse', en: 'Analysis' },
+  categories: { fr: 'Analyse', en: 'Analysis' },
+  family: { fr: 'Organisation', en: 'Organization' },
+  payment: { fr: 'Organisation', en: 'Organization' },
+  settings: { fr: 'Organisation', en: 'Organization' },
+  guide: { fr: 'Organisation', en: 'Organization' },
+};
+
 const DashboardBreadcrumb = () => {
   const { locale } = useLanguage();
   const location = useLocation();
@@ -30,6 +49,7 @@ const DashboardBreadcrumb = () => {
 
   const currentSegment = segments[segments.length - 1];
   const label = routeLabels[currentSegment]?.[locale] || currentSegment;
+  const group = groupForRoute[currentSegment]?.[locale];
 
   return (
     <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -37,6 +57,12 @@ const DashboardBreadcrumb = () => {
         <Home className="w-3 h-3" />
         <span className="hidden sm:inline">{routeLabels[''][locale]}</span>
       </Link>
+      {group && (
+        <>
+          <ChevronRight className="w-3 h-3" />
+          <span className="hidden sm:inline">{group}</span>
+        </>
+      )}
       <ChevronRight className="w-3 h-3" />
       <span className="text-foreground font-medium">{label}</span>
     </nav>
