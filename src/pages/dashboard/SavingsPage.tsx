@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -98,6 +98,13 @@ const SavingsPage = () => {
   const [simulating, setSimulating] = useState(false);
   const [customBankMode, setCustomBankMode] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState('manage');
+  const [showCompleted, setShowCompleted] = useState<boolean>(() => {
+    try { return localStorage.getItem('savings-show-completed') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('savings-show-completed', showCompleted ? '1' : '0'); } catch {}
+  }, [showCompleted]);
+  const notifiedRef = useRef<Set<string>>(new Set());
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const { invalidate } = useInvalidate();
@@ -465,7 +472,36 @@ const SavingsPage = () => {
     refreshData();
   };
 
-  // Reinvest: create new goal from completed goal's balance
+  // Detect newly-reached goals and prompt user (Réinvestir / Garder / Archiver)
+  useEffect(() => {
+    if (!goals || goals.length === 0) return;
+    for (const g of goals) {
+      const status = (g as any).status;
+      const reached = Number(g.current_amount) >= Number(g.target_amount) && Number(g.target_amount) > 0;
+      if (!reached || status === 'completed' || status === 'archived') continue;
+      if (notifiedRef.current.has(g.id)) continue;
+      notifiedRef.current.add(g.id);
+      toast.success(
+        locale === 'fr' ? `🎉 Objectif atteint : ${g.name}` : `🎉 Goal reached: ${g.name}`,
+        {
+          description: locale === 'fr'
+            ? `Vous avez atteint ${fmt(Number(g.current_amount))}. Que souhaitez-vous faire ?`
+            : `You reached ${fmt(Number(g.current_amount))}. What's next?`,
+          duration: 15000,
+          action: {
+            label: locale === 'fr' ? 'Réinvestir' : 'Reinvest',
+            onClick: () => handleReinvest(g.id),
+          },
+          cancel: {
+            label: locale === 'fr' ? 'Archiver' : 'Archive',
+            onClick: () => handleArchive(g.id),
+          },
+        }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goals, locale]);
+
   const [reinvestDialog, setReinvestDialog] = useState<string | null>(null);
   const [reinvestSourceGoalId, setReinvestSourceGoalId] = useState<string | null>(null);
   const handleReinvest = (goalId: string) => {
@@ -739,6 +775,12 @@ const SavingsPage = () => {
             <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? (t.syncing) : (t.syncSavings)}
           </Button>
+          <Button size="sm" variant={showCompleted ? 'default' : 'outline'} className="rounded-xl" onClick={() => setShowCompleted(s => !s)} title={locale === 'fr' ? 'Afficher/Cacher les objectifs atteints' : 'Show/Hide completed goals'}>
+            <CheckCircle2 className="w-4 h-4 mr-1" />
+            {showCompleted
+              ? (locale === 'fr' ? 'Masquer atteints' : 'Hide completed')
+              : (locale === 'fr' ? 'Voir atteints' : 'Show completed')}
+          </Button>
           <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
             setEditGoalId(null);
             setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
@@ -837,7 +879,7 @@ const SavingsPage = () => {
                     </div>
                   </div>
                 )}
-                {completedGoals.length > 0 && (
+                {showCompleted && completedGoals.length > 0 && (
                   <div className="space-y-4 mt-8">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-secondary flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4" /> {t.completedGoals} ({completedGoals.length})
