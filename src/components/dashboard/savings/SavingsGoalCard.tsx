@@ -25,6 +25,7 @@ interface SavingsGoalCardProps {
   locale: string;
   onAddSaving: () => void;
   onWithdraw: () => void;
+  onPartialWithdraw?: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onSimulate?: () => void;
@@ -35,7 +36,7 @@ interface SavingsGoalCardProps {
   onReactivate?: () => void;
 }
 
-export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onEdit, onDelete, onSimulate, onCapitalizeInterest, isCapitalizing, onArchive, onReinvest, onReactivate }: SavingsGoalCardProps) => {
+export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onPartialWithdraw, onEdit, onDelete, onSimulate, onCapitalizeInterest, isCapitalizing, onArchive, onReinvest, onReactivate }: SavingsGoalCardProps) => {
   const pct = goal.target_amount > 0 ? Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100) : 0;
   const done = pct >= 100;
   const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.current_amount));
@@ -347,6 +348,12 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
         {Number(goal.current_amount) > 0 && !(goal as any).is_locked && (goal as any).status !== 'completed' && (
           <Button onClick={onWithdraw} variant="outline" className="flex-1 rounded-xl">
             <ArrowUpRight className="w-4 h-4 mr-2" />{t.withdrawSaving}
+          </Button>
+        )}
+        {onPartialWithdraw && Number(goal.current_amount) > 0 && !(goal as any).is_locked && (goal as any).status !== 'completed' && (
+          <Button onClick={onPartialWithdraw} variant="outline" className="rounded-xl" size="sm" title={locale === 'fr' ? 'Retrait partiel' : 'Partial withdraw'}>
+            <ArrowUpRight className="w-4 h-4 mr-1.5" />
+            <span className="text-xs">{locale === 'fr' ? 'Partiel' : 'Partial'}</span>
           </Button>
         )}
         {Number(goal.current_amount) > 0 && (goal as any).is_locked && (goal as any).status !== 'completed' && (

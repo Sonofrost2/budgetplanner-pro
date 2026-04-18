@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-export type WidgetId = 'planner' | 'accounts' | 'charts' | 'budgets' | 'savings' | 'forecast' | 'transactions' | 'wealth';
+export type WidgetId = 'planner' | 'accounts' | 'charts' | 'budgets' | 'savings' | 'forecast' | 'transactions' | 'wealth' | 'health';
 
 export interface WidgetConfig {
   id: WidgetId;
@@ -16,6 +16,7 @@ const DEFAULT_ORDER: WidgetConfig[] = [
   { id: 'forecast', colSpan: 3, visible: true },
   { id: 'savings', colSpan: 2, visible: true },
   { id: 'wealth', colSpan: 2, visible: true },
+  { id: 'health', colSpan: 3, visible: true },
   { id: 'transactions', colSpan: 5, visible: true },
 ];
 
@@ -93,5 +94,6 @@ export const WIDGET_LABELS: Record<WidgetId, { fr: string; en: string; icon: str
   savings: { fr: 'Épargne', en: 'Savings', icon: '🎯' },
   forecast: { fr: 'Prévisions', en: 'Forecast', icon: '📈' },
   wealth: { fr: 'Patrimoine', en: 'Wealth', icon: '💎' },
+  health: { fr: 'Santé financière', en: 'Financial health', icon: '❤️' },
   transactions: { fr: 'Transactions', en: 'Transactions', icon: '🔄' },
 };

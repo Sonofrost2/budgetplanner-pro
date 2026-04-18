@@ -41,6 +41,7 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 import { SavingsGoalCard } from '@/components/dashboard/savings/SavingsGoalCard';
+import { PartialWithdrawDialog } from '@/components/dashboard/savings/PartialWithdrawDialog';
 import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSummaryTable';
 import { SavingsControlTable } from '@/components/dashboard/savings/SavingsControlTable';
 import { SavingsGlobalStats } from '@/components/dashboard/savings/SavingsGlobalStats';
@@ -79,6 +80,7 @@ const SavingsPage = () => {
   const [editGoalId, setEditGoalId] = useState<string | null>(null);
   const [addAmountDialog, setAddAmountDialog] = useState<string | null>(null);
   const [withdrawDialog, setWithdrawDialog] = useState<string | null>(null);
+  const [partialWithdrawId, setPartialWithdrawId] = useState<string | null>(null);
   const [addAmount, setAddAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [sourceAccountId, setSourceAccountId] = useState('');
@@ -775,6 +777,10 @@ const SavingsPage = () => {
                 }
                 setWithdrawDialog(g.id); setWithdrawAmount(''); setTargetAccountId('');
               }}
+              onPartialWithdraw={() => {
+                if ((g as any).is_locked) { toast.error(t.savingsLockedWarning); return; }
+                setPartialWithdrawId(g.id);
+              }}
               onEdit={() => {
                 setEditGoalId(g.id);
                 setForm({
@@ -1029,6 +1035,21 @@ const SavingsPage = () => {
         accounts={accounts} goal={currentGoalForWithdraw}
         onSave={handleWithdraw} saving={saving} fmt={fmt} t={t} locale={locale}
       />
+
+      {partialWithdrawId && (() => {
+        const g = goals.find(x => x.id === partialWithdrawId);
+        if (!g || !user) return null;
+        return (
+          <PartialWithdrawDialog
+            open={!!partialWithdrawId}
+            onOpenChange={(v) => { if (!v) setPartialWithdrawId(null); }}
+            goal={{ id: g.id, name: g.name, current_amount: Number(g.current_amount), user_id: user.id }}
+            accounts={accounts}
+            onWithdrawn={() => { setPartialWithdrawId(null); refreshData(); }}
+            locale={locale}
+          />
+        );
+      })()}
 
       <SimulationDialog
         open={!!simulationDialog}
