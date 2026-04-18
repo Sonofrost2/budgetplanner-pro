@@ -158,7 +158,21 @@ export const TransactionsHeroHeader = ({
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-display font-bold leading-tight">{t.allTransactions}</h2>
-              <p className="text-[11px] text-muted-foreground/80 font-medium">{periodLabel}</p>
+              <p className="text-[11px] text-muted-foreground/80 font-medium">
+                {(() => {
+                  const surplus = income - expense;
+                  if (income === 0 && expense === 0) return isFr
+                    ? `📝 Aucune opération · enregistrez votre première transaction`
+                    : `📝 No operations yet · record your first transaction`;
+                  if (surplus > 0) return isFr
+                    ? `✅ Surplus de ${fmt(surplus)} ce mois · ${periodLabel}`
+                    : `✅ Surplus of ${fmt(surplus)} this month · ${periodLabel}`;
+                  if (surplus < 0) return isFr
+                    ? `⚠️ Déficit de ${fmt(Math.abs(surplus))} · ${periodLabel}`
+                    : `⚠️ Deficit of ${fmt(Math.abs(surplus))} · ${periodLabel}`;
+                  return periodLabel;
+                })()}
+              </p>
             </div>
           </div>
 

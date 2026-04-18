@@ -25,7 +25,7 @@ interface Props {
   canTransfer: boolean;
 }
 
-export const WealthHeroHeader = ({ accounts, transactions, fmt, isFr, onNewAccount, onTransfer, canTransfer }: Props) => {
+export const AccountsHeroHeader = ({ accounts, transactions, fmt, isFr, onNewAccount, onTransfer, canTransfer }: Props) => {
   const total = accounts.reduce((s, a) => s + Number(a.real_balance || 0), 0);
 
   // Sparkline 30j: solde net jour par jour
@@ -76,7 +76,7 @@ export const WealthHeroHeader = ({ accounts, transactions, fmt, isFr, onNewAccou
             <div className="flex items-center gap-2 mb-2">
               <Wallet className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
-                {isFr ? 'Patrimoine total' : 'Total Wealth'}
+                {isFr ? 'Trésorerie globale' : 'Total Treasury'}
               </span>
             </div>
             <motion.div
@@ -85,9 +85,9 @@ export const WealthHeroHeader = ({ accounts, transactions, fmt, isFr, onNewAccou
               transition={{ duration: 0.5 }}
               className="flex items-baseline gap-3 flex-wrap"
             >
-              <h1 className="text-3xl sm:text-5xl font-bold tracking-tight font-display">
+              <h2 className="text-3xl sm:text-5xl font-bold tracking-tight font-display">
                 <AnimatedNumber value={total} format={fmt} duration={0.8} />
-              </h1>
+              </h2>
               <div className={`flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full ${isPositive ? 'bg-secondary/15 text-secondary' : 'bg-destructive/15 text-destructive'}`}>
                 {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                 {isPositive ? '+' : ''}{fmt(evolution30d)}
@@ -95,7 +95,16 @@ export const WealthHeroHeader = ({ accounts, transactions, fmt, isFr, onNewAccou
               </div>
             </motion.div>
             <p className="text-xs text-muted-foreground mt-1">
-              {accounts.length} {isFr ? 'comptes actifs' : 'active accounts'}
+              {(() => {
+                const n = accounts.length;
+                if (n === 0) return isFr ? '🏦 Ajoutez votre premier compte pour commencer' : '🏦 Add your first account to get started';
+                if (isPositive) return isFr
+                  ? `📈 ${n} compte${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''} · trésorerie en hausse sur 30j`
+                  : `📈 ${n} active account${n > 1 ? 's' : ''} · treasury up over 30d`;
+                return isFr
+                  ? `⚠️ ${n} compte${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''} · trésorerie en baisse — surveillez les sorties`
+                  : `⚠️ ${n} active account${n > 1 ? 's' : ''} · treasury down — watch outflows`;
+              })()}
             </p>
 
             {/* Sparkline */}

@@ -30,7 +30,7 @@ import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import CashCountDialog from '@/components/dashboard/CashCountDialog';
 import { AccountsPeriodStats } from '@/components/dashboard/accounts/AccountsPeriodStats';
-import { WealthHeroHeader } from '@/components/dashboard/accounts/WealthHeroHeader';
+import { AccountsHeroHeader } from '@/components/dashboard/accounts/AccountsHeroHeader';
 import { DormantAccountsBanner } from '@/components/dashboard/accounts/DormantAccountsBanner';
 import { AccountCardPremium } from '@/components/dashboard/accounts/AccountCardPremium';
 import { AccountsListView } from '@/components/dashboard/accounts/AccountsListView';
@@ -284,7 +284,7 @@ const AccountsPage = () => {
         <UpgradeBanner message={t.limitAccountsReached(limits.accounts)} />
       )}
 
-      <WealthHeroHeader
+      <AccountsHeroHeader
         accounts={filteredAccounts}
         transactions={allTransactions}
         fmt={fmt}
