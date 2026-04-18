@@ -536,6 +536,23 @@ const TransactionsPage = () => {
                   ))}
                 </div>
 
+                {/* Régularisations quick toggle */}
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={toggleRegularization}
+                  title={locale === 'fr' ? 'Voir uniquement les écarts de régularisation' : 'View only adjustment discrepancies'}
+                  className={`relative flex items-center gap-1.5 px-3 h-10 rounded-xl text-xs font-semibold border transition-all duration-200 ${
+                    isRegularizationActive
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-[0_2px_10px_-2px_hsl(var(--primary)/0.25)]'
+                      : 'bg-background/60 text-muted-foreground border-border/40 hover:bg-background/80 hover:border-amber-500/30 hover:text-amber-600 dark:hover:text-amber-400'
+                  }`}
+                >
+                  <Scale className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{locale === 'fr' ? 'Régularisations' : 'Adjustments'}</span>
+                  {isRegularizationActive && <X className="w-3 h-3 ml-0.5 opacity-70" />}
+                </motion.button>
+
                 {/* Category popover */}
                 <Popover>
                   <PopoverTrigger asChild>
