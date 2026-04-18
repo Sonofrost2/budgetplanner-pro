@@ -485,19 +485,27 @@ const SavingsPage = () => {
         locale === 'fr' ? `🎉 Objectif atteint : ${g.name}` : `🎉 Goal reached: ${g.name}`,
         {
           description: locale === 'fr'
-            ? `Vous avez atteint ${fmt(Number(g.current_amount))}. Que souhaitez-vous faire ?`
-            : `You reached ${fmt(Number(g.current_amount))}. What's next?`,
-          duration: 15000,
+            ? `Vous avez atteint ${fmt(Number(g.current_amount))}. Réinvestir, garder ouvert, ou archiver ?`
+            : `You reached ${fmt(Number(g.current_amount))}. Reinvest, keep open, or archive?`,
+          duration: 20000,
           action: {
             label: locale === 'fr' ? 'Réinvestir' : 'Reinvest',
             onClick: () => handleReinvest(g.id),
           },
           cancel: {
-            label: locale === 'fr' ? 'Archiver' : 'Archive',
-            onClick: () => handleArchive(g.id),
+            label: locale === 'fr' ? 'Garder' : 'Keep',
+            onClick: () => {
+              toast.message(locale === 'fr' ? 'Objectif gardé actif' : 'Goal kept active', {
+                action: {
+                  label: locale === 'fr' ? 'Archiver' : 'Archive',
+                  onClick: () => handleArchive(g.id),
+                },
+              });
+            },
           },
         }
       );
+
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [goals, locale]);
