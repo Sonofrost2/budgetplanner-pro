@@ -460,6 +460,23 @@ const TransactionsPage = () => {
         thisMonthCount={thisMonthCount}
         monthlyLimit={limits.transactionsPerMonth}
         isPremium={isPremium}
+        canUseAI={canUseAISuggestions}
+        onQuickAdd={(parsed) => {
+          if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
+          setEditing(null);
+          setErrors({});
+          const fallbackCatId = (categories.find((c: any) => c.type === parsed.type)?.id) || categories[0]?.id || '';
+          setForm({
+            description: parsed.description || '',
+            amount: parsed.amount != null ? String(parsed.amount) : '',
+            type: parsed.type || 'expense',
+            category_id: parsed.category_id || fallbackCatId,
+            account_id: parsed.account_id || accounts[0]?.id || '',
+            date: new Date().toISOString().split('T')[0],
+            notes: '',
+          });
+          setDialogOpen(true);
+        }}
       />
 
       {/* Coach insights chips */}
