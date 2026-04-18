@@ -524,15 +524,20 @@ const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate
   );
 };
 
+type SeverityFilter = 'all' | 'critical' | 'warning' | 'success';
+
 export const NotificationBell = () => {
   const { notifications, refresh } = useBudgetNotifications();
   const { locale } = useLanguage();
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState<Set<string>>(() => getDismissedIds());
   const [isOpen, setIsOpen] = useState(false);
+  const [filter, setFilter] = useState<SeverityFilter>('all');
+  const isFr = locale === 'fr';
 
   const visible = notifications.filter(n => !dismissed.has(n.id));
   const criticalCount = visible.filter(n => n.severity === 'critical' || n.severity === 'warning').length;
+  const successCount = visible.filter(n => n.severity === 'success').length;
 
   const handleDismiss = (id: string) => {
     setDismissed(prev => {
@@ -561,9 +566,18 @@ export const NotificationBell = () => {
     navigate(path);
   };
 
-  // Group notifications by type
+  // Apply severity filter
+  const filtered = visible.filter(n => {
+    if (filter === 'all') return true;
+    if (filter === 'critical') return n.severity === 'critical';
+    if (filter === 'warning') return n.severity === 'warning';
+    if (filter === 'success') return n.severity === 'success';
+    return true;
+  });
+
+  // Group filtered notifications by type
   const typeGroups = new Map<Notification['type'], Notification[]>();
-  for (const n of visible) {
+  for (const n of filtered) {
     const list = typeGroups.get(n.type) || [];
     list.push(n);
     typeGroups.set(n.type, list);
@@ -582,11 +596,18 @@ export const NotificationBell = () => {
     }
   }
 
-  for (const n of visible) {
+  for (const n of filtered) {
     if (!rendered.has(n.id)) {
       renderItems.push({ kind: 'single', notif: n });
     }
   }
+
+  const filterTabs: { key: SeverityFilter; label: string; count: number; color: string }[] = [
+    { key: 'all', label: isFr ? 'Tout' : 'All', count: visible.length, color: 'text-foreground' },
+    { key: 'critical', label: isFr ? 'Critique' : 'Critical', count: visible.filter(n => n.severity === 'critical').length, color: 'text-destructive' },
+    { key: 'warning', label: isFr ? 'Alertes' : 'Alerts', count: visible.filter(n => n.severity === 'warning').length, color: 'text-amber-600 dark:text-amber-400' },
+    { key: 'success', label: isFr ? 'Succès' : 'Wins', count: successCount, color: 'text-secondary' },
+  ];
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -600,7 +621,7 @@ export const NotificationBell = () => {
                 animate={{ scale: 1 }}
                 exit={{ scale: 0 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-                className={`absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 ${criticalCount > 0 ? 'bg-destructive' : 'bg-primary'} text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center`}
+                className={`absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 ${criticalCount > 0 ? 'bg-destructive' : 'bg-primary'} text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg ${criticalCount > 0 ? 'shadow-destructive/30 animate-pulse' : 'shadow-primary/30'}`}
               >
                 {visible.length}
               </motion.span>
@@ -609,49 +630,85 @@ export const NotificationBell = () => {
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[calc(100vw-2rem)] max-w-sm p-0 rounded-2xl border border-border/60 shadow-[var(--shadow-soft)] overflow-hidden"
+        className="w-[calc(100vw-2rem)] max-w-md p-0 rounded-3xl border border-border/50 shadow-2xl shadow-primary/10 overflow-hidden bg-background/95 backdrop-blur-2xl"
         align="end"
-        sideOffset={8}
+        sideOffset={10}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/30">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-bold">Notifications</p>
-            <AnimatePresence>
-              {visible.length > 0 && (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 rounded-full">{visible.length}</Badge>
-                </motion.div>
-              )}
-            </AnimatePresence>
+        {/* Premium gradient header */}
+        <div className="relative px-5 pt-4 pb-3 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-b border-border/40">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md shadow-primary/30">
+                <Bell className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-bold tracking-tight">Notifications</p>
+                <p className="text-[10px] text-muted-foreground font-medium">
+                  {isFr ? 'Coach Financier' : 'Financial Coach'}
+                </p>
+              </div>
+            </div>
+            {visible.length > 0 && (
+              <Button variant="ghost" size="sm" className="text-[11px] h-7 px-2.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 font-semibold" onClick={handleDismissAll}>
+                {isFr ? 'Tout effacer' : 'Clear all'}
+              </Button>
+            )}
           </div>
+
+          {/* Severity filter tabs */}
           {visible.length > 0 && (
-            <Button variant="ghost" size="sm" className="text-xs h-7 text-muted-foreground hover:text-destructive" onClick={handleDismissAll}>
-              {locale === 'fr' ? 'Tout effacer' : 'Clear all'}
-            </Button>
+            <div className="flex items-center gap-1 mt-3 -mx-1 px-1 overflow-x-auto scrollbar-none">
+              {filterTabs.map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilter(tab.key)}
+                  className={`relative flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 whitespace-nowrap ${
+                    filter === tab.key
+                      ? 'bg-background shadow-sm ring-1 ring-border/60'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
+                  }`}
+                >
+                  <span className={filter === tab.key ? tab.color : ''}>{tab.label}</span>
+                  {tab.count > 0 && (
+                    <span className={`ml-1.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[9px] font-bold rounded-full ${
+                      filter === tab.key ? 'bg-foreground/10' : 'bg-foreground/5'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
         {/* Body */}
-        {visible.length === 0 ? (
+        {filtered.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="px-4 py-10 text-center"
+            className="px-4 py-12 text-center"
           >
-            <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
-              <Bell className="w-6 h-6 text-muted-foreground/30" />
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 blur-xl" />
+              <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/15 to-secondary/15 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-secondary" />
+              </div>
             </div>
-            <p className="text-sm font-medium text-muted-foreground">
-              {locale === 'fr' ? 'Aucune notification' : 'No notifications'}
+            <p className="text-sm font-bold">
+              {visible.length === 0
+                ? (isFr ? 'Tout est sous contrôle' : 'All under control')
+                : (isFr ? 'Aucune notification dans cette vue' : 'No notifications in this view')}
             </p>
-            <p className="text-[11px] text-muted-foreground/60 mt-1">
-              {locale === 'fr' ? 'Tout est en ordre 👍' : 'Everything looks good 👍'}
+            <p className="text-[12px] text-muted-foreground mt-1.5 max-w-[240px] mx-auto leading-relaxed">
+              {visible.length === 0
+                ? (isFr ? 'Votre coach veille — vous serez alerté en temps utile 🧭' : 'Your coach is watching — you\'ll be notified in time 🧭')
+                : (isFr ? 'Essayez un autre filtre ci-dessus' : 'Try another filter above')}
             </p>
           </motion.div>
         ) : (
-          <ScrollArea className="max-h-[65vh] overflow-y-auto">
-            <div className="p-2 space-y-1.5">
+          <ScrollArea className="max-h-[60vh] overflow-y-auto">
+            <div className="p-2.5 space-y-2">
               <AnimatePresence mode="popLayout">
                 {renderItems.map((item, i) =>
                   item.kind === 'group' ? (
@@ -673,28 +730,28 @@ export const NotificationBell = () => {
                       animate="visible"
                       exit="exit"
                       layout
-                      className={`relative px-3 py-2.5 rounded-xl border-l-[3px] flex items-start gap-2.5 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow duration-200 ${severityStyles[item.notif.severity]}`}
+                      className={`relative px-3.5 py-3 rounded-2xl flex items-start gap-3 backdrop-blur-md shadow-sm hover:shadow-md transition-all duration-200 ${severityStyles[item.notif.severity]}`}
                     >
                       <motion.div
-                        className="mt-0.5 flex-shrink-0"
-                        whileHover={{ scale: 1.15, rotate: 5 }}
+                        className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${iconBubbleStyles[item.notif.severity]}`}
+                        whileHover={{ scale: 1.1, rotate: 5 }}
                         transition={{ type: 'spring', stiffness: 400 }}
                       >
                         {iconMap[item.notif.type]}
                       </motion.div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold leading-tight">{item.notif.title}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{item.notif.message}</p>
+                        <p className="text-[13px] font-semibold leading-tight tracking-tight">{item.notif.title}</p>
+                        <p className="text-[11.5px] text-muted-foreground mt-1 leading-snug break-words">{item.notif.message}</p>
                         <ActionLink action={item.notif.action} onNavigate={handleNavigate} />
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.15 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleDismiss(item.notif.id)}
-                        className="flex-shrink-0 p-1 rounded-lg hover:bg-muted transition-colors"
+                        className="flex-shrink-0 p-1.5 rounded-lg hover:bg-foreground/10 transition-colors"
                         aria-label="Dismiss"
                       >
-                        <X className="w-3 h-3 text-muted-foreground" />
+                        <X className="w-3.5 h-3.5 text-muted-foreground" />
                       </motion.button>
                     </motion.div>
                   ),
