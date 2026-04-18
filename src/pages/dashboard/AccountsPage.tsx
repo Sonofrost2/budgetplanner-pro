@@ -36,6 +36,7 @@ import { AccountCardPremium } from '@/components/dashboard/accounts/AccountCardP
 import { AccountsListView } from '@/components/dashboard/accounts/AccountsListView';
 import { AccountsTreasuryView } from '@/components/dashboard/accounts/AccountsTreasuryView';
 import { AccountDrilldownDrawer } from '@/components/dashboard/accounts/AccountDrilldownDrawer';
+import { ReconciliationDialog } from '@/components/dashboard/accounts/ReconciliationDialog';
 import { ViewModeToggle, type AccountsViewMode } from '@/components/dashboard/accounts/ViewModeToggle';
 import { archiveItem, unarchiveItem } from '@/lib/archive';
 
@@ -530,23 +531,18 @@ const AccountsPage = () => {
           </div>
       </ResponsiveFormDialog>
 
-      {/* Update balance dialog */}
-      <Dialog open={!!updateBalanceDialog} onOpenChange={() => setUpdateBalanceDialog(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{t.updateRealBalance}</DialogTitle>
-            <DialogDescription>{t.updateBalanceDesc}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label className="form-label">{t.realBalance}</Label>
-            <Input type="number" step="0.01" value={newRealBalance} onChange={e => setNewRealBalance(e.target.value)} className="rounded-xl h-11 text-lg font-bold" />
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setUpdateBalanceDialog(null)} className="rounded-xl">{t.cancel}</Button>
-            <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleUpdateRealBalance}>{t.save}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Reconciliation Dialog (3 choices) */}
+      <ReconciliationDialog
+        open={!!updateBalanceDialog}
+        onOpenChange={(v) => { if (!v) setUpdateBalanceDialog(null); }}
+        account={updateBalanceDialog}
+        theoreticalBalance={updateBalanceDialog ? getTheoreticalBalance(updateBalanceDialog.id) : 0}
+        userId={user?.id}
+        locale={locale}
+        fmt={fmt}
+        onResolved={refreshAll}
+        onLaunchCashCount={(acc) => setCashCountAccount(acc)}
+      />
 
       <ConfirmDeleteDialog
         open={!!deleteId}
