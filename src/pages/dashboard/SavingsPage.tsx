@@ -775,6 +775,12 @@ const SavingsPage = () => {
             <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? (t.syncing) : (t.syncSavings)}
           </Button>
+          <Button size="sm" variant={showCompleted ? 'default' : 'outline'} className="rounded-xl" onClick={() => setShowCompleted(s => !s)} title={locale === 'fr' ? 'Afficher/Cacher les objectifs atteints' : 'Show/Hide completed goals'}>
+            <CheckCircle2 className="w-4 h-4 mr-1" />
+            {showCompleted
+              ? (locale === 'fr' ? 'Masquer atteints' : 'Hide completed')
+              : (locale === 'fr' ? 'Voir atteints' : 'Show completed')}
+          </Button>
           <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
             setEditGoalId(null);
             setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
