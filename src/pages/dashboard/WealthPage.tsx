@@ -407,58 +407,23 @@ const WealthPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold font-display">{isFr ? 'Gestion du patrimoine' : 'Wealth Management'}</h1>
-          <p className="text-sm text-muted-foreground">{isFr ? 'Suivez et valorisez vos actifs' : 'Track and value your assets'}</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="rounded-xl h-9 text-xs gap-1.5 glass border-glass-border" onClick={() => handleExport('pdf')}>
-            <FileDown className="w-3.5 h-3.5" /> PDF
-          </Button>
-          <Button variant="outline" size="sm" className="rounded-xl h-9 text-xs gap-1.5 glass border-glass-border" onClick={() => handleExport('excel')}>
-            <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
-          </Button>
-          <Button onClick={() => { resetForm(); setEditId(null); setDialogOpen(true); }}
-            className="rounded-xl text-primary-foreground shadow-md h-9" style={{ background: 'var(--gradient-primary)' }}>
-            <Plus className="w-4 h-4 mr-1.5" />{isFr ? 'Ajouter un actif' : 'Add Asset'}
-          </Button>
-        </div>
-      </div>
+      {/* Hero header — glass, Coach Financier */}
+      <WealthHeroHeader
+        isFr={isFr}
+        fmt={fmt}
+        netWorth={netWorth}
+        totalAssets={totalAssets}
+        totalSavings={totalSavings}
+        totalDebt={totalDebt}
+        totalGainLoss={totalGainLoss}
+        assetsCount={assets.length}
+        onAddAsset={() => { resetForm(); setEditId(null); setDialogOpen(true); }}
+        onExportPDF={() => handleExport('pdf')}
+        onExportExcel={() => handleExport('excel')}
+      />
 
       {/* KPI Cards */}
       <div className="space-y-3">
-        {/* Hero — Net worth */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl p-5 sm:p-6" style={{ background: 'var(--gradient-primary)' }}>
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.3) 0%, transparent 50%)' }} />
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
-                <Gem className="w-4.5 h-4.5 text-white" />
-              </div>
-              <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{isFr ? 'Valeur nette' : 'Net Worth'}</p>
-            </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums tracking-tight">
-              <AnimatedNumber value={netWorth} format={fmt} />
-            </p>
-            <div className="flex flex-wrap gap-3 mt-3">
-              <span className="text-xs font-semibold text-white/60">
-                {isFr ? 'Actifs' : 'Assets'}: {fmt(totalAssets + totalSavings)}
-              </span>
-              <span className="text-xs font-semibold text-red-200">
-                {isFr ? 'Dettes' : 'Debts'}: -{fmt(totalDebt)}
-              </span>
-              {totalGainLoss !== 0 && (
-                <span className={`text-xs font-semibold flex items-center gap-0.5 ${totalGainLoss >= 0 ? 'text-emerald-200' : 'text-red-200'}`}>
-                  {totalGainLoss >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {totalGainLoss >= 0 ? '+' : ''}{fmt(totalGainLoss)} {isFr ? 'plus-value' : 'gain'}
-                </span>
-              )}
-            </div>
-          </div>
-        </motion.div>
 
         {/* Sub-cards */}
         <div className="grid grid-cols-3 gap-3">
