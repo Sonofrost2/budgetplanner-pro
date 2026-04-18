@@ -15,7 +15,7 @@ interface Insight {
   key: string;
   icon: React.ReactNode;
   text: string;
-  tone: 'primary' | 'warn' | 'info';
+  tone: 'primary' | 'warn' | 'info' | 'streak';
 }
 
 export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Props) => {
