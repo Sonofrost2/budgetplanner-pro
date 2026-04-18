@@ -225,7 +225,7 @@ const TransactionsPage = () => {
     setSelectedIds(new Set());
     setBulkDeleteOpen(false);
     refreshData();
-    toast.success(t.bulkDeleted(ids.length));
+    coachToast.saved(t.bulkDeleted(ids.length));
   };
 
   const handleBulkModify = async () => {
@@ -244,7 +244,7 @@ const TransactionsPage = () => {
     }
     setBulkModifyOpen(false); setBulkModifyForm({ category_id: '', account_id: '' });
     setSelectedIds(new Set()); refreshData();
-    toast.success(t.bulkModified(ids.length));
+    coachToast.saved(t.bulkModified(ids.length));
   };
 
   const handleBulkDuplicate = async () => {
@@ -258,7 +258,7 @@ const TransactionsPage = () => {
     const { error } = await supabase.from('transactions').insert(inserts);
     if (error) { toast.error(error.message); return; }
     setSelectedIds(new Set()); refreshData();
-    toast.success(t.bulkDuplicated(inserts.length));
+    coachToast.saved(t.bulkDuplicated(inserts.length));
   };
 
   const toggleSort = (field: SortField) => {
@@ -356,7 +356,7 @@ const TransactionsPage = () => {
     setSaving(false);
     setDialogOpen(false);
     refreshData();
-    toast.success(t.saved);
+    coachToast.money(locale === 'fr' ? 'Transaction enregistrée 💸' : 'Transaction saved 💸');
   };
 
   const handleForceOverspend = async () => {
@@ -373,7 +373,7 @@ const TransactionsPage = () => {
     setSaving(false);
     setDialogOpen(false);
     refreshData();
-    toast.success(t.saved);
+    coachToast.warn(locale === 'fr' ? 'Dépassement enregistré' : 'Overspend recorded');
   };
 
   const handleDelete = async () => {
@@ -382,7 +382,7 @@ const TransactionsPage = () => {
     if (error) { toast.error(error.message); setDeleteId(null); return; }
     setDeleteId(null);
     refreshData();
-    toast.success(t.delete + ' ✓');
+    coachToast.saved(locale === 'fr' ? 'Transaction supprimée' : 'Transaction deleted');
   };
 
   // AI suggest and description suggestions are handled inside TransactionForm component
@@ -407,7 +407,7 @@ const TransactionsPage = () => {
   const isRegularizationActive = regularizationCategoryIds.length > 0 && regularizationCategoryIds.includes(filterCategory);
   const toggleRegularization = () => {
     if (!regularizationCategoryIds.length) {
-      toast.info(locale === 'fr' ? 'Aucune transaction de régularisation pour le moment' : 'No adjustment transactions yet');
+      coachToast.remind(locale === 'fr' ? 'Aucune transaction de régularisation pour le moment' : 'No adjustment transactions yet');
       return;
     }
     setFilterCategory(isRegularizationActive ? 'all' : regularizationCategoryIds[0]);
