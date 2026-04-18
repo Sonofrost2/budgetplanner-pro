@@ -64,26 +64,32 @@ serve(async (req) => {
 
     const isFr = locale === "fr";
     const systemPrompt = isFr
-      ? `Tu es un assistant qui parse une saisie rapide de transaction en langage naturel et la transforme en structure.
+      ? `Tu es un assistant qui parse une saisie rapide en langage naturel et la transforme en structure.
 
 Règles :
-- Détecte le type : "income" si revenu/salaire/vente/reçu, sinon "expense" par défaut.
-- Extrait le montant (nombre uniquement, pas de devise). Tolère les espaces, virgules, "k" pour milliers.
-- Génère une description courte et claire (capitalisée).
-- Choisis l'ID de la catégorie la plus pertinente parmi celles fournies (renvoie l'UUID exact).
-- Choisis l'ID du compte le plus pertinent (par défaut le premier listé si rien n'est mentionné).
+- Détecte le type :
+  • "transfer" si la phrase indique un mouvement entre 2 comptes (mots-clés : "transfert", "transférer", "vire", "virement", "envoyer/envoie X vers Y", "de X à Y", "X → Y", "passer de X à Y", "déplacer/déposer X vers Y").
+  • "income" si revenu/salaire/vente/reçu.
+  • "expense" sinon (par défaut).
+- Extrait le montant (nombre uniquement, pas de devise). Tolère espaces, virgules, "k" pour milliers.
+- Génère une description courte et claire (capitalisée). Pour un transfert : "Transfert <Source> → <Destination>".
+- Pour expense/income : choisis l'ID de la catégorie la plus pertinente (UUID exact) + l'ID du compte (par défaut le premier listé).
+- Pour transfer : remplis "from_account_id" (compte source) et "to_account_id" (compte destination), tous deux UUID exacts. Ne renvoie PAS de category_id ni d'account_id pour un transfert.
 
 Catégories dépenses : ${expenseCats || "(aucune)"}
 Catégories revenus : ${incomeCats || "(aucune)"}
 Comptes : ${accountList || "(aucun)"}`
-      : `You parse a quick natural-language transaction entry into a structured payload.
+      : `You parse a quick natural-language entry into a structured payload.
 
 Rules:
-- Detect type: "income" if salary/sale/payment received, else "expense" by default.
+- Detect type:
+  • "transfer" if the sentence describes a movement between 2 accounts (keywords: "transfer", "send X to Y", "from X to Y", "X → Y", "move X to Y").
+  • "income" if salary/sale/payment received.
+  • "expense" otherwise (default).
 - Extract the amount (number only, no currency). Tolerate spaces, commas, "k" for thousands.
-- Generate a short clean description (capitalized).
-- Pick the best matching category UUID from the list.
-- Pick the best matching account UUID (default to first listed if not mentioned).
+- Short clean description (capitalized). For a transfer: "Transfer <Source> → <Destination>".
+- For expense/income: pick best category UUID + account UUID (default first).
+- For transfer: fill "from_account_id" and "to_account_id" (exact UUIDs). Do NOT return category_id or account_id for a transfer.
 
 Expense categories: ${expenseCats || "(none)"}
 Income categories: ${incomeCats || "(none)"}
