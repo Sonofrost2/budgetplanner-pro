@@ -17,7 +17,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins, History, BarChart3, Eye, Printer } from 'lucide-react';
+import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, Inbox, ArrowLeftRight, Coins, History, BarChart3, Eye, Printer, Archive } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import AccountsRecapTab from '@/components/dashboard/tabs/AccountsRecapTab';
 import { toast } from 'sonner';
