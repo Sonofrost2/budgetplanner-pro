@@ -6,7 +6,7 @@ import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { Label } from '@/components/ui/label';
 import { ArrowDownToLine } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { coachToast } from '@/lib/coachToast';
 
 interface Props {
   open: boolean;
@@ -25,33 +25,31 @@ export const PartialWithdrawDialog = ({ open, onOpenChange, goal, accounts, onWi
 
   const handleWithdraw = async () => {
     const n = parseFloat(amount);
-    if (!n || n <= 0) { toast.error(fr ? 'Montant invalide' : 'Invalid amount'); return; }
-    if (n > goal.current_amount) { toast.error(fr ? 'Solde insuffisant' : 'Insufficient balance'); return; }
-    if (!accountId) { toast.error(fr ? 'Compte requis' : 'Account required'); return; }
+    if (!n || n <= 0) { coachToast.warn(fr ? 'Montant invalide' : 'Invalid amount'); return; }
+    if (n > goal.current_amount) { coachToast.warn(fr ? 'Solde insuffisant' : 'Insufficient balance'); return; }
+    if (!accountId) { coachToast.warn(fr ? 'Compte requis' : 'Account required'); return; }
     setSaving(true);
     try {
-      // Update goal current_amount
       const { error: e1 } = await supabase.from('savings_goals')
         .update({ current_amount: goal.current_amount - n } as never).eq('id', goal.id);
       if (e1) throw e1;
-      // Create income transaction on destination account
       const { error: e2 } = await supabase.from('transactions').insert({
         user_id: goal.user_id, type: 'income', amount: n,
         description: `${fr ? 'Retrait épargne' : 'Savings withdrawal'}: ${goal.name}`,
         account_id: accountId, date: new Date().toISOString().slice(0, 10),
       } as never);
       if (e2) throw e2;
-      toast.success(fr ? 'Retrait effectué' : 'Withdrawn');
+      coachToast.money(fr ? 'Puisé dans votre épargne' : 'Withdrawn from your savings');
       onOpenChange(false);
       onWithdrawn();
     } catch (e: any) {
-      toast.error(e.message);
+      coachToast.fail(e.message);
     } finally { setSaving(false); }
   };
 
   return (
     <ResponsiveFormDialog open={open} onOpenChange={onOpenChange}
-      title={fr ? 'Retrait partiel' : 'Partial withdrawal'}
+      title={fr ? 'Puiser dans mon épargne' : 'Tap into my savings'}
       description={`${goal.name} — ${fr ? 'Disponible' : 'Available'}: ${goal.current_amount}`}
       footer={<>
         <Button variant="outline" onClick={() => onOpenChange(false)}>{fr ? 'Annuler' : 'Cancel'}</Button>
