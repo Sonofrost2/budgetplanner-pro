@@ -835,7 +835,18 @@ const TransactionsPage = () => {
       <ConfirmDeleteDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} onConfirm={handleDelete} title={t.confirmDelete} description={t.confirmDeleteMessage} cancelLabel={t.cancel} confirmLabel={t.delete} />
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(selectedIds.size)} cancelLabel={t.cancel} confirmLabel={t.delete} />
 
-      {user && <TransferDialog open={transferOpen} onOpenChange={setTransferOpen} accounts={accounts} userId={user.id} t={t} onSuccess={refreshData} />}
+      {user && <TransferDialog
+        open={transferOpen}
+        onOpenChange={(v) => { setTransferOpen(v); if (!v) setTransferDefaults({}); }}
+        accounts={accounts}
+        userId={user.id}
+        t={t}
+        onSuccess={refreshData}
+        defaultFromAccountId={transferDefaults.from}
+        defaultToAccountId={transferDefaults.to}
+        defaultAmount={transferDefaults.amount}
+        defaultDescription={transferDefaults.description}
+      />}
 
       <BulkModifyDialog
         open={bulkModifyOpen}
