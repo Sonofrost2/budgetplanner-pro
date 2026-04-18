@@ -24,22 +24,36 @@ interface TransferDialogProps {
   t: DashTranslations;
   onSuccess: () => void;
   defaultFromAccountId?: string;
+  defaultToAccountId?: string;
+  defaultAmount?: string;
+  defaultDescription?: string;
   currency?: string;
 }
 
-export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSuccess, defaultFromAccountId, currency = 'FCFA' }: TransferDialogProps) => {
+export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSuccess, defaultFromAccountId, defaultToAccountId, defaultAmount, defaultDescription, currency = 'FCFA' }: TransferDialogProps) => {
   const [fromAccountId, setFromAccountId] = useState(defaultFromAccountId || '');
-  const [toAccountId, setToAccountId] = useState('');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+  const [toAccountId, setToAccountId] = useState(defaultToAccountId || '');
+  const [amount, setAmount] = useState(defaultAmount || '');
+  const [description, setDescription] = useState(defaultDescription || '');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Re-sync defaults when they change (e.g. opened from quick-parse)
+  useEffect(() => {
+    if (open) {
+      if (defaultFromAccountId !== undefined) setFromAccountId(defaultFromAccountId);
+      if (defaultToAccountId !== undefined) setToAccountId(defaultToAccountId);
+      if (defaultAmount !== undefined) setAmount(defaultAmount);
+      if (defaultDescription !== undefined) setDescription(defaultDescription);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultFromAccountId, defaultToAccountId, defaultAmount, defaultDescription]);
+
   const resetForm = () => {
     setFromAccountId(defaultFromAccountId || '');
-    setToAccountId('');
-    setAmount('');
-    setDescription('');
+    setToAccountId(defaultToAccountId || '');
+    setAmount(defaultAmount || '');
+    setDescription(defaultDescription || '');
     setErrors({});
   };
 
