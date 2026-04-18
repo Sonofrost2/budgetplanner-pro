@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, LayoutGrid, Check, Plus, RotateCcw, CalendarRange, Zap, Loader2, X, Wallet, TrendingUp, Percent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,11 +54,34 @@ export const DashboardHeroHeader = ({
   const [quickInput, setQuickInput] = useState('');
   const [quickLoading, setQuickLoading] = useState(false);
 
+  // Live clock — refreshes every minute so the displayed time stays current.
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    // Align first tick to the next minute boundary, then every 60s.
+    const msToNextMinute = 60_000 - (Date.now() % 60_000);
+    const timeout = setTimeout(() => {
+      tick();
+      const interval = setInterval(tick, 60_000);
+      // Store on the timeout ref via closure cleanup
+      (timeout as any)._interval = interval;
+    }, msToNextMinute);
+    return () => {
+      clearTimeout(timeout);
+      const interval = (timeout as any)._interval;
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
   const today = useMemo(() => {
-    return new Date().toLocaleDateString(isFr ? 'fr-FR' : 'en-US', {
-      weekday: 'long', day: 'numeric', month: 'long',
+    const datePart = now.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     });
-  }, [isFr]);
+    const timePart = now.toLocaleTimeString(isFr ? 'fr-FR' : 'en-US', {
+      hour: '2-digit', minute: '2-digit',
+    });
+    return isFr ? `${datePart} · ${timePart}` : `${datePart} · ${timePart}`;
+  }, [now, isFr]);
 
   // Sparkline path
   const sparkPath = useMemo(() => {
