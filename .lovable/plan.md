@@ -1,78 +1,116 @@
 
-Refonte complète du module **Budgets** (forme + fond), alignée sur la charte premium glassmorphism + Coach Financier déjà appliquée à Notifications, Épargne et Transactions.
+Let me explore the current AI integration before planning.
 
-## A. Forme — design premium glassmorphism
+The current AI integration is centered around `AIChatWidget.tsx` (chat) and the `ai-chat` edge function (already streaming, with rich context). Other AI edge functions exist for specific tasks: ai-suggest, ai-categorize, ai-budget-suggest, ai-forecast, ai-debt-plan, ai-savings-simulate, ai-detect-recurring, ai-report-insights, ai-wealth-valuation.
 
-1. **`BudgetsHeroHeader`** (nouveau)
-   - Bandeau gradient (primary → accent), backdrop-blur, blobs décoratifs
-   - KPIs animés : Budget total période, Consommé, Reste, % global
-   - Ring circulaire "Santé budgétaire" (0-100) basé sur ratio respect des budgets
-   - Mini sparkline 6 mois : taux de respect mensuel
-   - Badge "X budgets en alerte" cliquable
-   - CTA "Nouveau budget" + toggle vue (Cartes / Liste / Tableau)
+The user wants a "complete overhaul of form + content" of the integrated AI — same treatment as Notifications, Savings, Transactions, Budgets.
 
-2. **`BudgetCardPremium`** (nouveau, remplace l'affichage liste actuel)
-   - Glass card avec ring circulaire SVG (réutilise `SavingsRingProgress` ou variant)
-   - Severity tint : safe=secondary, warning=accent, exceeded=destructive, paused=muted
-   - Affichage : icône catégorie, nom, période, ring %, montant consommé / limite
-   - Hover reveal : actions rapides (Éditer, Pauser, Dupliquer, Supprimer)
-   - Mini barre "jours restants dans la période" + projection fin de période
-   - Badge "max/min/exact" selon `control_type`
+## Refonte complète de l'IA Coach Financier
 
-3. **`BudgetGlobalStats` refonte** (déjà existe, à harmoniser)
-   - Garder structure 4 cards mais moderniser : variations vs période précédente avec flèches ↑↓
-   - Ajouter mini-trend par card
+### A. Forme — design premium glassmorphism
 
-4. **Filtres refondus**
-   - Pills uniformes glass : Tous / Dépenses / Revenus / En alerte / En pause / Archivés
-   - Quick presets de période + recherche par nom
+1. **`AIChatWidget` refonte complète**
+   - **FAB (bouton flottant)** : pulse glow gradient primary→accent, badge "✨" animé, mini-tooltip "Coach IA" au hover
+   - **Drawer/Sheet premium** : largeur élargie (sm:max-w-lg), glass background avec blobs décoratifs, header dégradé avec avatar Coach animé
+   - **Bulles de message redesign** :
+     - User : bulle alignée droite, gradient primary subtle, coin arrondi asymétrique
+     - Assistant : avatar Coach (✨/🎯) à gauche, bulle glass avec markdown stylé (titres, listes, gras, tableaux)
+     - Animation typing dots pendant streaming
+     - Timestamp léger sous chaque message
+   - **Markdown rendering** via `react-markdown` + styles `prose-sm` cohérents avec la charte
+   - **Empty state Coach** : illustration animée + 4 quick prompts cliquables (chips) :
+     - "Fais le bilan de mes finances ce mois 📊"
+     - "Comment optimiser mon épargne ? 💰"
+     - "Stratégie pour rembourser mes dettes 🎯"
+     - "Que prévoir pour les 3 prochains mois ? 🔮"
+   - **Composer redesigné** : textarea auto-grow, bouton micro (placeholder futur), bouton envoyer en gradient + raccourcis (Cmd+Enter)
+   - **Scroll auto** + bouton "↓ Nouveau message" si l'utilisateur a scrollé en haut
 
-5. **Empty state Coach** : illustration + message ("Pas de budget ? Donnez un cadre à vos dépenses 🧭")
+2. **Header avec actions** : 
+   - Avatar animé (sparkle qui pulse)
+   - Badge "Coach Financier" + tagline ("Votre conseiller dédié")
+   - Boutons : effacer conversation, exporter en PDF/MD, fermer
 
-## B. Fond — Coach Financier
+3. **Suggestions contextuelles dynamiques** sous le composer :
+   - 2-3 follow-up prompts générés selon la dernière réponse (côté client, regex simple : si réponse mentionne "épargne" → propose "Simule un objectif", si "dette" → "Plan de remboursement")
 
-1. **`BudgetCoachInsights`** (nouveau, sous le hero)
-   - 3 chips Coach dynamiques calculés client-side :
-     - Budget le plus respecté ("🏆 Loyer : pile dans la cible")
-     - Plus gros dépassement ("⚠️ Loisirs : +35% — pensez à ajuster")
-     - Projection ("💡 À ce rythme, Alimentation dépassera de 12k FCFA")
-   - Calcul depuis `budgets` + `spending` + jours écoulés vs total période
-   - Dismissible, rotation max 3
+### B. Fond — Coach Financier intelligent
 
-2. **Toasts unifiés** : migrer tous les `toast.*` du module vers `coachToast`
-   - Création/édition → `coachToast.saved`
-   - Pause/reprise → `coachToast.remind`
-   - Suppression → `coachToast.warn`
-   - Échec → `coachToast.fail`
+1. **Persistance de conversation**
+   - Nouvelle table `ai_conversations` (id, user_id, title, created_at, updated_at, archived)
+   - Nouvelle table `ai_messages` (id, conversation_id, role, content, tokens_used, created_at)
+   - RLS strict (user_id = auth.uid())
+   - L'utilisateur peut reprendre la conversation à travers les sessions
 
-3. **Notifications palier** : déclencher `coachToast.warn` à 80% / `coachToast.fail` à 100% lors d'une mise à jour de transaction qui pousse un budget dans la zone critique (déjà géré côté `check-alerts`, on ajoute la version client immédiate)
+2. **Historique conversations** (dans le drawer)
+   - Liste latérale (collapse) des conversations passées avec titre auto-généré (premier message tronqué + IA résume après 3 échanges)
+   - Bouton "+ Nouvelle conversation" 
+   - Swipe / menu pour archiver / supprimer
 
-4. **Micro-copy revue (FR/EN)**
-   - "Budget" → "Cadre de dépense"
-   - "Consommé" → "Déjà dépensé"
-   - "Seuil" → "Alerte à"
-   - Verbes positifs côté Coach
+3. **Edge function `ai-chat` enrichie**
+   - Ajouter persistance : à chaque appel, créer/mettre à jour la conversation et insérer messages user+assistant
+   - Conserver le streaming SSE existant (parsing en parallèle pour stocker la réponse complète à la fin)
+   - Améliorer le system prompt :
+     - Persona Coach Financier explicite, ton chaleureux, proactif
+     - Toujours conclure par 1-2 actions concrètes ("Voici ce que je vous suggère…")
+     - Format markdown systématique (titres ##, listes, **gras**, tableaux pour comparaisons)
+     - Ne jamais dépasser ~250 mots sauf si analyse explicite demandée
+   - Génération automatique du titre de conversation après le 1er échange (appel séparé non-streamé, gemini-flash-lite)
 
-## C. Fichiers touchés
+4. **Quick actions intelligentes (tool-like)**
+   - Au lieu d'utiliser le tool calling Gemini (complexité), détecter dans la réponse IA les blocs spéciaux markdown :
+     - `[ACTION:create_budget|category|amount]` → bouton "Créer ce cadre" rendu sous la bulle
+     - `[ACTION:create_savings_goal|name|target]` → bouton "Créer cet objectif"
+     - `[ACTION:view_module|budgets|transactions|savings]` → bouton "Voir le module"
+   - Le system prompt instruit l'IA d'utiliser ces tags quand pertinent
+   - Les boutons exécutent l'action client-side (ouvrir le bon dialog avec données pré-remplies, ou navigation)
+
+5. **Contexte renforcé**
+   - Étendre le `context` envoyé : inclure le `health_score`, les top 5 catégories du mois, les anomalies détectées (variation >25%)
+   - Tronquer intelligemment si > 30k tokens (garder summary + 20 dernières transactions)
+
+6. **Toasts unifiés** → migrer tous vers `coachToast`
+   - Erreurs API → `coachToast.fail`
+   - Conversation effacée → `coachToast.warn`
+   - Conversation exportée → `coachToast.saved`
+
+7. **Quota & Premium**
+   - Free : 10 messages/mois, compteur visible dans le header
+   - Pro : 100 messages/mois
+   - Premium : illimité
+   - Trigger DB sur `ai_messages` pour incrémenter compteur mensuel
+   - Banner upgrade quand quota atteint
+
+### C. Fichiers touchés
 
 **Créer**
-- `src/components/dashboard/budgets/BudgetsHeroHeader.tsx`
-- `src/components/dashboard/budgets/BudgetCoachInsights.tsx`
-- `src/components/dashboard/budgets/BudgetCardPremium.tsx`
+- `src/components/dashboard/ai/AICoachAvatar.tsx` (avatar animé sparkle)
+- `src/components/dashboard/ai/AIMessageBubble.tsx` (bulle avec markdown + actions inline)
+- `src/components/dashboard/ai/AIQuickPrompts.tsx` (chips quick prompts + follow-ups)
+- `src/components/dashboard/ai/AIConversationList.tsx` (historique latéral)
+- `src/hooks/useAIConversations.tsx` (CRUD conversations + messages)
+- `src/lib/aiActionParser.ts` (parser des blocs `[ACTION:...]`)
 
 **Refondre**
-- `src/pages/dashboard/BudgetsPage.tsx` (intégration hero + insights + toggle vue + empty state Coach + migration toasts)
-- `src/components/dashboard/budgets/BudgetGlobalStats.tsx` (variations vs période précédente)
-- `src/components/dashboard/budgets/BudgetForm.tsx` (toasts → `coachToast`)
+- `src/components/dashboard/AIChatWidget.tsx` (refonte UI complète + intégration historique + persistance)
+- `supabase/functions/ai-chat/index.ts` (persistance, system prompt enrichi, génération titre)
+
+**Migration DB**
+- Tables `ai_conversations` + `ai_messages` avec RLS
+- Trigger `update_conversation_updated_at`
+- Compteur mensuel via vue `ai_usage_monthly`
 
 **i18n**
-- `src/i18n/dashTranslations.ts` : clés `budgetsHero*`, `budgetsInsight*`, `budgetsCoach*`
+- `src/i18n/dashTranslations.ts` : `aiCoach*` keys (~20 nouvelles clés FR/EN)
 
-## D. Hors-scope
-- Aucune migration DB (toutes les données nécessaires existent déjà : `amount`, `period`, `control_type`, `alert_threshold`, `paused_at`, `carry_over`, etc.)
-- Aucun changement RPC ni edge function
-- L'onglet Évolution (`BudgetEvolutionTab`) garde sa logique actuelle, juste réharmonisé visuellement si besoin léger
-- L'onglet Analyse (`BudgetAnalysisTab`) inchangé
+**Dépendance**
+- `react-markdown` + `remark-gfm` (si pas déjà présents — à vérifier)
 
-## E. Mémoire
-- Mettre à jour `mem://features/budgeting-logic/annualization-and-labels` avec section "Design refonte v2 : hero + ring + Coach insights + coachToast"
+### D. Hors-scope
+- Pas de tool calling natif Gemini (on parse les actions via tags markdown — plus simple, plus stable)
+- Pas de voix / micro (UI prête mais pas implémentée)
+- Pas de génération d'image inline
+- Les autres edge functions IA (`ai-budget-suggest`, `ai-forecast`, etc.) restent intactes
+
+### E. Mémoire
+- Mettre à jour `mem://features/ai-capabilities` avec section "Refonte v2 : conversations persistantes + Coach UI premium + actions inline + quotas"
