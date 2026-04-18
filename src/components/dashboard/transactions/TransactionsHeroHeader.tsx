@@ -12,9 +12,11 @@ import type { DashTranslations } from '@/i18n/dashTranslations';
 export interface QuickParsedTransaction {
   description: string;
   amount: number;
-  type: 'expense' | 'income';
+  type: 'expense' | 'income' | 'transfer';
   category_id?: string;
   account_id?: string;
+  from_account_id?: string;
+  to_account_id?: string;
   confidence?: number;
 }
 

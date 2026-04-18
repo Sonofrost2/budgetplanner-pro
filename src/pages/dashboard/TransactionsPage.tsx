@@ -70,6 +70,7 @@ const TransactionsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [transferOpen, setTransferOpen] = useState(false);
+  const [transferDefaults, setTransferDefaults] = useState<{ from?: string; to?: string; amount?: string; description?: string }>({});
   const [budgetOverspendOpen, setBudgetOverspendOpen] = useState(false);
   const [overspendBudgetName, setOverspendBudgetName] = useState('');
 
@@ -463,6 +464,18 @@ const TransactionsPage = () => {
         canUseAI={canUseAISuggestions}
         onQuickAdd={(parsed) => {
           if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
+          // Transfer flow → open TransferDialog pre-filled
+          if (parsed.type === 'transfer') {
+            if (accounts.length < 2) { toast.error(locale === 'fr' ? 'Crée au moins 2 comptes pour transférer' : 'Create at least 2 accounts to transfer'); return; }
+            setTransferDefaults({
+              from: parsed.from_account_id || accounts[0]?.id,
+              to: parsed.to_account_id || accounts.find(a => a.id !== (parsed.from_account_id || accounts[0]?.id))?.id,
+              amount: parsed.amount != null ? String(parsed.amount) : '',
+              description: parsed.description || '',
+            });
+            setTransferOpen(true);
+            return;
+          }
           setEditing(null);
           setErrors({});
           const fallbackCatId = (categories.find((c: any) => c.type === parsed.type)?.id) || categories[0]?.id || '';
@@ -822,7 +835,18 @@ const TransactionsPage = () => {
       <ConfirmDeleteDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} onConfirm={handleDelete} title={t.confirmDelete} description={t.confirmDeleteMessage} cancelLabel={t.cancel} confirmLabel={t.delete} />
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(selectedIds.size)} cancelLabel={t.cancel} confirmLabel={t.delete} />
 
-      {user && <TransferDialog open={transferOpen} onOpenChange={setTransferOpen} accounts={accounts} userId={user.id} t={t} onSuccess={refreshData} />}
+      {user && <TransferDialog
+        open={transferOpen}
+        onOpenChange={(v) => { setTransferOpen(v); if (!v) setTransferDefaults({}); }}
+        accounts={accounts}
+        userId={user.id}
+        t={t}
+        onSuccess={refreshData}
+        defaultFromAccountId={transferDefaults.from}
+        defaultToAccountId={transferDefaults.to}
+        defaultAmount={transferDefaults.amount}
+        defaultDescription={transferDefaults.description}
+      />}
 
       <BulkModifyDialog
         open={bulkModifyOpen}
