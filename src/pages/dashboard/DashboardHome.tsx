@@ -138,8 +138,13 @@ const DashboardHome = () => {
     params.set('description', parsed.description);
     params.set('amount', String(parsed.amount));
     params.set('type', parsed.type);
-    if (parsed.category_id) params.set('category_id', parsed.category_id);
-    if (parsed.account_id) params.set('account_id', parsed.account_id);
+    if (parsed.type === 'transfer') {
+      if (parsed.from_account_id) params.set('from_account_id', parsed.from_account_id);
+      if (parsed.to_account_id) params.set('to_account_id', parsed.to_account_id);
+    } else {
+      if (parsed.category_id) params.set('category_id', parsed.category_id);
+      if (parsed.account_id) params.set('account_id', parsed.account_id);
+    }
     navigate(`/dashboard/transactions?${params.toString()}`);
   }, [navigate]);
 
