@@ -82,51 +82,52 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-background">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-background relative overflow-hidden">
+      <div aria-hidden className="absolute inset-0 -z-10" style={{ background: 'var(--gradient-mesh)' }} />
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md auth-surface">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20" style={{ background: 'var(--gradient-primary)' }}>
             <Wallet className="w-5 h-5 text-primary-foreground" />
           </div>
           <span className="text-xl font-bold font-display">Budget Planner</span>
         </div>
 
         {success ? (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
-            <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-6">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-6">
+            <div className="w-16 h-16 rounded-2xl bg-secondary/15 ring-1 ring-secondary/30 flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-8 h-8 text-secondary" />
             </div>
-            <h1 className="text-2xl font-bold mb-3">{t.auth.passwordUpdated || 'Mot de passe mis à jour'}</h1>
-            <p className="text-muted-foreground mb-6">{t.auth.passwordUpdatedDesc || 'Votre mot de passe a été modifié avec succès.'}</p>
+            <h1 className="text-2xl font-bold font-display mb-3">{t.auth.passwordUpdated || 'Mot de passe mis à jour'}</h1>
+            <p className="text-sm text-muted-foreground mb-6">{t.auth.passwordUpdatedDesc || 'Votre mot de passe a été modifié avec succès.'}</p>
             <Link to="/login">
-              <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+              <Button className="h-11 rounded-xl text-primary-foreground font-semibold shadow-lg shadow-primary/20" style={{ background: 'var(--gradient-primary)' }}>
                 {t.auth.login}
               </Button>
             </Link>
           </motion.div>
         ) : (
           <>
-            <h1 className="text-2xl font-bold">{t.auth.newPassword || 'Nouveau mot de passe'}</h1>
-            <p className="mt-2 text-muted-foreground">{t.auth.newPasswordDesc || 'Choisissez un nouveau mot de passe pour votre compte.'}</p>
+            <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight">{t.auth.newPassword || 'Nouveau mot de passe'}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{t.auth.newPasswordDesc || 'Choisissez un nouveau mot de passe pour votre compte.'}</p>
 
-            <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+            <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
-                <Label htmlFor="password">{t.auth.password}</Label>
+                <Label htmlFor="password" className="form-label">{t.auth.password}</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10" required minLength={6} />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required minLength={6} />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
+                <Label htmlFor="confirmPassword" className="form-label">{t.auth.confirmPassword}</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="pl-10" required minLength={6} />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required minLength={6} />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} disabled={loading}>
+              <Button type="submit" className="w-full h-11 rounded-xl text-primary-foreground font-semibold shadow-lg shadow-primary/20" style={{ background: 'var(--gradient-primary)' }} disabled={loading}>
                 {loading ? '...' : (t.auth.updatePassword || 'Mettre à jour')}
               </Button>
             </form>

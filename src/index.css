@@ -350,6 +350,40 @@
   @apply text-[11px] font-bold uppercase tracking-wider text-muted-foreground;
 }
 
+/* Premium form section grouping (glass card inside dialogs) */
+.form-section {
+  @apply rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm p-4 space-y-3;
+  box-shadow: var(--shadow-card);
+}
+.form-section-title {
+  @apply text-[10px] font-bold uppercase tracking-[0.12em] text-primary/70 flex items-center gap-1.5;
+}
+
+/* Responsive 2-col form grid */
+.form-grid-2 {
+  @apply grid gap-3 sm:grid-cols-2;
+}
+.form-grid-3 {
+  @apply grid gap-3 sm:grid-cols-3;
+}
+
+/* Premium auth surface (login/signup/forgot/reset cards) */
+.auth-surface {
+  @apply rounded-3xl border border-border/40 bg-background/70 backdrop-blur-2xl p-6 sm:p-8;
+  box-shadow: 0 24px 64px -16px hsl(var(--ring) / 0.18), inset 0 1px 0 0 hsl(0 0% 100% / 0.15);
+}
+
+/* Field error shake — fires once when error class is applied */
+.field-error-shake {
+  animation: field-shake 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+@keyframes field-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-3px); }
+  40%, 60% { transform: translateX(3px); }
+}
+
 /* Enhanced card hover */
 .card-interactive {
   @apply border border-border/50 rounded-2xl transition-all duration-300;
