@@ -157,7 +157,7 @@ const SavingsPage = () => {
       const withAccount = goalsData.filter(g => g.account_id);
       const accountIds = withAccount.map(g => g.account_id!);
       if (accountIds.length === 0) {
-        toast.info(locale === 'fr' ? 'Aucun objectif avec compte lié' : 'No goals with linked accounts');
+        coachToast.remind(locale === 'fr' ? 'Aucun objectif avec compte lié' : 'No goals with linked accounts');
         setRecalculating(false);
         return;
       }
@@ -182,11 +182,11 @@ const SavingsPage = () => {
 
       await refreshData();
       invalidateCrossModule();
-      toast.success(locale === 'fr'
+      coachToast.saved(locale === 'fr'
         ? `${updated} objectif(s) recalculé(s) depuis les transactions`
         : `${updated} goal(s) recalculated from transactions`);
     } catch (err: any) {
-      toast.error(err.message || 'Erreur');
+      coachToast.fail(err.message || 'Erreur');
     } finally {
       setRecalculating(false);
     }
@@ -206,7 +206,7 @@ const SavingsPage = () => {
         .limit(1000);
 
       if (!txs || txs.length === 0) {
-        toast.info(locale === 'fr' ? 'Aucune transaction d\'épargne trouvée' : 'No savings transactions found');
+        coachToast.remind(locale === 'fr' ? 'Aucune transaction d\'épargne trouvée' : 'No savings transactions found');
         setSyncing(false);
         return;
       }
@@ -254,9 +254,9 @@ const SavingsPage = () => {
       }
 
       await refreshData();
-      toast.success(locale === 'fr' ? `${updated} objectif(s) synchronisé(s)` : `${updated} goal(s) synced`);
+      coachToast.saved(locale === 'fr' ? `${updated} objectif(s) synchronisé(s)` : `${updated} goal(s) synced`);
     } catch (err: any) {
-      toast.error(err.message || 'Erreur');
+      coachToast.fail(err.message || 'Erreur');
     } finally {
       setSyncing(false);
     }
@@ -470,15 +470,15 @@ const SavingsPage = () => {
   // Archive / Reactivate goal
   const handleArchive = async (goalId: string) => {
     const { error } = await supabase.from('savings_goals').update({ status: 'completed' } as any).eq('id', goalId);
-    if (error) { toast.error(error.message); return; }
-    toast.success(t.goalArchived);
+    if (error) { coachToast.fail(error.message); return; }
+    coachToast.win(t.goalArchived);
     refreshData();
   };
 
   const handleReactivate = async (goalId: string) => {
     const { error } = await supabase.from('savings_goals').update({ status: 'active' } as any).eq('id', goalId);
-    if (error) { toast.error(error.message); return; }
-    toast.success(t.goalReactivated);
+    if (error) { coachToast.fail(error.message); return; }
+    coachToast.saved(t.goalReactivated);
     refreshData();
   };
 
@@ -633,11 +633,11 @@ const SavingsPage = () => {
       // Update last_capitalized_at
       await supabase.from('savings_goals').update({ last_capitalized_at: new Date().toISOString() } as any).eq('id', goalId);
 
-      toast.success(`${t.interestCapitalized}: +${fmt(interestAmount)}`);
+      coachToast.money(`${t.interestCapitalized}: +${fmt(interestAmount)}`);
       refreshData();
       invalidateCrossModule();
     } catch (err: any) {
-      toast.error(err.message || 'Erreur');
+      coachToast.fail(err.message || 'Erreur');
     } finally {
       setCapitalizingGoalId(null);
     }
