@@ -1,17 +1,15 @@
-import { useMemo, useState, useCallback, ReactNode } from 'react';
+import { useMemo, useState, useCallback, ReactNode, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, CalendarRange, Sparkles, LayoutGrid, RotateCcw, Check } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DashboardHeroHeader } from '@/components/dashboard/home/DashboardHeroHeader';
+import { DashboardCoachInsights } from '@/components/dashboard/home/DashboardCoachInsights';
+import type { QuickParsedTransaction } from '@/components/dashboard/transactions/TransactionsHeroHeader';
 import {
   DndContext,
   closestCenter,
