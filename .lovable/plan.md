@@ -1,36 +1,80 @@
 
-The user wants to display the monthly total of "Régularisation" (adjustment) transactions in the HealthScoreWidget as a data-entry reliability indicator.
+The user wants a complete overhaul (content + form) of the Savings module, similar to what we did for Notifications. Let me explore current state.
 
-Current state of HealthScoreWidget: shows score /100 + savings rate + debt ratio. Data comes from `compute_health_score` RPC.
+Current files (from context):
+- `src/pages/dashboard/SavingsPage.tsx` (main page)
+- `src/components/dashboard/savings/SavingsControlTable.tsx`
+- `src/components/dashboard/savings/SavingsDialogs.tsx`
+- `src/components/dashboard/savings/SavingsGlobalStats.tsx`
+- `src/components/dashboard/savings/SavingsGoalCard.tsx`
+- `src/components/dashboard/savings/SavingsSummaryTable.tsx`
+- `src/components/dashboard/savings/PartialWithdrawDialog.tsx`
+- `src/components/dashboard/home/SavingsWidget.tsx`
+- `src/components/dashboard/tabs/SavingsEvolutionTab.tsx`
+- `src/components/dashboard/tabs/SavingsProjectionsTab.tsx`
 
-Approach: keep it simple — add a client-side query in HealthScoreWidget that fetches current-month transactions linked to categories whose name contains "régularisation" or "adjustment", sums them, and shows a 3rd compact stat row.
+Memory `mem://features/savings-management`: transactions = source of truth, useSavingsPageData, dynamic recalc.
 
-No DB migration needed (categories are user-created and identifiable by name, just like the Transactions filter we just built).
+Goal: align Savings with the premium glassmorphism + Coach Financier voice (notifications design system) and add depth (hero, narrative insights, smarter empty states, motivation).
 
-## Plan
+## Plan — Refonte Module Épargne
 
-**1. Extend `src/lib/healthScore.ts`**
-- Add helper `fetchMonthlyRegularizationTotal(userId)`:
-  - Query `categories` where name ILIKE '%régularisation%' OR ILIKE '%regularisation%' OR ILIKE '%adjustment%' for that user → get IDs
-  - Query `transactions` filtered by those category IDs, current month range, `deleted_at IS NULL`
-  - Return `{ total: number, count: number, hasIncome: boolean, hasExpense: boolean }` (signed: income − expense to show net adjustment)
+### A. Form (visuelle) — design glassmorphism premium
 
-**2. Update `src/components/dashboard/home/HealthScoreWidget.tsx`**
-- Add a second `useEffect` (or Promise.all) to load regularization data
-- Add a 3rd compact stat row below the savings/debt grid:
-  - Icon: `Scale` (lucide) in amber tone matching the Transactions filter
-  - Label: "Régularisations" / "Adjustments"
-  - Value: formatted amount + count badge (e.g. `12 500 XOF · 3`)
-  - Reliability hint colors:
-    - 0 entries → muted "Aucune" / "None" (neutral, good)
-    - 1–2 entries → amber (occasional adjustments)
-    - 3+ entries → orange/destructive ("Vérifiez votre saisie" / "Check your data entry")
-- Use `useProfile().fmt` for currency formatting (consistent with rest of dashboard)
-- Add small tooltip/title explaining: "Plus le total est faible, plus votre saisie est fiable"
+1. **`SavingsHeroHeader`** (nouveau) — calque sur `WealthHeroHeader`
+   - Gradient soft (secondary → primary), backdrop-blur
+   - Total épargné, total objectif, % global animé (ring + AnimatedNumber)
+   - Mini sparkline 6 mois (apports nets)
+   - Badge "Streak" : nb mois consécutifs avec apport
+   - CTA "Nouvel objectif" + toggle vue (Cartes / Tableau)
 
-**3. No memory update needed** — this is a small UI extension; existing `notification-design-system` and `wealth-management` memos cover the patterns used.
+2. **`SavingsGoalCard` premium**
+   - Glass card avec ring de progression circulaire (SVG) au lieu de simple Progress bar
+   - Severity tint : completed=secondary, late=destructive, on-track=primary, ahead=emerald
+   - Hover : reveal actions rapides (Apport, Retrait, Détails)
+   - Mini timeline des 3 derniers apports en bas
+   - Echéance avec compte-à-rebours humanisé ("dans 4 mois")
 
-## Technical notes
-- Use direct supabase client query (no new RPC) — keeps the change scoped and avoids a migration round-trip
-- Wrap in try/catch; if no regularization category exists yet, just hide the row (graceful degradation)
-- Re-fetch only when `user.id` changes (same lifecycle as the score)
+3. **`SavingsGlobalStats` refonte**
+   - 4 stat cards glass : Total épargné, Reste à atteindre, Apport mensuel moyen, Projection 12M
+   - Variations vs mois dernier (↑↓ %) avec couleur sémantique
+
+4. **`SavingsSummaryTable`** : header sticky, lignes hover glass, badges sévérité harmonisés
+
+5. **Empty state Coach** : illustration + message Coach ("Pas encore d'objectif ? Commençons par un petit défi 💡")
+
+6. **`SavingsWidget` (home)** : aligner avec ring circulaire mini + streak
+
+### B. Fond (contenu / Coach Financier)
+
+1. **`SavingsCoachInsights`** (nouveau composant)
+   - Bandeau insights dynamiques générés côté client :
+     - "🎯 Vacances : à ce rythme, vous l'atteignez 2 mois en avance"
+     - "⚠️ Voiture : retard de 15% — augmentez de 12 000 XOF/mois pour rattraper"
+     - "🎉 Fonds d'urgence atteint ! Réinvestir / Garder / Archiver ?"
+     - "💡 Vous épargnez 18% de vos revenus — au-dessus de la moyenne (15%)"
+   - Calcul : compare current vs (target × elapsed / total duration)
+   - Max 3 insights affichés, rotation, dismissible
+
+2. **Toasts unifiés** : remplacer `toast.*` dans Savings par `coachToast` (success/info/warn) avec ton Coach
+
+3. **Labels & micro-copy** revus (FR/EN) : verbes d'action positifs, pas de jargon
+   - "Apport" → "Alimenter mon objectif"
+   - "Retrait partiel" → "Puiser dans mon épargne"
+   - "Solde" → "Déjà épargné"
+
+4. **Notifications liées** : déclencher coach toast à 25/50/75/100% (palier atteint)
+
+### C. Fichiers touchés
+- **Créer** : `SavingsHeroHeader.tsx`, `SavingsCoachInsights.tsx`, `SavingsRingProgress.tsx` (SVG ring réutilisable)
+- **Refondre** : `SavingsGoalCard.tsx`, `SavingsGlobalStats.tsx`, `SavingsSummaryTable.tsx`, `SavingsPage.tsx` (intégration), `home/SavingsWidget.tsx`
+- **Migrer toasts** : `SavingsDialogs.tsx`, `PartialWithdrawDialog.tsx`, `SavingsControlTable.tsx` → `coachToast`
+- **i18n** : ajouter clés `savingsHero*`, `savingsInsight*`, `savingsCoach*` dans `dashTranslations.ts`
+
+### D. Hors-scope (à confirmer si nécessaire)
+- Pas de migration DB (toutes les data nécessaires existent déjà : `current_amount`, `target_amount`, `monthly_contribution`, `start_date`, `deadline`, `interest_rate`)
+- Pas de changement RPC
+- L'onglet Projections (`SavingsProjectionsTab`) garde sa logique, juste réharmonisé visuellement
+
+### E. Mémoire
+- Mettre à jour `mem://features/savings-management` avec section "Design refonte v2 : hero + ring + Coach insights"
