@@ -43,14 +43,25 @@ export const queryKeys = {
 
 // ─── Read Hooks ──────────────────────────────────────────────────────────────
 
-export const useAccounts = () => {
+/**
+ * Fetch user payment accounts.
+ * By default, archived accounts are EXCLUDED to keep widgets (Wealth, Health, Forecast,
+ * StatsCards, AccountsSummary…) consistent: an archived account must not inflate the
+ * net worth, the diversification score, or the active-accounts count.
+ * Pass `{ includeArchived: true }` only on screens dedicated to managing archives
+ * (e.g. AccountsPage with the "show archived" toggle).
+ */
+export const useAccounts = (opts?: { includeArchived?: boolean }) => {
   const { user } = useAuth();
+  const includeArchived = opts?.includeArchived ?? false;
   return useQuery({
-    queryKey: queryKeys.accounts(user?.id ?? ''),
+    queryKey: [...queryKeys.accounts(user?.id ?? ''), includeArchived ? 'all' : 'active'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from('payment_accounts').select('*')
-        .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: true });
+        .eq('user_id', user!.id).is('deleted_at', null);
+      if (!includeArchived) q = q.is('archived_at', null);
+      const { data, error } = await q.order('created_at', { ascending: true });
       if (error) throw error;
       return (data ?? []) as Account[];
     },
