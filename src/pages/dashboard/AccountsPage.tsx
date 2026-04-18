@@ -63,7 +63,8 @@ const AccountsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const typeFilter = searchParams.get('type') || '';
   const initialSearch = searchParams.get('q') || '';
-  const { data: accounts = [], isLoading: accLoading } = useAccounts();
+  // AccountsPage is the only screen allowed to display archived accounts (toggle "Voir archivés").
+  const { data: accounts = [], isLoading: accLoading } = useAccounts({ includeArchived: true });
   const { data: theoreticalBalances = {}, isLoading: balLoading } = useAccountTheoreticalBalances();
   const { data: cashCounts = {}, isLoading: ccLoading } = useAccountCashCounts();
   const { data: allTransactions = [], isLoading: txLoading } = useAccountTransactions();
