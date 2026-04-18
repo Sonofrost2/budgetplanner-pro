@@ -112,13 +112,36 @@ const DashboardHome = () => {
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<PeriodKey>('today');
+  const PERIOD_KEY = 'bp_dashboard_period';
+  const [period, setPeriod] = useState<PeriodKey>(() => {
+    try {
+      const saved = localStorage.getItem(PERIOD_KEY);
+      return (saved as PeriodKey) || 'today';
+    } catch { return 'today'; }
+  });
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [appliedCustom, setAppliedCustom] = useState<{ start: string; end: string } | null>(null);
   const [customOpen, setCustomOpen] = useState(false);
   const fmt = (n: number) => fmtCurrency(n, locale);
   const isFr = locale === 'fr';
+
+  useEffect(() => {
+    try { localStorage.setItem(PERIOD_KEY, period); } catch {}
+  }, [period]);
+
+  const displayName = (user?.user_metadata as any)?.display_name || (user?.user_metadata as any)?.full_name || user?.email?.split('@')[0] || null;
+
+  const handleQuickAdd = useCallback((parsed: QuickParsedTransaction) => {
+    const params = new URLSearchParams();
+    params.set('quickAdd', '1');
+    params.set('description', parsed.description);
+    params.set('amount', String(parsed.amount));
+    params.set('type', parsed.type);
+    if (parsed.category_id) params.set('category_id', parsed.category_id);
+    if (parsed.account_id) params.set('account_id', parsed.account_id);
+    navigate(`/dashboard/transactions?${params.toString()}`);
+  }, [navigate]);
 
   // Dashboard layout
   const { widgets, editMode, setEditMode, reorder, toggleVisibility, resetLayout } = useDashboardLayout();
