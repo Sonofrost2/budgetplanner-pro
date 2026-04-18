@@ -175,6 +175,7 @@ export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Prop
     primary: 'bg-primary/10 border-primary/25 text-primary',
     warn: 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400',
     info: 'bg-secondary/10 border-secondary/25 text-secondary',
+    streak: 'bg-gradient-to-r from-orange-500/15 to-amber-500/15 border-orange-500/40 text-orange-600 dark:text-orange-400 shadow-[0_2px_12px_-2px_hsl(25_95%_55%/0.35)]',
   };
 
   return (
