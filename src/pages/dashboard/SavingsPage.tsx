@@ -777,6 +777,10 @@ const SavingsPage = () => {
                 }
                 setWithdrawDialog(g.id); setWithdrawAmount(''); setTargetAccountId('');
               }}
+              onPartialWithdraw={() => {
+                if ((g as any).is_locked) { toast.error(t.savingsLockedWarning); return; }
+                setPartialWithdrawId(g.id);
+              }}
               onEdit={() => {
                 setEditGoalId(g.id);
                 setForm({
