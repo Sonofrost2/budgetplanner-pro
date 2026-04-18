@@ -1,11 +1,22 @@
-import { useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, ArrowLeftRight, TrendingUp, TrendingDown, Wallet, Sparkles, Zap, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+
+export interface QuickParsedTransaction {
+  description: string;
+  amount: number;
+  type: 'expense' | 'income';
+  category_id?: string;
+  account_id?: string;
+  confidence?: number;
+}
 
 interface Props {
   userId: string | undefined;
@@ -19,12 +30,52 @@ interface Props {
   thisMonthCount: number;
   monthlyLimit: number;
   isPremium: boolean;
+  onQuickAdd?: (parsed: QuickParsedTransaction) => void;
+  canUseAI?: boolean;
 }
 
 export const TransactionsHeroHeader = ({
   userId, fmt, locale, t, onAddNew, onTransfer, canTransfer,
   limitReached, thisMonthCount, monthlyLimit, isPremium,
+  onQuickAdd, canUseAI = true,
 }: Props) => {
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickInput, setQuickInput] = useState('');
+  const [quickLoading, setQuickLoading] = useState(false);
+  const isFr = locale === 'fr';
+
+  const handleQuickParse = async () => {
+    const text = quickInput.trim();
+    if (!text || quickLoading || !onQuickAdd) return;
+    if (limitReached) {
+      toast.error(isFr ? 'Limite mensuelle atteinte' : 'Monthly limit reached');
+      return;
+    }
+    setQuickLoading(true);
+    try {
+      const [{ data: cats }, { data: accs }] = await Promise.all([
+        supabase.from('categories').select('id, name, type').is('deleted_at', null),
+        supabase.from('payment_accounts').select('id, name').is('deleted_at', null).eq('status', 'active'),
+      ]);
+      const { data, error } = await supabase.functions.invoke('ai-quick-parse', {
+        body: { input: text, categories: cats || [], accounts: accs || [], locale },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.description || typeof data.amount !== 'number') {
+        throw new Error(isFr ? 'Saisie non comprise' : 'Could not parse input');
+      }
+      onQuickAdd(data as QuickParsedTransaction);
+      setQuickInput('');
+      setQuickOpen(false);
+      toast.success(isFr ? '✨ Pré-rempli — vérifie et valide' : '✨ Pre-filled — review and save');
+    } catch (e: any) {
+      toast.error(e?.message || (isFr ? 'Erreur IA' : 'AI error'));
+    } finally {
+      setQuickLoading(false);
+    }
+  };
+
   const monthStart = useMemo(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -191,6 +242,20 @@ export const TransactionsHeroHeader = ({
               <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
             </Button>
           </motion.div>
+          {onQuickAdd && canUseAI && (
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                size="sm"
+                variant="outline"
+                className={`w-full rounded-xl border-primary/40 bg-primary/10 backdrop-blur-sm hover:bg-primary/15 text-primary ${quickOpen ? 'shadow-[0_0_0_2px_hsl(var(--primary)/0.25)]' : ''}`}
+                onClick={() => setQuickOpen(v => !v)}
+                disabled={limitReached}
+                title={isFr ? 'Saisie rapide IA' : 'Quick AI entry'}
+              >
+                <Zap className="w-4 h-4 mr-1" />{isFr ? 'Saisie rapide' : 'Quick add'}
+              </Button>
+            </motion.div>
+          )}
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button size="sm" variant="outline" className="w-full rounded-xl border-border/60 bg-background/40 backdrop-blur-sm" onClick={onTransfer} disabled={!canTransfer}>
               <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
@@ -198,6 +263,62 @@ export const TransactionsHeroHeader = ({
           </motion.div>
         </div>
       </div>
+
+      {/* Quick-Add inline panel */}
+      <AnimatePresence initial={false}>
+        {quickOpen && onQuickAdd && (
+          <motion.div
+            key="quick-add-panel"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="relative border-t border-[hsl(var(--glass-border))] bg-gradient-to-r from-primary/8 via-transparent to-secondary/8 backdrop-blur-sm overflow-hidden"
+          >
+            <div className="px-5 sm:px-7 py-3 sm:py-4 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-md">
+                <Sparkles className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <Input
+                  autoFocus
+                  value={quickInput}
+                  onChange={(e) => setQuickInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); handleQuickParse(); }
+                    if (e.key === 'Escape') { setQuickOpen(false); setQuickInput(''); }
+                  }}
+                  placeholder={isFr ? 'Ex: Café 1500, Taxi 3k, Salaire 250000…' : 'e.g. Coffee 1500, Taxi 3k, Salary 250000…'}
+                  disabled={quickLoading}
+                  maxLength={500}
+                  className="h-9 rounded-xl bg-background/70 border-primary/25 focus-visible:ring-primary/40 text-sm"
+                />
+                <p className="text-[10px] text-muted-foreground/70 mt-1 px-1">
+                  {isFr ? '⌨️ Entrée pour parser · Échap pour fermer' : '⌨️ Enter to parse · Esc to close'}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleQuickParse}
+                disabled={!quickInput.trim() || quickLoading}
+                className="h-9 rounded-xl text-primary-foreground shrink-0"
+                style={{ background: 'var(--gradient-primary)' }}
+              >
+                {quickLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                <span className="ml-1 hidden sm:inline">{isFr ? 'Pré-remplir' : 'Pre-fill'}</span>
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => { setQuickOpen(false); setQuickInput(''); }}
+                className="h-9 w-9 rounded-xl shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
