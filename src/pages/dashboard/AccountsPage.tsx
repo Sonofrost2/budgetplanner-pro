@@ -87,6 +87,19 @@ const AccountsPage = () => {
   const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type' | 'discrepancy'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showDiscrepancyOnly, setShowDiscrepancyOnly] = useState(false);
+  const [viewMode, setViewMode] = useState<AccountsViewMode>(() => (localStorage.getItem('accounts-view-mode') as AccountsViewMode) || 'cards');
+  const [drilldownAccount, setDrilldownAccount] = useState<Account | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  useEffect(() => { localStorage.setItem('accounts-view-mode', viewMode); }, [viewMode]);
+
+  const handleArchiveToggle = async (acc: Account) => {
+    const fn = acc.archived_at ? unarchiveItem : archiveItem;
+    const { error } = await fn('payment_accounts', acc.id);
+    if (error) { toast.error(error.message); return; }
+    refreshAll();
+    toast.success(acc.archived_at ? (locale === 'fr' ? 'Désarchivé' : 'Unarchived') : (locale === 'fr' ? 'Archivé' : 'Archived'));
+  };
 
   const filteredAccounts = useMemo(() => {
     let result = accounts;
