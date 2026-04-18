@@ -141,11 +141,16 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
 
         {/* Navigation */}
         {filteredNav.length > 0 && (
-          <CommandGroup heading={isFr ? 'Navigation' : 'Navigation'}>
+          <CommandGroup heading={(t as any).goTo || (isFr ? 'Aller à…' : 'Go to…')}>
             {filteredNav.map(item => (
               <CommandItem key={item.id} onSelect={item.action} className="gap-2.5 cursor-pointer">
                 {item.icon}
-                <span>{item.label}</span>
+                <span className="flex-1">{item.label}</span>
+                {item.shortcut && (
+                  <kbd className="hidden md:inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                    {item.shortcut}
+                  </kbd>
+                )}
               </CommandItem>
             ))}
           </CommandGroup>
