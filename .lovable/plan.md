@@ -1,2 +1,4 @@
 
-Let me explore the accounts module and savings logic to make informed proposals.
+The user wants a complete overhaul of the notification/alert/email system — both **content** (tone, structure, messages) and **form** (visual design, channels, UX).
+
+Let me check what exists currently.
