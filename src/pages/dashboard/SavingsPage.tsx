@@ -116,6 +116,7 @@ const SavingsPage = () => {
   }, [showCompleted]);
   const notifiedRef = useRef<Set<string>>(new Set());
   const milestoneRef = useRef<Map<string, Set<number>>>(new Map());
+  const [reachedDialogGoalId, setReachedDialogGoalId] = useState<string | null>(null);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const { invalidate } = useInvalidate();
