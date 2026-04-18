@@ -20,6 +20,7 @@ import CashFlowReport from '@/components/dashboard/reports/CashFlowReport';
 import BudgetVsActualReport from '@/components/dashboard/reports/BudgetVsActualReport';
 import DailyJournalReport from '@/components/dashboard/reports/DailyJournalReport';
 import AIInsightsReport from '@/components/dashboard/reports/AIInsightsReport';
+import { ReportsHeroHeader } from '@/components/dashboard/reports/ReportsHeroHeader';
 
 const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899'];
 
@@ -138,13 +139,17 @@ const ReportsPage = () => {
   return (
     <div className="space-y-6">
       {!canExportAdvanced && <UpgradeBanner message={t.upgradeExport} />}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold font-display">{t.reportTitle}</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!canExportAdvanced}>{!canExportAdvanced ? <Lock className="w-4 h-4 mr-1" /> : <Download className="w-4 h-4 mr-1" />} CSV</Button>
-          <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={!canExportAdvanced}>{!canExportAdvanced ? <Lock className="w-4 h-4 mr-1" /> : <Download className="w-4 h-4 mr-1" />} Excel</Button>
-        </div>
-      </div>
+      <ReportsHeroHeader
+        isFr={locale === 'fr'}
+        fmt={fmt}
+        totalIncome={filteredTx.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0)}
+        totalExpense={filteredTx.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0)}
+        txCount={filteredTx.length}
+        periodLabel={presetLabels[periodPreset]}
+        canExportAdvanced={canExportAdvanced}
+        onExportCSV={handleExportCSV}
+        onExportExcel={handleExportExcel}
+      />
 
       {/* Period selector */}
       <Card className="border border-border/50 shadow-sm rounded-2xl">
