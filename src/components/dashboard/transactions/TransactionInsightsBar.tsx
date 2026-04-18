@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Flame, AlertTriangle, Crown } from 'lucide-react';
+import { Flame, AlertTriangle, Crown, Zap } from 'lucide-react';
 
 interface Props {
   userId: string | undefined;
