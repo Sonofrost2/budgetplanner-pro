@@ -82,32 +82,33 @@ const Signup = () => {
       </div>
 
       {/* Right form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="w-full max-w-md">
-          <motion.div {...fadeUp(0)} className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 relative overflow-hidden">
+        <div aria-hidden className="absolute inset-0 -z-10" style={{ background: 'var(--gradient-mesh)' }} />
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-md auth-surface">
+          <motion.div {...fadeUp(0)} className="lg:hidden flex items-center gap-2 mb-6">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20" style={{ background: 'var(--gradient-primary)' }}>
               <Wallet className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold font-display">Budget Planner</span>
           </motion.div>
 
           {success ? (
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.3 }} className="text-center py-8">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.3 }} className="text-center py-6">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.15, type: 'spring', bounce: 0.5 }}
-                className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-6"
+                className="w-16 h-16 rounded-2xl bg-secondary/15 ring-1 ring-secondary/30 flex items-center justify-center mx-auto mb-6"
               >
                 <CheckCircle className="w-8 h-8 text-secondary" />
               </motion.div>
-              <motion.h1 {...fadeUp(0.2)} className="text-2xl font-bold mb-3">{t.auth.checkEmail || 'Vérifiez votre email'}</motion.h1>
-              <motion.p {...fadeUp(0.3)} className="text-muted-foreground mb-6">
+              <motion.h1 {...fadeUp(0.2)} className="text-2xl font-bold font-display mb-3">{t.auth.checkEmail || 'Vérifiez votre email'}</motion.h1>
+              <motion.p {...fadeUp(0.3)} className="text-sm text-muted-foreground mb-6">
                 {t.auth.checkEmailDesc || 'Un lien de confirmation a été envoyé à votre adresse email. Cliquez dessus pour activer votre compte.'}
               </motion.p>
               <motion.div {...fadeUp(0.4)}>
                 <Link to="/login">
-                  <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+                  <Button className="h-11 rounded-xl text-primary-foreground font-semibold shadow-lg shadow-primary/20" style={{ background: 'var(--gradient-primary)' }}>
                     {t.auth.login}
                   </Button>
                 </Link>
@@ -115,55 +116,55 @@ const Signup = () => {
             </motion.div>
           ) : (
             <>
-              <motion.h1 {...fadeUp(0.05)} className="text-2xl font-bold">{t.auth.signupTitle}</motion.h1>
-              <motion.p {...fadeUp(0.1)} className="mt-2 text-muted-foreground">{t.auth.signupSubtitle}</motion.p>
+              <motion.h1 {...fadeUp(0.05)} className="text-2xl sm:text-3xl font-bold font-display tracking-tight">{t.auth.signupTitle}</motion.h1>
+              <motion.p {...fadeUp(0.1)} className="mt-2 text-sm text-muted-foreground">{t.auth.signupSubtitle}</motion.p>
 
-              <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+              <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
                 <motion.div {...fadeUp(0.15)} className="space-y-2">
-                  <Label htmlFor="name">{t.auth.name}</Label>
+                  <Label htmlFor="name" className="form-label">{t.auth.name}</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jean Dupont" className="pl-10" required />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jean Dupont" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required />
                   </div>
                 </motion.div>
 
                 <motion.div {...fadeUp(0.2)} className="space-y-2">
-                  <Label htmlFor="email">{t.auth.email}</Label>
+                  <Label htmlFor="email" className="form-label">{t.auth.email}</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.com" className="pl-10" required />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.com" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required />
                   </div>
                 </motion.div>
 
                 <motion.div {...fadeUp(0.25)} className="space-y-2">
-                  <Label htmlFor="password">{t.auth.password}</Label>
+                  <Label htmlFor="password" className="form-label">{t.auth.password}</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10" required minLength={8} />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required minLength={8} />
                   </div>
                 </motion.div>
 
                 <motion.div {...fadeUp(0.3)} className="space-y-2">
-                  <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
+                  <Label htmlFor="confirmPassword" className="form-label">{t.auth.confirmPassword}</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="pl-10" required minLength={8} />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required minLength={8} />
                   </div>
                 </motion.div>
 
                 <motion.div {...fadeUp(0.35)}>
-                  <Button type="submit" className="w-full text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} disabled={loading}>
+                  <Button type="submit" className="w-full h-11 rounded-xl text-primary-foreground font-semibold shadow-lg shadow-primary/20" style={{ background: 'var(--gradient-primary)' }} disabled={loading}>
                     {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t.auth.signup}</> : t.auth.signup}
                   </Button>
                 </motion.div>
 
-                <motion.div {...fadeUp(0.38)} className="relative my-4">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">ou</span></div>
+                <motion.div {...fadeUp(0.38)} className="relative my-2">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/40" /></div>
+                  <div className="relative flex justify-center text-[10px] uppercase tracking-wider"><span className="bg-background/80 backdrop-blur-sm px-3 py-0.5 rounded-full text-muted-foreground">ou</span></div>
                 </motion.div>
 
                 <motion.div {...fadeUp(0.4)}>
-                  <Button type="button" variant="outline" className="w-full" disabled={loading} onClick={async () => {
+                  <Button type="button" variant="outline" className="w-full h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 hover:bg-background" disabled={loading} onClick={async () => {
                     const result = await lovable.auth.signInWithOAuth('google', { redirect_uri: window.location.origin });
                     if (result.error) { toast.error(result.error.message); return; }
                     if (result.redirected) return;

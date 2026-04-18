@@ -54,19 +54,19 @@ const ContactPage = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-24 pb-16 max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold mb-3">{t.title}</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold font-display tracking-tight mb-3">{t.title}</h1>
         <p className="text-muted-foreground mb-8">{t.subtitle}</p>
 
-        <div className="flex flex-wrap gap-6 mb-10 text-sm text-muted-foreground">
+        <div className="flex flex-wrap gap-6 mb-8 text-sm text-muted-foreground">
           <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-primary" />{t.emailAddr}</div>
           <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />{t.location}</div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input placeholder={t.name} required />
-          <Input type="email" placeholder={t.email} required />
-          <Textarea placeholder={t.message} rows={5} required />
-          <Button type="submit" disabled={sending} className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+        <form onSubmit={handleSubmit} className="auth-surface space-y-4">
+          <Input placeholder={t.name} required className="h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" />
+          <Input type="email" placeholder={t.email} required className="h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" />
+          <Textarea placeholder={t.message} rows={5} required className="rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" />
+          <Button type="submit" disabled={sending} className="h-11 rounded-xl text-primary-foreground font-semibold shadow-lg shadow-primary/20" style={{ background: 'var(--gradient-primary)' }}>
             {sending ? '...' : t.send}
           </Button>
         </form>
