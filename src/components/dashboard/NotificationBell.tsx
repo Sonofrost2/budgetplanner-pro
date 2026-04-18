@@ -338,24 +338,34 @@ export const useBudgetNotifications = () => {
   return { notifications, loading, refresh: checkNotifications };
 };
 
+// Premium icon bubbles — gradient surfaces with severity tint
 const iconMap: Record<Notification['type'], React.ReactNode> = {
-  budget_exceeded: <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />,
-  budget_warning: <TrendingDown className="w-4 h-4 text-amber-500 flex-shrink-0" />,
-  savings_behind: <PiggyBank className="w-4 h-4 text-amber-500 flex-shrink-0" />,
-  savings_reached: <CheckCircle2 className="w-4 h-4 text-secondary flex-shrink-0" />,
-  budget_savings: <Trophy className="w-4 h-4 text-secondary flex-shrink-0" />,
-  budget_upcoming: <Calendar className="w-4 h-4 text-primary flex-shrink-0" />,
-  savings_upcoming: <Clock className="w-4 h-4 text-primary flex-shrink-0" />,
-  balance_discrepancy: <Search className="w-4 h-4 text-amber-500 flex-shrink-0" />,
-  recurring_upcoming: <Calendar className="w-4 h-4 text-primary flex-shrink-0" />,
-  week_summary: <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />,
+  budget_exceeded: <AlertTriangle className="w-4 h-4" />,
+  budget_warning: <TrendingDown className="w-4 h-4" />,
+  savings_behind: <PiggyBank className="w-4 h-4" />,
+  savings_reached: <CheckCircle2 className="w-4 h-4" />,
+  budget_savings: <Trophy className="w-4 h-4" />,
+  budget_upcoming: <Calendar className="w-4 h-4" />,
+  savings_upcoming: <Clock className="w-4 h-4" />,
+  balance_discrepancy: <Search className="w-4 h-4" />,
+  recurring_upcoming: <Calendar className="w-4 h-4" />,
+  week_summary: <CheckCircle2 className="w-4 h-4" />,
 };
 
+// Glassmorphism severity styles — gradient bar + tinted surface
 const severityStyles: Record<Notification['severity'], string> = {
-  critical: 'border-l-destructive bg-destructive/5',
-  warning: 'border-l-amber-500 bg-amber-500/5',
-  success: 'border-l-secondary bg-secondary/5',
-  info: 'border-l-primary bg-primary/5',
+  critical: 'border-l-[3px] border-l-destructive bg-gradient-to-r from-destructive/10 via-destructive/5 to-transparent',
+  warning: 'border-l-[3px] border-l-amber-500 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent',
+  success: 'border-l-[3px] border-l-secondary bg-gradient-to-r from-secondary/10 via-secondary/5 to-transparent',
+  info: 'border-l-[3px] border-l-primary bg-gradient-to-r from-primary/10 via-primary/5 to-transparent',
+};
+
+// Icon-bubble color tint per severity (used inside the rounded pill)
+const iconBubbleStyles: Record<Notification['severity'], string> = {
+  critical: 'bg-destructive/15 text-destructive ring-1 ring-destructive/20',
+  warning: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20',
+  success: 'bg-secondary/15 text-secondary ring-1 ring-secondary/20',
+  info: 'bg-primary/15 text-primary ring-1 ring-primary/20',
 };
 
 const GROUP_THRESHOLD = 3;
