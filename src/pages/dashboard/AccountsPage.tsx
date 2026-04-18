@@ -30,6 +30,14 @@ import { exportToCSV, exportToExcel } from '@/lib/export';
 import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import CashCountDialog from '@/components/dashboard/CashCountDialog';
 import { AccountsPeriodStats } from '@/components/dashboard/accounts/AccountsPeriodStats';
+import { WealthHeroHeader } from '@/components/dashboard/accounts/WealthHeroHeader';
+import { DormantAccountsBanner } from '@/components/dashboard/accounts/DormantAccountsBanner';
+import { AccountCardPremium } from '@/components/dashboard/accounts/AccountCardPremium';
+import { AccountsListView } from '@/components/dashboard/accounts/AccountsListView';
+import { AccountsTreasuryView } from '@/components/dashboard/accounts/AccountsTreasuryView';
+import { AccountDrilldownDrawer } from '@/components/dashboard/accounts/AccountDrilldownDrawer';
+import { ViewModeToggle, type AccountsViewMode } from '@/components/dashboard/accounts/ViewModeToggle';
+import { archiveItem, unarchiveItem } from '@/lib/archive';
 
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { useInvalidate, useAccounts, useAccountTheoreticalBalances, useAccountCashCounts, useAccountTransactions } from '@/hooks/useDashboardData';
