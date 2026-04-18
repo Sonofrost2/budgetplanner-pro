@@ -788,7 +788,13 @@ const SavingsPage = () => {
             {showCompleted
               ? (locale === 'fr' ? 'Masquer atteints' : 'Hide completed')
               : (locale === 'fr' ? 'Voir atteints' : 'Show completed')}
+            {goals.filter(g => (g as any).status === 'completed').length > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-secondary/20 text-secondary">
+                {goals.filter(g => (g as any).status === 'completed').length}
+              </span>
+            )}
           </Button>
+
           <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
             setEditGoalId(null);
             setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
