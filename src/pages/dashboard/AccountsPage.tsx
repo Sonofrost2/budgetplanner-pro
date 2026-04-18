@@ -464,7 +464,6 @@ const AccountsPage = () => {
         isFr={locale === 'fr'}
         locale={locale}
       />
-      )}
 
       {/* Add/Edit Account Dialog */}
       <ResponsiveFormDialog
