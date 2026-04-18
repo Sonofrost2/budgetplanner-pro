@@ -14,8 +14,6 @@ import type { QuickParsedTransaction } from '@/components/dashboard/transactions
 type PeriodKey = 'today' | 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisSemester' | 'thisYear' | 'custom';
 
 interface Props {
-  greeting: string;
-  displayName: string | null | undefined;
   locale: 'fr' | 'en';
   t: DashTranslations;
   fmt: (n: number) => string;
@@ -43,7 +41,7 @@ interface Props {
 const PERIODS: PeriodKey[] = ['today', 'thisWeek', 'thisMonth', 'thisQuarter', 'thisYear'];
 
 export const DashboardHeroHeader = ({
-  greeting, displayName, locale, t, fmt,
+  locale, t, fmt,
   totalBalance, netCashFlow, savingsRate, dailyBalanceData,
   period, onPeriodChange,
   customStart, customEnd, setCustomStart, setCustomEnd,
@@ -126,10 +124,10 @@ export const DashboardHeroHeader = ({
               </div>
               <div className="min-w-0">
                 <h1 className="text-base sm:text-lg font-display font-bold leading-tight truncate">
-                  {greeting}{displayName ? `, ${displayName}` : ''}
+                  {t.dashboard}
                 </h1>
                 <p className="text-[11px] text-muted-foreground/80 font-medium capitalize">
-                  {t.erpSubtitle} · {today}
+                  {today}
                 </p>
               </div>
             </div>

@@ -130,7 +130,7 @@ const DashboardHome = () => {
     try { localStorage.setItem(PERIOD_KEY, period); } catch {}
   }, [period]);
 
-  const displayName = (user?.user_metadata as any)?.display_name || (user?.user_metadata as any)?.full_name || user?.email?.split('@')[0] || null;
+  
 
   const handleQuickAdd = useCallback((parsed: QuickParsedTransaction) => {
     const params = new URLSearchParams();
@@ -266,13 +266,6 @@ const DashboardHome = () => {
     return undefined;
   }, [period, appliedCustom, isFr]);
 
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return isFr ? 'Bonjour' : 'Good morning';
-    if (hour < 18) return isFr ? 'Bon après-midi' : 'Good afternoon';
-    return isFr ? 'Bonsoir' : 'Good evening';
-  }, [isFr]);
-
   // Widget render map
   const widgetRenderers: Record<WidgetId, ReactNode> = {
     planner: <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} locale={locale} />,
@@ -310,8 +303,6 @@ const DashboardHome = () => {
       {/* ── Premium Hero Header (Coach Financier) ── */}
       <motion.div variants={fadeUp}>
         <DashboardHeroHeader
-          greeting={greeting}
-          displayName={displayName}
           locale={locale}
           t={t}
           fmt={fmt}
