@@ -879,7 +879,7 @@ const SavingsPage = () => {
                     </div>
                   </div>
                 )}
-                {completedGoals.length > 0 && (
+                {showCompleted && completedGoals.length > 0 && (
                   <div className="space-y-4 mt-8">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-secondary flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4" /> {t.completedGoals} ({completedGoals.length})
