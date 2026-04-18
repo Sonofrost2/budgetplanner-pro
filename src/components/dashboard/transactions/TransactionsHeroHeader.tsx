@@ -115,7 +115,7 @@ export const TransactionsHeroHeader = ({
                 <TrendingUp className="w-3 h-3" />{t.income}
               </div>
               <div className="text-base sm:text-lg font-extrabold text-secondary tabular-nums mt-0.5">
-                <AnimatedNumber value={income} formatter={fmt} duration={0.6} />
+                <AnimatedNumber value={income} format={fmt} duration={0.6} />
               </div>
             </div>
             <div className="rounded-2xl border border-destructive/20 bg-destructive/8 px-3 py-2.5">
@@ -123,7 +123,7 @@ export const TransactionsHeroHeader = ({
                 <TrendingDown className="w-3 h-3" />{t.expenses}
               </div>
               <div className="text-base sm:text-lg font-extrabold text-destructive tabular-nums mt-0.5">
-                <AnimatedNumber value={expense} formatter={fmt} duration={0.6} />
+                <AnimatedNumber value={expense} format={fmt} duration={0.6} />
               </div>
             </div>
             <div className={`rounded-2xl border px-3 py-2.5 ${net >= 0 ? 'border-primary/20 bg-primary/8' : 'border-destructive/30 bg-destructive/10'}`}>
@@ -131,7 +131,7 @@ export const TransactionsHeroHeader = ({
                 <Sparkles className="w-3 h-3" />{locale === 'fr' ? 'Solde' : 'Net'}
               </div>
               <div className={`text-base sm:text-lg font-extrabold tabular-nums mt-0.5 ${net >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                {net >= 0 ? '+' : '−'}<AnimatedNumber value={Math.abs(net)} formatter={fmt} duration={0.6} />
+                {net >= 0 ? '+' : '−'}<AnimatedNumber value={Math.abs(net)} format={fmt} duration={0.6} />
               </div>
             </div>
           </div>
