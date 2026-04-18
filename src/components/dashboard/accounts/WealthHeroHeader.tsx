@@ -86,7 +86,7 @@ export const WealthHeroHeader = ({ accounts, transactions, fmt, isFr, onNewAccou
               className="flex items-baseline gap-3 flex-wrap"
             >
               <h1 className="text-3xl sm:text-5xl font-bold tracking-tight font-display">
-                <AnimatedNumber value={total} formatter={fmt} duration={800} />
+                <AnimatedNumber value={total} format={fmt} duration={0.8} />
               </h1>
               <div className={`flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-full ${isPositive ? 'bg-secondary/15 text-secondary' : 'bg-destructive/15 text-destructive'}`}>
                 {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
