@@ -48,6 +48,7 @@ import { SavingsControlTable } from '@/components/dashboard/savings/SavingsContr
 import { SavingsGlobalStats } from '@/components/dashboard/savings/SavingsGlobalStats';
 import { SavingsHeroHeader } from '@/components/dashboard/savings/SavingsHeroHeader';
 import { SavingsCoachInsights } from '@/components/dashboard/savings/SavingsCoachInsights';
+import { GoalReachedDialog } from '@/components/dashboard/savings/GoalReachedDialog';
 
 interface ScenarioData {
   monthly_projections: { month: number; capital: number; interest_earned: number; total: number }[];
