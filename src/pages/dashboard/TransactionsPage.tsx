@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Search, TrendingUp, TrendingDown, Calendar, CreditCard, Tag, ArrowUpDown, X, ArrowLeftRight, BarChart3, Filter } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Calendar, CreditCard, Tag, ArrowUpDown, X, ArrowLeftRight, BarChart3, Filter, Scale } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -163,6 +163,17 @@ const TransactionsPage = () => {
   useEffect(() => { setSelectedIds(new Set()); }, [filterType, filterCategory, filterAccount, debouncedSearch, startDate, endDate, page]);
 
   const limitReached = !isPremium && thisMonthCount >= limits.transactionsPerMonth;
+
+  // Régularisation / Adjustment categories (auto-created by ReconciliationDialog)
+  const regularizationCategoryIds = useMemo(
+    () => categories
+      .filter(c => {
+        const n = c.name.toLowerCase();
+        return n.includes('régularisation') || n.includes('regularisation') || n.includes('adjustment');
+      })
+      .map(c => c.id),
+    [categories]
+  );
 
   const allPageSelected = transactions.length > 0 && transactions.every(tx => selectedIds.has(tx.id));
   const someSelected = selectedIds.size > 0;
@@ -390,6 +401,15 @@ const TransactionsPage = () => {
   const filteredCategories = categories.filter(c => c.type === form.type);
   const isEmpty = totalCount === 0 && !hasActiveFilters;
 
+  const isRegularizationActive = regularizationCategoryIds.length > 0 && regularizationCategoryIds.includes(filterCategory);
+  const toggleRegularization = () => {
+    if (!regularizationCategoryIds.length) {
+      toast.info(locale === 'fr' ? 'Aucune transaction de régularisation pour le moment' : 'No adjustment transactions yet');
+      return;
+    }
+    setFilterCategory(isRegularizationActive ? 'all' : regularizationCategoryIds[0]);
+  };
+
   const activeFilterCount = [
     filterType !== 'all',
     filterCategory !== 'all',
@@ -515,6 +535,23 @@ const TransactionsPage = () => {
                     </button>
                   ))}
                 </div>
+
+                {/* Régularisations quick toggle */}
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={toggleRegularization}
+                  title={locale === 'fr' ? 'Voir uniquement les écarts de régularisation' : 'View only adjustment discrepancies'}
+                  className={`relative flex items-center gap-1.5 px-3 h-10 rounded-xl text-xs font-semibold border transition-all duration-200 ${
+                    isRegularizationActive
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-[0_2px_10px_-2px_hsl(var(--primary)/0.25)]'
+                      : 'bg-background/60 text-muted-foreground border-border/40 hover:bg-background/80 hover:border-amber-500/30 hover:text-amber-600 dark:hover:text-amber-400'
+                  }`}
+                >
+                  <Scale className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{locale === 'fr' ? 'Régularisations' : 'Adjustments'}</span>
+                  {isRegularizationActive && <X className="w-3 h-3 ml-0.5 opacity-70" />}
+                </motion.button>
 
                 {/* Category popover */}
                 <Popover>
