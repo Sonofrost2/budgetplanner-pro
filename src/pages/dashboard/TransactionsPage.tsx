@@ -164,6 +164,17 @@ const TransactionsPage = () => {
 
   const limitReached = !isPremium && thisMonthCount >= limits.transactionsPerMonth;
 
+  // Régularisation / Adjustment categories (auto-created by ReconciliationDialog)
+  const regularizationCategoryIds = useMemo(
+    () => categories
+      .filter(c => {
+        const n = c.name.toLowerCase();
+        return n.includes('régularisation') || n.includes('regularisation') || n.includes('adjustment');
+      })
+      .map(c => c.id),
+    [categories]
+  );
+
   const allPageSelected = transactions.length > 0 && transactions.every(tx => selectedIds.has(tx.id));
   const someSelected = selectedIds.size > 0;
 
