@@ -319,7 +319,6 @@ export const TransactionsHeroHeader = ({
           </motion.div>
         )}
       </AnimatePresence>
-      </div>
     </motion.div>
   );
 };
