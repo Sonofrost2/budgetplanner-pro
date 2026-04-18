@@ -276,26 +276,34 @@ export const TransactionList = ({
     <Card className={`border border-[hsl(var(--glass-border))] rounded-2xl overflow-hidden shadow-[var(--shadow-glass)] backdrop-blur-sm bg-[hsl(var(--glass))] transition-all duration-300 ${isFetching ? 'opacity-50' : ''}`}>
       <CardContent className="p-0">
         {transactions.length === 0 ? (
-          <motion.div className="py-20 text-center" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
+          <motion.div className="relative py-16 text-center overflow-hidden" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
+            <div className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full bg-primary/8 blur-3xl" />
+            <div className="pointer-events-none absolute bottom-0 right-1/4 w-56 h-56 rounded-full bg-secondary/8 blur-3xl" />
             <motion.div
-              className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 mx-auto mb-5 flex items-center justify-center border border-primary/10"
-              animate={{ rotate: [0, -3, 3, 0], scale: [1, 1.02, 1] }}
+              className="relative w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/15 via-primary/5 to-secondary/15 mx-auto mb-5 flex items-center justify-center border border-primary/20 shadow-lg"
+              animate={{ rotate: [0, -3, 3, 0], scale: [1, 1.03, 1] }}
               transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
             >
-              <Inbox className="w-8 h-8 text-muted-foreground/30" />
+              <Inbox className="w-10 h-10 text-primary/50" />
             </motion.div>
             {isEmpty ? (
               <>
-                <p className="text-lg font-bold text-foreground/80 mb-2">{t.noTransactions}</p>
-                <p className="text-sm text-muted-foreground/60 mb-6 max-w-xs mx-auto">{t.addFirstTransaction}</p>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="sm" className="text-primary-foreground rounded-xl shadow-lg shadow-primary/25" style={{ background: 'var(--gradient-primary)' }} onClick={onAddNew}>
-                    <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
+                <p className="relative text-xl font-bold font-display mb-2">
+                  {locale === 'fr' ? '🧭 Premier pas vers la clarté' : '🧭 First step toward clarity'}
+                </p>
+                <p className="relative text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+                  {locale === 'fr'
+                    ? 'Saisissez une dépense ou un revenu — votre Coach commencera à analyser vos flux dès la première entrée.'
+                    : 'Add an expense or income — your Coach will start analyzing your flows from the very first entry.'}
+                </p>
+                <motion.div className="relative inline-block" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button size="default" className="text-primary-foreground rounded-xl shadow-lg shadow-primary/25" style={{ background: 'var(--gradient-primary)' }} onClick={onAddNew}>
+                    <Plus className="w-4 h-4 mr-1.5" />{t.addTransaction}
                   </Button>
                 </motion.div>
               </>
             ) : (
-              <p className="text-lg font-bold text-foreground/60">{t.noResults}</p>
+              <p className="relative text-lg font-bold text-foreground/60">{t.noResults}</p>
             )}
           </motion.div>
         ) : (
