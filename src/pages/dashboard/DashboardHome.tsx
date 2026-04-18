@@ -1,17 +1,15 @@
-import { useMemo, useState, useCallback, ReactNode } from 'react';
+import { useMemo, useState, useCallback, ReactNode, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Plus, CalendarRange, Sparkles, LayoutGrid, RotateCcw, Check } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DashboardHeroHeader } from '@/components/dashboard/home/DashboardHeroHeader';
+import { DashboardCoachInsights } from '@/components/dashboard/home/DashboardCoachInsights';
+import type { QuickParsedTransaction } from '@/components/dashboard/transactions/TransactionsHeroHeader';
 import {
   DndContext,
   closestCenter,
@@ -114,13 +112,36 @@ const DashboardHome = () => {
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<PeriodKey>('today');
+  const PERIOD_KEY = 'bp_dashboard_period';
+  const [period, setPeriod] = useState<PeriodKey>(() => {
+    try {
+      const saved = localStorage.getItem(PERIOD_KEY);
+      return (saved as PeriodKey) || 'today';
+    } catch { return 'today'; }
+  });
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [appliedCustom, setAppliedCustom] = useState<{ start: string; end: string } | null>(null);
   const [customOpen, setCustomOpen] = useState(false);
   const fmt = (n: number) => fmtCurrency(n, locale);
   const isFr = locale === 'fr';
+
+  useEffect(() => {
+    try { localStorage.setItem(PERIOD_KEY, period); } catch {}
+  }, [period]);
+
+  const displayName = (user?.user_metadata as any)?.display_name || (user?.user_metadata as any)?.full_name || user?.email?.split('@')[0] || null;
+
+  const handleQuickAdd = useCallback((parsed: QuickParsedTransaction) => {
+    const params = new URLSearchParams();
+    params.set('quickAdd', '1');
+    params.set('description', parsed.description);
+    params.set('amount', String(parsed.amount));
+    params.set('type', parsed.type);
+    if (parsed.category_id) params.set('category_id', parsed.category_id);
+    if (parsed.account_id) params.set('account_id', parsed.account_id);
+    navigate(`/dashboard/transactions?${params.toString()}`);
+  }, [navigate]);
 
   // Dashboard layout
   const { widgets, editMode, setEditMode, reorder, toggleVisibility, resetLayout } = useDashboardLayout();
@@ -281,71 +302,42 @@ const DashboardHome = () => {
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
-      {/* ── Header ── */}
-      <motion.div variants={fadeUp} className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            {greeting}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={period} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-40 h-9 glass border-glass-border rounded-xl text-xs font-medium"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">{t.today}</SelectItem>
-              <SelectItem value="thisWeek">{t.thisWeek}</SelectItem>
-              <SelectItem value="thisMonth">{t.thisMonth}</SelectItem>
-              <SelectItem value="thisQuarter">{t.thisQuarter}</SelectItem>
-              <SelectItem value="thisSemester">{t.thisSemester}</SelectItem>
-              <SelectItem value="thisYear">{t.thisYear}</SelectItem>
-              <SelectItem value="custom">
-                <span className="flex items-center gap-1.5"><CalendarRange className="w-3.5 h-3.5" />{t.customPeriod}</span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          {periodLabel && (
-            <span className="text-[10px] text-muted-foreground bg-muted/50 rounded-lg px-2 py-1 hidden sm:inline">{periodLabel}</span>
-          )}
-          <Popover open={customOpen} onOpenChange={setCustomOpen}>
-            <PopoverTrigger asChild><span /></PopoverTrigger>
-            <PopoverContent className="w-72 p-4 space-y-3" align="start">
-              <div className="space-y-2">
-                <Label className="text-xs">{t.from}</Label>
-                <Input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="h-8 text-xs" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">{t.to}</Label>
-                <Input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="h-8 text-xs" />
-              </div>
-              <Button size="sm" className="w-full" onClick={applyCustom} disabled={!customStart || !customEnd}>{t.apply}</Button>
-            </PopoverContent>
-          </Popover>
-
-          {/* Edit mode toggle */}
-          <Button
-            variant={editMode ? 'default' : 'outline'}
-            size="sm"
-            className={`h-9 rounded-xl text-xs gap-1.5 ${editMode ? 'btn-glow-primary' : 'glass border-glass-border'}`}
-            style={editMode ? { background: 'var(--gradient-primary)' } : undefined}
-            onClick={() => setEditMode(!editMode)}
-          >
-            {editMode ? <Check className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
-            {editMode ? (isFr ? 'Terminé' : 'Done') : ''}
-          </Button>
-
-          <Button
-            size="sm"
-            className="text-primary-foreground rounded-xl btn-glow-primary h-9 px-4"
-            style={{ background: 'var(--gradient-primary)' }}
-            onClick={() => navigate('/dashboard/transactions')}
-          >
-            <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
-          </Button>
-        </div>
+      {/* ── Premium Hero Header (Coach Financier) ── */}
+      <motion.div variants={fadeUp}>
+        <DashboardHeroHeader
+          greeting={greeting}
+          displayName={displayName}
+          locale={locale}
+          t={t}
+          fmt={fmt}
+          totalBalance={totalBalance}
+          netCashFlow={totalIncome - totalExpenses}
+          savingsRate={totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0}
+          dailyBalanceData={dailyBalanceData}
+          period={period}
+          onPeriodChange={handlePeriodChange}
+          customStart={customStart}
+          customEnd={customEnd}
+          setCustomStart={setCustomStart}
+          setCustomEnd={setCustomEnd}
+          appliedCustom={appliedCustom}
+          onApplyCustom={applyCustom}
+          customOpen={customOpen}
+          setCustomOpen={setCustomOpen}
+          editMode={editMode}
+          setEditMode={setEditMode}
+          resetLayout={resetLayout}
+          onAddTransaction={() => navigate('/dashboard/transactions')}
+          onQuickAdd={handleQuickAdd}
+        />
       </motion.div>
 
-      {/* Edit mode banner */}
+      {/* ── Coach Insights Bar ── */}
+      <motion.div variants={fadeUp}>
+        <DashboardCoachInsights locale={locale} />
+      </motion.div>
+
+      {/* Edit mode hint banner */}
       <AnimatePresence>
         {editMode && (
           <motion.div
@@ -354,22 +346,11 @@ const DashboardHome = () => {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="glass rounded-2xl p-3 flex items-center justify-between gap-3 border border-primary/20">
-              <div className="flex items-center gap-2">
-                <LayoutGrid className="w-4 h-4 text-primary" />
-                <span className="text-xs font-semibold">
-                  {isFr ? 'Mode personnalisation — Glissez les widgets pour réorganiser' : 'Customization mode — Drag widgets to rearrange'}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
-                onClick={resetLayout}
-              >
-                <RotateCcw className="w-3 h-3" />
-                {isFr ? 'Réinitialiser' : 'Reset'}
-              </Button>
+            <div className="glass rounded-2xl p-3 flex items-center gap-2 border border-primary/20">
+              <LayoutGrid className="w-4 h-4 text-primary shrink-0" />
+              <span className="text-xs font-semibold">
+                {isFr ? 'Mode personnalisation — Glissez les widgets pour réorganiser' : 'Customization mode — Drag widgets to rearrange'}
+              </span>
             </div>
           </motion.div>
         )}
