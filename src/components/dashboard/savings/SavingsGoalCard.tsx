@@ -1,10 +1,10 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock, Lock, Unlock, Landmark, Sparkles, Coins, Archive, RotateCcw, ArrowRight } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { SavingsRingProgress } from './SavingsRingProgress';
 
 interface Contribution {
   id: string;
@@ -111,121 +111,115 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
     ahead: t.savingsAhead,
   };
 
+  // Severity tone for the ring
+  const ringTone: 'secondary' | 'destructive' | 'primary' =
+    done ? 'secondary'
+      : (goal.deadline && new Date(goal.deadline) < new Date() && !done) ? 'destructive'
+      : (scheduleInfo?.status === 'ahead' ? 'secondary' : scheduleInfo?.status === 'behind' ? 'destructive' : 'primary');
+
+  // Humanized countdown
+  const humanCountdown = (() => {
+    if (!goal.deadline) return null;
+    const now = new Date();
+    const dl = new Date(goal.deadline);
+    const diffDays = Math.ceil((dl.getTime() - now.getTime()) / 86400000);
+    if (diffDays < 0) return locale === 'fr' ? `en retard de ${Math.abs(diffDays)} j` : `${Math.abs(diffDays)}d overdue`;
+    if (diffDays === 0) return locale === 'fr' ? 'aujourd\'hui' : 'today';
+    if (diffDays < 31) return locale === 'fr' ? `dans ${diffDays} j` : `in ${diffDays}d`;
+    const months = Math.round(diffDays / 30);
+    if (months < 12) return locale === 'fr' ? `dans ${months} mois` : `in ${months} mo`;
+    const years = Math.floor(months / 12);
+    return locale === 'fr' ? `dans ${years} an${years > 1 ? 's' : ''}` : `in ${years}y`;
+  })();
+
   return (
-    <Card className={`border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden glow-primary ${done ? 'ring-2 ring-secondary/30' : ''}`}>
-      {/* ── Header ── */}
+    <Card className={`group relative border border-border/50 shadow-[var(--shadow-card)] rounded-2xl overflow-hidden glow-primary transition-all hover:shadow-[var(--shadow-soft)] hover:-translate-y-0.5 ${done ? 'ring-2 ring-secondary/30' : ''}`}>
+      {/* ── Header with ring ── */}
       <div className="p-5 pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
-              {goal.icon}
+        <div className="flex items-start gap-4">
+          <SavingsRingProgress value={pct} size={84} strokeWidth={7} tone={ringTone}>
+            <div className="text-center">
+              <span className="text-2xl">{goal.icon}</span>
+              <p className="text-[10px] font-bold leading-none mt-0.5">{Math.round(pct)}%</p>
             </div>
-            <div>
-              <h3 className="text-base font-bold text-foreground">{goal.name}</h3>
-                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                {(goal as any).is_locked && (
-                  <span className="flex items-center gap-1 text-destructive font-medium">
-                    <Lock className="w-3 h-3" />
-                    {t.savingsLocked}
-                  </span>
-                )}
-                {!(goal as any).is_locked && Number(goal.current_amount) > 0 && (
-                  <span className="flex items-center gap-1 text-secondary font-medium">
-                    <Unlock className="w-3 h-3" />
-                    {t.savingsAvailable}
-                  </span>
-                )}
-                {(goal as any).bank_name && (
-                  <span className="flex items-center gap-1">
-                    <Landmark className="w-3 h-3" />
-                    {(goal as any).bank_name}
-                  </span>
-                )}
-                {goal.payment_accounts && (
-                  <span className="flex items-center gap-1">
-                    <Wallet className="w-3 h-3" />
-                    {goal.payment_accounts.icon} {goal.payment_accounts.name}
-                  </span>
-                )}
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {goal.start_date
-                    ? new Date(goal.start_date).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short', year: 'numeric' })
-                    : locale === 'fr' ? 'Pas de début' : 'No start'}
-                  {' → '}
-                  {goal.deadline
-                    ? new Date(goal.deadline).toLocaleDateString(dateFmt, { day: 'numeric', month: 'short', year: 'numeric' })
-                    : t.savingsNoDeadline}
-                </span>
-                {Number((goal as any).interest_rate) > 0 && (
-                  <span className="flex items-center gap-1 text-primary font-medium">
-                    <TrendingUp className="w-3 h-3" />
-                    {(goal as any).interest_rate}% / {(goal as any).interest_frequency === 'monthly' ? (locale === 'fr' ? 'mois' : 'mo') : (goal as any).interest_frequency === 'quarterly' ? (locale === 'fr' ? 'trim.' : 'qtr') : (goal as any).interest_frequency === 'semi_annual' ? (locale === 'fr' ? 'sem.' : 'semi') : (locale === 'fr' ? 'an' : 'yr')}
+          </SavingsRingProgress>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-foreground truncate">{goal.name}</h3>
+                <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground flex-wrap">
+                  {(goal as any).is_locked ? (
+                    <span className="flex items-center gap-1 text-destructive font-medium">
+                      <Lock className="w-3 h-3" />{t.savingsLocked}
+                    </span>
+                  ) : Number(goal.current_amount) > 0 ? (
+                    <span className="flex items-center gap-1 text-secondary font-medium">
+                      <Unlock className="w-3 h-3" />{t.savingsAvailable}
+                    </span>
+                  ) : null}
+                  {(goal as any).bank_name && (
+                    <span className="flex items-center gap-1">
+                      <Landmark className="w-3 h-3" />{(goal as any).bank_name}
+                    </span>
+                  )}
+                  {Number((goal as any).interest_rate) > 0 && (
+                    <span className="flex items-center gap-1 text-primary font-medium">
+                      <TrendingUp className="w-3 h-3" />{(goal as any).interest_rate}%
+                    </span>
+                  )}
+                  {humanCountdown && (
+                    <span className="flex items-center gap-1">
+                      <CalendarClock className="w-3 h-3" />{humanCountdown}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={onEdit}>
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={onDelete}>
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-3 space-y-1">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="text-xl font-bold text-foreground amount-display">{fmt(Number(goal.current_amount))}</span>
+                <span className="text-xs text-muted-foreground">/ {fmt(Number(goal.target_amount))}</span>
+                {done && (
+                  <span className="ml-auto text-[10px] font-bold text-secondary flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />{t.savingsGoalCompleted}
                   </span>
                 )}
               </div>
+              {!done && (
+                <p className="text-[11px] text-muted-foreground">
+                  {t.savingsRemaining}: <span className="font-semibold text-foreground">{fmt(remaining)}</span>
+                </p>
+              )}
             </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={onEdit}>
-              <Pencil className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={onDelete}>
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* ── Progress ── */}
-      <div className="px-5 py-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5" />
-            {t.savingsProgressTitle}
-          </span>
-          {done && (
-            <span className="text-xs font-bold text-secondary flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              {t.savingsGoalCompleted}
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between items-baseline">
-            <span className="text-2xl font-bold text-foreground">{fmt(Number(goal.current_amount))}</span>
-            <span className="text-sm text-muted-foreground">{fmt(Number(goal.target_amount))}</span>
-          </div>
-          <Progress value={pct} className={`h-3 rounded-full ${done ? '[&>div]:bg-secondary' : '[&>div]:bg-primary'}`} />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span className="font-semibold">{pct.toFixed(0)}%</span>
-            {!done && <span>{t.savingsRemaining}: {fmt(remaining)}</span>}
           </div>
         </div>
 
         {deposits.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <div className="bg-muted/50 rounded-lg p-2.5 text-center">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.savingsTotalContributions}</p>
-              <p className="text-sm font-bold text-foreground mt-0.5">{fmt(deposits.reduce((s, c) => s + c.amount, 0))}</p>
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            <div className="bg-muted/40 rounded-lg p-2 text-center">
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">{t.savingsTotalContributions}</p>
+              <p className="text-xs font-bold text-foreground mt-0.5 amount-display">{fmt(deposits.reduce((s, c) => s + c.amount, 0))}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg p-2.5 text-center">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t.savingsMonthlyAvg}</p>
-              <p className="text-sm font-bold text-foreground mt-0.5">{fmt(monthlyAvg)}</p>
+            <div className="bg-muted/40 rounded-lg p-2 text-center">
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">{t.savingsMonthlyAvg}</p>
+              <p className="text-xs font-bold text-foreground mt-0.5 amount-display">{fmt(monthlyAvg)}</p>
             </div>
-            <div className="bg-muted/50 rounded-lg p-2.5 text-center">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+            <div className="bg-muted/40 rounded-lg p-2 text-center">
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">
                 {done ? t.savingsContributionCount : t.savingsEstimatedDate}
               </p>
-              <p className="text-sm font-bold text-foreground mt-0.5">
-                {done
-                  ? `${deposits.length}`
-                  : estimatedDate
-                    ? estimatedDate.toLocaleDateString(dateFmt, { month: 'short', year: 'numeric' })
-                    : '—'}
+              <p className="text-xs font-bold text-foreground mt-0.5">
+                {done ? `${deposits.length}` : estimatedDate ? estimatedDate.toLocaleDateString(dateFmt, { month: 'short', year: '2-digit' }) : '—'}
               </p>
             </div>
           </div>

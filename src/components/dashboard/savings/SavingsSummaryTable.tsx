@@ -57,12 +57,15 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
 
   return (
     <div className="rounded-2xl border border-border/50 shadow-[var(--shadow-card)] bg-card overflow-hidden">
-      <div className="px-5 py-4 border-b border-border/50">
-        <h3 className="text-base font-bold">{t.savingsSummary}</h3>
+      <div className="px-5 py-4 border-b border-border/50 sticky top-0 bg-card z-10">
+        <h3 className="text-base font-bold flex items-center gap-2">
+          <span className="w-7 h-7 rounded-lg bg-secondary/10 flex items-center justify-center text-sm">📊</span>
+          {t.savingsSummary}
+        </h3>
       </div>
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 bg-muted/40 backdrop-blur z-[5]">
             <TableRow>
               <TableHead className="w-10"></TableHead>
               <TableHead>{locale === 'fr' ? 'Objectif' : 'Goal'}</TableHead>
@@ -80,13 +83,13 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
               const monthly = getMonthlyNeeded(g);
               const cfg = statusConfig[status];
               return (
-                <TableRow key={g.id}>
+                <TableRow key={g.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="text-xl text-center">{g.icon}</TableCell>
                   <TableCell className="font-medium">{g.name}</TableCell>
                   <TableCell>
                     <Progress value={Math.min(pct, 100)} className={`h-2.5 rounded-full ${status === 'completed' ? '[&>div]:bg-secondary' : status === 'late' ? '[&>div]:bg-destructive' : '[&>div]:bg-primary'}`} />
                   </TableCell>
-                  <TableCell className="text-right text-sm whitespace-nowrap">
+                  <TableCell className="text-right text-sm whitespace-nowrap amount-display">
                     <span className="font-semibold">{fmt(Number(g.current_amount))}</span>
                     <span className="text-muted-foreground"> / {fmt(Number(g.target_amount))}</span>
                   </TableCell>
@@ -94,7 +97,7 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
                   <TableCell className="text-center">
                     <Badge variant={cfg.variant} className={`text-[10px] ${cfg.className}`}>{cfg.label}</Badge>
                   </TableCell>
-                  <TableCell className="text-right text-sm font-medium">
+                  <TableCell className="text-right text-sm font-medium amount-display">
                     {monthly !== null && monthly > 0 ? `${fmt(Math.round(monthly))}/${locale === 'fr' ? 'mois' : 'mo'}` : '—'}
                   </TableCell>
                 </TableRow>
@@ -108,7 +111,7 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
               <TableCell>
                 <Progress value={Math.min(totalPct, 100)} className="h-2.5 rounded-full [&>div]:bg-primary" />
               </TableCell>
-              <TableCell className="text-right text-sm whitespace-nowrap">
+              <TableCell className="text-right text-sm whitespace-nowrap amount-display">
                 <span className="font-bold">{fmt(totalCurrent)}</span>
                 <span className="text-muted-foreground"> / {fmt(totalTarget)}</span>
               </TableCell>
