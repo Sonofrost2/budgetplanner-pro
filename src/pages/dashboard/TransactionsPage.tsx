@@ -447,32 +447,35 @@ const TransactionsPage = () => {
         <TabsContent value="manage">
       {limitReached && <UpgradeBanner message={t.limitReachedTransactions(thisMonthCount, limits.transactionsPerMonth)} />}
 
-      {/* Header */}
-      <motion.div
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-        initial={{ opacity: 0, x: -12 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.15, duration: 0.3 }}
-      >
-        <div>
-          <h2 className="text-2xl font-bold font-display">{t.allTransactions}
-            {!isPremium && <span className="text-sm font-normal text-muted-foreground ml-2">({thisMonthCount}/{limits.transactionsPerMonth})</span>}
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{totalCount} {t.results}</p>
-        </div>
-        <div className="flex gap-2">
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setTransferOpen(true)} disabled={accounts.length < 2}>
-              <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
-            </Button>
-          </motion.div>
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button size="sm" className="text-primary-foreground rounded-xl shadow-md hover:shadow-lg transition-shadow" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={limitReached}>
-              <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
-            </Button>
-          </motion.div>
-        </div>
-      </motion.div>
+      {/* Hero Header — premium */}
+      <TransactionsHeroHeader
+        userId={user?.id}
+        fmt={fmt}
+        locale={locale as 'fr' | 'en'}
+        t={t}
+        onAddNew={openNew}
+        onTransfer={() => setTransferOpen(true)}
+        canTransfer={accounts.length >= 2}
+        limitReached={limitReached}
+        thisMonthCount={thisMonthCount}
+        monthlyLimit={limits.transactionsPerMonth}
+        isPremium={isPremium}
+      />
+
+      {/* Coach insights chips */}
+      <TransactionInsightsBar
+        userId={user?.id}
+        fmt={fmt}
+        locale={locale as 'fr' | 'en'}
+        categories={categories as any}
+      />
+
+      {/* Result count */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground tabular-nums">
+          <span className="font-bold text-foreground">{totalCount}</span> {t.results}
+        </p>
+      </div>
 
       {/* Filters */}
       <motion.div
