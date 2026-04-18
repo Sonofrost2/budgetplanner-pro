@@ -390,16 +390,6 @@ const TransactionsPage = () => {
   const filteredCategories = categories.filter(c => c.type === form.type);
   const isEmpty = totalCount === 0 && !hasActiveFilters;
 
-  // Régularisation / Adjustment categories (auto-created by ReconciliationDialog)
-  const regularizationCategoryIds = useMemo(
-    () => categories
-      .filter(c => {
-        const n = c.name.toLowerCase();
-        return n.includes('régularisation') || n.includes('regularisation') || n.includes('adjustment');
-      })
-      .map(c => c.id),
-    [categories]
-  );
   const isRegularizationActive = regularizationCategoryIds.length > 0 && regularizationCategoryIds.includes(filterCategory);
   const toggleRegularization = () => {
     if (!regularizationCategoryIds.length) {
