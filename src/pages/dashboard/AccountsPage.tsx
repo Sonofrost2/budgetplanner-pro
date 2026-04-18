@@ -284,7 +284,7 @@ const AccountsPage = () => {
         <UpgradeBanner message={t.limitAccountsReached(limits.accounts)} />
       )}
 
-      <WealthHeroHeader
+      <AccountsHeroHeader
         accounts={filteredAccounts}
         transactions={allTransactions}
         fmt={fmt}
