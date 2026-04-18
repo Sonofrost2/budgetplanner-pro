@@ -98,6 +98,13 @@ const SavingsPage = () => {
   const [simulating, setSimulating] = useState(false);
   const [customBankMode, setCustomBankMode] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState('manage');
+  const [showCompleted, setShowCompleted] = useState<boolean>(() => {
+    try { return localStorage.getItem('savings-show-completed') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('savings-show-completed', showCompleted ? '1' : '0'); } catch {}
+  }, [showCompleted]);
+  const notifiedRef = useRef<Set<string>>(new Set());
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const { invalidate } = useInvalidate();
