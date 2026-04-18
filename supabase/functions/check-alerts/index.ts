@@ -103,7 +103,8 @@ Deno.serve(async (req) => {
           .eq("user_id", userId).eq("active", true)
           .lte("next_date", sevenDaysLaterStr),
         supabase.from("profiles").select("locale").eq("user_id", userId).single(),
-        supabase.from("payment_accounts").select("id, name, icon, real_balance, opening_balance").eq("user_id", userId),
+        supabase.from("payment_accounts").select("id, name, icon, real_balance, opening_balance")
+          .eq("user_id", userId).is("archived_at", null).is("deleted_at", null),
         supabase.from("transactions").select("account_id, amount, type")
           .eq("user_id", userId).not("account_id", "is", null),
         supabase.from("notification_preferences").select("*").eq("user_id", userId).maybeSingle(),
