@@ -130,7 +130,7 @@ const DashboardHome = () => {
     try { localStorage.setItem(PERIOD_KEY, period); } catch {}
   }, [period]);
 
-  const displayName = (user?.user_metadata as any)?.display_name || (user?.user_metadata as any)?.full_name || user?.email?.split('@')[0] || null;
+  
 
   const handleQuickAdd = useCallback((parsed: QuickParsedTransaction) => {
     const params = new URLSearchParams();
