@@ -472,7 +472,36 @@ const SavingsPage = () => {
     refreshData();
   };
 
-  // Reinvest: create new goal from completed goal's balance
+  // Detect newly-reached goals and prompt user (Réinvestir / Garder / Archiver)
+  useEffect(() => {
+    if (!goals || goals.length === 0) return;
+    for (const g of goals) {
+      const status = (g as any).status;
+      const reached = Number(g.current_amount) >= Number(g.target_amount) && Number(g.target_amount) > 0;
+      if (!reached || status === 'completed' || status === 'archived') continue;
+      if (notifiedRef.current.has(g.id)) continue;
+      notifiedRef.current.add(g.id);
+      toast.success(
+        locale === 'fr' ? `🎉 Objectif atteint : ${g.name}` : `🎉 Goal reached: ${g.name}`,
+        {
+          description: locale === 'fr'
+            ? `Vous avez atteint ${fmt(Number(g.current_amount))}. Que souhaitez-vous faire ?`
+            : `You reached ${fmt(Number(g.current_amount))}. What's next?`,
+          duration: 15000,
+          action: {
+            label: locale === 'fr' ? 'Réinvestir' : 'Reinvest',
+            onClick: () => handleReinvest(g.id),
+          },
+          cancel: {
+            label: locale === 'fr' ? 'Archiver' : 'Archive',
+            onClick: () => handleArchive(g.id),
+          },
+        }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goals, locale]);
+
   const [reinvestDialog, setReinvestDialog] = useState<string | null>(null);
   const [reinvestSourceGoalId, setReinvestSourceGoalId] = useState<string | null>(null);
   const handleReinvest = (goalId: string) => {
