@@ -103,6 +103,7 @@ const AccountsPage = () => {
 
   const filteredAccounts = useMemo(() => {
     let result = accounts;
+    if (!showArchived) result = result.filter(a => !a.archived_at);
     if (typeFilter) result = result.filter(a => a.type === typeFilter);
     if (searchQuery) {
       const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean);
