@@ -36,6 +36,7 @@ import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjection
 import SavingsEvolutionTab from '@/components/dashboard/tabs/SavingsEvolutionTab';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
+import { coachToast } from '@/lib/coachToast';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
@@ -45,6 +46,8 @@ import { PartialWithdrawDialog } from '@/components/dashboard/savings/PartialWit
 import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSummaryTable';
 import { SavingsControlTable } from '@/components/dashboard/savings/SavingsControlTable';
 import { SavingsGlobalStats } from '@/components/dashboard/savings/SavingsGlobalStats';
+import { SavingsHeroHeader } from '@/components/dashboard/savings/SavingsHeroHeader';
+import { SavingsCoachInsights } from '@/components/dashboard/savings/SavingsCoachInsights';
 
 interface ScenarioData {
   monthly_projections: { month: number; capital: number; interest_earned: number; total: number }[];
@@ -98,6 +101,12 @@ const SavingsPage = () => {
   const [simulating, setSimulating] = useState(false);
   const [customBankMode, setCustomBankMode] = useState(false);
   const [activeMainTab, setActiveMainTab] = useState('manage');
+  const [savingsView, setSavingsView] = useState<'cards' | 'table'>(() => {
+    try { return (localStorage.getItem('savings-view') as 'cards' | 'table') || 'cards'; } catch { return 'cards'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('savings-view', savingsView); } catch {}
+  }, [savingsView]);
   const [showCompleted, setShowCompleted] = useState<boolean>(() => {
     try { return localStorage.getItem('savings-show-completed') === '1'; } catch { return false; }
   });
@@ -375,9 +384,9 @@ const SavingsPage = () => {
       setSourceAccountId('');
       refreshData();
       invalidateCrossModule();
-      toast.success(t.saved);
+      coachToast.money(`${t.savingsContribAdded} ${goal.name}`);
     } catch (err: any) {
-      toast.error(err.message || 'Erreur');
+      coachToast.fail(err.message || 'Erreur');
     } finally {
       setSaving(false);
     }
