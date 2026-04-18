@@ -255,9 +255,6 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
               <span className="font-bold font-display text-sm tracking-tight text-sidebar-foreground leading-tight">
                 Budget Planner
               </span>
-              <span className="text-[9px] font-medium uppercase tracking-widest text-muted-foreground/70">
-                {t.erpSubtitle}
-              </span>
             </motion.div>
           )}
         </Link>

@@ -310,8 +310,6 @@ const DashboardHome = () => {
       {/* ── Premium Hero Header (Coach Financier) ── */}
       <motion.div variants={fadeUp}>
         <DashboardHeroHeader
-          greeting={greeting}
-          displayName={displayName}
           locale={locale}
           t={t}
           fmt={fmt}
