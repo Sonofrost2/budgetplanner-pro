@@ -210,7 +210,7 @@ const TransactionsPage = () => {
     const selectedTxs = transactions.filter(tx => selectedIds.has(tx.id));
     const data = selectedTxs.map(tx => ({
       [t.date]: tx.date, [t.description]: tx.description,
-      [t.type]: tx.type === 'income' ? t.incomeType : t.expenseType,
+      [t.type]: tx.type === 'income' ? t.incomeType : tx.type === 'transfer' ? (t.transfer || 'Transfert') : t.expenseType,
       [t.amount]: tx.amount,
       [t.category]: tx.categories?.name || '-',
       [t.account]: tx.payment_accounts?.name || '-',

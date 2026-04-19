@@ -1,6 +1,7 @@
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { Button } from '@/components/ui/button';
-import { Inbox, ArrowUpDown, ChevronRight } from 'lucide-react';
+import { Inbox, ArrowUpDown, ChevronRight, ArrowLeftRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -71,8 +72,16 @@ export const RecentTransactions = ({ transactions, fmt, t, locale }: RecentTrans
                   >
                     {tx.categories?.icon || '📁'}
                   </motion.div>
-                  <div>
-                    <p className="text-xs font-semibold">{tx.description}</p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-semibold truncate">{tx.description}</p>
+                      {tx.type === 'transfer' && (
+                        <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-semibold border-primary/30 text-primary bg-primary/5 gap-0.5 shrink-0">
+                          <ArrowLeftRight className="w-2.5 h-2.5" />
+                          {t.transfer || 'Transfert'}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-[10px] text-muted-foreground">
                       {tx.categories?.name} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}
                     </p>
@@ -82,9 +91,9 @@ export const RecentTransactions = ({ transactions, fmt, t, locale }: RecentTrans
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.05 + 0.2 }}
-                  className={`text-xs font-bold tabular-nums amount-display ${tx.type === 'income' ? 'text-secondary amount-glow-green' : 'text-destructive amount-glow-red'}`}
+                  className={`text-xs font-bold tabular-nums amount-display ${tx.type === 'income' ? 'text-secondary amount-glow-green' : tx.type === 'transfer' ? 'text-primary' : 'text-destructive amount-glow-red'}`}
                 >
-                  <span className="text-[0.85em] opacity-70 mr-0.5">{tx.type === 'income' ? '+' : '-'}</span>{fmt(Number(tx.amount))}
+                  <span className="text-[0.85em] opacity-70 mr-0.5">{tx.type === 'income' ? '+' : tx.type === 'transfer' ? '↔' : '-'}</span>{fmt(Number(tx.amount))}
                 </motion.span>
               </motion.div>
             ))}
