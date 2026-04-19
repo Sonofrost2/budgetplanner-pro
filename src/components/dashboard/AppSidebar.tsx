@@ -127,7 +127,11 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
         { key: 'payment', icon: Crown, path: '/dashboard/payment' },
         { key: 'settings', icon: Settings, path: '/dashboard/settings' },
         { key: 'guide', icon: BookOpen, path: '/dashboard/guide' },
-        ...(isAdmin ? [{ key: 'adminPricing', icon: Shield, path: '/dashboard/admin/pricing' }] : []),
+        ...(isAdmin ? [
+          { key: 'adminPricing', icon: Shield, path: '/dashboard/admin/pricing' },
+          { key: 'adminUsers', icon: Users, path: '/dashboard/admin/users' },
+          { key: 'adminSecurity', icon: Shield, path: '/dashboard/admin/security' },
+        ] : []),
       ],
     },
   ];
