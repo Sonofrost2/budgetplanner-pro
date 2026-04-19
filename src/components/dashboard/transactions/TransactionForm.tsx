@@ -239,6 +239,53 @@ export const TransactionForm = ({
           />
         </div>
 
+        {/* Family Category — Privacy by Design */}
+        {familyCategories.length > 0 && (
+          <div className="space-y-2">
+            <Label className="form-label flex items-center gap-1.5">
+              <Users className="w-3 h-3" />
+              {isFr ? 'Catégorie Famille' : 'Family category'}
+              <span className="text-muted-foreground/50 font-normal normal-case">({isFr ? 'optionnel' : 'optional'})</span>
+            </Label>
+            <Select
+              value={form.family_category_id || '__none__'}
+              onValueChange={(v) => setForm(f => ({ ...f, family_category_id: v === '__none__' ? '' : v }))}
+            >
+              <SelectTrigger className="rounded-xl h-11">
+                <SelectValue placeholder={isFr ? 'Privée — non partagée' : 'Private — not shared'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">
+                  <span className="flex items-center gap-2">
+                    <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                    {isFr ? 'Privée — visible uniquement par moi' : 'Private — visible only to me'}
+                  </span>
+                </SelectItem>
+                {familyCategories.map((fc) => (
+                  <SelectItem key={fc.id} value={fc.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{fc.icon}</span>
+                      <span>{fc.name}</span>
+                      {fc.group_name && <span className="text-[10px] text-muted-foreground">· {fc.group_name}</span>}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.family_category_id ? (
+              <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border-primary/20">
+                <Users className="w-3 h-3" />
+                {isFr ? 'Visible par votre famille' : 'Visible to your family'}
+              </Badge>
+            ) : (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <Lock className="w-3 h-3" />
+                {isFr ? 'Cette transaction reste privée' : 'This transaction stays private'}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Notes with char counter */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
