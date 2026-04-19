@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LayoutDashboard, Users, Share2, Activity, Mail, Plus, Lock, CheckCheck, Settings2, ShieldCheck, X } from 'lucide-react';
+import { LayoutDashboard, Users, Share2, Activity, Mail, Plus, Lock, CheckCheck, Settings2, ShieldCheck, X, FolderTree } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useFamilyData } from '@/hooks/useFamilyData';
@@ -23,6 +23,7 @@ import { FamilyMembersTab } from '@/components/dashboard/family/FamilyMembersTab
 import { FamilySharedBudgetsTab } from '@/components/dashboard/family/FamilySharedBudgetsTab';
 import { FamilyActivityTab } from '@/components/dashboard/family/FamilyActivityTab';
 import { FamilySettingsTab } from '@/components/dashboard/family/FamilySettingsTab';
+import { FamilyCategoriesTab } from '@/components/dashboard/family/FamilyCategoriesTab';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
@@ -227,9 +228,10 @@ const FamilyPage = () => {
 
           {selectedGroup && selectedGroupData && (
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid grid-cols-5 w-full max-w-3xl">
+              <TabsList className="grid grid-cols-6 w-full max-w-3xl">
                 <TabsTrigger value="overview"><LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />Vue</TabsTrigger>
                 <TabsTrigger value="members"><Users className="w-3.5 h-3.5 mr-1.5" />Membres</TabsTrigger>
+                <TabsTrigger value="categories"><FolderTree className="w-3.5 h-3.5 mr-1.5" />Catégories</TabsTrigger>
                 <TabsTrigger value="budgets"><Share2 className="w-3.5 h-3.5 mr-1.5" />Budgets</TabsTrigger>
                 <TabsTrigger value="activity"><Activity className="w-3.5 h-3.5 mr-1.5" />Activité</TabsTrigger>
                 <TabsTrigger value="settings"><Settings2 className="w-3.5 h-3.5 mr-1.5" />Réglages</TabsTrigger>
@@ -249,6 +251,10 @@ const FamilyPage = () => {
                   onInvite={() => setInviteOpen(true)}
                   onChange={refetch}
                 />
+              </TabsContent>
+
+              <TabsContent value="categories" className="mt-4">
+                <FamilyCategoriesTab groupId={selectedGroup} isOwner={!!isOwner} />
               </TabsContent>
 
               <TabsContent value="budgets" className="mt-4">
