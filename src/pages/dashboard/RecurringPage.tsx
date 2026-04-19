@@ -25,6 +25,9 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
+import { useSubscription } from '@/hooks/useSubscription';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { Lock } from 'lucide-react';
 
 interface AIPattern {
   description: string;
@@ -45,6 +48,7 @@ const RecurringPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { canUseRecurring, canUseAIPremium } = useSubscription();
   const t = dashT[locale] as any;
   const { invalidate } = useInvalidate();
 
@@ -145,6 +149,10 @@ const RecurringPage = () => {
 
   // AI Detection
   const runAiDetection = async () => {
+    if (!canUseAIPremium) {
+      toast.error(t.upgradeAIPremium);
+      return;
+    }
     setAiDetecting(true);
     setAiPatterns([]);
     setAiDone(false);
@@ -241,6 +249,7 @@ const RecurringPage = () => {
 
   return (
     <div className="space-y-6">
+      {!canUseRecurring && <UpgradeBanner message={t.upgradeRecurring} />}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -253,11 +262,11 @@ const RecurringPage = () => {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={runAiDetection} disabled={aiDetecting}>
-            {aiDetecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={runAiDetection} disabled={aiDetecting || !canUseAIPremium} title={!canUseAIPremium ? t.upgradeAIPremium : undefined}>
+            {aiDetecting ? <Loader2 className="w-4 h-4 animate-spin" /> : !canUseAIPremium ? <Lock className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
             {aiDetecting ? t.aiDetecting : t.aiDetect}
           </Button>
-          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew} disabled={!canUseRecurring}>
             <Plus className="w-4 h-4 mr-1" />{t.addRecurring}
           </Button>
         </div>

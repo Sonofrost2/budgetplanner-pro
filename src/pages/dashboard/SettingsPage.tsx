@@ -18,6 +18,7 @@ import { exportToCSV } from '@/lib/export';
 import { DataExportCard } from '@/components/dashboard/settings/DataExportCard';
 import { TrashCard } from '@/components/dashboard/settings/TrashCard';
 import { ArchivedItemsCard } from '@/components/dashboard/settings/ArchivedItemsCard';
+import { PlanSwitcherCard } from '@/components/dashboard/settings/PlanSwitcherCard';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
 import { motion } from 'framer-motion';
 
@@ -255,6 +256,9 @@ const SettingsPage = () => {
               />
             </div>
           </SectionWrap>
+
+          {/* PLAN SWITCHER (admin-only) */}
+          <PlanSwitcherCard />
 
           {/* DATA */}
           <SectionWrap id="data" title={isFr ? 'Données' : 'Data'} icon={Database} setRef={setRef}>

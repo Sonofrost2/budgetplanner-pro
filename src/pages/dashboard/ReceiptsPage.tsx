@@ -32,9 +32,14 @@ const printReceipt = (receipt: any, locale: string) => {
   w.print();
 };
 
+import { useSubscription } from '@/hooks/useSubscription';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { Lock } from 'lucide-react';
+
 const ReceiptsPage = () => {
   const { locale } = useLanguage();
   const t = dashT[locale];
+  const { canUseReceipts } = useSubscription();
   const { data: receipts = [], isLoading: loading } = useReceipts();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -76,6 +81,21 @@ const ReceiptsPage = () => {
   };
 
   if (loading) return <div className="space-y-6"><Skeleton className="h-8 w-40" />{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>;
+
+  if (!canUseReceipts) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold font-display">{t.receipts}</h2>
+        <UpgradeBanner message={(t as any).upgradeReceipts} />
+        <Card className="border-none shadow-[var(--shadow-card)]">
+          <CardContent className="py-16 text-center">
+            <Lock className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+            <p className="text-lg font-medium text-muted-foreground">{(t as any).upgradeReceipts}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Paperclip, X, Loader2, FileText } from 'lucide-react';
+import { Paperclip, X, Loader2, FileText, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
+import { Link } from 'react-router-dom';
 
 interface Props {
   value: string | null;
@@ -13,8 +15,20 @@ interface Props {
 
 export const ReceiptUpload = ({ value, onChange, locale = 'fr' }: Props) => {
   const { user } = useAuth();
+  const { canUseReceipts } = useSubscription();
   const [uploading, setUploading] = useState(false);
   const fr = locale === 'fr';
+
+  if (!canUseReceipts) {
+    return (
+      <Link to="/dashboard/payment" className="flex items-center gap-2 p-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors">
+        <Lock className="w-4 h-4 text-primary" />
+        <span className="text-xs text-primary flex-1 font-semibold">
+          {fr ? 'Joindre un reçu — Premium uniquement' : 'Attach receipt — Premium only'}
+        </span>
+      </Link>
+    );
+  }
 
   const handleUpload = async (file: File) => {
     if (!user) return;

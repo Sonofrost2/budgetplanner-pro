@@ -33,6 +33,9 @@ import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { WealthProjectionChart } from '@/components/dashboard/wealth/WealthProjectionChart';
 import { exportWealthPDF, exportWealthExcel } from '@/lib/wealthExport';
+import { useSubscription } from '@/hooks/useSubscription';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { Lock } from 'lucide-react';
 
 const ASSET_TYPES = [
   { value: 'real_estate', label_fr: 'Immobilier', label_en: 'Real Estate', icon: '🏠', lucide: Building2, color: 'hsl(var(--primary))' },
@@ -111,6 +114,7 @@ const WealthPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { canUseWealth, canUseAIPremium } = useSubscription();
   const t = dashT[locale];
   const isFr = locale === 'fr';
   const queryClient = useQueryClient();
@@ -373,6 +377,10 @@ const WealthPage = () => {
   };
 
   const handleAIValuation = async (assetId: string) => {
+    if (!canUseAIPremium) {
+      toast.error((t as any).upgradeAIPremium);
+      return;
+    }
     const asset = assets.find(a => a.id === assetId);
     if (!asset) return;
     setAiValuing(true);
@@ -404,6 +412,21 @@ const WealthPage = () => {
 
   if (isLoading) {
     return <div className="space-y-4"><Skeleton className="h-40 rounded-2xl" /><div className="grid grid-cols-3 gap-3">{[1,2,3].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}</div></div>;
+  }
+
+  if (!canUseWealth) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold font-display">{isFr ? 'Patrimoine' : 'Wealth'}</h2>
+        <UpgradeBanner message={(t as any).upgradeWealth} />
+        <Card className="border-none shadow-[var(--shadow-card)]">
+          <CardContent className="py-16 text-center">
+            <Lock className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+            <p className="text-lg font-medium text-muted-foreground">{(t as any).upgradeWealth}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
