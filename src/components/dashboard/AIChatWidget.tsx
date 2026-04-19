@@ -284,13 +284,25 @@ const AIChatWidget = () => {
                 animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
                 transition={{ duration: 2.4, repeat: Infinity }}
               />
-              <Button
-                onClick={() => setOpen(true)}
-                className="relative h-14 w-14 rounded-full shadow-xl text-primary-foreground"
-                style={{ background: 'var(--gradient-primary)' }}
-              >
-                <Sparkles className="w-6 h-6" />
-              </Button>
+              {canUseChatCoach ? (
+                <Button
+                  onClick={() => setOpen(true)}
+                  className="relative h-14 w-14 rounded-full shadow-xl text-primary-foreground"
+                  style={{ background: 'var(--gradient-primary)' }}
+                >
+                  <Sparkles className="w-6 h-6" />
+                </Button>
+              ) : (
+                <Link to="/dashboard/payment">
+                  <Button
+                    className="relative h-14 w-14 rounded-full shadow-xl text-primary-foreground"
+                    style={{ background: 'var(--gradient-primary)' }}
+                    title={locale === 'fr' ? 'Coach IA — Plan Pro/Premium' : 'AI Coach — Pro/Premium plan'}
+                  >
+                    <Lock className="w-5 h-5" />
+                  </Button>
+                </Link>
+              )}
               <span className="absolute -top-1 -right-1 text-[10px] bg-accent text-accent-foreground rounded-full h-5 w-5 flex items-center justify-center font-bold animate-pulse">✨</span>
               <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap text-xs bg-foreground text-background px-2 py-1 rounded-md shadow-lg">
                 {locale === 'fr' ? 'Coach IA' : 'AI Coach'}
