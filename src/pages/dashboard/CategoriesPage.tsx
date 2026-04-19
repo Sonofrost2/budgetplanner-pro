@@ -35,12 +35,18 @@ import { fetchCategoryAnalytics, type CategoryStats } from '@/lib/categoryAnalyt
 const ICONS = ['🛒', '🚗', '🏠', '🎮', '💊', '💰', '💻', '📚', '👗', '🍽️', '✈️', '🎬', '📱', '💡', '🏥', '🎁', '🔧', '📁'];
 const COLORS = ['#22C55E', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981', '#6366F1', '#EC4899', '#14B8A6', '#F97316'];
 
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { useSubscription } from '@/hooks/useSubscription';
+
+const ICONS_DUMMY = null; // anchor for next refactor section
+
 const CategoriesPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const t = dashT[locale];
   const isFr = locale === 'fr';
   const { invalidate } = useInvalidate();
+  const { limits, isPaid } = useSubscription();
 
   const { data: categories = [], isLoading: catLoading } = useCategories();
 
@@ -134,7 +140,13 @@ const CategoriesPage = () => {
     [categories, form.type, editing?.id]
   );
 
+  const categoryLimitReached = !isPaid && categories.filter(c => !c.deleted_at).length >= limits.categories;
+
   const openNew = () => {
+    if (categoryLimitReached) {
+      toast.error((t as any).limitCategoriesReached?.(limits.categories) || (t as any).upgradeCategories);
+      return;
+    }
     setEditing(null); setFormErrors({});
     setForm({ name: '', icon: '📁', color: '#6C63FF', type: typeTab, parent_category_id: '' });
     setDialogOpen(true);
