@@ -110,7 +110,7 @@ const SettingsPage = () => {
         supabase.from('debts').select('creditor_name, total_amount, paid_amount, due_date').eq('user_id', user.id),
       ]);
       const dateStr = new Date().toISOString().split('T')[0];
-      if (txRes.data?.length) exportToCSV(txRes.data.map((tx: any) => ({ Date: tx.date, Description: tx.description, Type: tx.type, Montant: tx.amount, Notes: tx.notes || '' })), `transactions-${dateStr}`);
+      if (txRes.data?.length) exportToCSV(txRes.data.map((tx: any) => ({ Date: tx.date, Description: tx.description, Type: tx.type === 'income' ? (isFr ? 'Revenu' : 'Income') : tx.type === 'transfer' ? (isFr ? 'Transfert' : 'Transfer') : (isFr ? 'Dépense' : 'Expense'), Montant: tx.amount, Notes: tx.notes || '' })), `transactions-${dateStr}`);
       if (accRes.data?.length) exportToCSV(accRes.data, `comptes-${dateStr}`);
       if (budRes.data?.length) exportToCSV(budRes.data, `budgets-${dateStr}`);
       if (savRes.data?.length) exportToCSV(savRes.data, `epargne-${dateStr}`);
