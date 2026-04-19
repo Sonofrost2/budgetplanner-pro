@@ -38,6 +38,8 @@ const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage"));
 const PaymentPage = lazy(() => import("./pages/dashboard/PaymentPage"));
 const AccountsPage = lazy(() => import("./pages/dashboard/AccountsPage"));
 const AdminPricingPage = lazy(() => import("./pages/dashboard/AdminPricingPage"));
+const AdminUsersPage = lazy(() => import("./pages/dashboard/AdminUsersPage"));
+const AdminSecurityPage = lazy(() => import("./pages/dashboard/AdminSecurityPage"));
 const CategoriesPage = lazy(() => import("./pages/dashboard/CategoriesPage"));
 const ReceiptsPage = lazy(() => import("./pages/dashboard/ReceiptsPage"));
 const FamilyPage = lazy(() => import("./pages/dashboard/FamilyPage"));
@@ -91,6 +93,8 @@ const AnimatedRoutes = () => {
             <Route path="recurring" element={<RecurringPage />} />
             <Route path="wealth" element={<WealthPage />} />
             <Route path="admin/pricing" element={<AdminPricingPage />} />
+            <Route path="admin/users" element={<AdminUsersPage />} />
+            <Route path="admin/security" element={<AdminSecurityPage />} />
             <Route path="guide" element={<GuidePage />} />
           </Route>
           <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />

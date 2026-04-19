@@ -15,6 +15,7 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import AIChatWidget from '@/components/dashboard/AIChatWidget';
 import GlobalSearchCommand from '@/components/dashboard/GlobalSearchCommand';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { useDeviceFingerprint } from '@/hooks/useDeviceFingerprint';
 import { PWAUpdatePrompt } from '@/components/dashboard/PWAUpdatePrompt';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/dashboard/AppSidebar';
@@ -23,6 +24,7 @@ import DashboardBreadcrumb from '@/components/dashboard/Breadcrumb';
 
 const DashboardLayout = () => {
   useRealtimeSync();
+  useDeviceFingerprint();
   const { user, signOut, loading: authLoading } = useAuth();
   const { locale } = useLanguage();
   const navigate = useNavigate();
