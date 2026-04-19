@@ -418,6 +418,7 @@ const WealthPage = () => {
         totalDebt={totalDebt}
         totalGainLoss={totalGainLoss}
         assetsCount={assets.length}
+        valuations={allValuations}
         onAddAsset={() => { resetForm(); setEditId(null); setDialogOpen(true); }}
         onExportPDF={() => handleExport('pdf')}
         onExportExcel={() => handleExport('excel')}

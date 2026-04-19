@@ -125,6 +125,24 @@ const ReportsPage = () => {
     if (!exportToExcel(rows, 'transactions')) toast.info(t.noTransactions);
   };
 
+  // 30-day daily surplus sparkline for the hero header
+  const reportsSparkline = useMemo(() => {
+    const days = 30;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const start = new Date(today); start.setDate(today.getDate() - days);
+    const buckets: number[] = Array(days + 1).fill(0);
+    for (const tx of allTransactions) {
+      const d = new Date(tx.date); d.setHours(0, 0, 0, 0);
+      if (d < start || d > today) continue;
+      const idx = Math.floor((d.getTime() - start.getTime()) / 86400000);
+      if (idx < 0 || idx >= buckets.length) continue;
+      const amt = Number(tx.amount);
+      if (tx.type === 'income') buckets[idx] += amt;
+      else if (tx.type === 'expense') buckets[idx] -= amt;
+    }
+    return buckets.map(v => ({ v }));
+  }, [allTransactions]);
+
   const presetLabels: Record<PeriodPreset, string> = {
     all: locale === 'fr' ? 'Tout' : 'All',
     month: t.thisMonth,
@@ -146,6 +164,7 @@ const ReportsPage = () => {
         totalExpense={filteredTx.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0)}
         txCount={filteredTx.length}
         periodLabel={presetLabels[periodPreset]}
+        sparkline={reportsSparkline}
         canExportAdvanced={canExportAdvanced}
         onExportCSV={handleExportCSV}
         onExportExcel={handleExportExcel}
