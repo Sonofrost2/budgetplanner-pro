@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LayoutDashboard, Users, Share2, Activity, Mail, Plus, Lock, CheckCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Share2, Activity, Mail, Plus, Lock, CheckCheck, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useFamilyData } from '@/hooks/useFamilyData';
@@ -22,6 +22,7 @@ import { FamilyOverviewTab } from '@/components/dashboard/family/FamilyOverviewT
 import { FamilyMembersTab } from '@/components/dashboard/family/FamilyMembersTab';
 import { FamilySharedBudgetsTab } from '@/components/dashboard/family/FamilySharedBudgetsTab';
 import { FamilyActivityTab } from '@/components/dashboard/family/FamilyActivityTab';
+import { FamilySettingsTab } from '@/components/dashboard/family/FamilySettingsTab';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
@@ -59,6 +60,8 @@ const FamilyPage = () => {
   const selectedGroupData = groups.find((g) => g.id === selectedGroup) || null;
   const isOwner = selectedGroupData?.owner_id === user?.id;
   const groupMembers = selectedGroup ? members[selectedGroup] || [] : [];
+  const myMembership = groupMembers.find((m) => m.user_id === user?.id);
+  const canEditSettings = !!isOwner || myMembership?.role === 'admin';
   const groupPendingInvitations = useMemo(
     () => sentInvitations.filter((i) => i.group_id === selectedGroup),
     [sentInvitations, selectedGroup],
@@ -185,17 +188,18 @@ const FamilyPage = () => {
             onDeleteRequest={setDeleteGroupId}
           />
 
-          {selectedGroup && (
+          {selectedGroup && selectedGroupData && (
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+              <TabsList className="grid grid-cols-5 w-full max-w-3xl">
                 <TabsTrigger value="overview"><LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />Vue</TabsTrigger>
                 <TabsTrigger value="members"><Users className="w-3.5 h-3.5 mr-1.5" />Membres</TabsTrigger>
                 <TabsTrigger value="budgets"><Share2 className="w-3.5 h-3.5 mr-1.5" />Budgets</TabsTrigger>
                 <TabsTrigger value="activity"><Activity className="w-3.5 h-3.5 mr-1.5" />Activité</TabsTrigger>
+                <TabsTrigger value="settings"><Settings2 className="w-3.5 h-3.5 mr-1.5" />Réglages</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="mt-4">
-                <FamilyOverviewTab dashboard={dashboard} currency={currency} />
+                <FamilyOverviewTab dashboard={dashboard} currency={selectedGroupData.currency || currency} />
               </TabsContent>
 
               <TabsContent value="members" className="mt-4">
@@ -217,14 +221,27 @@ const FamilyPage = () => {
                   isOwner={!!isOwner}
                   myBudgets={budgets}
                   sharedBudgets={sharedBudgets}
-                  currency={currency}
+                  currency={selectedGroupData.currency || currency}
                   currentUserId={user?.id || ''}
                   onChange={refetch}
                 />
               </TabsContent>
 
               <TabsContent value="activity" className="mt-4">
-                <FamilyActivityTab activity={activity} members={groupMembers} currency={currency} />
+                <FamilyActivityTab activity={activity} members={groupMembers} currency={selectedGroupData.currency || currency} />
+              </TabsContent>
+
+              <TabsContent value="settings" className="mt-4">
+                <FamilySettingsTab
+                  group={{
+                    id: selectedGroupData.id,
+                    name: selectedGroupData.name,
+                    currency: selectedGroupData.currency || 'XOF',
+                    large_tx_threshold: Number(selectedGroupData.large_tx_threshold ?? 100000),
+                  }}
+                  canEdit={canEditSettings}
+                  onChange={refetch}
+                />
               </TabsContent>
             </Tabs>
           )}
