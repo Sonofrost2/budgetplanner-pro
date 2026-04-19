@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
-import { Plus, Tag, Palette, Inbox, Merge, FolderTree, Download, Upload, Archive, RotateCcw } from 'lucide-react';
+import { Plus, Tag, Palette, Inbox, Merge, FolderTree, Download, Upload, Archive, RotateCcw, Trash2 } from 'lucide-react';
 import CategoryEvolutionChart from '@/components/dashboard/categories/CategoryEvolutionChart';
 import { CategoriesHeroHeader } from '@/components/dashboard/categories/CategoriesHeroHeader';
 import { CategoryTreeView } from '@/components/dashboard/categories/CategoryTreeView';
