@@ -5,7 +5,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, ChevronRight, GripVertical, FolderTree } from 'lucide-react';
+import { Pencil, Trash2, ChevronRight, GripVertical, FolderTree, Archive, RotateCcw } from 'lucide-react';
 import type { Category } from '@/hooks/useDashboardData';
 import type { CategoryStats } from '@/lib/categoryAnalytics';
 import { normalizeSparkline } from '@/lib/categoryAnalytics';
@@ -19,12 +19,13 @@ interface Props {
   onToggleSelect: (id: string) => void;
   onEdit: (cat: Category) => void;
   onDelete: (id: string) => void;
+  onArchive?: (id: string) => void;
   onReparent: (childId: string, newParentId: string | null) => void;
   isFr: boolean;
 }
 
 export const CategoryTreeView = ({
-  categories, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onReparent, isFr,
+  categories, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, onReparent, isFr,
 }: Props) => {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -87,6 +88,7 @@ export const CategoryTreeView = ({
               onToggleSelect={onToggleSelect}
               onEdit={onEdit}
               onDelete={onDelete}
+              onArchive={onArchive}
               isFr={isFr}
             />
           );
@@ -119,11 +121,12 @@ interface NodeProps {
   onToggleSelect: (id: string) => void;
   onEdit: (c: Category) => void;
   onDelete: (id: string) => void;
+  onArchive?: (id: string) => void;
   isFr: boolean;
 }
 
 const CategoryNode = ({
-  category, childrenCats, isExpanded, onToggleExpand, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, isFr,
+  category, childrenCats, isExpanded, onToggleExpand, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, isFr,
 }: NodeProps) => {
   const isSelected = selectedIds.has(category.id);
   const stat = stats[category.id];
@@ -180,10 +183,15 @@ const CategoryNode = ({
           <CategorySparkline values={series} color={category.color} className="hidden sm:flex" />
 
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onEdit(category)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onEdit(category)} title={isFr ? 'Modifier' : 'Edit'}>
               <Pencil className="w-3.5 h-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(category.id)}>
+            {onArchive && (
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onArchive(category.id)} title={isFr ? 'Archiver' : 'Archive'}>
+                <Archive className="w-3.5 h-3.5" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(category.id)} title={isFr ? 'Supprimer' : 'Delete'}>
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -205,6 +213,7 @@ const CategoryNode = ({
               onToggleSelect={onToggleSelect}
               onEdit={onEdit}
               onDelete={onDelete}
+              onArchive={onArchive}
               isFr={isFr}
             />
           ))}

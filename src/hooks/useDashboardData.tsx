@@ -70,14 +70,17 @@ export const useAccounts = (opts?: { includeArchived?: boolean }) => {
   });
 };
 
-export const useCategories = () => {
+export const useCategories = (opts: { includeArchived?: boolean } = {}) => {
   const { user } = useAuth();
+  const { includeArchived = false } = opts;
   return useQuery({
-    queryKey: queryKeys.categories(user?.id ?? ''),
+    queryKey: [...queryKeys.categories(user?.id ?? ''), { includeArchived }],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from('categories').select('*')
-        .eq('user_id', user!.id).is('deleted_at', null).order('type').order('name');
+        .eq('user_id', user!.id).is('deleted_at', null);
+      if (!includeArchived) q = q.is('archived_at', null);
+      const { data, error } = await q.order('type').order('name');
       if (error) throw error;
       return (data ?? []) as Category[];
     },
