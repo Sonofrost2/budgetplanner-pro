@@ -7,7 +7,10 @@ import { InputField } from '@/components/ui/input-field';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
-import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { useFamilyCategories } from '@/hooks/useFamilyCategories';
+import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote, Users, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,10 +23,12 @@ interface TransactionFormProps {
   form: {
     description: string; amount: string; type: string;
     category_id: string; account_id: string; date: string; notes: string;
+    family_category_id?: string;
   };
   setForm: React.Dispatch<React.SetStateAction<{
     description: string; amount: string; type: string;
     category_id: string; account_id: string; date: string; notes: string;
+    family_category_id?: string;
   }>>;
   errors: Record<string, string>;
   saving: boolean;
