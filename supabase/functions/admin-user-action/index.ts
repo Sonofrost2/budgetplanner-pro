@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "list_users": {
-        const { data, error } = await admin.rpc("admin_list_users", {
+        const { data, error } = await userClient.rpc("admin_list_users", {
           _search: body.search ?? null,
           _plan_filter: body.plan ?? null,
           _limit: Math.min(Number(body.limit) || 100, 500),
