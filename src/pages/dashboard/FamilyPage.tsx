@@ -1,20 +1,27 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useProfile } from '@/hooks/useProfile';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Users, Mail, Crown, UserMinus, Trash2, Share2, Inbox, Lock } from 'lucide-react';
-import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LayoutDashboard, Users, Share2, Activity, Mail, Plus, Lock, CheckCheck } from 'lucide-react';
+import { toast } from 'sonner';
+
+import { useFamilyData } from '@/hooks/useFamilyData';
+import { FamilyHeroHeader } from '@/components/dashboard/family/FamilyHeroHeader';
+import { FamilyGroupSelector } from '@/components/dashboard/family/FamilyGroupSelector';
+import { FamilyOverviewTab } from '@/components/dashboard/family/FamilyOverviewTab';
+import { FamilyMembersTab } from '@/components/dashboard/family/FamilyMembersTab';
+import { FamilySharedBudgetsTab } from '@/components/dashboard/family/FamilySharedBudgetsTab';
+import { FamilyActivityTab } from '@/components/dashboard/family/FamilyActivityTab';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
@@ -22,211 +29,136 @@ const FamilyPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { canUseFamily } = useSubscription();
+  const { profile } = useProfile();
   const t = dashT[locale];
+  const currency = profile?.currency || 'XOF';
 
-  const [groups, setGroups] = useState<Tables<'family_groups'>[]>([]);
-  const [members, setMembers] = useState<Record<string, (Tables<'family_members'> & { display_name?: string; email?: string })[]>>({});
-  const [invitations, setInvitations] = useState<Tables<'family_invitations'>[]>([]);
-  const [pendingForMe, setPendingForMe] = useState<(Tables<'family_invitations'> & { family_groups?: { name: string } })[]>([]);
-  const [budgets, setBudgets] = useState<Tables<'budgets'>[]>([]);
-  const [sharedBudgets, setSharedBudgets] = useState<Tables<'shared_budgets'>[]>([]);
-  const [memberTransactions, setMemberTransactions] = useState<{ id: string; user_id: string; amount: number; type: string; date: string; description?: string; categories?: { name: string; icon: string } | null; profiles?: { display_name: string } | null }[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Period: current month
+  const period = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+    return { start, end };
+  }, []);
 
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const { groups, members, pendingForMe, sentInvitations, budgets, sharedBudgets, dashboard, activity, loading, refetch } =
+    useFamilyData(selectedGroup, period.start, period.end);
+
+  // Auto-select first group
+  useEffect(() => {
+    if (!selectedGroup && groups.length > 0) setSelectedGroup(groups[0].id);
+  }, [groups, selectedGroup]);
+
+  // Dialogs
   const [createOpen, setCreateOpen] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteGroupId, setInviteGroupId] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [shareOpen, setShareOpen] = useState(false);
-  const [shareGroupId, setShareGroupId] = useState('');
-  const [shareBudgetId, setShareBudgetId] = useState('');
+  const [inviting, setInviting] = useState(false);
   const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    if (!user) return;
+  const selectedGroupData = groups.find((g) => g.id === selectedGroup) || null;
+  const isOwner = selectedGroupData?.owner_id === user?.id;
+  const groupMembers = selectedGroup ? members[selectedGroup] || [] : [];
+  const groupPendingInvitations = useMemo(
+    () => sentInvitations.filter((i) => i.group_id === selectedGroup),
+    [sentInvitations, selectedGroup],
+  );
 
-    const [groupsRes, invRes, budRes] = await Promise.all([
-      supabase.from('family_groups').select('*').order('created_at', { ascending: false }),
-      supabase.from('family_invitations').select('*').eq('status', 'pending'),
-      supabase.from('budgets').select('*').eq('user_id', user.id),
-    ]);
-
-    const grps = groupsRes.data || [];
-    setGroups(grps);
-    setBudgets(budRes.data || []);
-
-    // Get members for each group using security definer function
-    const membersMap: typeof members = {};
-    for (const g of grps) {
-      const { data: rawMembers } = await supabase
-        .from('family_members')
-        .select('*')
-        .eq('group_id', g.id);
-      
-      // Use RPC to get profiles (bypasses RLS)
-      const membersList = rawMembers || [];
-      if (membersList.length > 0) {
-        const { data: profiles } = await supabase.rpc('get_family_member_profiles', { p_group_id: g.id });
-        const profileMap: Record<string, any> = {};
-        (profiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
-        membersMap[g.id] = membersList.map((m: any) => ({
-          ...m,
-          profiles: profileMap[m.user_id] || null,
-        }));
-      } else {
-        membersMap[g.id] = [];
-      }
-    }
-    setMembers(membersMap);
-
-    // Invitations sent by me
-    setInvitations((invRes.data || []).filter((i: any) => i.invited_by === user.id));
-
-    // Pending invitations for me
-    const userEmail = user.email;
-    setPendingForMe((invRes.data || []).filter((i: any) => i.invited_email === userEmail));
-
-    // Shared budgets
-    const sharedRes = await supabase.from('shared_budgets').select('*, budgets(name, amount, period, category_id)');
-    setSharedBudgets(sharedRes.data || []);
-
-    // If a group is selected, get member transactions using RPC
-    if (selectedGroup) {
-      const { data: txs } = await supabase.rpc('get_family_transactions', {
-        p_group_id: selectedGroup,
-        p_limit: 50,
-      });
-      
-      setMemberTransactions((txs || []).map((tx: any) => ({
-        id: tx.id,
-        user_id: tx.user_id,
-        amount: tx.amount,
-        type: tx.type,
-        date: tx.date,
-        description: tx.description,
-        categories: tx.category_name ? { name: tx.category_name, icon: tx.category_icon } : null,
-        profiles: tx.display_name ? { display_name: tx.display_name } : null,
-      })));
-    }
-
-    setLoading(false);
-  }, [user, selectedGroup]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  // Listen for invitation changes
-  useEffect(() => {
-    const channel = supabase
-      .channel('family-invitations')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'family_invitations' }, () => fetchData())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchData]);
+  // KPIs
+  const totalMembers = useMemo(() => Object.values(members).reduce((s, arr) => s + arr.length, 0), [members]);
+  const totalShared = sharedBudgets.length;
+  const monthlyExpense = dashboard?.total_expense || 0;
 
   const handleCreateGroup = async () => {
     if (!user || !groupName.trim()) return;
-    const { error } = await supabase.from('family_groups').insert({ name: groupName.trim(), owner_id: user.id });
+    const { data, error } = await supabase.from('family_groups').insert({ name: groupName.trim(), owner_id: user.id }).select('id').single();
     if (error) { toast.error(error.message); return; }
     setCreateOpen(false);
     setGroupName('');
-    fetchData();
-    toast.success(t.saved);
+    if (data?.id) setSelectedGroup(data.id);
+    refetch();
+    toast.success('Groupe créé 🎉');
   };
 
   const handleInvite = async () => {
-    if (!user || !inviteEmail.trim() || !inviteGroupId) return;
-    const { error } = await supabase.from('family_invitations').insert({
-      group_id: inviteGroupId, invited_email: inviteEmail.trim().toLowerCase(), invited_by: user.id,
+    if (!user || !inviteEmail.trim() || !selectedGroup) return;
+    setInviting(true);
+    const { error } = await supabase.functions.invoke('send-family-invitation', {
+      body: { groupId: selectedGroup, email: inviteEmail.trim().toLowerCase() },
     });
-    if (error) { toast.error(error.message); return; }
+    setInviting(false);
+    if (error) { toast.error(error.message || 'Erreur lors de l\'envoi'); return; }
     setInviteOpen(false);
     setInviteEmail('');
-    fetchData();
-    toast.success(t.invitationSent || 'Invitation envoyée !');
+    refetch();
+    toast.success('Invitation envoyée par email 📧');
   };
 
-  const handleAcceptInvite = async (inv: any) => {
-    if (!user) return;
-    // Add user as member
-    const { error: memberErr } = await supabase.from('family_members').insert({ group_id: inv.group_id, user_id: user.id, role: 'member' });
-    if (memberErr) { toast.error(memberErr.message); return; }
-    // Update invitation status
-    await supabase.from('family_invitations').update({ status: 'accepted' }).eq('id', inv.id);
-    fetchData();
-    toast.success(t.invitationAccepted || 'Invitation acceptée !');
-  };
-
-  const handleDeclineInvite = async (inv: any) => {
-    await supabase.from('family_invitations').update({ status: 'declined' }).eq('id', inv.id);
-    fetchData();
-  };
-
-  const handleShareBudget = async () => {
-    if (!user || !shareGroupId || !shareBudgetId) return;
-    const { error } = await supabase.from('shared_budgets').insert({
-      budget_id: shareBudgetId, group_id: shareGroupId, shared_by: user.id,
-    });
+  const handleAcceptInvite = async (token: string) => {
+    const { error } = await supabase.rpc('accept_family_invitation', { p_token: token });
     if (error) { toast.error(error.message); return; }
-    setShareOpen(false);
-    fetchData();
-    toast.success(t.saved);
+    toast.success('Invitation acceptée !');
+    refetch();
   };
 
-  const handleRemoveMember = async (memberId: string) => {
-    await supabase.from('family_members').delete().eq('id', memberId);
-    fetchData();
-    toast.success(t.delete + ' ✓');
+  const handleDeclineInvite = async (id: string) => {
+    await supabase.from('family_invitations').update({ status: 'declined' }).eq('id', id);
+    refetch();
   };
 
   const handleDeleteGroup = async () => {
     if (!deleteGroupId) return;
-    await supabase.from('family_groups').delete().eq('id', deleteGroupId);
-    setDeleteGroupId(null);
+    const { error } = await supabase.rpc('delete_family_group_cascade', { p_group_id: deleteGroupId });
+    if (error) { toast.error(error.message); return; }
     if (selectedGroup === deleteGroupId) setSelectedGroup(null);
-    fetchData();
-    toast.success(t.delete + ' ✓');
+    setDeleteGroupId(null);
+    refetch();
+    toast.success('Groupe supprimé');
   };
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between"><Skeleton className="h-8 w-48" /><Skeleton className="h-9 w-40" /></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Skeleton className="h-48 rounded-xl" /><Skeleton className="h-48 rounded-xl" />
-        </div>
+        <Skeleton className="h-48 rounded-3xl" />
+        <Skeleton className="h-12 rounded-2xl" />
+        <Skeleton className="h-96 rounded-2xl" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {!canUseFamily && (
-        <UpgradeBanner message={t.upgradeFamily} />
-      )}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold font-display">{t.family}</h2>
-        <Button size="sm" className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={() => setCreateOpen(true)} disabled={!canUseFamily}>
-          {!canUseFamily ? <Lock className="w-4 h-4 mr-1" /> : <Plus className="w-4 h-4 mr-1" />}{t.createGroup}
-        </Button>
-      </div>
+      {!canUseFamily && <UpgradeBanner message={t.upgradeFamily} />}
 
-      {/* Pending invitations for me */}
+      <FamilyHeroHeader
+        groupCount={groups.length}
+        memberCount={totalMembers}
+        sharedBudgetsCount={totalShared}
+        monthlyExpense={monthlyExpense}
+        currency={currency}
+        selectedGroupName={selectedGroupData?.name}
+        onCreate={() => setCreateOpen(true)}
+        canCreate={canUseFamily}
+      />
+
+      {/* Pending invitations FOR me */}
       {pendingForMe.length > 0 && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Mail className="w-4 h-4" /> {t.pendingInvitations}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {pendingForMe.map(inv => (
-              <div key={inv.id} className="flex items-center justify-between">
-                <span className="text-sm">{t.invitedToGroup || "Vous êtes invité à rejoindre un groupe familial"}</span>
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="py-4 space-y-2">
+            <div className="flex items-center gap-2 mb-2">
+              <Mail className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold">Vous avez {pendingForMe.length} invitation{pendingForMe.length > 1 ? 's' : ''}</span>
+            </div>
+            {pendingForMe.map((inv) => (
+              <div key={inv.id} className="flex items-center justify-between gap-3 p-2 rounded-lg bg-background/60">
+                <span className="text-sm">Invitation à rejoindre un groupe familial</span>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleAcceptInvite(inv)}>{t.accept || 'Accepter'}</Button>
-                  <Button size="sm" variant="outline" onClick={() => handleDeclineInvite(inv)}>{t.decline || 'Refuser'}</Button>
+                  <Button size="sm" onClick={() => handleAcceptInvite(inv.token)}>
+                    <CheckCheck className="w-3.5 h-3.5 mr-1" />Accepter
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleDeclineInvite(inv.id)}>Refuser</Button>
                 </div>
               </div>
             ))}
@@ -234,128 +166,87 @@ const FamilyPage = () => {
         </Card>
       )}
 
-      {/* Groups */}
       {groups.length === 0 ? (
-        <Card className="border-none shadow-[var(--shadow-card)]">
+        <Card className="border-dashed">
           <CardContent className="py-16 text-center">
             <Users className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-lg font-medium text-muted-foreground mb-2">{t.noGroups}</p>
-            <Button size="sm" className="text-primary-foreground mt-2" style={{ background: 'var(--gradient-primary)' }} onClick={() => setCreateOpen(true)}>
-              <Plus className="w-4 h-4 mr-1" />{t.createGroup}
+            <p className="text-lg font-medium text-muted-foreground mb-4">Aucun groupe familial</p>
+            <Button onClick={() => setCreateOpen(true)} disabled={!canUseFamily} className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+              {!canUseFamily ? <Lock className="w-4 h-4 mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
+              Créer un groupe
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {groups.map(group => {
-            const isOwner = group.owner_id === user?.id;
-            const groupMembers = members[group.id] || [];
-            const groupShared = sharedBudgets.filter(sb => sb.group_id === group.id);
+        <>
+          <FamilyGroupSelector
+            groups={groups}
+            selectedId={selectedGroup}
+            onSelect={setSelectedGroup}
+            currentUserId={user?.id || ''}
+            onDeleteRequest={setDeleteGroupId}
+          />
 
-            return (
-              <Card key={group.id} className={`border-none shadow-[var(--shadow-card)] cursor-pointer transition-all ${selectedGroup === group.id ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => setSelectedGroup(selectedGroup === group.id ? null : group.id)}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Users className="w-4 h-4 text-primary" />
-                      {group.name}
-                      {isOwner && <Badge variant="secondary" className="text-xs"><Crown className="w-3 h-3 mr-1" />{t.owner || 'Propriétaire'}</Badge>}
-                    </CardTitle>
-                    {isOwner && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={e => { e.stopPropagation(); setDeleteGroupId(group.id); }}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {/* Members */}
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-2">{t.members} ({groupMembers.length})</p>
-                    <div className="flex flex-wrap gap-2">
-                      {groupMembers.map((m: any) => (
-                        <div key={m.id} className="flex items-center gap-1.5 bg-muted rounded-full px-3 py-1 text-xs">
-                          <span>{m.profiles?.display_name || 'User'}</span>
-                          {m.role === 'owner' && <Crown className="w-3 h-3 text-accent" />}
-                          {isOwner && m.user_id !== user?.id && (
-                            <button onClick={e => { e.stopPropagation(); handleRemoveMember(m.id); }} className="ml-1 text-destructive hover:text-destructive/80">
-                              <UserMinus className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+          {selectedGroup && (
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+                <TabsTrigger value="overview"><LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />Vue</TabsTrigger>
+                <TabsTrigger value="members"><Users className="w-3.5 h-3.5 mr-1.5" />Membres</TabsTrigger>
+                <TabsTrigger value="budgets"><Share2 className="w-3.5 h-3.5 mr-1.5" />Budgets</TabsTrigger>
+                <TabsTrigger value="activity"><Activity className="w-3.5 h-3.5 mr-1.5" />Activité</TabsTrigger>
+              </TabsList>
 
-                  {/* Shared budgets count */}
-                  {groupShared.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      <Share2 className="w-3 h-3 inline mr-1" />
-                      {groupShared.length} {t.sharedBudgets}
-                    </p>
-                  )}
+              <TabsContent value="overview" className="mt-4">
+                <FamilyOverviewTab dashboard={dashboard} currency={currency} />
+              </TabsContent>
 
-                  {/* Action buttons */}
-                  {isOwner && (
-                    <div className="flex gap-2 pt-2" onClick={e => e.stopPropagation()}>
-                      <Button size="sm" variant="outline" onClick={() => { setInviteGroupId(group.id); setInviteOpen(true); }}>
-                        <Mail className="w-3 h-3 mr-1" />{t.invite}
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setShareGroupId(group.id); setShareOpen(true); }}>
-                        <Share2 className="w-3 h-3 mr-1" />{t.shareBudget}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+              <TabsContent value="members" className="mt-4">
+                <FamilyMembersTab
+                  members={groupMembers}
+                  pendingInvitations={groupPendingInvitations}
+                  groupId={selectedGroup}
+                  isOwner={!!isOwner}
+                  currentUserId={user?.id || ''}
+                  onInvite={() => setInviteOpen(true)}
+                  onChange={refetch}
+                />
+              </TabsContent>
 
-      {/* Member transactions for selected group */}
-      {selectedGroup && memberTransactions.length > 0 && (
-        <Card className="border-none shadow-[var(--shadow-card)]">
-          <CardHeader>
-            <CardTitle className="text-base">{t.memberExpenses}</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-border">
-              {memberTransactions.map(tx => (
-                <div key={tx.id} className="flex items-center justify-between px-6 py-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-lg">{tx.categories?.icon || '📁'}</span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{tx.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {tx.profiles?.display_name || 'User'} · {tx.categories?.name || '-'} · {new Date(tx.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`text-sm font-semibold ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
-                    {tx.type === 'income' ? '+' : '-'}{Number(tx.amount).toLocaleString()} 
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              <TabsContent value="budgets" className="mt-4">
+                <FamilySharedBudgetsTab
+                  dashboard={dashboard}
+                  groupId={selectedGroup}
+                  isOwner={!!isOwner}
+                  myBudgets={budgets}
+                  sharedBudgets={sharedBudgets}
+                  currency={currency}
+                  currentUserId={user?.id || ''}
+                  onChange={refetch}
+                />
+              </TabsContent>
+
+              <TabsContent value="activity" className="mt-4">
+                <FamilyActivityTab activity={activity} members={groupMembers} currency={currency} />
+              </TabsContent>
+            </Tabs>
+          )}
+        </>
       )}
 
       {/* Create group dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{t.createGroup}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t.groupName}</Label>
-              <Input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder={t.groupNamePlaceholder || 'Ma famille'} maxLength={100} />
-            </div>
+          <DialogHeader>
+            <DialogTitle>Créer un groupe familial</DialogTitle>
+            <DialogDescription>Vous serez automatiquement le propriétaire et pourrez inviter des membres.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Nom du groupe</Label>
+            <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Ma famille" maxLength={100} autoFocus />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>{t.cancel}</Button>
-            <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={handleCreateGroup}>{t.save}</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
+            <Button onClick={handleCreateGroup} disabled={!groupName.trim()} className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>Créer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -363,50 +254,29 @@ const FamilyPage = () => {
       {/* Invite dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{t.inviteMember}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t.email || 'Email'}</Label>
-              <Input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder={t.invitePlaceholder} />
-            </div>
+          <DialogHeader>
+            <DialogTitle>Inviter un membre</DialogTitle>
+            <DialogDescription>Un email avec un lien d'invitation sera envoyé. L'invitation expire dans 7 jours.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="exemple@email.com" autoFocus />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)}>{t.cancel}</Button>
-            <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={handleInvite}>{t.invite}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Share budget dialog */}
-      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{t.shareBudget}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t.budgets}</Label>
-              <Select value={shareBudgetId} onValueChange={setShareBudgetId}>
-                <SelectTrigger><SelectValue placeholder={t.selectBudget || 'Sélectionner un budget'} /></SelectTrigger>
-                <SelectContent>
-                  {budgets.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShareOpen(false)}>{t.cancel}</Button>
-            <Button className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={handleShareBudget}>{t.share || 'Partager'}</Button>
+            <Button variant="outline" onClick={() => setInviteOpen(false)} disabled={inviting}>Annuler</Button>
+            <Button onClick={handleInvite} disabled={!inviteEmail.trim() || inviting} className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+              {inviting ? 'Envoi…' : 'Envoyer l\'invitation'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <ConfirmDeleteDialog
         open={!!deleteGroupId}
-        onOpenChange={() => setDeleteGroupId(null)}
+        onOpenChange={(o) => !o && setDeleteGroupId(null)}
         onConfirm={handleDeleteGroup}
-        title={t.confirmDelete}
-        description={t.confirmDeleteMessage}
-        cancelLabel={t.cancel}
-        confirmLabel={t.delete}
+        title="Supprimer ce groupe ?"
+        description="Cette action supprime définitivement le groupe, ses invitations et budgets partagés. Les transactions des membres ne sont pas affectées."
       />
     </div>
   );
