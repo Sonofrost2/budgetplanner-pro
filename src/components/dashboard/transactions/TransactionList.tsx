@@ -275,6 +275,32 @@ const TransferBadge = ({ locale, compact = false }: { locale: string; compact?: 
   </span>
 );
 
+/** Privacy indicator — shared (family) vs private (lock). Tiny, accessible, glassy. */
+const PrivacyIndicator = ({ shared, locale, compact = false }: { shared: boolean; locale: string; compact?: boolean }) => {
+  const size = compact ? 'w-2.5 h-2.5' : 'w-3 h-3';
+  const wrap = compact ? 'w-4 h-4' : 'w-5 h-5';
+  if (shared) {
+    return (
+      <span
+        className={`inline-flex items-center justify-center ${wrap} rounded-md bg-primary/12 text-primary border border-primary/20 flex-shrink-0`}
+        title={locale === 'fr' ? 'Visible par votre famille' : 'Visible to your family'}
+        aria-label={locale === 'fr' ? 'Partagée avec la famille' : 'Shared with family'}
+      >
+        <span className={compact ? 'text-[9px]' : 'text-[11px]'} aria-hidden>👨‍👩‍👧</span>
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`inline-flex items-center justify-center ${wrap} rounded-md bg-muted/40 text-muted-foreground/60 border border-border/30 flex-shrink-0`}
+      title={locale === 'fr' ? 'Transaction privée — visible uniquement par vous' : 'Private transaction — visible only to you'}
+      aria-label={locale === 'fr' ? 'Privée' : 'Private'}
+    >
+      <Lock className={size} />
+    </span>
+  );
+};
+
 export const TransactionList = ({
   transactions, totalCount, page, totalPages,
   onPageChange, selectedIds, onToggleSelect, onToggleSelectAll, allPageSelected,
