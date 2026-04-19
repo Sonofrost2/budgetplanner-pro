@@ -128,7 +128,7 @@ const FamilyPage = () => {
 
   return (
     <div className="space-y-6">
-      {!canUseFamily && <UpgradeBanner message={t.upgradeFamily} />}
+      {!canUseFamily && <UpgradeBanner message={dashT[locale].upgradeFamily} />}
 
       <FamilyHeroHeader
         groupCount={groups.length}
