@@ -41,6 +41,11 @@ export const CategoryTreeView = ({
     return { roots, childrenMap };
   }, [categories]);
 
+  const familyRootId = useMemo(
+    () => categories.find((c: any) => c.is_family_root)?.id ?? null,
+    [categories]
+  );
+
   const toggleExpand = (id: string) => {
     setExpanded(prev => {
       const next = new Set(prev);
@@ -90,6 +95,7 @@ export const CategoryTreeView = ({
               onDelete={onDelete}
               onArchive={onArchive}
               isFr={isFr}
+              familyRootId={familyRootId}
             />
           );
         })}
@@ -123,16 +129,19 @@ interface NodeProps {
   onDelete: (id: string) => void;
   onArchive?: (id: string) => void;
   isFr: boolean;
+  familyRootId?: string | null;
 }
 
 const CategoryNode = ({
-  category, childrenCats, isExpanded, onToggleExpand, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, isFr,
+  category, childrenCats, isExpanded, onToggleExpand, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, isFr, familyRootId,
 }: NodeProps) => {
   const isSelected = selectedIds.has(category.id);
   const stat = stats[category.id];
   const series = normalizeSparkline(stat?.monthly_series ?? []);
   const txCount = txCounts[category.id] || 0;
   const hasChildren = childrenCats.length > 0;
+  const isFamilyRoot = (category as any).is_family_root === true;
+  const isSharedChild = !!familyRootId && category.parent_category_id === familyRootId;
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: category.id });
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({ id: category.id });
@@ -167,8 +176,18 @@ const CategoryNode = ({
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium text-sm truncate">{category.name}</p>
+              {isFamilyRoot && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/20 font-semibold flex items-center gap-0.5">
+                  👨‍👩‍👧 {isFr ? 'Racine Famille' : 'Family root'}
+                </span>
+              )}
+              {isSharedChild && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/15 text-accent border border-accent/20 font-semibold">
+                  {isFr ? 'Partageable' : 'Shareable'}
+                </span>
+              )}
               {hasChildren && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
                   {childrenCats.length}
@@ -215,6 +234,7 @@ const CategoryNode = ({
               onDelete={onDelete}
               onArchive={onArchive}
               isFr={isFr}
+              familyRootId={familyRootId}
             />
           ))}
         </div>

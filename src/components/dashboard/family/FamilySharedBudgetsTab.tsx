@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Share2, Plus, Trash2 } from 'lucide-react';
+import { Share2, Plus, Trash2, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useCategories } from '@/hooks/useDashboardData';
 import type { Tables } from '@/integrations/supabase/types';
 import type { FamilyDashboard } from '@/hooks/useFamilyData';
 
@@ -27,10 +28,26 @@ const fmt = (n: number, c: string) => `${Math.round(n).toLocaleString('fr-FR')} 
 export const FamilySharedBudgetsTab = ({ dashboard, groupId, isOwner, myBudgets, sharedBudgets, currency, currentUserId, onChange }: Props) => {
   const [shareOpen, setShareOpen] = useState(false);
   const [budgetId, setBudgetId] = useState('');
+  const { data: categories = [] } = useCategories();
 
   const groupShared = sharedBudgets.filter((sb) => sb.group_id === groupId);
   const sharedIds = new Set(groupShared.map((sb) => sb.budget_id));
-  const availableBudgets = myBudgets.filter((b) => !sharedIds.has(b.id));
+
+  // Privacy by Design: only budgets attached to a Family-rooted category can be shared.
+  const familyRootedCategoryIds = useMemo(() => {
+    const root = categories.find((c: any) => c.is_family_root);
+    if (!root) return new Set<string>();
+    const ids = new Set<string>([root.id]);
+    categories.forEach((c: any) => {
+      if (c.parent_category_id === root.id) ids.add(c.id);
+    });
+    return ids;
+  }, [categories]);
+
+  const availableBudgets = myBudgets.filter(
+    (b) => !sharedIds.has(b.id) && b.category_id && familyRootedCategoryIds.has(b.category_id)
+  );
+  const noFamilyBudget = availableBudgets.length === 0 && myBudgets.length > 0;
 
   const handleShare = async () => {
     if (!budgetId) return;
@@ -103,17 +120,29 @@ export const FamilySharedBudgetsTab = ({ dashboard, groupId, isOwner, myBudgets,
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Partager un budget</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Partager un budget</DialogTitle>
+            <DialogDescription className="flex items-start gap-1.5 text-xs">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
+              Seuls les budgets rattachés à une catégorie <strong>Famille</strong> peuvent être partagés (Privacy by Design).
+            </DialogDescription>
+          </DialogHeader>
           <div className="space-y-3">
             <Label>Budget</Label>
-            <Select value={budgetId} onValueChange={setBudgetId}>
-              <SelectTrigger><SelectValue placeholder="Choisir un budget" /></SelectTrigger>
-              <SelectContent>
-                {availableBudgets.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>{b.name} · {fmt(b.amount, currency)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {noFamilyBudget ? (
+              <p className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/40 border border-dashed">
+                Aucun budget éligible. Créez d'abord un budget sur une sous-catégorie de votre racine <strong>Famille</strong> dans la page Catégories.
+              </p>
+            ) : (
+              <Select value={budgetId} onValueChange={setBudgetId}>
+                <SelectTrigger><SelectValue placeholder="Choisir un budget Famille" /></SelectTrigger>
+                <SelectContent>
+                  {availableBudgets.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.name} · {fmt(b.amount, currency)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShareOpen(false)}>Annuler</Button>

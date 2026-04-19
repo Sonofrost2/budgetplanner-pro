@@ -7,7 +7,10 @@ import { InputField } from '@/components/ui/input-field';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
-import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { useFamilyCategories } from '@/hooks/useFamilyCategories';
+import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote, Users, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,10 +23,12 @@ interface TransactionFormProps {
   form: {
     description: string; amount: string; type: string;
     category_id: string; account_id: string; date: string; notes: string;
+    family_category_id?: string;
   };
   setForm: React.Dispatch<React.SetStateAction<{
     description: string; amount: string; type: string;
     category_id: string; account_id: string; date: string; notes: string;
+    family_category_id?: string;
   }>>;
   errors: Record<string, string>;
   saving: boolean;
@@ -43,6 +48,8 @@ export const TransactionForm = ({
 }: TransactionFormProps) => {
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const { data: familyCategories = [] } = useFamilyCategories();
+  const isFr = locale === 'fr';
 
   const filteredCategories = categories.filter(c => c.type === form.type);
 
@@ -231,6 +238,53 @@ export const TransactionForm = ({
             placeholder={locale === 'fr' ? 'Rechercher un compte...' : 'Search account...'}
           />
         </div>
+
+        {/* Family Category — Privacy by Design */}
+        {familyCategories.length > 0 && (
+          <div className="space-y-2">
+            <Label className="form-label flex items-center gap-1.5">
+              <Users className="w-3 h-3" />
+              {isFr ? 'Catégorie Famille' : 'Family category'}
+              <span className="text-muted-foreground/50 font-normal normal-case">({isFr ? 'optionnel' : 'optional'})</span>
+            </Label>
+            <Select
+              value={form.family_category_id || '__none__'}
+              onValueChange={(v) => setForm(f => ({ ...f, family_category_id: v === '__none__' ? '' : v }))}
+            >
+              <SelectTrigger className="rounded-xl h-11">
+                <SelectValue placeholder={isFr ? 'Privée — non partagée' : 'Private — not shared'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">
+                  <span className="flex items-center gap-2">
+                    <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                    {isFr ? 'Privée — visible uniquement par moi' : 'Private — visible only to me'}
+                  </span>
+                </SelectItem>
+                {familyCategories.map((fc) => (
+                  <SelectItem key={fc.id} value={fc.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{fc.icon}</span>
+                      <span>{fc.name}</span>
+                      {fc.group_name && <span className="text-[10px] text-muted-foreground">· {fc.group_name}</span>}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.family_category_id ? (
+              <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border-primary/20">
+                <Users className="w-3 h-3" />
+                {isFr ? 'Visible par votre famille' : 'Visible to your family'}
+              </Badge>
+            ) : (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <Lock className="w-3 h-3" />
+                {isFr ? 'Cette transaction reste privée' : 'This transaction stays private'}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Notes with char counter */}
         <div className="space-y-2">
