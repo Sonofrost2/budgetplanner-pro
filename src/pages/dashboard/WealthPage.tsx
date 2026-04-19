@@ -33,6 +33,9 @@ import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { WealthProjectionChart } from '@/components/dashboard/wealth/WealthProjectionChart';
 import { exportWealthPDF, exportWealthExcel } from '@/lib/wealthExport';
+import { useSubscription } from '@/hooks/useSubscription';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { Lock } from 'lucide-react';
 
 const ASSET_TYPES = [
   { value: 'real_estate', label_fr: 'Immobilier', label_en: 'Real Estate', icon: '🏠', lucide: Building2, color: 'hsl(var(--primary))' },
