@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.paystack-webhook]
 verify_jwt = false
+
+[functions.ai-categories-suggest]
+verify_jwt = false

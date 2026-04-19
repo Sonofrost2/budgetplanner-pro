@@ -11,9 +11,10 @@ interface BulkActionBarProps {
   onExportCSV?: () => void;
   onExportExcel?: () => void;
   onClear: () => void;
+  extraActions?: React.ReactNode;
 }
 
-const BulkActionBar = ({ count, onDelete, onModify, onDuplicate, onExportCSV, onExportExcel, onClear }: BulkActionBarProps) => {
+const BulkActionBar = ({ count, onDelete, onModify, onDuplicate, onExportCSV, onExportExcel, onClear, extraActions }: BulkActionBarProps) => {
   const { locale } = useLanguage();
   const t = dashT[locale];
 
@@ -24,6 +25,7 @@ const BulkActionBar = ({ count, onDelete, onModify, onDuplicate, onExportCSV, on
       </span>
       <div className="flex-1" />
       <div className="flex items-center gap-1.5 flex-wrap">
+        {extraActions}
         {onModify && (
           <Button variant="outline" size="sm" className="rounded-xl" onClick={onModify}>
             <Pencil className="w-3.5 h-3.5 mr-1" />{locale === 'fr' ? 'Modifier' : 'Modify'}
