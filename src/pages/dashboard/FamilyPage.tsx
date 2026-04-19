@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LayoutDashboard, Users, Share2, Activity, Mail, Plus, Lock, CheckCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Share2, Activity, Mail, Plus, Lock, CheckCheck, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useFamilyData } from '@/hooks/useFamilyData';
