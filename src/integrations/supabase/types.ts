@@ -715,17 +715,23 @@ export type Database = {
           created_at: string
           daily_budget: boolean
           debt_alerts: boolean
+          evening_capture_enabled: boolean
+          evening_capture_hour: number
           goal_reached: boolean
           id: string
           large_transaction: boolean
           large_transaction_threshold: number
           low_balance: boolean
           low_balance_threshold: number
+          max_push_per_day: number
+          morning_digest_enabled: boolean
+          morning_digest_hour: number
           quiet_hours_enabled: boolean
           quiet_hours_end: number
           quiet_hours_start: number
           recurring_reminders: boolean
           savings_reminders: boolean
+          status_reminder_frequency: string
           updated_at: string
           user_id: string
           weekly_summary: boolean
@@ -737,17 +743,23 @@ export type Database = {
           created_at?: string
           daily_budget?: boolean
           debt_alerts?: boolean
+          evening_capture_enabled?: boolean
+          evening_capture_hour?: number
           goal_reached?: boolean
           id?: string
           large_transaction?: boolean
           large_transaction_threshold?: number
           low_balance?: boolean
           low_balance_threshold?: number
+          max_push_per_day?: number
+          morning_digest_enabled?: boolean
+          morning_digest_hour?: number
           quiet_hours_enabled?: boolean
           quiet_hours_end?: number
           quiet_hours_start?: number
           recurring_reminders?: boolean
           savings_reminders?: boolean
+          status_reminder_frequency?: string
           updated_at?: string
           user_id: string
           weekly_summary?: boolean
@@ -759,17 +771,23 @@ export type Database = {
           created_at?: string
           daily_budget?: boolean
           debt_alerts?: boolean
+          evening_capture_enabled?: boolean
+          evening_capture_hour?: number
           goal_reached?: boolean
           id?: string
           large_transaction?: boolean
           large_transaction_threshold?: number
           low_balance?: boolean
           low_balance_threshold?: number
+          max_push_per_day?: number
+          morning_digest_enabled?: boolean
+          morning_digest_hour?: number
           quiet_hours_enabled?: boolean
           quiet_hours_end?: number
           quiet_hours_start?: number
           recurring_reminders?: boolean
           savings_reminders?: boolean
+          status_reminder_frequency?: string
           updated_at?: string
           user_id?: string
           weekly_summary?: boolean

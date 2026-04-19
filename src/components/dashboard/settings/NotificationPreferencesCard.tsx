@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Bell, TrendingUp, Wallet, PiggyBank, RotateCcw, AlertTriangle, Scale, Calendar, Zap, Moon, Target, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bell, TrendingUp, Wallet, PiggyBank, RotateCcw, AlertTriangle, Scale, Calendar, Zap, Moon, Target, ChevronDown, ChevronUp, Sunrise, Sunset, Clock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAuth } from '@/hooks/useAuth';
@@ -199,6 +200,94 @@ const NotificationPreferencesCard = ({ locale }: Props) => {
         {/* Notification types configuration */}
         {subscribed && !loading && (
           <>
+            <Separator />
+
+            {/* === Cadence & moments — always visible === */}
+            <div className="space-y-4">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary" />
+                {isFr ? 'Cadence & moments' : 'Cadence & timing'}
+              </p>
+
+              {/* Morning digest */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <Sunrise className="w-4 h-4 mt-0.5 text-amber-500" />
+                    <div>
+                      <p className="text-sm font-medium">{isFr ? 'Digest matinal' : 'Morning digest'}</p>
+                      <p className="text-xs text-muted-foreground">{isFr ? 'Une seule notification résumant les alertes du matin' : 'A single notification summarizing morning alerts'}</p>
+                    </div>
+                  </div>
+                  <Switch checked={prefs.morning_digest_enabled} onCheckedChange={(v) => updatePref('morning_digest_enabled', v)} />
+                </div>
+                {prefs.morning_digest_enabled && (
+                  <div className="ml-6 flex items-center gap-2 text-xs">
+                    <Label className="text-muted-foreground">{isFr ? 'Heure' : 'Hour'}</Label>
+                    <Input type="number" min={5} max={11} className="rounded-xl h-8 w-16 text-xs text-center"
+                      value={prefs.morning_digest_hour}
+                      onChange={(e) => { const v = Number(e.target.value); if (v >= 5 && v <= 11) updatePref('morning_digest_hour', v); }} />
+                    <span className="text-muted-foreground">h</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Evening capture reminder */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <Sunset className="w-4 h-4 mt-0.5 text-orange-600" />
+                    <div>
+                      <p className="text-sm font-medium">{isFr ? 'Rappel de saisie du soir' : 'Evening capture reminder'}</p>
+                      <p className="text-xs text-muted-foreground">{isFr ? 'Te rappelle chaque soir de saisir tes transactions' : 'Reminds you each evening to log transactions'}</p>
+                    </div>
+                  </div>
+                  <Switch checked={prefs.evening_capture_enabled} onCheckedChange={(v) => updatePref('evening_capture_enabled', v)} />
+                </div>
+                {prefs.evening_capture_enabled && (
+                  <div className="ml-6 flex items-center gap-2 text-xs">
+                    <Label className="text-muted-foreground">{isFr ? 'Heure' : 'Hour'}</Label>
+                    <Input type="number" min={17} max={22} className="rounded-xl h-8 w-16 text-xs text-center"
+                      value={prefs.evening_capture_hour}
+                      onChange={(e) => { const v = Number(e.target.value); if (v >= 17 && v <= 22) updatePref('evening_capture_hour', v); }} />
+                    <span className="text-muted-foreground">h</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Status reminder cadence */}
+              <div className="flex items-start gap-2.5">
+                <RotateCcw className="w-4 h-4 mt-0.5 text-purple-500" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{isFr ? 'Cadence des rappels d\'état' : 'Status reminder cadence'}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{isFr ? 'Fréquence des alertes non urgentes' : 'How often to repeat non-urgent alerts'}</p>
+                  <Select value={prefs.status_reminder_frequency} onValueChange={(v) => updatePref('status_reminder_frequency', v)}>
+                    <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">{isFr ? '1× par semaine' : 'Once a week'}</SelectItem>
+                      <SelectItem value="every_3d">{isFr ? 'Tous les 3 jours' : 'Every 3 days'}</SelectItem>
+                      <SelectItem value="on_change_only">{isFr ? 'Seulement si ça change' : 'Only when status changes'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Daily push cap */}
+              <div className="flex items-start gap-2.5">
+                <Bell className="w-4 h-4 mt-0.5 text-primary" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{isFr ? 'Plafond quotidien' : 'Daily cap'}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{isFr ? 'Au-delà, les alertes sont regroupées en digest' : 'Beyond this, alerts group into a digest'}</p>
+                  <div className="flex items-center gap-2">
+                    <Input type="number" min={1} max={10} className="rounded-xl h-9 w-20 text-xs text-center"
+                      value={prefs.max_push_per_day}
+                      onChange={(e) => { const v = Number(e.target.value); if (v >= 1 && v <= 10) updatePref('max_push_per_day', v); }} />
+                    <span className="text-xs text-muted-foreground">{isFr ? 'notifications / jour' : 'notifications / day'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <Separator />
             <button
               className="flex items-center justify-between w-full text-sm font-medium py-1 hover:text-primary transition-colors"
