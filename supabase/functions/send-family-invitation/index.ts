@@ -8,39 +8,108 @@ const corsHeaders = {
 const APP_URL = 'https://budgetplanner-pro.lovable.app';
 const PRIMARY = '#6C3CF0';
 const PRIMARY_GLOW = '#8B5CF6';
-const FONT = "'Space Grotesk', 'Inter', -apple-system, sans-serif";
+const ACCENT = '#22D3EE';
+const FONT = "'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
 
 function buildEmail(opts: { groupName: string; inviterName: string; acceptUrl: string; expiresAt: string }) {
   const expires = new Date(opts.expiresAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invitation famille</title></head>
-<body style="margin:0;padding:0;background:#F4F5F8;font-family:${FONT};-webkit-font-smoothing:antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F5F8;padding:32px 16px;">
-    <tr><td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#FFFFFF;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px -8px rgba(108,60,240,0.18);">
-        <tr><td style="background:linear-gradient(135deg, ${PRIMARY} 0%, ${PRIMARY_GLOW} 100%);padding:40px 32px 32px;">
-          <div style="display:inline-block;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.24);border-radius:999px;padding:6px 14px;color:#fff;font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:20px;">👨‍👩‍👧 Famille</div>
-          <div style="font-size:40px;line-height:1;margin-bottom:14px;">🎉</div>
-          <h1 style="color:#fff;margin:0;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;">Vous êtes invité·e !</h1>
-        </td></tr>
-        <tr><td style="padding:32px;">
-          <p style="color:#0F172A;font-size:16px;font-weight:600;margin:0 0 18px;">Bonjour 👋</p>
-          <p style="color:#0F172A;font-size:15px;line-height:1.65;margin:0 0 14px;"><strong>${opts.inviterName}</strong> vous invite à rejoindre le groupe familial <strong>"${opts.groupName}"</strong> sur Budget Planner.</p>
-          <p style="color:#0F172A;font-size:15px;line-height:1.65;margin:0 0 14px;">Ensemble, vous pourrez partager des budgets, suivre les dépenses du foyer et atteindre vos objectifs financiers en équipe.</p>
-          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td>
-            <a href="${opts.acceptUrl}" style="display:inline-block;background:linear-gradient(135deg, ${PRIMARY}, ${PRIMARY_GLOW});color:#fff;text-decoration:none;padding:14px 32px;border-radius:14px;font-weight:600;font-size:14px;box-shadow:0 4px 16px -4px ${PRIMARY}66;">Accepter l'invitation →</a>
-          </td></tr></table>
-          <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:14px;padding:14px 16px;margin:16px 0;">
-            <p style="margin:0;color:#64748B;font-size:12px;line-height:1.5;">⏱️ Cette invitation expire le <strong style="color:#0F172A;">${expires}</strong>. Si vous n'avez pas de compte, vous pourrez en créer un en cliquant sur le lien.</p>
-          </div>
-          <p style="color:#94A3B8;font-size:12px;line-height:1.5;margin:18px 0 0;text-align:center;">Si vous ne souhaitez pas rejoindre ce groupe, ignorez simplement cet email.</p>
-        </td></tr>
-        <tr><td style="padding:24px 32px 28px;background:#F9FAFB;border-top:1px solid #E5E7EB;font-size:12px;color:#64748B;">
-          <strong style="color:#0F172A;">Budget Planner</strong> — Coach Financier<br>
-          <span style="color:#94A3B8;">© ${new Date().getFullYear()} • budget-planner-pro.eurekaci.dev</span>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
+  const safeGroup = String(opts.groupName).replace(/</g, '&lt;');
+  const safeInviter = String(opts.inviterName).replace(/</g, '&lt;');
+
+  return `<!DOCTYPE html><html lang="fr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>Invitation à rejoindre ${safeGroup}</title>
+</head>
+<body style="margin:0;padding:0;background:#EEF0F6;font-family:${FONT};-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
+
+<!-- Hidden preheader -->
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#EEF0F6;">
+  ${safeInviter} vous invite à rejoindre "${safeGroup}" sur Budget Planner — cliquez pour accepter.
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF0F6;padding:40px 16px;">
+  <tr><td align="center">
+    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#FFFFFF;border-radius:24px;overflow:hidden;box-shadow:0 12px 40px -12px rgba(108,60,240,0.22),0 4px 12px -4px rgba(15,23,42,0.06);">
+
+      <!-- HERO -->
+      <tr><td style="background:linear-gradient(135deg, ${PRIMARY} 0%, ${PRIMARY_GLOW} 60%, ${ACCENT} 130%);padding:44px 36px 38px;text-align:center;">
+        <div style="display:inline-block;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.28);border-radius:999px;padding:6px 14px;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:24px;">
+          👨‍👩‍👧 Invitation Famille
+        </div>
+        <div style="font-size:48px;line-height:1;margin-bottom:18px;">🎉</div>
+        <h1 style="color:#fff;margin:0 0 10px;font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:1.2;">
+          Vous êtes invité·e !
+        </h1>
+        <p style="color:rgba(255,255,255,0.85);margin:0;font-size:14px;line-height:1.5;">
+          Rejoignez votre famille sur Budget Planner
+        </p>
+      </td></tr>
+
+      <!-- BODY -->
+      <tr><td style="padding:36px 36px 12px;">
+        <p style="color:#0F172A;font-size:15px;line-height:1.65;margin:0 0 18px;">
+          Bonjour 👋
+        </p>
+        <p style="color:#334155;font-size:15px;line-height:1.7;margin:0 0 14px;">
+          <strong style="color:#0F172A;">${safeInviter}</strong> vous invite à rejoindre le groupe familial
+          <strong style="color:${PRIMARY};">« ${safeGroup} »</strong> sur Budget Planner.
+        </p>
+        <p style="color:#334155;font-size:15px;line-height:1.7;margin:0 0 28px;">
+          Ensemble, vous pourrez partager des budgets, suivre les dépenses du foyer et atteindre vos objectifs financiers en équipe.
+        </p>
+
+        <!-- BIG CTA BUTTON (bulletproof) -->
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 24px;">
+          <tr>
+            <td align="center" bgcolor="${PRIMARY}" style="border-radius:14px;background:linear-gradient(135deg, ${PRIMARY}, ${PRIMARY_GLOW});box-shadow:0 8px 24px -6px ${PRIMARY}66;">
+              <a href="${opts.acceptUrl}"
+                 target="_blank"
+                 style="display:inline-block;padding:16px 38px;color:#FFFFFF;font-family:${FONT};font-size:15px;font-weight:700;letter-spacing:0.01em;text-decoration:none;border-radius:14px;mso-padding-alt:0;line-height:1;">
+                ✨ Accepter l'invitation
+              </a>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Fallback link -->
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px;margin:0 0 22px;">
+          <p style="margin:0 0 6px;color:#64748B;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">
+            🔗 Lien direct
+          </p>
+          <a href="${opts.acceptUrl}" style="color:${PRIMARY};font-size:12px;line-height:1.5;text-decoration:underline;word-break:break-all;font-family:'SF Mono',Menlo,monospace;">
+            ${opts.acceptUrl}
+          </a>
+        </div>
+
+        <!-- Expiration notice -->
+        <div style="background:linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);border-radius:12px;padding:14px 16px;margin:0 0 8px;">
+          <p style="margin:0;color:#78350F;font-size:12px;line-height:1.55;">
+            ⏱️ Cette invitation expire le <strong>${expires}</strong>.<br>
+            Si vous n'avez pas encore de compte, vous pourrez en créer un en un clic.
+          </p>
+        </div>
+      </td></tr>
+
+      <!-- FOOTER -->
+      <tr><td style="padding:24px 36px 30px;text-align:center;">
+        <p style="color:#94A3B8;font-size:11px;line-height:1.5;margin:0 0 14px;">
+          Si vous ne souhaitez pas rejoindre ce groupe, ignorez simplement cet email.
+        </p>
+        <div style="height:1px;background:#E2E8F0;margin:0 0 16px;"></div>
+        <p style="margin:0;color:#64748B;font-size:12px;line-height:1.5;">
+          <strong style="color:#0F172A;">Budget Planner</strong> · Coach Financier
+        </p>
+        <p style="margin:4px 0 0;color:#94A3B8;font-size:11px;">
+          © ${new Date().getFullYear()} · budget-planner-pro.eurekaci.dev
+        </p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
 </body></html>`;
 }
 
