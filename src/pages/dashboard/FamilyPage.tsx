@@ -253,6 +253,10 @@ const FamilyPage = () => {
                 />
               </TabsContent>
 
+              <TabsContent value="categories" className="mt-4">
+                <FamilyCategoriesTab groupId={selectedGroup} isOwner={!!isOwner} />
+              </TabsContent>
+
               <TabsContent value="budgets" className="mt-4">
                 <FamilySharedBudgetsTab
                   dashboard={dashboard}
