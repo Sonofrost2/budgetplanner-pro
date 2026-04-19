@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       }
 
       case "suspicious_ips": {
-        const { data, error } = await admin.rpc("admin_suspicious_ips");
+        const { data, error } = await userClient.rpc("admin_suspicious_ips");
         if (error) throw error;
         return new Response(JSON.stringify({ items: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
