@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "list_users": {
-        const { data, error } = await admin.rpc("admin_list_users", {
+        const { data, error } = await userClient.rpc("admin_list_users", {
           _search: body.search ?? null,
           _plan_filter: body.plan ?? null,
           _limit: Math.min(Number(body.limit) || 100, 500),
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       }
 
       case "suspicious_ips": {
-        const { data, error } = await admin.rpc("admin_suspicious_ips");
+        const { data, error } = await userClient.rpc("admin_suspicious_ips");
         if (error) throw error;
         return new Response(JSON.stringify({ items: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
       }
 
       case "set_plan": {
-        const { data, error } = await admin.rpc("admin_set_user_plan", {
+        const { data, error } = await userClient.rpc("admin_set_user_plan", {
           _target_user_id: body.user_id,
           _plan_name: body.plan,
           _duration_days: body.duration_days || 30,
