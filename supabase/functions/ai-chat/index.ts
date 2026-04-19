@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requirePlan } from "../_shared/requirePlan.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,19 +44,20 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Plan gate: pro/premium only, free gets 5 messages/day to taste
+    const gate = await requirePlan(req, ["pro", "premium"], {
+      feature: "ai_chat",
+      freeQuota: 5,
+      auditSubtype: "ai-chat",
+    });
+    if (!gate.ok) return gate.response!;
+    const userId = gate.userId!;
+
     const { messages, context, conversationId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-    // Auth: extract user from JWT
-    const authHeader = req.headers.get("Authorization") || "";
-    const supabaseAuth = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData } = await supabaseAuth.auth.getUser();
-    const userId = userData?.user?.id;
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 

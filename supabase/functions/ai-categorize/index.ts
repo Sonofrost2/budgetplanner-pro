@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requirePlan } from "../_shared/requirePlan.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const gate = await requirePlan(req, ["free", "pro", "premium"], {
+      feature: "ai_categorize",
+      freeQuota: 10,
+      auditSubtype: "ai-categorize",
+    });
+    if (!gate.ok) return gate.response!;
+
     const { description, type, categories, recentTransactions, locale } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");

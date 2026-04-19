@@ -178,6 +178,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const gate = await requirePlan(req, ["premium"], { feature: "ai_savings_simulate", auditSubtype: "ai-savings-simulate" });
+    if (!gate.ok) return gate.response!;
+
     const {
       goal_name, current_amount, target_amount, monthly_contribution,
       interest_rate, interest_frequency, is_locked, bank_name, deadline,
