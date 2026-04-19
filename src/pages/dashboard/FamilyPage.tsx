@@ -228,9 +228,10 @@ const FamilyPage = () => {
 
           {selectedGroup && selectedGroupData && (
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid grid-cols-5 w-full max-w-3xl">
+              <TabsList className="grid grid-cols-6 w-full max-w-3xl">
                 <TabsTrigger value="overview"><LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />Vue</TabsTrigger>
                 <TabsTrigger value="members"><Users className="w-3.5 h-3.5 mr-1.5" />Membres</TabsTrigger>
+                <TabsTrigger value="categories"><FolderTree className="w-3.5 h-3.5 mr-1.5" />Catégories</TabsTrigger>
                 <TabsTrigger value="budgets"><Share2 className="w-3.5 h-3.5 mr-1.5" />Budgets</TabsTrigger>
                 <TabsTrigger value="activity"><Activity className="w-3.5 h-3.5 mr-1.5" />Activité</TabsTrigger>
                 <TabsTrigger value="settings"><Settings2 className="w-3.5 h-3.5 mr-1.5" />Réglages</TabsTrigger>
