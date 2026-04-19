@@ -3,6 +3,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export type StatusFrequency = 'weekly' | 'every_3d' | 'on_change_only';
+
 export interface NotificationPreferences {
   budget_alerts: boolean;
   budget_projections: boolean;
@@ -20,6 +22,13 @@ export interface NotificationPreferences {
   quiet_hours_enabled: boolean;
   quiet_hours_start: number;
   quiet_hours_end: number;
+  // Cadence & moments
+  morning_digest_enabled: boolean;
+  morning_digest_hour: number;
+  evening_capture_enabled: boolean;
+  evening_capture_hour: number;
+  status_reminder_frequency: StatusFrequency;
+  max_push_per_day: number;
 }
 
 const defaultPrefs: NotificationPreferences = {
@@ -39,6 +48,12 @@ const defaultPrefs: NotificationPreferences = {
   quiet_hours_enabled: false,
   quiet_hours_start: 22,
   quiet_hours_end: 7,
+  morning_digest_enabled: true,
+  morning_digest_hour: 7,
+  evening_capture_enabled: true,
+  evening_capture_hour: 20,
+  status_reminder_frequency: 'weekly',
+  max_push_per_day: 3,
 };
 
 export const useNotificationPreferences = () => {
@@ -74,18 +89,26 @@ export const useNotificationPreferences = () => {
           quiet_hours_enabled: data.quiet_hours_enabled,
           quiet_hours_start: data.quiet_hours_start,
           quiet_hours_end: data.quiet_hours_end,
+          morning_digest_enabled: (data as any).morning_digest_enabled ?? true,
+          morning_digest_hour: (data as any).morning_digest_hour ?? 7,
+          evening_capture_enabled: (data as any).evening_capture_enabled ?? true,
+          evening_capture_hour: (data as any).evening_capture_hour ?? 20,
+          status_reminder_frequency: ((data as any).status_reminder_frequency ?? 'weekly') as StatusFrequency,
+          max_push_per_day: (data as any).max_push_per_day ?? 3,
         });
       } else if (!error) {
-        // Create default prefs for this user
         await supabase.from('notification_preferences').insert({ user_id: user.id });
       }
       setLoading(false);
     })();
   }, [user]);
 
-  const updatePref = useCallback(async (key: keyof NotificationPreferences, value: boolean | number) => {
+  const updatePref = useCallback(async (
+    key: keyof NotificationPreferences,
+    value: boolean | number | string
+  ) => {
     if (!user) return;
-    setPrefs(prev => ({ ...prev, [key]: value }));
+    setPrefs(prev => ({ ...prev, [key]: value as never }));
     setSaving(true);
     const { error } = await supabase
       .from('notification_preferences')
