@@ -188,17 +188,18 @@ const FamilyPage = () => {
             onDeleteRequest={setDeleteGroupId}
           />
 
-          {selectedGroup && (
+          {selectedGroup && selectedGroupData && (
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+              <TabsList className="grid grid-cols-5 w-full max-w-3xl">
                 <TabsTrigger value="overview"><LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />Vue</TabsTrigger>
                 <TabsTrigger value="members"><Users className="w-3.5 h-3.5 mr-1.5" />Membres</TabsTrigger>
                 <TabsTrigger value="budgets"><Share2 className="w-3.5 h-3.5 mr-1.5" />Budgets</TabsTrigger>
                 <TabsTrigger value="activity"><Activity className="w-3.5 h-3.5 mr-1.5" />Activité</TabsTrigger>
+                <TabsTrigger value="settings"><Settings2 className="w-3.5 h-3.5 mr-1.5" />Réglages</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="mt-4">
-                <FamilyOverviewTab dashboard={dashboard} currency={currency} />
+                <FamilyOverviewTab dashboard={dashboard} currency={selectedGroupData.currency || currency} />
               </TabsContent>
 
               <TabsContent value="members" className="mt-4">
@@ -220,14 +221,27 @@ const FamilyPage = () => {
                   isOwner={!!isOwner}
                   myBudgets={budgets}
                   sharedBudgets={sharedBudgets}
-                  currency={currency}
+                  currency={selectedGroupData.currency || currency}
                   currentUserId={user?.id || ''}
                   onChange={refetch}
                 />
               </TabsContent>
 
               <TabsContent value="activity" className="mt-4">
-                <FamilyActivityTab activity={activity} members={groupMembers} currency={currency} />
+                <FamilyActivityTab activity={activity} members={groupMembers} currency={selectedGroupData.currency || currency} />
+              </TabsContent>
+
+              <TabsContent value="settings" className="mt-4">
+                <FamilySettingsTab
+                  group={{
+                    id: selectedGroupData.id,
+                    name: selectedGroupData.name,
+                    currency: selectedGroupData.currency || 'XOF',
+                    large_tx_threshold: Number(selectedGroupData.large_tx_threshold ?? 100000),
+                  }}
+                  canEdit={canEditSettings}
+                  onChange={refetch}
+                />
               </TabsContent>
             </Tabs>
           )}
