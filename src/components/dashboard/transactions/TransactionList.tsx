@@ -509,6 +509,7 @@ export const TransactionList = ({
                             </motion.div>
                             <div className="min-w-0">
                               <p className="text-sm font-bold truncate leading-tight text-foreground/90 flex items-center gap-1.5">
+                                <PrivacyIndicator shared={!!tx.family_category_id} locale={locale} />
                                 <span className="truncate">{tx.description}</span>
                                 {tx.linked_transfer_id && <TransferBadge locale={locale} />}
                               </p>
