@@ -262,6 +262,19 @@ const getCategoryGradient = (color?: string, type?: string) => {
   return 'linear-gradient(135deg, hsl(var(--muted) / 0.6), hsl(var(--muted) / 0.3))';
 };
 
+/** Explicit transfer badge — small, glassy, accessible */
+const TransferBadge = ({ locale, compact = false }: { locale: string; compact?: boolean }) => (
+  <span
+    className={`inline-flex items-center gap-0.5 rounded-md font-bold uppercase tracking-wide bg-primary/10 text-primary border border-primary/20 ${
+      compact ? 'px-1 py-0 text-[8px] leading-tight' : 'px-1.5 py-0.5 text-[9px]'
+    }`}
+    title={locale === 'fr' ? 'Transfert entre comptes' : 'Transfer between accounts'}
+  >
+    <ArrowLeftRight className={compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} />
+    {locale === 'fr' ? 'Transfert' : 'Transfer'}
+  </span>
+);
+
 export const TransactionList = ({
   transactions, totalCount, page, totalPages,
   onPageChange, selectedIds, onToggleSelect, onToggleSelectAll, allPageSelected,
