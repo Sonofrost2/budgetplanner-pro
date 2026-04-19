@@ -118,6 +118,13 @@ export type Database = {
             referencedRelation: "assets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "asset_valuations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       assets: {
@@ -171,6 +178,59 @@ export type Database = {
           notes?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_subtype: string | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          metadata: Json
+          reason: string | null
+          resource_id: string | null
+          status: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_subtype?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json
+          reason?: string | null
+          resource_id?: string | null
+          status?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_subtype?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          metadata?: Json
+          reason?: string | null
+          resource_id?: string | null
+          status?: string
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -245,6 +305,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "categories"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -340,6 +407,13 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       debts: {
@@ -400,6 +474,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      device_fingerprints: {
+        Row: {
+          fingerprint: string
+          first_seen_at: string
+          id: string
+          ip_address: unknown
+          last_seen_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          fingerprint: string
+          first_seen_at?: string
+          id?: string
+          ip_address?: unknown
+          last_seen_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          fingerprint?: string
+          first_seen_at?: string
+          id?: string
+          ip_address?: unknown
+          last_seen_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       family_categories: {
         Row: {
@@ -470,7 +574,15 @@ export type Database = {
           owner_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "family_groups_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       family_invitations: {
         Row: {
@@ -511,6 +623,13 @@ export type Database = {
             referencedRelation: "family_groups"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "family_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       family_members: {
@@ -542,6 +661,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "family_groups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -798,7 +924,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -825,7 +959,15 @@ export type Database = {
           p256dh?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       recurring_transactions: {
         Row: {
@@ -998,6 +1140,13 @@ export type Database = {
             referencedRelation: "payment_accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "savings_goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       shared_budgets: {
@@ -1036,6 +1185,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "family_groups"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_budgets_shared_by_fkey"
+            columns: ["shared_by"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1264,7 +1420,44 @@ export type Database = {
             referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
         ]
+      }
+      usage_counters: {
+        Row: {
+          count: number
+          created_at: string
+          day: string
+          feature: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          day?: string
+          feature: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          day?: string
+          feature?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -1282,14 +1475,102 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
     }
     Views: {
-      [_ in never]: never
+      admin_user_overview: {
+        Row: {
+          account_count: number | null
+          avatar_url: string | null
+          banned_until: string | null
+          currency: string | null
+          display_name: string | null
+          effective_plan: string | null
+          email: string | null
+          email_confirmed_at: string | null
+          is_admin: boolean | null
+          last_sign_in_at: string | null
+          locale: string | null
+          plan_expires_at: string | null
+          signup_at: string | null
+          subscription_status: string | null
+          tx_count: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_family_invitation: { Args: { p_token: string }; Returns: Json }
+      admin_list_users: {
+        Args: {
+          _limit?: number
+          _offset?: number
+          _plan_filter?: string
+          _search?: string
+        }
+        Returns: {
+          account_count: number | null
+          avatar_url: string | null
+          banned_until: string | null
+          currency: string | null
+          display_name: string | null
+          effective_plan: string | null
+          email: string | null
+          email_confirmed_at: string | null
+          is_admin: boolean | null
+          last_sign_in_at: string | null
+          locale: string | null
+          plan_expires_at: string | null
+          signup_at: string | null
+          subscription_status: string | null
+          tx_count: number | null
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "admin_user_overview"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      admin_log_action: {
+        Args: {
+          _action: string
+          _metadata?: Json
+          _reason?: string
+          _target_user_id: string
+        }
+        Returns: string
+      }
+      admin_set_user_plan: {
+        Args: {
+          _duration_days?: number
+          _plan_name: string
+          _target_user_id: string
+        }
+        Returns: Json
+      }
+      admin_suspicious_ips: {
+        Args: never
+        Returns: {
+          account_count: number
+          emails: string[]
+          first_seen: string
+          ip_address: unknown
+          last_seen: string
+          user_ids: string[]
+        }[]
+      }
       bulk_reparent_categories: {
         Args: {
           p_category_ids: string[]
@@ -1300,6 +1581,10 @@ export type Database = {
       }
       cancel_transfer: {
         Args: { p_transaction_id: string; p_user_id: string }
+        Returns: Json
+      }
+      check_and_increment_usage: {
+        Args: { _feature: string; _limit: number; _user_id: string }
         Returns: Json
       }
       cleanup_old_deleted: { Args: never; Returns: Json }
@@ -1404,7 +1689,23 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      is_subscription_valid: { Args: { _user_id: string }; Returns: string }
       leave_family_group: { Args: { p_group_id: string }; Returns: Json }
+      log_audit_event: {
+        Args: {
+          _actor_id: string
+          _event_subtype: string
+          _event_type: string
+          _ip: string
+          _metadata: Json
+          _reason: string
+          _resource_id?: string
+          _status: string
+          _user_agent: string
+          _user_id: string
+        }
+        Returns: string
+      }
       merge_categories: {
         Args: { p_source_ids: string[]; p_target_id: string; p_user_id: string }
         Returns: Json

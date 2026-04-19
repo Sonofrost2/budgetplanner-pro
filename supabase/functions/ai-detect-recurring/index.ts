@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requirePlan } from "../_shared/requirePlan.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,23 +10,16 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
+    const gate = await requirePlan(req, ["premium"], { feature: "ai_detect_recurring", auditSubtype: "ai-detect-recurring" });
+    if (!gate.ok) return gate.response!;
+    const userId = gate.userId!;
+    // Use authenticated client for tx fetch (RLS still applies)
+    const authHeader = req.headers.get('Authorization')!;
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
-
-    const { data: { user }, error: claimsError } = await supabase.auth.getUser();
-    if (claimsError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-    const userId = user.id;
 
     // Fetch last 6 months of transactions
     const sixMonthsAgo = new Date();

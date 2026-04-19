@@ -1,3 +1,5 @@
+import { requirePlan } from "../_shared/requirePlan.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -178,6 +180,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const gate = await requirePlan(req, ["premium"], { feature: "ai_savings_simulate", auditSubtype: "ai-savings-simulate" });
+    if (!gate.ok) return gate.response!;
+
     const {
       goal_name, current_amount, target_amount, monthly_contribution,
       interest_rate, interest_frequency, is_locked, bank_name, deadline,
