@@ -25,7 +25,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
 import {
-  Loader2, Search, MoreVertical, Shield, Ban, KeyRound, UserCog, Trash2, Eye, Crown,
+  Loader2, Search, MoreVertical, Shield, Ban, KeyRound, UserCog, Trash2, Eye, EyeOff, Crown,
   AlertTriangle, Activity, Users, ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserSnapshotDrawer } from '@/components/dashboard/admin/UserSnapshotDrawer';
 
 type AdminUser = {
   user_id: string;
