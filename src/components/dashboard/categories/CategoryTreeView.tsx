@@ -178,9 +178,14 @@ const CategoryNode = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium text-sm truncate">{category.name}</p>
-              {(category as any).is_family_root && (
+              {isFamilyRoot && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/20 font-semibold flex items-center gap-0.5">
                   👨‍👩‍👧 {isFr ? 'Racine Famille' : 'Family root'}
+                </span>
+              )}
+              {isSharedChild && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/15 text-accent border border-accent/20 font-semibold">
+                  {isFr ? 'Partageable' : 'Shareable'}
                 </span>
               )}
               {hasChildren && (
@@ -229,6 +234,7 @@ const CategoryNode = ({
               onDelete={onDelete}
               onArchive={onArchive}
               isFr={isFr}
+              familyRootId={familyRootId}
             />
           ))}
         </div>
