@@ -73,6 +73,7 @@ const TransactionsPage = () => {
   const [transferDefaults, setTransferDefaults] = useState<{ from?: string; to?: string; amount?: string; description?: string }>({});
   const [budgetOverspendOpen, setBudgetOverspendOpen] = useState(false);
   const [overspendBudgetName, setOverspendBudgetName] = useState('');
+  const [hideTransfers, setHideTransfers] = useState(false);
 
   // Server-side paginated transactions
   const { data: paginatedResult, isLoading: txLoading, isFetching: txFetching } = usePaginatedTransactions({
