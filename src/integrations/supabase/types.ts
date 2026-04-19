@@ -1511,72 +1511,39 @@ export type Database = {
     }
     Functions: {
       accept_family_invitation: { Args: { p_token: string }; Returns: Json }
-      admin_list_users:
-        | {
-            Args: {
-              _actor_id: string
-              _limit?: number
-              _offset?: number
-              _plan_filter?: string
-              _search?: string
-            }
-            Returns: {
-              account_count: number | null
-              avatar_url: string | null
-              banned_until: string | null
-              currency: string | null
-              display_name: string | null
-              effective_plan: string | null
-              email: string | null
-              email_confirmed_at: string | null
-              is_admin: boolean | null
-              last_sign_in_at: string | null
-              locale: string | null
-              plan_expires_at: string | null
-              signup_at: string | null
-              subscription_status: string | null
-              tx_count: number | null
-              user_id: string | null
-            }[]
-            SetofOptions: {
-              from: "*"
-              to: "admin_user_overview"
-              isOneToOne: false
-              isSetofReturn: true
-            }
-          }
-        | {
-            Args: {
-              _limit?: number
-              _offset?: number
-              _plan_filter?: string
-              _search?: string
-            }
-            Returns: {
-              account_count: number | null
-              avatar_url: string | null
-              banned_until: string | null
-              currency: string | null
-              display_name: string | null
-              effective_plan: string | null
-              email: string | null
-              email_confirmed_at: string | null
-              is_admin: boolean | null
-              last_sign_in_at: string | null
-              locale: string | null
-              plan_expires_at: string | null
-              signup_at: string | null
-              subscription_status: string | null
-              tx_count: number | null
-              user_id: string | null
-            }[]
-            SetofOptions: {
-              from: "*"
-              to: "admin_user_overview"
-              isOneToOne: false
-              isSetofReturn: true
-            }
-          }
+      admin_list_users: {
+        Args: {
+          _actor_id: string
+          _limit?: number
+          _offset?: number
+          _plan_filter?: string
+          _search?: string
+        }
+        Returns: {
+          account_count: number | null
+          avatar_url: string | null
+          banned_until: string | null
+          currency: string | null
+          display_name: string | null
+          effective_plan: string | null
+          email: string | null
+          email_confirmed_at: string | null
+          is_admin: boolean | null
+          last_sign_in_at: string | null
+          locale: string | null
+          plan_expires_at: string | null
+          signup_at: string | null
+          subscription_status: string | null
+          tx_count: number | null
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "admin_user_overview"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       admin_log_action: {
         Args: {
           _action: string
@@ -1586,47 +1553,26 @@ export type Database = {
         }
         Returns: string
       }
-      admin_set_user_plan:
-        | {
-            Args: {
-              _actor_id: string
-              _duration_days?: number
-              _plan_name: string
-              _target_user_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              _duration_days?: number
-              _plan_name: string
-              _target_user_id: string
-            }
-            Returns: Json
-          }
-      admin_suspicious_ips:
-        | {
-            Args: never
-            Returns: {
-              account_count: number
-              emails: string[]
-              first_seen: string
-              ip_address: unknown
-              last_seen: string
-              user_ids: string[]
-            }[]
-          }
-        | {
-            Args: { _actor_id: string }
-            Returns: {
-              account_count: number
-              emails: string[]
-              first_seen: string
-              ip_address: unknown
-              last_seen: string
-              user_ids: string[]
-            }[]
-          }
+      admin_set_user_plan: {
+        Args: {
+          _actor_id: string
+          _duration_days?: number
+          _plan_name: string
+          _target_user_id: string
+        }
+        Returns: Json
+      }
+      admin_suspicious_ips: {
+        Args: { _actor_id: string }
+        Returns: {
+          account_count: number
+          emails: string[]
+          first_seen: string
+          ip_address: unknown
+          last_seen: string
+          user_ids: string[]
+        }[]
+      }
       bulk_reparent_categories: {
         Args: {
           p_category_ids: string[]
