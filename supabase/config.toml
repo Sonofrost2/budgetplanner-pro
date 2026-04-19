@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.ai-categories-suggest]
 verify_jwt = false
+
+[functions.send-family-invitation]
+verify_jwt = false
