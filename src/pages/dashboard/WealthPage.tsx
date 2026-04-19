@@ -111,6 +111,7 @@ const WealthPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { canUseWealth, canUseAIPremium } = require('@/hooks/useSubscription').useSubscription();
   const t = dashT[locale];
   const isFr = locale === 'fr';
   const queryClient = useQueryClient();
