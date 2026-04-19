@@ -22,6 +22,7 @@ import { FamilyOverviewTab } from '@/components/dashboard/family/FamilyOverviewT
 import { FamilyMembersTab } from '@/components/dashboard/family/FamilyMembersTab';
 import { FamilySharedBudgetsTab } from '@/components/dashboard/family/FamilySharedBudgetsTab';
 import { FamilyActivityTab } from '@/components/dashboard/family/FamilyActivityTab';
+import { FamilySettingsTab } from '@/components/dashboard/family/FamilySettingsTab';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 
