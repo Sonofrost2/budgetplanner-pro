@@ -197,12 +197,11 @@ const NotificationPreferencesCard = ({ locale }: Props) => {
           </div>
         )}
 
-        {/* Notification types configuration */}
-        {subscribed && !loading && (
+        {/* === Cadence & moments — always visible (server-side prefs, not device-bound) === */}
+        {!loading && (
           <>
             <Separator />
 
-            {/* === Cadence & moments — always visible === */}
             <div className="space-y-4">
               <p className="text-sm font-semibold flex items-center gap-2">
                 <Clock className="w-4 h-4 text-primary" />
