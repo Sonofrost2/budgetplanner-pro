@@ -300,6 +300,7 @@ export type Database = {
           deleted_at: string | null
           icon: string
           id: string
+          is_family_root: boolean
           name: string
           parent_category_id: string | null
           type: string
@@ -312,6 +313,7 @@ export type Database = {
           deleted_at?: string | null
           icon?: string
           id?: string
+          is_family_root?: boolean
           name: string
           parent_category_id?: string | null
           type?: string
@@ -324,6 +326,7 @@ export type Database = {
           deleted_at?: string | null
           icon?: string
           id?: string
+          is_family_root?: boolean
           name?: string
           parent_category_id?: string | null
           type?: string
@@ -394,6 +397,47 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_categories: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string
+          group_id: string
+          icon: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by: string
+          group_id: string
+          icon?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string
+          group_id?: string
+          icon?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_categories_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "family_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -1135,6 +1179,7 @@ export type Database = {
           date: string
           deleted_at: string | null
           description: string
+          family_category_id: string | null
           id: string
           linked_transfer_id: string | null
           notes: string | null
@@ -1153,6 +1198,7 @@ export type Database = {
           date?: string
           deleted_at?: string | null
           description: string
+          family_category_id?: string | null
           id?: string
           linked_transfer_id?: string | null
           notes?: string | null
@@ -1171,6 +1217,7 @@ export type Database = {
           date?: string
           deleted_at?: string | null
           description?: string
+          family_category_id?: string | null
           id?: string
           linked_transfer_id?: string | null
           notes?: string | null
@@ -1194,6 +1241,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_family_category_id_fkey"
+            columns: ["family_category_id"]
+            isOneToOne: false
+            referencedRelation: "family_categories"
             referencedColumns: ["id"]
           },
           {
@@ -1255,6 +1309,7 @@ export type Database = {
         Args: { p_group_id: string }
         Returns: Json
       }
+      ensure_user_family_root: { Args: { p_user_id: string }; Returns: string }
       get_account_drilldown: {
         Args: { p_account_id: string; p_user_id: string }
         Returns: Json
@@ -1366,6 +1421,10 @@ export type Database = {
       }
       recalculate_account_balance: {
         Args: { p_account_id: string }
+        Returns: undefined
+      }
+      seed_default_family_group_categories: {
+        Args: { p_creator: string; p_group_id: string }
         Returns: undefined
       }
       transfer_family_ownership: {
