@@ -30,8 +30,9 @@ export const useSubscription = () => {
   const [planTier, setPlanTier] = useState<PlanTier>('free');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const refresh = () => {
     if (!user) { setLoading(false); return; }
+    setLoading(true);
     supabase
       .from('subscriptions')
       .select('status, plan_id, subscription_plans(name)')
@@ -47,6 +48,11 @@ export const useSubscription = () => {
         else setPlanTier('free');
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const isPremium = planTier === 'premium';
@@ -54,10 +60,27 @@ export const useSubscription = () => {
   const isPaid = isPro || isPremium;
 
   const limits = isPremium ? PREMIUM_LIMITS : isPro ? PRO_LIMITS : FREE_LIMITS;
-  const canUseForecast = isPremium;
-  const canUseFamily = isPremium;
-  const canExportAdvanced = isPaid;
-  const canUseAISuggestions = isPaid;
 
-  return { isPremium, isPro, isPaid, planTier, loading, limits, canUseForecast, canUseFamily, canExportAdvanced, canUseAISuggestions };
+  // ── Granular capabilities matrix ──
+  // Free: limits + CSV simple only
+  // Pro: unlimited + smart notifications + recurring + AI basique + chat
+  // Premium: tout Pro + IA avancée + Receipts + Wealth + Family + Forecasts + Exports PDF/Excel
+  const canUseRecurring = isPaid;
+  const canUseAIBasic = isPaid; // catégorisation, suggest, quick-parse
+  const canUseAIPremium = isPremium; // forecasts, budget-suggest, debt-plan, savings-simulate, report-insights, detect-recurring, wealth-valuation
+  const canUseChatCoach = isPaid;
+  const canUseReceipts = isPremium;
+  const canUseWealth = isPremium;
+  const canUseFamily = isPremium;
+  const canUseForecast = isPremium;
+  const canExportAdvanced = isPremium; // PDF/Excel — CSV reste accessible à tous
+  // Backward compat: many components still read canUseAISuggestions
+  const canUseAISuggestions = canUseAIBasic;
+
+  return {
+    isPremium, isPro, isPaid, planTier, loading, limits, refresh,
+    canUseRecurring, canUseAIBasic, canUseAIPremium, canUseChatCoach,
+    canUseReceipts, canUseWealth, canUseFamily, canUseForecast,
+    canExportAdvanced, canUseAISuggestions,
+  };
 };
