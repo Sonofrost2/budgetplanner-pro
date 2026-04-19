@@ -48,6 +48,8 @@ export const TransactionForm = ({
 }: TransactionFormProps) => {
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const { data: familyCategories = [] } = useFamilyCategories();
+  const isFr = locale === 'fr';
 
   const filteredCategories = categories.filter(c => c.type === form.type);
 
