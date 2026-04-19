@@ -481,7 +481,10 @@ export const TransactionList = ({
                               }`} />
                             </motion.div>
                             <div className="min-w-0">
-                              <p className="text-sm font-bold truncate leading-tight text-foreground/90">{tx.description}</p>
+                              <p className="text-sm font-bold truncate leading-tight text-foreground/90 flex items-center gap-1.5">
+                                <span className="truncate">{tx.description}</span>
+                                {tx.linked_transfer_id && <TransferBadge locale={locale} />}
+                              </p>
                               <p className="text-[11px] text-muted-foreground/70 mt-0.5 flex items-center gap-1">
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-muted/30 text-[10px] font-medium">{tx.categories?.name || '-'}</span>
                                 <span className="text-muted-foreground/30">·</span>
