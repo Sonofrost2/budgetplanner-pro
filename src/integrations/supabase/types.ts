@@ -401,21 +401,27 @@ export type Database = {
       family_groups: {
         Row: {
           created_at: string
+          currency: string
           id: string
+          large_tx_threshold: number
           name: string
           owner_id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          currency?: string
           id?: string
+          large_tx_threshold?: number
           name: string
           owner_id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          currency?: string
           id?: string
+          large_tx_threshold?: number
           name?: string
           owner_id?: string
           updated_at?: string
