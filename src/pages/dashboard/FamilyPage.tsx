@@ -29,9 +29,7 @@ const FamilyPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { canUseFamily } = useSubscription();
-  const { profile } = useProfile();
-  const t = dashT[locale];
-  const currency = profile?.currency || 'XOF';
+  const { currency } = useProfile();
 
   // Period: current month
   const period = useMemo(() => {
