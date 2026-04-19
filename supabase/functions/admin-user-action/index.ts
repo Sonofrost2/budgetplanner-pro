@@ -102,6 +102,18 @@ Deno.serve(async (req) => {
         });
       }
 
+      case "get_user_snapshot": {
+        // Silent observation — NO audit() call, by design.
+        const { data, error } = await admin.rpc("admin_get_user_snapshot", {
+          _actor_id: actorId,
+          _target_user_id: body.user_id,
+        });
+        if (error) throw error;
+        return new Response(JSON.stringify({ snapshot: data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "get_audit_logs": {
         const { data, error } = await admin
           .from("audit_logs").select("*")
