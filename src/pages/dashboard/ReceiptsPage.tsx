@@ -82,6 +82,21 @@ const ReceiptsPage = () => {
 
   if (loading) return <div className="space-y-6"><Skeleton className="h-8 w-40" />{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>;
 
+  if (!canUseReceipts) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold font-display">{t.receipts}</h2>
+        <UpgradeBanner message={(t as any).upgradeReceipts} />
+        <Card className="border-none shadow-[var(--shadow-card)]">
+          <CardContent className="py-16 text-center">
+            <Lock className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+            <p className="text-lg font-medium text-muted-foreground">{(t as any).upgradeReceipts}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
