@@ -25,7 +25,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
 import {
-  Loader2, Search, MoreVertical, Shield, Ban, KeyRound, UserCog, Trash2, Eye, Crown,
+  Loader2, Search, MoreVertical, Shield, Ban, KeyRound, UserCog, Trash2, Eye, EyeOff, Crown,
   AlertTriangle, Activity, Users, ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserSnapshotDrawer } from '@/components/dashboard/admin/UserSnapshotDrawer';
 
 type AdminUser = {
   user_id: string;
@@ -70,6 +71,7 @@ const AdminUsersPage = () => {
   const [deleteDialog, setDeleteDialog] = useState<{ user: AdminUser; reason: string; confirm: string } | null>(null);
   const [auditDialog, setAuditDialog] = useState<{ user: AdminUser; logs: any[] } | null>(null);
   const [impersonateDialog, setImpersonateDialog] = useState<{ user: AdminUser; link: string } | null>(null);
+  const [snapshotUserId, setSnapshotUserId] = useState<string | null>(null);
 
   const callAdmin = useCallback(async (action: string, payload: Record<string, any> = {}) => {
     const { data, error } = await supabase.functions.invoke('admin-user-action', {
@@ -353,6 +355,9 @@ const AdminUsersPage = () => {
                         <DropdownMenuContent align="end" className="w-52">
                           <DropdownMenuLabel>{u.email}</DropdownMenuLabel>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setSnapshotUserId(u.user_id)}>
+                            <EyeOff className="w-3.5 h-3.5 mr-2" />{isFr ? 'Observer (silencieux)' : 'Observe (silent)'}
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setPlanDialog({ user: u, plan: u.effective_plan || 'pro', days: 30 })}>
                             <Crown className="w-3.5 h-3.5 mr-2" />{isFr ? 'Forcer un plan' : 'Force plan'}
                           </DropdownMenuItem>
@@ -580,6 +585,13 @@ const AdminUsersPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Silent observation drawer */}
+      <UserSnapshotDrawer
+        userId={snapshotUserId}
+        open={!!snapshotUserId}
+        onOpenChange={(o) => !o && setSnapshotUserId(null)}
+      />
     </div>
   );
 };

@@ -1511,6 +1511,10 @@ export type Database = {
     }
     Functions: {
       accept_family_invitation: { Args: { p_token: string }; Returns: Json }
+      admin_get_user_snapshot: {
+        Args: { _actor_id: string; _target_user_id: string }
+        Returns: Json
+      }
       admin_list_users: {
         Args: {
           _actor_id: string
