@@ -45,10 +45,15 @@ const buildFollowUps = (last: string, locale: 'fr' | 'en'): string[] => {
   return out.slice(0, 3);
 };
 
+import { useSubscription } from '@/hooks/useSubscription';
+import { Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
 const AIChatWidget = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { currency } = useProfile();
+  const { canUseChatCoach } = useSubscription();
   const [open, setOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
