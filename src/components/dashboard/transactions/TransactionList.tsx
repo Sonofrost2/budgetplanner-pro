@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Pencil, Trash2, Inbox, Plus, ChevronLeft, ChevronRight, ArrowUpDown, MoreVertical, TrendingUp, TrendingDown, Clock, ChevronsLeft, ChevronsRight, Calendar, LayoutList, LayoutGrid } from 'lucide-react';
+import { Pencil, Trash2, Inbox, Plus, ChevronLeft, ChevronRight, ArrowUpDown, MoreVertical, TrendingUp, TrendingDown, Clock, ChevronsLeft, ChevronsRight, Calendar, LayoutList, LayoutGrid, ArrowLeftRight } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { Transaction } from '@/hooks/useDashboardData';
@@ -262,6 +262,19 @@ const getCategoryGradient = (color?: string, type?: string) => {
   return 'linear-gradient(135deg, hsl(var(--muted) / 0.6), hsl(var(--muted) / 0.3))';
 };
 
+/** Explicit transfer badge — small, glassy, accessible */
+const TransferBadge = ({ locale, compact = false }: { locale: string; compact?: boolean }) => (
+  <span
+    className={`inline-flex items-center gap-0.5 rounded-md font-bold uppercase tracking-wide bg-primary/10 text-primary border border-primary/20 ${
+      compact ? 'px-1 py-0 text-[8px] leading-tight' : 'px-1.5 py-0.5 text-[9px]'
+    }`}
+    title={locale === 'fr' ? 'Transfert entre comptes' : 'Transfer between accounts'}
+  >
+    <ArrowLeftRight className={compact ? 'w-2 h-2' : 'w-2.5 h-2.5'} />
+    {locale === 'fr' ? 'Transfert' : 'Transfer'}
+  </span>
+);
+
 export const TransactionList = ({
   transactions, totalCount, page, totalPages,
   onPageChange, selectedIds, onToggleSelect, onToggleSelectAll, allPageSelected,
@@ -403,7 +416,10 @@ export const TransactionList = ({
                           <Checkbox className="h-3.5 w-3.5" checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
                           <span className="text-sm flex-shrink-0">{tx.categories?.icon || '📁'}</span>
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
-                          <span className="text-xs font-semibold truncate flex-1 text-foreground/85">{tx.description}</span>
+                          <span className="text-xs font-semibold truncate flex-1 text-foreground/85 flex items-center gap-1.5 min-w-0">
+                            <span className="truncate">{tx.description}</span>
+                            {tx.linked_transfer_id && <TransferBadge locale={locale} compact />}
+                          </span>
                           <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 tabular-nums hidden sm:inline">
                             {tx.categories?.name || '-'}
                           </span>
@@ -465,7 +481,10 @@ export const TransactionList = ({
                               }`} />
                             </motion.div>
                             <div className="min-w-0">
-                              <p className="text-sm font-bold truncate leading-tight text-foreground/90">{tx.description}</p>
+                              <p className="text-sm font-bold truncate leading-tight text-foreground/90 flex items-center gap-1.5">
+                                <span className="truncate">{tx.description}</span>
+                                {tx.linked_transfer_id && <TransferBadge locale={locale} />}
+                              </p>
                               <p className="text-[11px] text-muted-foreground/70 mt-0.5 flex items-center gap-1">
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-muted/30 text-[10px] font-medium">{tx.categories?.name || '-'}</span>
                                 <span className="text-muted-foreground/30">·</span>
