@@ -95,6 +95,7 @@ export const CategoryTreeView = ({
               onDelete={onDelete}
               onArchive={onArchive}
               isFr={isFr}
+              familyRootId={familyRootId}
             />
           );
         })}
@@ -128,16 +129,19 @@ interface NodeProps {
   onDelete: (id: string) => void;
   onArchive?: (id: string) => void;
   isFr: boolean;
+  familyRootId?: string | null;
 }
 
 const CategoryNode = ({
-  category, childrenCats, isExpanded, onToggleExpand, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, isFr,
+  category, childrenCats, isExpanded, onToggleExpand, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, isFr, familyRootId,
 }: NodeProps) => {
   const isSelected = selectedIds.has(category.id);
   const stat = stats[category.id];
   const series = normalizeSparkline(stat?.monthly_series ?? []);
   const txCount = txCounts[category.id] || 0;
   const hasChildren = childrenCats.length > 0;
+  const isFamilyRoot = (category as any).is_family_root === true;
+  const isSharedChild = !!familyRootId && category.parent_category_id === familyRootId;
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: category.id });
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({ id: category.id });
