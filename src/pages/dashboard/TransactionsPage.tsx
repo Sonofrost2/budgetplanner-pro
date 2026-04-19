@@ -625,6 +625,36 @@ const TransactionsPage = () => {
                   {hideTransfers && <X className="w-3 h-3 ml-0.5 opacity-70" />}
                 </motion.button>
 
+                {/* Privacy filter (Family / Private) */}
+                <div className="flex gap-1 p-0.5 bg-muted/40 rounded-xl">
+                  {[
+                    { value: 'all' as const, label: t.all, icon: null },
+                    { value: 'family' as const, label: locale === 'fr' ? 'Famille' : 'Family', icon: <Users className="w-3.5 h-3.5" />, title: locale === 'fr' ? 'Voir uniquement les transactions partagées avec la famille' : 'Show only family-shared transactions' },
+                    { value: 'private' as const, label: locale === 'fr' ? 'Privées' : 'Private', icon: <Lock className="w-3.5 h-3.5" />, title: locale === 'fr' ? 'Voir uniquement les transactions privées' : 'Show only private transactions' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setPrivacyFilter(opt.value)}
+                      title={opt.title}
+                      className={`relative flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                        privacyFilter === opt.value ? 'text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {privacyFilter === opt.value && (
+                        <motion.div
+                          layoutId="privacyFilter"
+                          className="absolute inset-0 bg-background rounded-lg shadow-sm border border-border/50"
+                          transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                        />
+                      )}
+                      <span className="relative flex items-center gap-1">
+                        {opt.icon}
+                        <span className="hidden sm:inline">{opt.label}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
 
                 {/* Category popover */}
                 <Popover>
