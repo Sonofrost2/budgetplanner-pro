@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
@@ -20,9 +20,10 @@ import { TrashCard } from '@/components/dashboard/settings/TrashCard';
 import { ArchivedItemsCard } from '@/components/dashboard/settings/ArchivedItemsCard';
 import { PlanSwitcherCard } from '@/components/dashboard/settings/PlanSwitcherCard';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
-type Section = { id: string; label: string; icon: any };
+type SectionId = 'profile' | 'preferences' | 'notifications' | 'security' | 'data' | 'advanced';
+type Section = { id: SectionId; label: string; icon: any; hint?: string };
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -34,7 +35,7 @@ const SettingsPage = () => {
   const [currency, setCurrency] = useState('EUR');
   const [lang, setLang] = useState(locale);
   const [loading, setLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState('profile');
+  const [activeSection, setActiveSection] = useState<SectionId>('profile');
 
   const [passwordDialog, setPasswordDialog] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -45,8 +46,6 @@ const SettingsPage = () => {
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
-
-  const sectionsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -61,18 +60,13 @@ const SettingsPage = () => {
   }, [user]);
 
   const sections: Section[] = [
-    { id: 'profile', label: isFr ? 'Profil' : 'Profile', icon: User },
-    { id: 'preferences', label: isFr ? 'Préférences' : 'Preferences', icon: Cog },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'security', label: isFr ? 'Sécurité' : 'Security', icon: ShieldCheck },
-    { id: 'data', label: isFr ? 'Données' : 'Data', icon: Database },
-    { id: 'advanced', label: isFr ? 'Avancé' : 'Advanced', icon: AlertTriangle },
+    { id: 'profile', label: isFr ? 'Profil' : 'Profile', icon: User, hint: isFr ? 'Identité' : 'Identity' },
+    { id: 'preferences', label: isFr ? 'Préférences' : 'Preferences', icon: Cog, hint: isFr ? 'Devise & langue' : 'Currency & language' },
+    { id: 'notifications', label: 'Notifications', icon: Bell, hint: isFr ? 'Cadence & alertes' : 'Cadence & alerts' },
+    { id: 'security', label: isFr ? 'Sécurité' : 'Security', icon: ShieldCheck, hint: isFr ? 'Mot de passe & 2FA' : 'Password & 2FA' },
+    { id: 'data', label: isFr ? 'Données' : 'Data', icon: Database, hint: isFr ? 'Export & corbeille' : 'Export & trash' },
+    { id: 'advanced', label: isFr ? 'Avancé' : 'Advanced', icon: AlertTriangle, hint: isFr ? 'Plan & suppression' : 'Plan & deletion' },
   ];
-
-  const scrollTo = (id: string) => {
-    setActiveSection(id);
-    sectionsRef.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -130,7 +124,8 @@ const SettingsPage = () => {
     } catch (err: any) { toast.error(err.message || 'Error'); }
   };
 
-  const setRef = (id: string) => (el: HTMLDivElement | null) => { sectionsRef.current[id] = el; };
+  const activeMeta = sections.find(s => s.id === activeSection)!;
+  const ActiveIcon = activeMeta.icon;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
@@ -145,145 +140,211 @@ const SettingsPage = () => {
             <h1 className="text-2xl sm:text-3xl font-bold font-display tracking-tight truncate">{displayName || user?.email}</h1>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">{user?.email}</p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl hidden sm:inline-flex shrink-0"
+            onClick={() => signOut()}
+          >
+            <LogOut className="w-3.5 h-3.5 mr-1.5" />
+            {isFr ? 'Déconnexion' : 'Sign out'}
+          </Button>
         </div>
       </HeroHeaderShell>
 
-      <div className="grid lg:grid-cols-[220px_1fr] gap-6">
-        {/* SIDEBAR */}
-        <aside className="lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
-          <nav className="glass rounded-2xl p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
+      {/* MOBILE TAB BAR (scrollable horizontally) */}
+      <nav className="lg:hidden glass rounded-2xl p-1.5 flex gap-1 overflow-x-auto scrollbar-none">
+        {sections.map(s => {
+          const Icon = s.icon;
+          const active = activeSection === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => setActiveSection(s.id)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/40'}`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {s.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="grid lg:grid-cols-[240px_1fr] gap-6">
+        {/* DESKTOP SIDEBAR */}
+        <aside className="hidden lg:block sticky top-4 self-start">
+          <nav className="glass rounded-2xl p-2 flex flex-col gap-1">
             {sections.map(s => {
               const Icon = s.icon;
+              const active = activeSection === s.id;
               return (
                 <button
                   key={s.id}
-                  onClick={() => scrollTo(s.id)}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${activeSection === s.id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'}`}
+                  onClick={() => setActiveSection(s.id)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all group ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'}`}
                 >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
-                  {s.label}
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-primary-foreground/15' : 'bg-muted/40 group-hover:bg-muted/60'}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold leading-tight">{s.label}</p>
+                    {s.hint && <p className={`text-[10px] leading-tight mt-0.5 ${active ? 'text-primary-foreground/70' : 'text-muted-foreground/70'}`}>{s.hint}</p>}
+                  </div>
                 </button>
               );
             })}
-            <Separator className="my-1 hidden lg:block" />
-            <button onClick={() => signOut()} className="hidden lg:flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 transition-all">
-              <LogOut className="w-3.5 h-3.5" />
-              {isFr ? 'Se déconnecter' : 'Sign out'}
+            <Separator className="my-1" />
+            <button onClick={() => signOut()} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-destructive hover:bg-destructive/10 transition-all">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-destructive/10">
+                <LogOut className="w-4 h-4" />
+              </div>
+              <p className="text-xs font-semibold">{isFr ? 'Se déconnecter' : 'Sign out'}</p>
             </button>
           </nav>
         </aside>
 
-        {/* CONTENT */}
-        <div className="space-y-6 min-w-0">
-          {/* PROFILE */}
-          <SectionWrap id="profile" title={isFr ? 'Profil' : 'Profile'} icon={User} setRef={setRef}>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>{t.displayName}</Label>
-                <Input value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={100} className="rounded-xl" />
-              </div>
-              <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={loading}>
-                {loading ? '...' : t.saveChanges}
-              </Button>
+        {/* CONTENT (single section, swapped) */}
+        <div className="min-w-0">
+          {/* Section header */}
+          <div className="flex items-center gap-3 mb-4 px-1">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeSection === 'advanced' ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary'}`}>
+              <ActiveIcon className="w-5 h-5" />
             </div>
-          </SectionWrap>
-
-          {/* PREFERENCES */}
-          <SectionWrap id="preferences" title={isFr ? 'Préférences' : 'Preferences'} icon={Cog} setRef={setRef}>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{t.currency}</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EUR">EUR (€)</SelectItem>
-                    <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="GBP">GBP (£)</SelectItem>
-                    <SelectItem value="CAD">CAD ($)</SelectItem>
-                    <SelectItem value="CHF">CHF</SelectItem>
-                    <SelectItem value="XOF">XOF (CFA)</SelectItem>
-                    <SelectItem value="XAF">XAF (CFA)</SelectItem>
-                    <SelectItem value="MAD">MAD (DH)</SelectItem>
-                    <SelectItem value="TND">TND</SelectItem>
-                    <SelectItem value="GNF">GNF (FG)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>{t.language}</Label>
-                <Select value={lang} onValueChange={v => setLang(v as 'fr' | 'en')}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fr">🇫🇷 {t.french}</SelectItem>
-                    <SelectItem value="en">🇬🇧 {t.english}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <h2 className="text-lg font-bold font-display leading-tight">{activeMeta.label}</h2>
+              {activeMeta.hint && <p className="text-xs text-muted-foreground leading-tight">{activeMeta.hint}</p>}
             </div>
-            <Button className="text-primary-foreground rounded-xl mt-4" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={loading}>
-              {loading ? '...' : t.saveChanges}
-            </Button>
-          </SectionWrap>
-
-          {/* NOTIFICATIONS */}
-          <div ref={setRef('notifications')} className="scroll-mt-4">
-            <NotificationPreferencesCard locale={locale} />
           </div>
 
-          {/* SECURITY */}
-          <SectionWrap id="security" title={isFr ? 'Sécurité' : 'Security'} icon={ShieldCheck} setRef={setRef}>
-            <div className="space-y-4">
-              <Row
-                title={isFr ? 'Mot de passe' : 'Password'}
-                desc={isFr ? 'Modifier votre mot de passe de connexion' : 'Change your login password'}
-                icon={Lock}
-                action={<Button variant="outline" size="sm" className="rounded-xl" onClick={() => setPasswordDialog(true)}>{isFr ? 'Modifier' : 'Change'}</Button>}
-              />
-              <Separator />
-              <Row
-                title={isFr ? 'Authentification à 2 facteurs (2FA)' : 'Two-factor authentication (2FA)'}
-                desc={isFr ? 'Ajoutez une couche de sécurité supplémentaire (bientôt disponible)' : 'Add an extra layer of security (coming soon)'}
-                icon={Smartphone}
-                badge={isFr ? 'Bientôt' : 'Soon'}
-                action={<Switch checked={twoFAEnabled} onCheckedChange={(v) => { setTwoFAEnabled(v); toast.info(isFr ? '2FA bientôt disponible' : '2FA coming soon'); }} disabled />}
-              />
-              <Separator />
-              <Row
-                title={isFr ? 'Session active' : 'Active session'}
-                desc={isFr ? `Connecté en tant que ${user?.email}` : `Logged in as ${user?.email}`}
-                icon={ShieldCheck}
-                action={<Button variant="outline" size="sm" className="rounded-xl" onClick={() => signOut()}><LogOut className="w-3.5 h-3.5 mr-1" />{isFr ? 'Déconnexion' : 'Sign out'}</Button>}
-              />
-            </div>
-          </SectionWrap>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSection}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-5"
+            >
+              {activeSection === 'profile' && (
+                <Panel>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>{t.displayName}</Label>
+                      <Input value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={100} className="rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{isFr ? 'Email' : 'Email'}</Label>
+                      <Input value={user?.email || ''} disabled className="rounded-xl" />
+                    </div>
+                    <Button className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={loading}>
+                      {loading ? '...' : t.saveChanges}
+                    </Button>
+                  </div>
+                </Panel>
+              )}
 
-          {/* PLAN SWITCHER (admin-only) */}
-          <PlanSwitcherCard />
+              {activeSection === 'preferences' && (
+                <Panel>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>{t.currency}</Label>
+                      <Select value={currency} onValueChange={setCurrency}>
+                        <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="EUR">EUR (€)</SelectItem>
+                          <SelectItem value="USD">USD ($)</SelectItem>
+                          <SelectItem value="GBP">GBP (£)</SelectItem>
+                          <SelectItem value="CAD">CAD ($)</SelectItem>
+                          <SelectItem value="CHF">CHF</SelectItem>
+                          <SelectItem value="XOF">XOF (CFA)</SelectItem>
+                          <SelectItem value="XAF">XAF (CFA)</SelectItem>
+                          <SelectItem value="MAD">MAD (DH)</SelectItem>
+                          <SelectItem value="TND">TND</SelectItem>
+                          <SelectItem value="GNF">GNF (FG)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t.language}</Label>
+                      <Select value={lang} onValueChange={v => setLang(v as 'fr' | 'en')}>
+                        <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fr">🇫🇷 {t.french}</SelectItem>
+                          <SelectItem value="en">🇬🇧 {t.english}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button className="text-primary-foreground rounded-xl mt-4" style={{ background: 'var(--gradient-primary)' }} onClick={handleSave} disabled={loading}>
+                    {loading ? '...' : t.saveChanges}
+                  </Button>
+                </Panel>
+              )}
 
-          {/* DATA */}
-          <SectionWrap id="data" title={isFr ? 'Données' : 'Data'} icon={Database} setRef={setRef}>
-            <Row
-              title={isFr ? 'Exporter au format CSV' : 'Export as CSV'}
-              desc={isFr ? 'Téléchargez tous vos enregistrements en CSV' : 'Download all your records as CSV'}
-              icon={Download}
-              action={<Button variant="outline" size="sm" className="rounded-xl" onClick={handleExportAllData} disabled={exportLoading}><Download className="w-3.5 h-3.5 mr-1" />{exportLoading ? '...' : 'CSV'}</Button>}
-            />
-          </SectionWrap>
+              {activeSection === 'notifications' && (
+                <NotificationPreferencesCard locale={locale} />
+              )}
 
-          <DataExportCard />
-          <TrashCard />
-          <ArchivedItemsCard locale={locale} />
+              {activeSection === 'security' && (
+                <Panel>
+                  <div className="space-y-4">
+                    <Row
+                      title={isFr ? 'Mot de passe' : 'Password'}
+                      desc={isFr ? 'Modifier votre mot de passe de connexion' : 'Change your login password'}
+                      icon={Lock}
+                      action={<Button variant="outline" size="sm" className="rounded-xl" onClick={() => setPasswordDialog(true)}>{isFr ? 'Modifier' : 'Change'}</Button>}
+                    />
+                    <Separator />
+                    <Row
+                      title={isFr ? 'Authentification à 2 facteurs (2FA)' : 'Two-factor authentication (2FA)'}
+                      desc={isFr ? 'Ajoutez une couche de sécurité supplémentaire (bientôt disponible)' : 'Add an extra layer of security (coming soon)'}
+                      icon={Smartphone}
+                      badge={isFr ? 'Bientôt' : 'Soon'}
+                      action={<Switch checked={twoFAEnabled} onCheckedChange={(v) => { setTwoFAEnabled(v); toast.info(isFr ? '2FA bientôt disponible' : '2FA coming soon'); }} disabled />}
+                    />
+                    <Separator />
+                    <Row
+                      title={isFr ? 'Session active' : 'Active session'}
+                      desc={isFr ? `Connecté en tant que ${user?.email}` : `Logged in as ${user?.email}`}
+                      icon={ShieldCheck}
+                      action={<Button variant="outline" size="sm" className="rounded-xl" onClick={() => signOut()}><LogOut className="w-3.5 h-3.5 mr-1" />{isFr ? 'Déconnexion' : 'Sign out'}</Button>}
+                    />
+                  </div>
+                </Panel>
+              )}
 
-          {/* ADVANCED */}
-          <SectionWrap id="advanced" title={isFr ? 'Avancé' : 'Advanced'} icon={AlertTriangle} setRef={setRef} danger>
-            <Row
-              title={isFr ? 'Supprimer mon compte' : 'Delete my account'}
-              desc={isFr ? 'Supprime toutes vos données de manière irréversible' : 'Permanently delete all your data'}
-              icon={Trash2}
-              danger
-              action={<Button variant="destructive" size="sm" className="rounded-xl" onClick={() => setDeleteDialog(true)}><Trash2 className="w-3.5 h-3.5 mr-1" />{t.delete}</Button>}
-            />
-          </SectionWrap>
+              {activeSection === 'data' && (
+                <div className="space-y-5">
+                  <Panel>
+                    <Row
+                      title={isFr ? 'Exporter au format CSV' : 'Export as CSV'}
+                      desc={isFr ? 'Téléchargez tous vos enregistrements en CSV' : 'Download all your records as CSV'}
+                      icon={Download}
+                      action={<Button variant="outline" size="sm" className="rounded-xl" onClick={handleExportAllData} disabled={exportLoading}><Download className="w-3.5 h-3.5 mr-1" />{exportLoading ? '...' : 'CSV'}</Button>}
+                    />
+                  </Panel>
+                  <DataExportCard />
+                  <TrashCard />
+                  <ArchivedItemsCard locale={locale} />
+                </div>
+              )}
+
+              {activeSection === 'advanced' && (
+                <div className="space-y-5">
+                  <PlanSwitcherCard />
+                  <Panel danger>
+                    <Row
+                      title={isFr ? 'Supprimer mon compte' : 'Delete my account'}
+                      desc={isFr ? 'Supprime toutes vos données de manière irréversible' : 'Permanently delete all your data'}
+                      icon={Trash2}
+                      danger
+                      action={<Button variant="destructive" size="sm" className="rounded-xl" onClick={() => setDeleteDialog(true)}><Trash2 className="w-3.5 h-3.5 mr-1" />{t.delete}</Button>}
+                    />
+                  </Panel>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 
@@ -337,26 +398,10 @@ const SettingsPage = () => {
   );
 };
 
-const SectionWrap = ({ id, title, icon: Icon, setRef, children, danger }: any) => (
-  <motion.div
-    initial={{ opacity: 0, y: 8 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3 }}
-    ref={setRef(id)}
-    className="scroll-mt-4"
-  >
-    <Card className={`border ${danger ? 'border-destructive/30' : 'border-border/50'} rounded-2xl glass`}>
-      <CardContent className="p-5 sm:p-6 space-y-4">
-        <div className="flex items-center gap-2.5 pb-3 border-b border-border/40">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${danger ? 'bg-destructive/15 text-destructive' : 'bg-primary/15 text-primary'}`}>
-            <Icon className="w-4 h-4" />
-          </div>
-          <h2 className="font-bold text-base">{title}</h2>
-        </div>
-        {children}
-      </CardContent>
-    </Card>
-  </motion.div>
+const Panel = ({ children, danger }: { children: React.ReactNode; danger?: boolean }) => (
+  <Card className={`border ${danger ? 'border-destructive/30' : 'border-border/50'} rounded-2xl glass`}>
+    <CardContent className="p-5 sm:p-6">{children}</CardContent>
+  </Card>
 );
 
 const Row = ({ title, desc, icon: Icon, action, danger, badge }: any) => (
