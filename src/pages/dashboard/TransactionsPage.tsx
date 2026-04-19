@@ -63,7 +63,7 @@ const TransactionsPage = () => {
   const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
   const [bulkModifyForm, setBulkModifyForm] = useState({ category_id: '', account_id: '' });
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '' });
+  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -283,13 +283,13 @@ const TransactionsPage = () => {
   const openNew = () => {
     if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
     setEditing(null); setErrors({});
-    setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', account_id: accounts[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '' });
+    setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', account_id: accounts[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (tx: any) => {
     setEditing(tx); setErrors({});
-    setForm({ description: tx.description, amount: String(tx.amount), type: tx.type, category_id: tx.category_id || '', account_id: tx.account_id || '', date: tx.date, notes: tx.notes || '' });
+    setForm({ description: tx.description, amount: String(tx.amount), type: tx.type, category_id: tx.category_id || '', account_id: tx.account_id || '', date: tx.date, notes: tx.notes || '', family_category_id: tx.family_category_id || '' });
     setDialogOpen(true);
   };
 
@@ -345,6 +345,7 @@ const TransactionsPage = () => {
       user_id: user.id, description: form.description.trim(), amount: Number(form.amount),
       type: form.type, category_id: form.category_id || null, account_id: form.account_id || null,
       date: form.date, notes: form.notes.trim() || null,
+      family_category_id: form.family_category_id || null,
     };
 
     if (!editing && form.type === 'expense') {
@@ -373,6 +374,7 @@ const TransactionsPage = () => {
       user_id: user.id, description: form.description.trim(), amount: Number(form.amount),
       type: form.type, category_id: form.category_id || null, account_id: form.account_id || null,
       date: form.date, notes: form.notes.trim() ? form.notes.trim() + ' [Dépassement volontaire]' : '[Dépassement volontaire]',
+      family_category_id: form.family_category_id || null,
     };
     const { error } = await supabase.from('transactions').insert(payload);
     if (error) { toast.error(error.message); setSaving(false); return; }
