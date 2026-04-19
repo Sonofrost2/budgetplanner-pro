@@ -60,6 +60,8 @@ const FamilyPage = () => {
   const selectedGroupData = groups.find((g) => g.id === selectedGroup) || null;
   const isOwner = selectedGroupData?.owner_id === user?.id;
   const groupMembers = selectedGroup ? members[selectedGroup] || [] : [];
+  const myMembership = groupMembers.find((m) => m.user_id === user?.id);
+  const canEditSettings = !!isOwner || myMembership?.role === 'admin';
   const groupPendingInvitations = useMemo(
     () => sentInvitations.filter((i) => i.group_id === selectedGroup),
     [sentInvitations, selectedGroup],
