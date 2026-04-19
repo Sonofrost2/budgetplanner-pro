@@ -334,7 +334,21 @@ const CategoriesPage = () => {
                 📈 {t.incomeType}
               </button>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant={showArchived ? 'default' : 'outline'}
+                size="sm"
+                className="rounded-xl gap-1.5"
+                onClick={() => setShowArchived(v => !v)}
+              >
+                <Archive className="w-3.5 h-3.5" />
+                {isFr ? 'Archivées' : 'Archived'}
+                {archivedCategories.length > 0 && (
+                  <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
+                    {archivedCategories.length}
+                  </span>
+                )}
+              </Button>
               <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={handleExportAll}>
                 <Download className="w-3.5 h-3.5" />JSON
               </Button>
@@ -403,9 +417,51 @@ const CategoriesPage = () => {
               onToggleSelect={bulk.toggle}
               onEdit={openEdit}
               onDelete={handleDeleteRequest}
+              onArchive={handleArchive}
               onReparent={handleReparent}
               isFr={isFr}
             />
+          )}
+
+          {showArchived && (
+            <Card className="border border-border/50 rounded-2xl mt-4">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Archive className="w-4 h-4 text-warning" />
+                  <h3 className="text-sm font-semibold">
+                    {isFr ? 'Catégories archivées' : 'Archived categories'} ({archivedCategories.length})
+                  </h3>
+                </div>
+                {archivedCategories.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-6">
+                    {isFr ? 'Aucune catégorie archivée. Cliquez sur l\'icône archive d\'une catégorie pour la masquer sans la supprimer.' : 'No archived categories. Click the archive icon on a category to hide it without deleting.'}
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {archivedCategories.map(c => (
+                      <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: c.color + '22' }}>
+                          {c.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{c.name}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {c.type === 'expense' ? t.expenseType : t.incomeType}
+                            {txCounts[c.id] ? ` · ${txCounts[c.id]} tx` : ''}
+                          </p>
+                        </div>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 rounded-lg" onClick={() => handleUnarchive(c.id)}>
+                          <RotateCcw className="w-3 h-3" />{isFr ? 'Restaurer' : 'Restore'}
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive rounded-lg" onClick={() => handleDeleteRequest(c.id)} title={isFr ? 'Supprimer définitivement' : 'Delete permanently'}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
