@@ -81,12 +81,17 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "list_users": {
-        const { data, error } = await userClient.rpc("admin_list_users", {
-          _search: body.search ?? null,
-          _plan_filter: body.plan ?? null,
-          _limit: Math.min(Number(body.limit) || 100, 500),
-          _offset: Number(body.offset) || 0,
-        });
+        // Admin already verified above; query the view directly via service role
+        const search = body.search?.trim() || null;
+        const plan = body.plan || null;
+        const limit = Math.min(Number(body.limit) || 100, 500);
+        const offset = Number(body.offset) || 0;
+        let q = admin.from("admin_user_overview").select("*")
+          .order("signup_at", { ascending: false })
+          .range(offset, offset + limit - 1);
+        if (search) q = q.or(`email.ilike.%${search}%,display_name.ilike.%${search}%`);
+        if (plan) q = q.eq("effective_plan", plan);
+        const { data, error } = await q;
         if (error) throw error;
         return new Response(JSON.stringify({ users: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -94,8 +99,38 @@ Deno.serve(async (req) => {
       }
 
       case "suspicious_ips": {
-        const { data, error } = await userClient.rpc("admin_suspicious_ips");
-        if (error) throw error;
+        // Inline the suspicious IP detection so we don't depend on auth.uid()
+        const { data, error } = await admin.rpc("admin_suspicious_ips");
+        if (error) {
+          // Fallback: compute from device_fingerprints directly
+          const { data: fps, error: fe } = await admin
+            .from("device_fingerprints")
+            .select("ip_address,user_id,first_seen_at,last_seen_at");
+          if (fe) throw fe;
+          const byIp = new Map<string, { user_ids: Set<string>; first: string; last: string }>();
+          for (const r of fps || []) {
+            if (!r.ip_address) continue;
+            const key = String(r.ip_address);
+            const cur = byIp.get(key) || { user_ids: new Set(), first: r.first_seen_at, last: r.last_seen_at };
+            cur.user_ids.add(r.user_id);
+            if (r.first_seen_at < cur.first) cur.first = r.first_seen_at;
+            if (r.last_seen_at > cur.last) cur.last = r.last_seen_at;
+            byIp.set(key, cur);
+          }
+          const items = Array.from(byIp.entries())
+            .filter(([, v]) => v.user_ids.size >= 2)
+            .map(([ip, v]) => ({
+              ip_address: ip,
+              account_count: v.user_ids.size,
+              user_ids: Array.from(v.user_ids),
+              emails: [],
+              first_seen: v.first,
+              last_seen: v.last,
+            }));
+          return new Response(JSON.stringify({ items }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         return new Response(JSON.stringify({ items: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -114,13 +149,28 @@ Deno.serve(async (req) => {
       }
 
       case "set_plan": {
-        const { data, error } = await userClient.rpc("admin_set_user_plan", {
-          _target_user_id: body.user_id,
-          _plan_name: body.plan,
-          _duration_days: body.duration_days || 30,
+        const planName = body.plan;
+        const days = Number(body.duration_days) || 30;
+        const target = body.user_id;
+        const { data: plan, error: pe } = await admin
+          .from("subscription_plans").select("id,name").eq("name", planName).maybeSingle();
+        if (pe) throw pe;
+        if (!plan) throw new Error(`Plan not found: ${planName}`);
+        const now = new Date();
+        const end = new Date(now.getTime() + days * 86400_000);
+        const { error: se } = await admin.from("subscriptions").upsert({
+          user_id: target,
+          plan_id: plan.id,
+          status: "active",
+          current_period_start: now.toISOString(),
+          current_period_end: end.toISOString(),
+          payment_method: "admin_override",
+        }, { onConflict: "user_id" });
+        if (se) throw se;
+        await audit("set_plan", target, "success", body.reason || `Plan set to ${planName} for ${days}d`, {
+          plan: planName, duration_days: days,
         });
-        if (error) throw error;
-        return new Response(JSON.stringify(data), {
+        return new Response(JSON.stringify({ success: true, plan: planName, expires_at: end.toISOString() }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
