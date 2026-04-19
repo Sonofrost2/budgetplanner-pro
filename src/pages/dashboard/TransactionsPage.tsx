@@ -594,6 +594,31 @@ const TransactionsPage = () => {
                   {isRegularizationActive && <X className="w-3 h-3 ml-0.5 opacity-70" />}
                 </motion.button>
 
+                {/* Hide/Show transfers toggle */}
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setHideTransfers(v => !v)}
+                  title={hideTransfers
+                    ? (locale === 'fr' ? 'Afficher les transferts entre comptes' : 'Show transfers between accounts')
+                    : (locale === 'fr' ? 'Masquer les transferts entre comptes' : 'Hide transfers between accounts')
+                  }
+                  className={`relative flex items-center gap-1.5 px-3 h-10 rounded-xl text-xs font-semibold border transition-all duration-200 ${
+                    hideTransfers
+                      ? 'bg-primary/15 text-primary border-primary/40 shadow-[0_2px_10px_-2px_hsl(var(--primary)/0.25)]'
+                      : 'bg-background/60 text-muted-foreground border-border/40 hover:bg-background/80 hover:border-primary/30 hover:text-primary'
+                  }`}
+                >
+                  <ArrowLeftRight className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">
+                    {hideTransfers
+                      ? (locale === 'fr' ? 'Transferts masqués' : 'Transfers hidden')
+                      : (locale === 'fr' ? 'Transferts' : 'Transfers')}
+                  </span>
+                  {hideTransfers && <X className="w-3 h-3 ml-0.5 opacity-70" />}
+                </motion.button>
+
+
                 {/* Category popover */}
                 <Popover>
                   <PopoverTrigger asChild>
