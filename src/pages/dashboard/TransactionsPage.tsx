@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Search, TrendingUp, TrendingDown, Calendar, CreditCard, Tag, ArrowUpDown, X, ArrowLeftRight, BarChart3, Filter, Scale } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Calendar, CreditCard, Tag, ArrowUpDown, X, ArrowLeftRight, BarChart3, Filter, Scale, Lock, Users } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
