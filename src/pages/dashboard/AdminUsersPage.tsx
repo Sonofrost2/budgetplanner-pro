@@ -355,6 +355,9 @@ const AdminUsersPage = () => {
                         <DropdownMenuContent align="end" className="w-52">
                           <DropdownMenuLabel>{u.email}</DropdownMenuLabel>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setSnapshotUserId(u.user_id)}>
+                            <EyeOff className="w-3.5 h-3.5 mr-2" />{isFr ? 'Observer (silencieux)' : 'Observe (silent)'}
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setPlanDialog({ user: u, plan: u.effective_plan || 'pro', days: 30 })}>
                             <Crown className="w-3.5 h-3.5 mr-2" />{isFr ? 'Forcer un plan' : 'Force plan'}
                           </DropdownMenuItem>
