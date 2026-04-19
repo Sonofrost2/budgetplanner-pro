@@ -494,6 +494,7 @@ const TransactionsPage = () => {
             account_id: parsed.account_id || accounts[0]?.id || '',
             date: new Date().toISOString().split('T')[0],
             notes: '',
+            family_category_id: '',
           });
           setDialogOpen(true);
         }}
