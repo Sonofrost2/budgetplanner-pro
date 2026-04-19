@@ -1223,6 +1223,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bulk_reparent_categories: {
+        Args: {
+          p_category_ids: string[]
+          p_new_parent_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       cancel_transfer: {
         Args: { p_transaction_id: string; p_user_id: string }
         Returns: Json
@@ -1257,6 +1265,16 @@ export type Database = {
           category_id: string
           total: number
           type: string
+        }[]
+      }
+      get_category_analytics: {
+        Args: { p_user_id: string }
+        Returns: {
+          category_id: string
+          last_used: string
+          monthly_series: Json
+          total_amount: number
+          transaction_count: number
         }[]
       }
       get_dormant_accounts: {
@@ -1305,6 +1323,10 @@ export type Database = {
       is_family_owner: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
+      }
+      merge_categories: {
+        Args: { p_source_ids: string[]; p_target_id: string; p_user_id: string }
+        Returns: Json
       }
       perform_transfer: {
         Args: {
