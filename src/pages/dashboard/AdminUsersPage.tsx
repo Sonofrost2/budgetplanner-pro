@@ -71,6 +71,7 @@ const AdminUsersPage = () => {
   const [deleteDialog, setDeleteDialog] = useState<{ user: AdminUser; reason: string; confirm: string } | null>(null);
   const [auditDialog, setAuditDialog] = useState<{ user: AdminUser; logs: any[] } | null>(null);
   const [impersonateDialog, setImpersonateDialog] = useState<{ user: AdminUser; link: string } | null>(null);
+  const [snapshotUserId, setSnapshotUserId] = useState<string | null>(null);
 
   const callAdmin = useCallback(async (action: string, payload: Record<string, any> = {}) => {
     const { data, error } = await supabase.functions.invoke('admin-user-action', {
