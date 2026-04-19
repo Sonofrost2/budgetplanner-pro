@@ -314,6 +314,7 @@ const CategoriesPage = () => {
 
   return (
     <div className="space-y-6">
+      {categoryLimitReached && <UpgradeBanner message={(t as any).upgradeCategories} />}
       <CategoriesHeroHeader
         categories={categories}
         stats={analytics}

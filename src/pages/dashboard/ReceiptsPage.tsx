@@ -32,9 +32,14 @@ const printReceipt = (receipt: any, locale: string) => {
   w.print();
 };
 
+import { useSubscription } from '@/hooks/useSubscription';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { Lock } from 'lucide-react';
+
 const ReceiptsPage = () => {
   const { locale } = useLanguage();
   const t = dashT[locale];
+  const { canUseReceipts } = useSubscription();
   const { data: receipts = [], isLoading: loading } = useReceipts();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
