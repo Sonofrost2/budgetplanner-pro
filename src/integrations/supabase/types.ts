@@ -425,27 +425,33 @@ export type Database = {
       family_invitations: {
         Row: {
           created_at: string
+          expires_at: string
           group_id: string
           id: string
           invited_by: string
           invited_email: string
           status: string
+          token: string
         }
         Insert: {
           created_at?: string
+          expires_at?: string
           group_id: string
           id?: string
           invited_by: string
           invited_email: string
           status?: string
+          token?: string
         }
         Update: {
           created_at?: string
+          expires_at?: string
           group_id?: string
           id?: string
           invited_by?: string
           invited_email?: string
           status?: string
+          token?: string
         }
         Relationships: [
           {
@@ -1223,6 +1229,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_family_invitation: { Args: { p_token: string }; Returns: Json }
       bulk_reparent_categories: {
         Args: {
           p_category_ids: string[]
@@ -1238,6 +1245,10 @@ export type Database = {
       cleanup_old_deleted: { Args: never; Returns: Json }
       cleanup_old_notifications: { Args: never; Returns: number }
       compute_health_score: { Args: { p_user_id: string }; Returns: Json }
+      delete_family_group_cascade: {
+        Args: { p_group_id: string }
+        Returns: Json
+      }
       get_account_drilldown: {
         Args: { p_account_id: string; p_user_id: string }
         Returns: Json
@@ -1287,6 +1298,10 @@ export type Database = {
           real_balance: number
         }[]
       }
+      get_family_dashboard: {
+        Args: { p_end_date: string; p_group_id: string; p_start_date: string }
+        Returns: Json
+      }
       get_family_member_profiles: {
         Args: { p_group_id: string }
         Returns: {
@@ -1316,6 +1331,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_family_admin: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_family_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
@@ -1324,6 +1343,7 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      leave_family_group: { Args: { p_group_id: string }; Returns: Json }
       merge_categories: {
         Args: { p_source_ids: string[]; p_target_id: string; p_user_id: string }
         Returns: Json
@@ -1341,6 +1361,10 @@ export type Database = {
       recalculate_account_balance: {
         Args: { p_account_id: string }
         Returns: undefined
+      }
+      transfer_family_ownership: {
+        Args: { p_group_id: string; p_new_owner_id: string }
+        Returns: Json
       }
       update_transfer: {
         Args: {
