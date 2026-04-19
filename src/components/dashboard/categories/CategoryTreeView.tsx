@@ -167,8 +167,13 @@ const CategoryNode = ({
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium text-sm truncate">{category.name}</p>
+              {(category as any).is_family_root && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/20 font-semibold flex items-center gap-0.5">
+                  👨‍👩‍👧 {isFr ? 'Racine Famille' : 'Family root'}
+                </span>
+              )}
               {hasChildren && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
                   {childrenCats.length}
