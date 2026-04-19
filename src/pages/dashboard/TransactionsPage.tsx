@@ -89,7 +89,11 @@ const TransactionsPage = () => {
     sortOrder,
   });
 
-  const transactions = paginatedResult?.data ?? [];
+  const rawTransactions = paginatedResult?.data ?? [];
+  const transactions = useMemo(
+    () => hideTransfers ? rawTransactions.filter(tx => !tx.linked_transfer_id) : rawTransactions,
+    [rawTransactions, hideTransfers]
+  );
   const totalCount = paginatedResult?.totalCount ?? 0;
   const totalPages = paginatedResult?.totalPages ?? 1;
 
