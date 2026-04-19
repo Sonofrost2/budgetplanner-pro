@@ -89,11 +89,15 @@ const TransactionsPage = () => {
     sortOrder,
   });
 
+  const [privacyFilter, setPrivacyFilter] = useState<'all' | 'family' | 'private'>('all');
   const rawTransactions = paginatedResult?.data ?? [];
-  const transactions = useMemo(
-    () => hideTransfers ? rawTransactions.filter(tx => !tx.linked_transfer_id) : rawTransactions,
-    [rawTransactions, hideTransfers]
-  );
+  const transactions = useMemo(() => {
+    let list = rawTransactions;
+    if (hideTransfers) list = list.filter(tx => !tx.linked_transfer_id);
+    if (privacyFilter === 'family') list = list.filter(tx => !!tx.family_category_id);
+    else if (privacyFilter === 'private') list = list.filter(tx => !tx.family_category_id);
+    return list;
+  }, [rawTransactions, hideTransfers, privacyFilter]);
   const totalCount = paginatedResult?.totalCount ?? 0;
   const totalPages = paginatedResult?.totalPages ?? 1;
 
