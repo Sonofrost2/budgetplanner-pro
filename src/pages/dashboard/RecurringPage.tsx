@@ -25,6 +25,9 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
+import { useSubscription } from '@/hooks/useSubscription';
+import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { Lock } from 'lucide-react';
 
 interface AIPattern {
   description: string;
@@ -45,6 +48,7 @@ const RecurringPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
+  const { canUseRecurring, canUseAIPremium } = useSubscription();
   const t = dashT[locale] as any;
   const { invalidate } = useInvalidate();
 
