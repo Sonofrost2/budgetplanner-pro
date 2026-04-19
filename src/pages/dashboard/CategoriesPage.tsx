@@ -5,7 +5,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { useCategories, useInvalidate, type Category } from '@/hooks/useDashboardData';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -97,8 +97,27 @@ const CategoriesPage = () => {
   });
 
   const bulk = useBulkSelection(categories);
+  const queryClient = useQueryClient();
 
-  const refreshData = () => { invalidate('categories', 'category-tx-counts', 'category-analytics', 'budgets'); bulk.clear(); };
+  const refreshData = () => {
+    invalidate('categories', 'category-tx-counts', 'category-analytics', 'budgets');
+    queryClient.invalidateQueries({ queryKey: ['categories-archived', user?.id] });
+    bulk.clear();
+  };
+
+  const handleArchive = async (id: string) => {
+    const { error } = await archiveItem('categories', id);
+    if (error) { toast.error(error.message); return; }
+    refreshData();
+    toast.success(isFr ? 'Catégorie archivée' : 'Category archived');
+  };
+
+  const handleUnarchive = async (id: string) => {
+    const { error } = await unarchiveItem('categories', id);
+    if (error) { toast.error(error.message); return; }
+    refreshData();
+    toast.success(isFr ? 'Catégorie restaurée' : 'Category restored');
+  };
 
   const filteredCategories = useMemo(() => {
     let result = categories.filter(c => c.type === typeTab);
