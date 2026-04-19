@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LayoutDashboard, Users, Share2, Activity, Mail, Plus, Lock, CheckCheck, Settings2 } from 'lucide-react';
+import { LayoutDashboard, Users, Share2, Activity, Mail, Plus, Lock, CheckCheck, Settings2, ShieldCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useFamilyData } from '@/hooks/useFamilyData';
@@ -56,6 +56,13 @@ const FamilyPage = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
+  const [privacyDismissed, setPrivacyDismissed] = useState<boolean>(
+    () => typeof window !== 'undefined' && localStorage.getItem('family-privacy-banner-dismissed') === '1'
+  );
+  const dismissPrivacy = () => {
+    localStorage.setItem('family-privacy-banner-dismissed', '1');
+    setPrivacyDismissed(true);
+  };
 
   const selectedGroupData = groups.find((g) => g.id === selectedGroup) || null;
   const isOwner = selectedGroupData?.owner_id === user?.id;
@@ -143,6 +150,36 @@ const FamilyPage = () => {
         onCreate={() => setCreateOpen(true)}
         canCreate={canUseFamily}
       />
+
+      {/* Privacy by Design — Onboarding banner */}
+      {!privacyDismissed && (
+        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 via-accent/5 to-transparent backdrop-blur">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                    🔒 Vie privée respectée — <span className="text-primary">Privacy by Design</span>
+                  </h3>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 -mr-1 -mt-1" onClick={dismissPrivacy}>
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Vos transactions personnelles restent <strong className="text-foreground">privées</strong> par défaut.
+                  Seules celles que vous taguez avec une <strong className="text-foreground">Catégorie Famille</strong> sont visibles
+                  par les autres membres du groupe. Idem pour les budgets : seuls ceux rattachés à la racine
+                  <span className="inline-flex items-center gap-1 mx-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold">👨‍👩‍👧 Famille</span>
+                  peuvent être partagés.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pending invitations FOR me */}
       {pendingForMe.length > 0 && (
