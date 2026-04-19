@@ -440,6 +440,7 @@ export const TransactionList = ({
                           whileTap={{ scale: 0.998 }}
                         >
                           <Checkbox className="h-3.5 w-3.5" checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
+                          <PrivacyIndicator shared={!!tx.family_category_id} locale={locale} compact />
                           <span className="text-sm flex-shrink-0">{tx.categories?.icon || '📁'}</span>
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
                           <span className="text-xs font-semibold truncate flex-1 text-foreground/85 flex items-center gap-1.5 min-w-0">
