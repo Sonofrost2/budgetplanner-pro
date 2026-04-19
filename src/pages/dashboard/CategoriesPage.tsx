@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
-import { Plus, Tag, Palette, Inbox, Merge, FolderTree, Download, Upload } from 'lucide-react';
+import { Plus, Tag, Palette, Inbox, Merge, FolderTree, Download, Upload, Archive, RotateCcw } from 'lucide-react';
 import CategoryEvolutionChart from '@/components/dashboard/categories/CategoryEvolutionChart';
 import { CategoriesHeroHeader } from '@/components/dashboard/categories/CategoriesHeroHeader';
 import { CategoryTreeView } from '@/components/dashboard/categories/CategoryTreeView';
@@ -29,6 +29,7 @@ import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { exportToCSV, exportToExcel } from '@/lib/export';
+import { archiveItem, unarchiveItem } from '@/lib/archive';
 import { fetchCategoryAnalytics, type CategoryStats } from '@/lib/categoryAnalytics';
 
 const ICONS = ['🛒', '🚗', '🏠', '🎮', '💊', '💰', '💻', '📚', '👗', '🍽️', '✈️', '🎬', '📱', '💡', '🏥', '🎁', '🔧', '📁'];
@@ -79,6 +80,21 @@ const CategoriesPage = () => {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeTab, setTypeTab] = useState<'expense' | 'income'>('expense');
+  const [showArchived, setShowArchived] = useState(false);
+
+  const { data: archivedCategories = [] } = useQuery({
+    queryKey: ['categories-archived', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories').select('*').eq('user_id', user!.id)
+        .is('deleted_at', null).not('archived_at', 'is', null)
+        .order('archived_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Category[];
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
 
   const bulk = useBulkSelection(categories);
 

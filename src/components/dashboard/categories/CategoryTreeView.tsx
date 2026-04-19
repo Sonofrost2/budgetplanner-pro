@@ -187,7 +187,7 @@ const CategoryNode = ({
               <Pencil className="w-3.5 h-3.5" />
             </Button>
             {onArchive && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onArchive(category.id)} title={isFr ? 'Archiver' : 'Archive'}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-warning opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onArchive(category.id)} title={isFr ? 'Archiver' : 'Archive'}>
                 <Archive className="w-3.5 h-3.5" />
               </Button>
             )}
