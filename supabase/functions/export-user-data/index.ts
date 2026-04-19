@@ -1,30 +1,24 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
 import { corsHeaders } from 'https://esm.sh/@supabase/supabase-js@2.95.0/cors';
+import { requirePlan } from "../_shared/requirePlan.ts";
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    // PDF/Excel export = premium; JSON full export = pro+
+    const gate = await requirePlan(req, ["pro", "premium"], { feature: "export_full", auditSubtype: "export-user-data" });
+    if (!gate.ok) return gate.response!;
+    const userId = gate.userId!;
 
+    const authHeader = req.headers.get('Authorization')!;
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const userClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: authErr } = await userClient.auth.getUser();
-    if (authErr || !userData.user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    const userId = userData.user.id;
+    const userData = { user: { id: userId, email: '' } };
     const tables = [
       'profiles', 'payment_accounts', 'categories', 'transactions', 'budgets',
       'savings_goals', 'debts', 'recurring_transactions', 'assets', 'asset_valuations',

@@ -1,3 +1,5 @@
+import { requirePlan } from "../_shared/requirePlan.ts";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -9,6 +11,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const gate = await requirePlan(req, ["premium"], { feature: "ai_wealth_valuation", auditSubtype: "ai-wealth-valuation" });
+    if (!gate.ok) return gate.response!;
+
     const { asset, valuations, locale } = await req.json();
     const isFr = locale === "fr";
 
