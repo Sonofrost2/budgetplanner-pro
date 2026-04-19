@@ -416,7 +416,10 @@ export const TransactionList = ({
                           <Checkbox className="h-3.5 w-3.5" checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
                           <span className="text-sm flex-shrink-0">{tx.categories?.icon || '📁'}</span>
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
-                          <span className="text-xs font-semibold truncate flex-1 text-foreground/85">{tx.description}</span>
+                          <span className="text-xs font-semibold truncate flex-1 text-foreground/85 flex items-center gap-1.5 min-w-0">
+                            <span className="truncate">{tx.description}</span>
+                            {tx.linked_transfer_id && <TransferBadge locale={locale} compact />}
+                          </span>
                           <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 tabular-nums hidden sm:inline">
                             {tx.categories?.name || '-'}
                           </span>
