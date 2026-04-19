@@ -149,13 +149,28 @@ Deno.serve(async (req) => {
       }
 
       case "set_plan": {
-        const { data, error } = await userClient.rpc("admin_set_user_plan", {
-          _target_user_id: body.user_id,
-          _plan_name: body.plan,
-          _duration_days: body.duration_days || 30,
+        const planName = body.plan;
+        const days = Number(body.duration_days) || 30;
+        const target = body.user_id;
+        const { data: plan, error: pe } = await admin
+          .from("subscription_plans").select("id,name").eq("name", planName).maybeSingle();
+        if (pe) throw pe;
+        if (!plan) throw new Error(`Plan not found: ${planName}`);
+        const now = new Date();
+        const end = new Date(now.getTime() + days * 86400_000);
+        const { error: se } = await admin.from("subscriptions").upsert({
+          user_id: target,
+          plan_id: plan.id,
+          status: "active",
+          current_period_start: now.toISOString(),
+          current_period_end: end.toISOString(),
+          payment_method: "admin_override",
+        }, { onConflict: "user_id" });
+        if (se) throw se;
+        await audit("set_plan", target, "success", body.reason || `Plan set to ${planName} for ${days}d`, {
+          plan: planName, duration_days: days,
         });
-        if (error) throw error;
-        return new Response(JSON.stringify(data), {
+        return new Response(JSON.stringify({ success: true, plan: planName, expires_at: end.toISOString() }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
