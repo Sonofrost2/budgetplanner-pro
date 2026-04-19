@@ -41,6 +41,11 @@ export const CategoryTreeView = ({
     return { roots, childrenMap };
   }, [categories]);
 
+  const familyRootId = useMemo(
+    () => categories.find((c: any) => c.is_family_root)?.id ?? null,
+    [categories]
+  );
+
   const toggleExpand = (id: string) => {
     setExpanded(prev => {
       const next = new Set(prev);
