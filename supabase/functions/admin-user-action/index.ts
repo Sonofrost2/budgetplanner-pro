@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
       }
 
       case "set_plan": {
-        const { data, error } = await admin.rpc("admin_set_user_plan", {
+        const { data, error } = await userClient.rpc("admin_set_user_plan", {
           _target_user_id: body.user_id,
           _plan_name: body.plan,
           _duration_days: body.duration_days || 30,
