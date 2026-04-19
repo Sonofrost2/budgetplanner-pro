@@ -585,6 +585,13 @@ const AdminUsersPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Silent observation drawer */}
+      <UserSnapshotDrawer
+        userId={snapshotUserId}
+        open={!!snapshotUserId}
+        onOpenChange={(o) => !o && setSnapshotUserId(null)}
+      />
     </div>
   );
 };
