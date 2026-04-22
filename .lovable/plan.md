@@ -1,79 +1,96 @@
 
 
-## Diagnostic actuel (mesuré sur la preview)
+# Bell notifications — alignement sur les dates prévisionnelles
 
-**Volume mesuré :** 15-31 notifs/jour pour le même utilisateur sur les 7 derniers jours. Cause :
-1. **Doublon cron** : `daily-budget-alerts` (07h) ET `check-alerts-daily` (08h) appellent la même fonction → tout est envoyé 2× chaque matin.
-2. **Dedup faible** : la `dedup_key` inclut `${todayStr}` → la même alerte de statut (budget contrôlé, épargne insuffisante, dépense à venir, projection) refire **chaque jour à l'identique**.
-3. **Aucun plafond** par utilisateur : 12 types d'alertes peuvent toutes tomber le même matin.
-4. **Pas de différenciation début/fin de période** : les rappels d'action et les bilans sont mélangés au même rythme.
+## Problème constaté
+
+Le hook `useBudgetNotifications` (qui alimente la cloche 🔔 dans le header) :
+
+1. N'utilise **pas** `computeDaysRemaining` ni `expected_day` / `occurrence_frequency` / `reference_date` → les rappels d'échéance ne tombent jamais aux bons jours.
+2. N'a **aucune notion de J-5 / J-2 / J-0** (la logique côté edge function existe déjà, mais le bell affiche tout dans une fenêtre fixe de 7 jours).
+3. N'exclut **pas** les budgets / objectifs `paused_at` ou `deleted_at` → notifications fantômes.
+4. Inclut les **transferts internes** (`linked_transfer_id`) dans les sommes de budgets et contributions épargne → calculs faussés.
+5. Ne respecte **pas la cadence utilisateur** (`status_reminder_frequency`, `morning_digest_hour`, `quiet_hours_*`) déjà stockée dans `notification_preferences`.
+6. Pour l'épargne : `contribution_day` est comparé au jour du mois courant uniquement → si on est le 28 et la cotisation tombe le 5, `daysUntil = 0` au lieu de "dans 8 jours".
+7. Les alertes "écart de solde" ne tiennent pas compte des `archived_at` sur les comptes.
 
 ## Refonte proposée
 
-### 1. Nettoyage cron (immédiat)
-- Supprimer le cron `check-alerts-daily` (08h, doublon).
-- Garder `daily-budget-alerts` à 07h, **renommé en `morning-coach-digest`**.
-- Ajouter un nouveau cron **`evening-capture-reminder`** à **20h** : rappel quotidien obligatoire de saisir les transactions du jour (incitation à l'usage).
+### A. Refactor `useBudgetNotifications` (`NotificationBell.tsx`)
 
-### 2. Cadence intelligente par type d'alerte (table de fréquence)
+**Filtrage en amont des entités** :
+- `budgets`: ajouter `.is('deleted_at', null).is('paused_at', null)`
+- `savings_goals`: ajouter `.is('deleted_at', null).is('paused_at', null).eq('status','active')`
+- `payment_accounts`: ajouter `.is('archived_at', null).is('deleted_at', null)`
+- `transactions`: ajouter `.is('deleted_at', null).is('linked_transfer_id', null)` partout
 
-| Type d'alerte | Phase | Fréquence par défaut |
-|---|---|---|
-| `budget_exceeded`, `debt_overdue`, `daily_budget_exceeded` | Critique | Immédiat, 1× / 24h |
-| `budget_threshold` (80%), `budget_projection` | Action début/milieu période | 1× au franchissement, puis tous les 3 jours si ↑ |
-| `budget_upcoming_expense`, `recurring_reminder`, `savings_contribution_upcoming` | Rappel d'action | J-5, J-2, J-0 (3 envois max) |
-| `savings_no_contribution`, `savings_insufficient` | Rappel d'action | 1× / semaine (lundi) |
-| `budget_controlled`, `budget_goal_reached`, `savings_goal_reached` | **Bilan fin de période** | 1× à la clôture (dernier jour de la période) |
-| `balance_discrepancy` | Anomalie | 1× / 7 jours tant que non résolu |
-| `daily_capture_reminder` (NOUVEAU) | Habitude | **1× / jour à 20h, obligatoire** |
+**Calcul des sommes budgets** : exclure aussi les tx avec `notes LIKE '🎯%'` côté revenus si le budget est de type income (évite double comptage avec contributions épargne).
 
-**Mécanique** : `dedup_key` perd la date et gagne une fenêtre. Ex : `budget_threshold_${budget.id}_w${isoWeek}` (1×/semaine) ou `budget_threshold_${budget.id}_step${roundedPct/10}` (1× par palier de 10pts atteint).
+**Échéances de budget** :
+- Importer `computeDaysRemaining` depuis `@/lib/budgetProjection` (déjà existant, sous-utilisé).
+- Pour chaque budget avec `expected_day` ou `occurrence_frequency` : calculer `daysLeft` via ce helper.
+- N'émettre `budget_upcoming` qu'aux **paliers J-5, J-2, J-0** (cohérent avec edge function), plus le label `today`/`thisWeek`/`passed` retourné par le helper.
+- Ajouter une notif **"Période clôturée aujourd'hui"** quand `todayStr === periodEndStr` avec le bilan (atteint / dépassé / maîtrisé).
 
-### 3. Digest matinal unique
-Toutes les alertes **non-critiques** générées par `morning-coach-digest` sont **agrégées en UNE seule notif push** :
-> 🌅 Coach matinal — 2 budgets à surveiller, 1 cotisation jeudi, vous êtes en avance sur Voyage. *Voir détails →*
+**Échéances d'épargne** :
+- Si `contribution_day` est passé ce mois → calculer la distance jusqu'au **mois suivant** (même logique que `computeDaysRemaining` "monthly").
+- N'afficher qu'aux paliers J-5 / J-2 / J-0.
+- Pour `deadline` : ajouter un palier J-30 / J-7 / J-0.
+- Si l'objectif est `is_locked` et `deadline` future → ne **pas** alerter "versement insuffisant".
 
-Le clic ouvre `/dashboard` avec le `NotificationBell` ouvert sur l'onglet "Aujourd'hui" listant les détails. Les alertes **critiques** (dépassement, dette en retard) restent en notif séparée.
+**Échéances récurrentes** :
+- Garder la fenêtre 7 jours mais émettre les alertes uniquement aux J-5 / J-2 / J-0 (cohérent edge function), pas tous les jours.
+- Exclure les `recurring_transactions` dont `end_date < today`.
 
-### 4. Plafond utilisateur : max 3 push/jour + digest
-Compteur dans `notification_history` : si déjà 3 envoyés ce jour (hors digest et critiques), les suivants sont absorbés dans un digest "+ X autres alertes".
+**Cadence utilisateur** :
+- Lire `notification_preferences` (1 query supplémentaire).
+- Si `quiet_hours_enabled` et heure courante dans la fenêtre → renvoyer `[]` (la cloche restera vide jusqu'à la fin du quiet).
+- Si `status_reminder_frequency = 'on_change_only'` → masquer `budget_warning` / `savings_behind` qui n'ont pas changé de palier 10pts depuis la dernière visite (palier mémorisé en `localStorage`).
+- Si une préférence type est `false` (ex. `budget_alerts: false`) → retirer les notifs correspondantes.
 
-### 5. Préférences utilisateur étendues
-Ajouter à `notification_preferences` :
-- `morning_digest_enabled` (bool, def true)
-- `morning_digest_hour` (int 5-11, def 7)
-- `evening_capture_enabled` (bool, def true) — **pas masquable côté Free, juste retardable**
-- `evening_capture_hour` (int 17-22, def 20)
-- `status_reminder_frequency` (enum: `weekly` | `every_3d` | `on_change_only`, def `weekly`)
-- `max_push_per_day` (int 1-10, def 3)
+**Écarts de solde** :
+- Ne plus inclure les comptes `archived_at IS NOT NULL`.
+- Calcul théorique : exclure transferts internes des deux côtés (sinon faux écart).
 
-UI : refonte du `NotificationPreferencesCard` avec nouvelle section **"Cadence & moments"** (sliders horaires + select cadence).
+### B. Centraliser la logique de cadence
 
-### 6. Nouveau : Daily Capture Reminder (20h)
-Nouvelle edge function `daily-capture-reminder` :
-- Pour chaque user avec push actif, vérifier s'il a saisi ≥1 transaction aujourd'hui.
-- Sinon → notif coach : *"📝 Quoi de neuf aujourd'hui ? Saisis tes transactions du jour en 30 secondes pour garder ton coach affûté."* (lien `/dashboard/transactions?quickAdd=1`)
-- Si déjà actif → notif positive 1×/semaine seulement : *"🔥 7 jours de saisie d'affilée — bravo !"* (streak).
-- Respecte quiet_hours et `evening_capture_enabled`.
+Créer `src/lib/notificationCadence.ts` (nouveau fichier) :
+- `shouldFireUpcoming(daysUntil: number): boolean` → true si 0/2/5
+- `shouldFireBilan(periodEnd: Date, now: Date): boolean` → true si même jour
+- `inQuietHours(now: Date, prefs): boolean`
+- `getStepBucket(pct: number): number` → palier 10pts
+- `hasStepChanged(key: string, currentBucket: number): boolean` (lit/écrit localStorage)
 
-### 7. Bilan de fin de période (sans nouveau cron)
-Dans `morning-coach-digest`, détecter `now == periodEnd` pour chaque budget/épargne et générer une notif **synthèse** dédiée :
-> 🏁 Bilan Avril — Courses : -8% vs budget, Épargne Voyage : +45 000 (objectif 90%). *Voir le rapport →*
+Réutilisé par `NotificationBell` aujourd'hui, et potentiellement par toast Coach plus tard.
 
-## Fichiers touchés (estimation)
+### C. UI cloche : nouveaux libellés et tri
 
-- `supabase/functions/check-alerts/index.ts` — refactor majeur : nouvelles fenêtres dedup, agrégation digest, plafond, branchement cadence
-- `supabase/functions/daily-capture-reminder/index.ts` — **nouveau**
-- Migration SQL : colonnes `notification_preferences` + suppression cron 08h + ajout cron 20h + renommage cron 07h
-- `src/hooks/useNotificationPreferences.tsx` — nouveaux champs typés
-- `src/components/dashboard/settings/NotificationPreferencesCard.tsx` — nouvelle section "Cadence & moments"
-- `src/components/dashboard/NotificationBell.tsx` — onglet "Aujourd'hui" pour déplier le digest
-- Bug runtime mineur (`Cannot create property '_interval' on number '716'`) — fix opportuniste dans `usePushNotifications` ou setTimeout mal typé
+- Ajouter dans `NotificationBell.tsx` un libellé dynamique sous chaque notif : "dans 5 jours", "aujourd'hui", "période clôturée" (basé sur le `daysLeft` retourné par `computeDaysRemaining`).
+- Réordonner : critiques > échéance aujourd'hui > échéance < 3j > seuils > bilans > succès.
+- Ajouter un onglet **"À venir"** (séparé de "Aujourd'hui") qui regroupe les J-5/J-2 → l'utilisateur voit clairement ce qui arrive vs ce qui se passe maintenant.
+
+### D. Tests manuels post-déploiement
+
+- Créer un budget mensuel avec `expected_day = 25`, vérifier qu'aucune alerte upcoming n'apparaît avant le 20, puis le 20 (J-5), 23 (J-2), 25 (J-0).
+- Créer un objectif épargne avec `contribution_day = 5`, le tester un 28 → doit afficher "dans 8j" puis monter en alerte le 30/3/5.
+- Mettre un budget en pause → vérifier qu'il disparaît de la cloche.
+- Faire un transfert interne → vérifier qu'il n'apparaît pas dans le calcul du budget catégorie.
+
+## Fichiers touchés
+
+| Fichier | Type de change |
+|---|---|
+| `src/components/dashboard/NotificationBell.tsx` | Refactor majeur du hook + UI tri/libellés |
+| `src/lib/notificationCadence.ts` | **Nouveau** — helpers de cadence partagés |
+| `src/lib/budgetProjection.ts` | Aucun (déjà bon, juste ré-utilisé) |
+
+Aucune migration SQL, aucune edge function touchée — la refonte est 100 % côté client puisque le bug est dans le hook front.
 
 ## Résultat attendu
 
-- **Volume** : 15-31/jour → **3-5/jour max**, dont ~1 digest matinal + 1 rappel saisie + alertes critiques ponctuelles.
-- **Pertinence** : chaque notif a un cycle (début / milieu / fin de période), plus de répétition à l'identique.
-- **Engagement** : rappel quotidien de saisie pour ancrer l'habitude, sans noyer l'utilisateur.
-- **Contrôle** : utilisateur règle horaires, cadence et plafond depuis Réglages.
+- Cloche n'affiche que des alertes **temporellement pertinentes** (basées sur `expected_day`, `contribution_day`, `next_date`, `deadline`, `periodEnd`).
+- Plus de notifs sur budgets/objectifs en pause ou supprimés.
+- Plus de comptage de transferts internes dans les budgets.
+- Cadence respectée : quiet hours, fréquence de rappels de statut, plafond, types désactivés.
+- Onglet "À venir" pour visualiser l'horizon J-5 sans pollution du présent.
 
