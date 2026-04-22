@@ -767,14 +767,20 @@ export const NotificationBell = () => {
   };
 
   // Apply severity filter
-  const filtered = visible.filter(n => {
+  let filtered = visible.filter(n => {
     if (filter === 'all') return true;
-    if (filter === 'upcoming') return !!n.upcoming;
+    if (filter === 'upcoming') return !!n.upcoming && (n.daysLeft ?? 0) > 0;
     if (filter === 'critical') return n.severity === 'critical';
     if (filter === 'warning') return n.severity === 'warning';
     if (filter === 'success') return n.severity === 'success';
     return true;
   });
+
+  // In the "upcoming" tab, sort strictly by daysLeft ascending (sooner first)
+  // — bypasses the default critical-first ordering which is irrelevant here.
+  if (filter === 'upcoming') {
+    filtered = [...filtered].sort((a, b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999));
+  }
 
   // Group filtered notifications by type
   const typeGroups = new Map<Notification['type'], Notification[]>();
