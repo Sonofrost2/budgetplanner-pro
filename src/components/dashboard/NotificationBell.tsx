@@ -37,6 +37,11 @@ interface Notification {
   daysLeft?: number;
   /** True if the event is in the future (≥1 day) — drives the "À venir" tab. */
   upcoming?: boolean;
+  /** Special tag for the date pill (overrides numeric label):
+   *  - 'today' / 'thisWeek' / 'passed' come from `computeDaysRemaining`
+   *  - 'closed' = period ended today (bilan)
+   *  - 'now' = realised event (overshoot, discrepancy) */
+  dueLabelKey?: 'today' | 'thisWeek' | 'passed' | 'closed' | 'now';
 }
 
 const DISMISSED_KEY = 'notif_dismissed';
@@ -181,6 +186,7 @@ export const useBudgetNotifications = () => {
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}`,
             action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}&type=${budgetType}&from=${periodStartStr}&to=${periodEndStr}` },
             daysLeft: 0,
+            dueLabelKey: 'now',
           });
         } else if (pct >= threshold && allowAlerts) {
           // Suppress if user wants on-change-only and bucket hasn't shifted
@@ -195,6 +201,7 @@ export const useBudgetNotifications = () => {
               message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
               action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
               daysLeft: 0,
+              dueLabelKey: 'now',
             });
           }
         } else if (pct < 50 && shouldFireBilan(periodEnd, now)) {
@@ -207,6 +214,7 @@ export const useBudgetNotifications = () => {
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(amount - spent).toLocaleString()} ${isFr ? 'économisés' : 'saved'}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
+            dueLabelKey: 'closed',
           });
         }
       } else {
@@ -220,6 +228,7 @@ export const useBudgetNotifications = () => {
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? 'au-dessus' : 'above'}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
+            dueLabelKey: 'now',
           });
         } else if (allowAlerts && shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal)) {
           notifs.push({
@@ -230,6 +239,7 @@ export const useBudgetNotifications = () => {
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString()}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
+            dueLabelKey: 'now',
           });
         }
       }
@@ -247,6 +257,7 @@ export const useBudgetNotifications = () => {
           action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           daysLeft,
           upcoming: true,
+          dueLabelKey: dueLabel as Notification['dueLabelKey'],
         });
       }
     }
@@ -268,6 +279,7 @@ export const useBudgetNotifications = () => {
           action: { label: isFr ? 'Voir récurrences' : 'View recurring', path: `/dashboard/recurring?q=${encodeURIComponent(rec.description)}` },
           daysLeft: daysUntil,
           upcoming: daysUntil > 0,
+          dueLabelKey: daysUntil === 0 ? 'today' : undefined,
         });
       }
     }
@@ -287,6 +299,7 @@ export const useBudgetNotifications = () => {
             message: `${goal.icon} ${goal.name}`,
             action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
             daysLeft: 0,
+            dueLabelKey: 'now',
           });
         }
         continue;
@@ -307,6 +320,7 @@ export const useBudgetNotifications = () => {
             action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
             daysLeft: daysUntil,
             upcoming: daysUntil > 0,
+            dueLabelKey: daysUntil === 0 ? 'today' : undefined,
           });
         }
       }
@@ -328,6 +342,7 @@ export const useBudgetNotifications = () => {
             action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
             daysLeft: daysToDeadline,
             upcoming: daysToDeadline > 0,
+            dueLabelKey: daysToDeadline === 0 ? 'today' : undefined,
           });
         }
       }
@@ -381,6 +396,7 @@ export const useBudgetNotifications = () => {
           message: `${goal.icon} ${isFr ? 'Aucun versement ce mois pour' : 'No contribution this month for'} ${goal.name}`,
           action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
           daysLeft: 0,
+          dueLabelKey: 'now',
         });
       } else if (monthlyActual < monthlyNeeded * 0.9 && changed) {
         notifs.push({
@@ -391,6 +407,7 @@ export const useBudgetNotifications = () => {
           message: `${goal.icon} ${goal.name}: ${Math.round(monthlyActual).toLocaleString()} / ${Math.round(monthlyNeeded).toLocaleString()}`,
           action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
           daysLeft: 0,
+          dueLabelKey: 'now',
         });
       }
     }
@@ -419,6 +436,7 @@ export const useBudgetNotifications = () => {
           message: `${account.icon} ${account.name}: ${isFr ? 'écart de' : 'difference of'} ${sign}${Math.round(diff).toLocaleString()} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? 'théorique' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString()})`,
           action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
           daysLeft: 0,
+          dueLabelKey: 'now',
         });
       }
     }
@@ -559,6 +577,44 @@ const ActionLink = ({ action, onNavigate }: { action: Notification['action']; on
   );
 };
 
+/** Compact pill showing the temporal context of a notification.
+ *  Resolves `dueLabelKey` first, then falls back to a numeric "in N days". */
+const DuePill = ({ notif, locale }: { notif: Notification; locale: string }) => {
+  const isFr = locale === 'fr';
+  const key = notif.dueLabelKey;
+  let text: string | null = null;
+  let tone: 'now' | 'today' | 'soon' | 'later' | 'closed' = 'later';
+
+  if (key === 'closed') { text = isFr ? 'Période clôturée' : 'Period closed'; tone = 'closed'; }
+  else if (key === 'now') { text = isFr ? 'En cours' : 'Live'; tone = 'now'; }
+  else if (key === 'passed') { text = isFr ? 'Échéance passée' : 'Past due'; tone = 'now'; }
+  else if (key === 'thisWeek') { text = isFr ? 'Cette semaine' : 'This week'; tone = 'soon'; }
+  else if (key === 'today' || (notif.daysLeft === 0 && notif.upcoming === false)) {
+    text = isFr ? "Aujourd'hui" : 'Today'; tone = 'today';
+  }
+  else if (typeof notif.daysLeft === 'number' && notif.daysLeft > 0) {
+    text = formatDaysLeftLabel(notif.daysLeft, locale);
+    tone = notif.daysLeft <= 2 ? 'soon' : 'later';
+  }
+
+  if (!text) return null;
+
+  const toneClass = {
+    now: 'bg-destructive/10 text-destructive ring-destructive/20',
+    today: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/25',
+    soon: 'bg-primary/10 text-primary ring-primary/20',
+    later: 'bg-foreground/5 text-muted-foreground ring-foreground/10',
+    closed: 'bg-secondary/15 text-secondary ring-secondary/20',
+  }[tone];
+
+  return (
+    <span className={`inline-flex items-center gap-1 mt-1.5 mr-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${toneClass}`}>
+      <Clock className="w-2.5 h-2.5" />
+      {text}
+    </span>
+  );
+};
+
 const notifItemVariants = {
   hidden: { opacity: 0, x: -12, scale: 0.96 },
   visible: (i: number) => ({
@@ -643,6 +699,7 @@ const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate
                 <div className="min-w-0 flex-1 pl-11">
                   <p className="text-[12px] font-semibold leading-tight">{n.title}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{n.message}</p>
+                  <DuePill notif={n} locale={locale} />
                   <ActionLink action={n.action} onNavigate={onNavigate} />
                 </div>
                 <button
@@ -710,14 +767,20 @@ export const NotificationBell = () => {
   };
 
   // Apply severity filter
-  const filtered = visible.filter(n => {
+  let filtered = visible.filter(n => {
     if (filter === 'all') return true;
-    if (filter === 'upcoming') return !!n.upcoming;
+    if (filter === 'upcoming') return !!n.upcoming && (n.daysLeft ?? 0) > 0;
     if (filter === 'critical') return n.severity === 'critical';
     if (filter === 'warning') return n.severity === 'warning';
     if (filter === 'success') return n.severity === 'success';
     return true;
   });
+
+  // In the "upcoming" tab, sort strictly by daysLeft ascending (sooner first)
+  // — bypasses the default critical-first ordering which is irrelevant here.
+  if (filter === 'upcoming') {
+    filtered = [...filtered].sort((a, b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999));
+  }
 
   // Group filtered notifications by type
   const typeGroups = new Map<Notification['type'], Notification[]>();
@@ -748,7 +811,7 @@ export const NotificationBell = () => {
 
   const filterTabs: { key: SeverityFilter; label: string; count: number; color: string }[] = [
     { key: 'all', label: isFr ? 'Tout' : 'All', count: visible.length, color: 'text-foreground' },
-    { key: 'upcoming', label: isFr ? 'À venir' : 'Upcoming', count: visible.filter(n => n.upcoming).length, color: 'text-primary' },
+    { key: 'upcoming', label: isFr ? 'À venir' : 'Upcoming', count: visible.filter(n => n.upcoming && (n.daysLeft ?? 0) > 0).length, color: 'text-primary' },
     { key: 'critical', label: isFr ? 'Critique' : 'Critical', count: visible.filter(n => n.severity === 'critical').length, color: 'text-destructive' },
     { key: 'warning', label: isFr ? 'Alertes' : 'Alerts', count: visible.filter(n => n.severity === 'warning').length, color: 'text-amber-600 dark:text-amber-400' },
     { key: 'success', label: isFr ? 'Succès' : 'Wins', count: successCount, color: 'text-secondary' },
@@ -887,6 +950,7 @@ export const NotificationBell = () => {
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] font-semibold leading-tight tracking-tight">{item.notif.title}</p>
                         <p className="text-[11.5px] text-muted-foreground mt-1 leading-snug break-words">{item.notif.message}</p>
+                        <DuePill notif={item.notif} locale={locale} />
                         <ActionLink action={item.notif.action} onNavigate={handleNavigate} />
                       </div>
                       <motion.button
