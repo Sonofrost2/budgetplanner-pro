@@ -48,6 +48,7 @@ const RecurringPage = lazy(() => import("./pages/dashboard/RecurringPage"));
 const WealthPage = lazy(() => import("./pages/dashboard/WealthPage"));
 const GuidePage = lazy(() => import("./pages/dashboard/GuidePage"));
 const FamilyAcceptPage = lazy(() => import("./pages/FamilyAcceptPage"));
+const NotificationsPage = lazy(() => import("./pages/dashboard/NotificationsPage"));
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,7 @@ const AnimatedRoutes = () => {
             <Route path="savings" element={<SavingsPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="payment" element={<PaymentPage />} />
             <Route path="accounts" element={<AccountsPage />} />
             <Route path="categories" element={<CategoriesPage />} />
