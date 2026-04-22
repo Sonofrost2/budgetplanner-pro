@@ -811,7 +811,7 @@ export const NotificationBell = () => {
 
   const filterTabs: { key: SeverityFilter; label: string; count: number; color: string }[] = [
     { key: 'all', label: isFr ? 'Tout' : 'All', count: visible.length, color: 'text-foreground' },
-    { key: 'upcoming', label: isFr ? 'À venir' : 'Upcoming', count: visible.filter(n => n.upcoming).length, color: 'text-primary' },
+    { key: 'upcoming', label: isFr ? 'À venir' : 'Upcoming', count: visible.filter(n => n.upcoming && (n.daysLeft ?? 0) > 0).length, color: 'text-primary' },
     { key: 'critical', label: isFr ? 'Critique' : 'Critical', count: visible.filter(n => n.severity === 'critical').length, color: 'text-destructive' },
     { key: 'warning', label: isFr ? 'Alertes' : 'Alerts', count: visible.filter(n => n.severity === 'warning').length, color: 'text-amber-600 dark:text-amber-400' },
     { key: 'success', label: isFr ? 'Succès' : 'Wins', count: successCount, color: 'text-secondary' },
