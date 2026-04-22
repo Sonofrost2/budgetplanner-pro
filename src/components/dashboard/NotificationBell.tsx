@@ -37,6 +37,11 @@ interface Notification {
   daysLeft?: number;
   /** True if the event is in the future (≥1 day) — drives the "À venir" tab. */
   upcoming?: boolean;
+  /** Special tag for the date pill (overrides numeric label):
+   *  - 'today' / 'thisWeek' / 'passed' come from `computeDaysRemaining`
+   *  - 'closed' = period ended today (bilan)
+   *  - 'now' = realised event (overshoot, discrepancy) */
+  dueLabelKey?: 'today' | 'thisWeek' | 'passed' | 'closed' | 'now';
 }
 
 const DISMISSED_KEY = 'notif_dismissed';
