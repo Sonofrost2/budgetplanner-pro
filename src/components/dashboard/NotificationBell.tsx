@@ -313,7 +313,7 @@ export const useBudgetNotifications = () => {
 
       // Deadline reminders (J-30 / J-7 / J-2 / J-0) — skip if locked & still future
       if (goal.deadline && allowSavings) {
-        const dl = new Date(goal.deadline);
+        const dl = parseLocalDate(goal.deadline);
         const daysToDeadline = daysBetween(now, dl);
         if (daysToDeadline >= 0 && shouldFireDeadline(daysToDeadline) && !(goal.is_locked && daysToDeadline > 0)) {
           const remaining = Number(goal.target_amount) - Number(goal.current_amount);
@@ -336,7 +336,7 @@ export const useBudgetNotifications = () => {
 
       let monthlyNeeded = Number(goal.monthly_contribution) || 0;
       if (monthlyNeeded <= 0 && goal.deadline) {
-        const dl = new Date(goal.deadline);
+        const dl = parseLocalDate(goal.deadline);
         if (dl <= now) continue;
         const remaining = Number(goal.target_amount) - Number(goal.current_amount);
         const monthsLeft = Math.max(1, (dl.getFullYear() - now.getFullYear()) * 12 + dl.getMonth() - now.getMonth());
