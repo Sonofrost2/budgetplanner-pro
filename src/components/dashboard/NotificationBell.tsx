@@ -186,6 +186,7 @@ export const useBudgetNotifications = () => {
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}`,
             action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}&type=${budgetType}&from=${periodStartStr}&to=${periodEndStr}` },
             daysLeft: 0,
+            dueLabelKey: 'now',
           });
         } else if (pct >= threshold && allowAlerts) {
           // Suppress if user wants on-change-only and bucket hasn't shifted
@@ -200,6 +201,7 @@ export const useBudgetNotifications = () => {
               message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
               action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
               daysLeft: 0,
+              dueLabelKey: 'now',
             });
           }
         } else if (pct < 50 && shouldFireBilan(periodEnd, now)) {
@@ -212,6 +214,7 @@ export const useBudgetNotifications = () => {
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(amount - spent).toLocaleString()} ${isFr ? 'économisés' : 'saved'}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
+            dueLabelKey: 'closed',
           });
         }
       } else {
@@ -225,6 +228,7 @@ export const useBudgetNotifications = () => {
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? 'au-dessus' : 'above'}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
+            dueLabelKey: 'now',
           });
         } else if (allowAlerts && shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal)) {
           notifs.push({
@@ -235,6 +239,7 @@ export const useBudgetNotifications = () => {
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString()}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
+            dueLabelKey: 'now',
           });
         }
       }
@@ -252,6 +257,7 @@ export const useBudgetNotifications = () => {
           action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           daysLeft,
           upcoming: true,
+          dueLabelKey: dueLabel as Notification['dueLabelKey'],
         });
       }
     }
