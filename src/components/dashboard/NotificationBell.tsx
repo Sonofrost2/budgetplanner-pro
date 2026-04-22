@@ -699,6 +699,7 @@ const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate
                 <div className="min-w-0 flex-1 pl-11">
                   <p className="text-[12px] font-semibold leading-tight">{n.title}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{n.message}</p>
+                  <DuePill notif={n} locale={locale} />
                   <ActionLink action={n.action} onNavigate={onNavigate} />
                 </div>
                 <button
