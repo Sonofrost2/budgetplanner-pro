@@ -4,6 +4,20 @@
  */
 
 /**
+ * Parse a date input that may be a `YYYY-MM-DD` string (Postgres DATE) or a
+ * full ISO timestamp. Bare DATE strings are interpreted in the **local**
+ * timezone — `new Date('2026-04-22')` would otherwise be UTC midnight and
+ * shift by one day for users west of UTC.
+ */
+function parseLocalDateLoose(input: string): Date {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    const [y, m, d] = input.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(input);
+}
+
+/**
  * Compute period boundaries for a budget.
  * @param offset - number of periods to shift backwards (e.g. 1 = previous period)
  */
