@@ -76,14 +76,15 @@ export const useBudgetNotifications = () => {
     setLoading(true);
 
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    // Use LOCAL date strings everywhere — `toISOString()` would drift by one
+    // day around midnight for users in non-UTC timezones.
+    const todayStr = localDateStr(now);
     const sevenDaysAgo = new Date(now); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+    const sevenDaysAgoStr = localDateStr(sevenDaysAgo);
     const sevenDaysLater = new Date(now); sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
-    const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0];
+    const sevenDaysLaterStr = localDateStr(sevenDaysLater);
     const yearStart = `${now.getFullYear()}-01-01`;
-
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const monthStart = localDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
 
     const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, accountsRes, recurringRes, accountTxRes, prefsRes] = await Promise.all([
       supabase.from('budgets').select('*, categories(name, icon)').eq('user_id', user.id)
