@@ -135,8 +135,8 @@ export const useBudgetNotifications = () => {
     // ────── Budget alerts (simplified — no projections) ──────
     for (const budget of budgets) {
       const { periodStart, periodEnd } = getBudgetPeriodBounds(budget.period || 'monthly', now, budget.reference_date);
-      const periodStartStr = periodStart.toISOString().split('T')[0];
-      const periodEndStr = periodEnd.toISOString().split('T')[0];
+      const periodStartStr = localDateStr(periodStart);
+      const periodEndStr = localDateStr(periodEnd);
 
       const budgetType = budget.budget_type || 'expense';
       const periodTxs = allTxs.filter(tx => {
