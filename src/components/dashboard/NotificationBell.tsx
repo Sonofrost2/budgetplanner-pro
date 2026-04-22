@@ -577,6 +577,44 @@ const ActionLink = ({ action, onNavigate }: { action: Notification['action']; on
   );
 };
 
+/** Compact pill showing the temporal context of a notification.
+ *  Resolves `dueLabelKey` first, then falls back to a numeric "in N days". */
+const DuePill = ({ notif, locale }: { notif: Notification; locale: string }) => {
+  const isFr = locale === 'fr';
+  const key = notif.dueLabelKey;
+  let text: string | null = null;
+  let tone: 'now' | 'today' | 'soon' | 'later' | 'closed' = 'later';
+
+  if (key === 'closed') { text = isFr ? 'Période clôturée' : 'Period closed'; tone = 'closed'; }
+  else if (key === 'now') { text = isFr ? 'En cours' : 'Live'; tone = 'now'; }
+  else if (key === 'passed') { text = isFr ? 'Échéance passée' : 'Past due'; tone = 'now'; }
+  else if (key === 'thisWeek') { text = isFr ? 'Cette semaine' : 'This week'; tone = 'soon'; }
+  else if (key === 'today' || (notif.daysLeft === 0 && notif.upcoming === false)) {
+    text = isFr ? "Aujourd'hui" : 'Today'; tone = 'today';
+  }
+  else if (typeof notif.daysLeft === 'number' && notif.daysLeft > 0) {
+    text = formatDaysLeftLabel(notif.daysLeft, locale);
+    tone = notif.daysLeft <= 2 ? 'soon' : 'later';
+  }
+
+  if (!text) return null;
+
+  const toneClass = {
+    now: 'bg-destructive/10 text-destructive ring-destructive/20',
+    today: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-amber-500/25',
+    soon: 'bg-primary/10 text-primary ring-primary/20',
+    later: 'bg-foreground/5 text-muted-foreground ring-foreground/10',
+    closed: 'bg-secondary/15 text-secondary ring-secondary/20',
+  }[tone];
+
+  return (
+    <span className={`inline-flex items-center gap-1 mt-1.5 mr-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ring-1 ${toneClass}`}>
+      <Clock className="w-2.5 h-2.5" />
+      {text}
+    </span>
+  );
+};
+
 const notifItemVariants = {
   hidden: { opacity: 0, x: -12, scale: 0.96 },
   visible: (i: number) => ({
