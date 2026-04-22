@@ -83,21 +83,30 @@ export const useBudgetNotifications = () => {
 
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
 
-    const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, accountsRes, recurringRes, accountTxRes] = await Promise.all([
-      supabase.from('budgets').select('*, categories(name, icon)').eq('user_id', user.id),
-      supabase.from('transactions').select('category_id, amount, type, date').eq('user_id', user.id)
+    const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, accountsRes, recurringRes, accountTxRes, prefsRes] = await Promise.all([
+      supabase.from('budgets').select('*, categories(name, icon)').eq('user_id', user.id)
+        .is('deleted_at', null).is('paused_at', null),
+      // Exclude internal transfers from budget spending sums
+      supabase.from('transactions').select('category_id, amount, type, date, linked_transfer_id, notes').eq('user_id', user.id)
+        .is('deleted_at', null).is('linked_transfer_id', null)
         .gte('date', yearStart).lte('date', todayStr),
-      supabase.from('savings_goals').select('*').eq('user_id', user.id),
-      // Fetch this month's transactions that could be savings contributions:
-      // income on savings-linked accounts OR 🎯-noted income transactions
-      supabase.from('transactions').select('amount, date, notes, type, account_id, description')
+      supabase.from('savings_goals').select('*').eq('user_id', user.id)
+        .is('deleted_at', null).is('paused_at', null).eq('status', 'active'),
+      supabase.from('transactions').select('amount, date, notes, type, account_id, description, linked_transfer_id')
         .eq('user_id', user.id)
+        .is('deleted_at', null).is('linked_transfer_id', null)
         .gte('date', monthStart).lte('date', todayStr),
-      supabase.from('payment_accounts').select('id, name, icon, real_balance, opening_balance').eq('user_id', user.id),
+      supabase.from('payment_accounts').select('id, name, icon, real_balance, opening_balance').eq('user_id', user.id)
+        .is('deleted_at', null).is('archived_at', null),
       supabase.from('recurring_transactions').select('*').eq('user_id', user.id).eq('active', true)
+        .is('deleted_at', null)
+        .or(`end_date.is.null,end_date.gte.${todayStr}`)
         .lte('next_date', sevenDaysLaterStr),
-      supabase.from('transactions').select('account_id, amount, type').eq('user_id', user.id)
+      // Exclude transfers from theoretical balance calculation
+      supabase.from('transactions').select('account_id, amount, type, linked_transfer_id').eq('user_id', user.id)
+        .is('deleted_at', null).is('linked_transfer_id', null)
         .not('account_id', 'is', null).limit(100000),
+      supabase.from('notification_preferences').select('*').eq('user_id', user.id).maybeSingle(),
     ]);
 
     const budgets = budgetsRes.data || [];
@@ -107,6 +116,17 @@ export const useBudgetNotifications = () => {
     const accounts = accountsRes.data || [];
     const recurringTxs = recurringRes.data || [];
     const accountTxs = accountTxRes.data || [];
+    const prefs: CadencePrefs | null = (prefsRes.data as CadencePrefs | null) ?? null;
+
+    // Quiet hours → leave the bell empty until window closes
+    if (inQuietHours(now, prefs)) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
+
+    const onChangeOnly = prefs?.status_reminder_frequency === 'on_change_only';
+
     const notifs: Notification[] = [];
 
     // ────── Budget alerts (simplified — no projections) ──────
@@ -116,11 +136,14 @@ export const useBudgetNotifications = () => {
       const periodEndStr = periodEnd.toISOString().split('T')[0];
 
       const budgetType = budget.budget_type || 'expense';
-      const periodTxs = allTxs.filter(tx =>
-        tx.category_id === budget.category_id &&
-        tx.type === budgetType &&
-        tx.date >= periodStartStr && tx.date <= periodEndStr
-      );
+      const periodTxs = allTxs.filter(tx => {
+        if (tx.category_id !== budget.category_id) return false;
+        if (tx.type !== budgetType) return false;
+        if (tx.date < periodStartStr || tx.date > periodEndStr) return false;
+        // Avoid double-counting savings contributions on income budgets
+        if (budgetType === 'income' && typeof tx.notes === 'string' && tx.notes.startsWith('🎯')) return false;
+        return true;
+      });
       const spent = periodTxs.reduce((sum, tx) => sum + Number(tx.amount), 0);
       const amount = Number(budget.amount);
       const pct = amount > 0 ? (spent / amount) * 100 : 0;
@@ -131,8 +154,22 @@ export const useBudgetNotifications = () => {
       const daysElapsed = Math.max(1, Math.floor((now.getTime() - periodStart.getTime()) / 86400000) + 1);
       const daysTotal = Math.max(1, Math.floor((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1);
 
+      // Compute days-until-next-occurrence using the smart helper
+      const { daysLeft, label: dueLabel } = computeDaysRemaining(budget.period || 'monthly', now, {
+        expectedDay: budget.expected_day,
+        occurrenceFrequency: budget.occurrence_frequency,
+        referenceDate: budget.reference_date,
+        activeDays: budget.active_days,
+        periodStart,
+        periodEnd,
+      });
+
+      // Honor user preference toggles
+      const allowAlerts = prefs?.budget_alerts !== false;
+      const allowProjections = prefs?.budget_projections !== false;
+
       if (isMax) {
-        if (spent > amount) {
+        if (spent > amount && allowAlerts) {
           notifs.push({
             id: `budget-exceeded-${budget.id}`,
             type: 'budget_exceeded',
@@ -140,29 +177,38 @@ export const useBudgetNotifications = () => {
             title: isFr ? 'Budget dépassé' : 'Budget exceeded',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString()}`,
             action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}&type=${budgetType}&from=${periodStartStr}&to=${periodEndStr}` },
+            daysLeft: 0,
           });
-        } else if (pct >= threshold) {
-          notifs.push({
-            id: `budget-warning-${budget.id}`,
-            type: 'budget_warning',
-            severity: 'warning',
-            title: isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`,
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
-            action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
-          });
-        } else if (pct < 50 && daysElapsed > daysTotal * 0.7) {
+        } else if (pct >= threshold && allowAlerts) {
+          // Suppress if user wants on-change-only and bucket hasn't shifted
+          const bucket = getStepBucket(pct);
+          const changed = onChangeOnly ? hasStepChanged(`budget-${budget.id}`, bucket) : true;
+          if (changed) {
+            notifs.push({
+              id: `budget-warning-${budget.id}`,
+              type: 'budget_warning',
+              severity: 'warning',
+              title: isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`,
+              message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
+              action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
+              daysLeft: 0,
+            });
+          }
+        } else if (pct < 50 && shouldFireBilan(periodEnd, now)) {
+          // Bilan only on the actual closing day
           notifs.push({
             id: `budget-savings-${budget.id}`,
             type: 'budget_savings',
             severity: 'success',
-            title: isFr ? '🎉 Budget maîtrisé' : '🎉 Budget under control',
+            title: isFr ? '🏁 Bilan : budget maîtrisé' : '🏁 Bilan: budget under control',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(amount - spent).toLocaleString()} ${isFr ? 'économisés' : 'saved'}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
+            daysLeft: 0,
           });
         }
       } else {
         // Min budget (income target)
-        if (spent >= amount) {
+        if (spent >= amount && allowAlerts) {
           notifs.push({
             id: `budget-target-reached-${budget.id}`,
             type: 'budget_savings',
@@ -170,8 +216,9 @@ export const useBudgetNotifications = () => {
             title: isFr ? '🎉 Objectif atteint' : '🎉 Target reached',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString()} ${isFr ? 'au-dessus' : 'above'}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
+            daysLeft: 0,
           });
-        } else if (shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal)) {
+        } else if (allowAlerts && shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal)) {
           notifs.push({
             id: `budget-below-${budget.id}`,
             type: 'budget_warning',
@@ -179,18 +226,36 @@ export const useBudgetNotifications = () => {
             title: isFr ? 'Objectif non atteint' : 'Target not reached',
             message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString()}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
+            daysLeft: 0,
           });
         }
+      }
+
+      // Upcoming budget deadline (J-5 / J-2 / J-0) — only if projections enabled
+      if (allowProjections && shouldFireUpcoming(daysLeft) && daysLeft > 0) {
+        notifs.push({
+          id: `budget-upcoming-${budget.id}-d${daysLeft}`,
+          type: 'budget_upcoming',
+          severity: 'info',
+          title: isFr
+            ? `📅 ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`
+            : `📅 ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`,
+          message: `${(budget.categories as any)?.icon || '📁'} ${isFr ? 'Échéance prévue' : 'Upcoming deadline'}: ${Math.round(amount).toLocaleString()}`,
+          action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
+          daysLeft,
+          upcoming: true,
+        });
       }
     }
 
     // ────── Recurring transaction reminders ──────
     for (const rec of recurringTxs) {
+      if (prefs?.recurring_reminders === false) break;
       const nextDate = new Date(rec.next_date);
-      const daysUntil = Math.max(0, Math.floor((nextDate.getTime() - now.getTime()) / 86400000));
-      if (daysUntil <= 7) {
+      const daysUntil = Math.max(0, daysBetween(now, nextDate));
+      if (shouldFireUpcoming(daysUntil)) {
         notifs.push({
-          id: `recurring-upcoming-${rec.id}`,
+          id: `recurring-upcoming-${rec.id}-d${daysUntil}`,
           type: 'recurring_upcoming',
           severity: 'info',
           title: daysUntil === 0
@@ -198,39 +263,73 @@ export const useBudgetNotifications = () => {
             : (isFr ? `📋 Échéance dans ${daysUntil}j` : `📋 Due in ${daysUntil}d`),
           message: `${rec.description}: ${Math.round(Number(rec.amount)).toLocaleString()} (${rec.type === 'income' ? (isFr ? 'revenu' : 'income') : (isFr ? 'dépense' : 'expense')})`,
           action: { label: isFr ? 'Voir récurrences' : 'View recurring', path: `/dashboard/recurring?q=${encodeURIComponent(rec.description)}` },
+          daysLeft: daysUntil,
+          upcoming: daysUntil > 0,
         });
       }
     }
 
     // ────── Savings alerts ──────
     for (const goal of savings) {
+      const allowSavings = prefs?.savings_reminders !== false;
+      const allowGoalReached = prefs?.goal_reached !== false;
+
       if (Number(goal.current_amount) >= Number(goal.target_amount)) {
-        notifs.push({
-          id: `savings-reached-${goal.id}`,
-          type: 'savings_reached',
-          severity: 'success',
-          title: isFr ? 'Objectif atteint !' : 'Goal reached!',
-          message: `${goal.icon} ${goal.name}`,
-          action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
-        });
+        if (allowGoalReached) {
+          notifs.push({
+            id: `savings-reached-${goal.id}`,
+            type: 'savings_reached',
+            severity: 'success',
+            title: isFr ? 'Objectif atteint !' : 'Goal reached!',
+            message: `${goal.icon} ${goal.name}`,
+            action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
+            daysLeft: 0,
+          });
+        }
         continue;
       }
 
       const contribDay = (goal as any).contribution_day;
-      if (contribDay) {
-        const todayDay = now.getDate();
-        const daysUntil = contribDay >= todayDay ? contribDay - todayDay : 0;
-        if (daysUntil > 0 && daysUntil <= 5) {
+      if (contribDay && allowSavings) {
+        const daysUntil = daysUntilMonthDay(contribDay, now);
+        if (shouldFireUpcoming(daysUntil)) {
           notifs.push({
-            id: `savings-upcoming-${goal.id}`,
+            id: `savings-upcoming-${goal.id}-d${daysUntil}`,
             type: 'savings_upcoming',
             severity: 'info',
-            title: isFr ? `🐷 Cotisation dans ${daysUntil}j` : `🐷 Contribution in ${daysUntil}d`,
+            title: daysUntil === 0
+              ? (isFr ? "🐷 Cotisation aujourd'hui" : '🐷 Contribution today')
+              : (isFr ? `🐷 Cotisation dans ${daysUntil}j` : `🐷 Contribution in ${daysUntil}d`),
             message: `${goal.icon} ${goal.name}: ${Math.round(Number(goal.monthly_contribution || 0)).toLocaleString()}`,
             action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
+            daysLeft: daysUntil,
+            upcoming: daysUntil > 0,
           });
         }
       }
+
+      // Deadline reminders (J-30 / J-7 / J-2 / J-0) — skip if locked & still future
+      if (goal.deadline && allowSavings) {
+        const dl = new Date(goal.deadline);
+        const daysToDeadline = daysBetween(now, dl);
+        if (daysToDeadline >= 0 && shouldFireDeadline(daysToDeadline) && !(goal.is_locked && daysToDeadline > 0)) {
+          const remaining = Number(goal.target_amount) - Number(goal.current_amount);
+          notifs.push({
+            id: `savings-deadline-${goal.id}-d${daysToDeadline}`,
+            type: 'savings_upcoming',
+            severity: daysToDeadline <= 2 ? 'warning' : 'info',
+            title: isFr
+              ? `🎯 Échéance ${formatDaysLeftLabel(daysToDeadline, locale)}`
+              : `🎯 Deadline ${formatDaysLeftLabel(daysToDeadline, locale)}`,
+            message: `${goal.icon} ${goal.name}: ${isFr ? 'reste' : 'remaining'} ${Math.round(remaining).toLocaleString()}`,
+            action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
+            daysLeft: daysToDeadline,
+            upcoming: daysToDeadline > 0,
+          });
+        }
+      }
+
+      if (!allowSavings) continue;
 
       let monthlyNeeded = Number(goal.monthly_contribution) || 0;
       if (monthlyNeeded <= 0 && goal.deadline) {
@@ -241,6 +340,8 @@ export const useBudgetNotifications = () => {
         monthlyNeeded = remaining / monthsLeft;
       }
       if (monthlyNeeded <= 0) continue;
+      // Skip "insufficient" warnings on locked goals — withdrawals/contribs are constrained
+      if (goal.is_locked) continue;
 
       // Calculate this month's contributions:
       // For goals WITH linked account: income transactions on that account
@@ -263,7 +364,12 @@ export const useBudgetNotifications = () => {
         }
       }
 
-      if (monthlyActual === 0) {
+      // "No contribution" → status reminder, gated by frequency
+      const ratio = monthlyActual / monthlyNeeded;
+      const bucket = getStepBucket(ratio * 100);
+      const changed = onChangeOnly ? hasStepChanged(`savings-${goal.id}`, bucket) : true;
+
+      if (monthlyActual === 0 && changed) {
         notifs.push({
           id: `savings-nocontrib-${goal.id}`,
           type: 'savings_behind',
@@ -271,8 +377,9 @@ export const useBudgetNotifications = () => {
           title: isFr ? 'Rappel épargne' : 'Savings reminder',
           message: `${goal.icon} ${isFr ? 'Aucun versement ce mois pour' : 'No contribution this month for'} ${goal.name}`,
           action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
+          daysLeft: 0,
         });
-      } else if (monthlyActual < monthlyNeeded * 0.9) {
+      } else if (monthlyActual < monthlyNeeded * 0.9 && changed) {
         notifs.push({
           id: `savings-behind-${goal.id}`,
           type: 'savings_behind',
@@ -280,12 +387,14 @@ export const useBudgetNotifications = () => {
           title: isFr ? 'Versement insuffisant' : 'Insufficient contribution',
           message: `${goal.icon} ${goal.name}: ${Math.round(monthlyActual).toLocaleString()} / ${Math.round(monthlyNeeded).toLocaleString()}`,
           action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
+          daysLeft: 0,
         });
       }
     }
 
     // ────── Balance discrepancy alerts ──────
     for (const account of accounts) {
+      if (prefs?.balance_discrepancy === false) break;
       // Compute theoretical balance: opening_balance + income - expenses for this account
       const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
       const txSum = acctTxs.reduce((sum: number, tx: any) => {
@@ -306,13 +415,28 @@ export const useBudgetNotifications = () => {
           title: isFr ? `🔍 Écart de solde détecté` : `🔍 Balance discrepancy`,
           message: `${account.icon} ${account.name}: ${isFr ? 'écart de' : 'difference of'} ${sign}${Math.round(diff).toLocaleString()} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? 'théorique' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString()})`,
           action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
+          daysLeft: 0,
         });
       }
     }
 
-    // ────── Sort by severity ──────
-    const order = { critical: 0, warning: 1, info: 2, success: 3 };
-    notifs.sort((a, b) => order[a.severity] - order[b.severity]);
+    // ────── Sort: critical > today > soon (<3d) > thresholds > bilans > success ──────
+    const sevOrder = { critical: 0, warning: 1, info: 2, success: 3 } as const;
+    notifs.sort((a, b) => {
+      // Critical always first
+      if (a.severity === 'critical' && b.severity !== 'critical') return -1;
+      if (b.severity === 'critical' && a.severity !== 'critical') return 1;
+      // Today (daysLeft=0 & not upcoming) before upcoming
+      const aToday = (a.daysLeft ?? 0) === 0 && !a.upcoming ? 0 : 1;
+      const bToday = (b.daysLeft ?? 0) === 0 && !b.upcoming ? 0 : 1;
+      if (aToday !== bToday) return aToday - bToday;
+      // Then by daysLeft ascending (sooner first)
+      const aDays = a.daysLeft ?? 999;
+      const bDays = b.daysLeft ?? 999;
+      if (aDays !== bDays) return aDays - bDays;
+      // Finally by severity
+      return sevOrder[a.severity] - sevOrder[b.severity];
+    });
 
     setNotifications(notifs);
     setLoading(false);
