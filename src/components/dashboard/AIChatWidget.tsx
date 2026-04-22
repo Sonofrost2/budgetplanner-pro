@@ -169,9 +169,25 @@ const AIChatWidget = () => {
       }),
     });
 
-    if (resp.status === 429) { coachToast.fail(locale === 'fr' ? 'Trop de requêtes, réessayez.' : 'Too many requests, try again.'); throw new Error('Rate limited'); }
-    if (resp.status === 402) { coachToast.fail(locale === 'fr' ? 'Crédits IA épuisés.' : 'AI credits exhausted.'); throw new Error('Payment required'); }
-    if (!resp.ok || !resp.body) { coachToast.fail(locale === 'fr' ? 'Erreur du service IA' : 'AI service error'); throw new Error('Stream failed'); }
+    if (!resp.ok) {
+      let errorMessage = locale === 'fr' ? 'Erreur du service IA' : 'AI service error';
+      try {
+        const payload = await resp.json();
+        errorMessage = payload?.error || errorMessage;
+      } catch {
+        // ignore invalid JSON error body
+      }
+
+      coachToast.fail(errorMessage);
+      if (resp.status === 429) throw new Error('Rate limited');
+      if (resp.status === 402) throw new Error('Payment required');
+      throw new Error(errorMessage);
+    }
+
+    if (!resp.body) {
+      coachToast.fail(locale === 'fr' ? 'Flux IA indisponible' : 'AI stream unavailable');
+      throw new Error('Stream failed');
+    }
 
     const newConvId = resp.headers.get('x-conversation-id');
     if (newConvId && newConvId !== conversationId) setConversationId(newConvId);

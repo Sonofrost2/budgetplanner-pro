@@ -40,6 +40,59 @@ Exemple : "Tu pourrais cadrer tes loisirs à 50 000 FCFA. [ACTION:create_budget|
 🌍 LANGUE
 - Réponds dans la langue du dernier message utilisateur (FR par défaut).`;
 
+const MODEL_FALLBACKS = [
+  "google/gemini-3-flash-preview",
+  "google/gemini-2.5-flash",
+  "google/gemini-2.5-flash-lite",
+];
+
+async function callLovableAI(
+  apiKey: string,
+  messages: Array<{ role: string; content: string }>,
+  options: { stream?: boolean; preferredModel?: string } = {},
+) {
+  const models = [
+    options.preferredModel,
+    ...MODEL_FALLBACKS.filter((model) => model !== options.preferredModel),
+  ].filter(Boolean) as string[];
+
+  let lastErrorText = "";
+  let lastStatus = 500;
+
+  for (const model of models) {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: options.stream ?? false,
+      }),
+    });
+
+    if (response.ok) return response;
+
+    const errorText = await response.text();
+    lastErrorText = errorText;
+    lastStatus = response.status;
+
+    const shouldTryFallback = [404, 410, 503].includes(response.status)
+      || /model|deprecated|unavailable|not found/i.test(errorText);
+
+    if (shouldTryFallback) {
+      console.warn(`ai-chat fallback from ${model}:`, response.status, errorText);
+      continue;
+    }
+
+    return { response, errorText };
+  }
+
+  return { response: null, errorText: lastErrorText, status: lastStatus };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -86,33 +139,29 @@ serve(async (req) => {
 
     const systemContent = `${SYSTEM_PROMPT}\n\nCONTEXTE FINANCIER UTILISATEUR :\n${context ? JSON.stringify(context, null, 2) : "Non disponible"}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: systemContent }, ...messages],
-        stream: true,
-      }),
-    });
+    const aiResult = await callLovableAI(
+      LOVABLE_API_KEY,
+      [{ role: "system", content: systemContent }, ...messages],
+      { stream: true, preferredModel: "google/gemini-3-flash-preview" },
+    );
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    const response = aiResult instanceof Response ? aiResult : aiResult.response;
+    if (!response?.ok) {
+      const status = response?.status ?? aiResult.status ?? 500;
+      const errorText = "errorText" in aiResult ? aiResult.errorText : "";
+
+      if (status === 429) {
         return new Response(JSON.stringify({ error: "Trop de requêtes, réessayez dans quelques instants." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
+      if (status === 402) {
         return new Response(JSON.stringify({ error: "Crédits IA épuisés. Veuillez recharger votre espace." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "Erreur du service IA" }), {
+      console.error("AI gateway error:", status, errorText);
+      return new Response(JSON.stringify({ error: "Le service IA est temporairement indisponible. Réessaie dans un instant." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -159,18 +208,15 @@ serve(async (req) => {
               .eq("conversation_id", convId);
             if ((count || 0) === 2) {
               try {
-                const titleResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                  method: "POST",
-                  headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    model: "google/gemini-2.5-flash-lite",
-                    messages: [
-                      { role: "system", content: "Génère un titre court (3-5 mots, sans guillemets, sans ponctuation finale) résumant ce premier échange financier." },
-                      { role: "user", content: `Q: ${lastUserMsg.content.slice(0, 200)}\nR: ${full.slice(0, 400)}` },
-                    ],
-                  }),
-                });
-                if (titleResp.ok) {
+                const titleResp = await callLovableAI(
+                  LOVABLE_API_KEY,
+                  [
+                    { role: "system", content: "Génère un titre court (3-5 mots, sans guillemets, sans ponctuation finale) résumant ce premier échange financier." },
+                    { role: "user", content: `Q: ${lastUserMsg.content.slice(0, 200)}\nR: ${full.slice(0, 400)}` },
+                  ],
+                  { preferredModel: "google/gemini-2.5-flash-lite" },
+                );
+                if (titleResp instanceof Response && titleResp.ok) {
                   const tj = await titleResp.json();
                   const title = (tj.choices?.[0]?.message?.content || "").trim().replace(/^["']|["']$/g, "").slice(0, 80);
                   if (title) await admin.from("ai_conversations").update({ title }).eq("id", convId);
