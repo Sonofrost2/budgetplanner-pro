@@ -11,6 +11,7 @@ import {
   Sparkles, User, ChevronUp, Landmark, RefreshCw, Gem,
   Wallet2, Compass, LineChart, Building2, BookOpen, MessageCircle,
   Star, ChevronDown, Pin,
+  Bell,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
