@@ -396,6 +396,7 @@ export const useBudgetNotifications = () => {
           message: `${goal.icon} ${isFr ? 'Aucun versement ce mois pour' : 'No contribution this month for'} ${goal.name}`,
           action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
           daysLeft: 0,
+          dueLabelKey: 'now',
         });
       } else if (monthlyActual < monthlyNeeded * 0.9 && changed) {
         notifs.push({
@@ -406,6 +407,7 @@ export const useBudgetNotifications = () => {
           message: `${goal.icon} ${goal.name}: ${Math.round(monthlyActual).toLocaleString()} / ${Math.round(monthlyNeeded).toLocaleString()}`,
           action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
           daysLeft: 0,
+          dueLabelKey: 'now',
         });
       }
     }
@@ -434,6 +436,7 @@ export const useBudgetNotifications = () => {
           message: `${account.icon} ${account.name}: ${isFr ? 'écart de' : 'difference of'} ${sign}${Math.round(diff).toLocaleString()} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString()} vs ${isFr ? 'théorique' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString()})`,
           action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
           daysLeft: 0,
+          dueLabelKey: 'now',
         });
       }
     }
