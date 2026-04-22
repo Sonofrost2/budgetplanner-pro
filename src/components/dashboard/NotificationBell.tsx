@@ -254,7 +254,7 @@ export const useBudgetNotifications = () => {
     // ────── Recurring transaction reminders ──────
     for (const rec of recurringTxs) {
       if (prefs?.recurring_reminders === false) break;
-      const nextDate = new Date(rec.next_date);
+      const nextDate = parseLocalDate(rec.next_date);
       const daysUntil = Math.max(0, daysBetween(now, nextDate));
       if (shouldFireUpcoming(daysUntil)) {
         notifs.push({
