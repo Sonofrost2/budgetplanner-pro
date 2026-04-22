@@ -279,6 +279,7 @@ export const useBudgetNotifications = () => {
           action: { label: isFr ? 'Voir récurrences' : 'View recurring', path: `/dashboard/recurring?q=${encodeURIComponent(rec.description)}` },
           daysLeft: daysUntil,
           upcoming: daysUntil > 0,
+          dueLabelKey: daysUntil === 0 ? 'today' : undefined,
         });
       }
     }
