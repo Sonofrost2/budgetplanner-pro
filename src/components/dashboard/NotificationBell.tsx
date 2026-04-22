@@ -299,6 +299,7 @@ export const useBudgetNotifications = () => {
             message: `${goal.icon} ${goal.name}`,
             action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
             daysLeft: 0,
+            dueLabelKey: 'now',
           });
         }
         continue;
@@ -319,6 +320,7 @@ export const useBudgetNotifications = () => {
             action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
             daysLeft: daysUntil,
             upcoming: daysUntil > 0,
+            dueLabelKey: daysUntil === 0 ? 'today' : undefined,
           });
         }
       }
@@ -340,6 +342,7 @@ export const useBudgetNotifications = () => {
             action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
             daysLeft: daysToDeadline,
             upcoming: daysToDeadline > 0,
+            dueLabelKey: daysToDeadline === 0 ? 'today' : undefined,
           });
         }
       }
