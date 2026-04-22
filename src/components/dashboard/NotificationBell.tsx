@@ -4,7 +4,19 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { getBudgetPeriodBounds, shouldAlertForExpectedDay } from '@/lib/budgetProjection';
+import { getBudgetPeriodBounds, shouldAlertForExpectedDay, computeDaysRemaining } from '@/lib/budgetProjection';
+import {
+  shouldFireUpcoming,
+  shouldFireDeadline,
+  shouldFireBilan,
+  inQuietHours,
+  getStepBucket,
+  hasStepChanged,
+  daysBetween,
+  daysUntilMonthDay,
+  formatDaysLeftLabel,
+  type CadencePrefs,
+} from '@/lib/notificationCadence';
 import { AlertTriangle, CheckCircle2, Bell, PiggyBank, X, TrendingDown, ChevronDown, ChevronUp, Calendar, Search, Trophy, Clock, ExternalLink } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -19,6 +31,10 @@ interface Notification {
   message: string;
   severity: 'critical' | 'warning' | 'success' | 'info';
   action?: { label: string; path: string };
+  /** Days until the relevant event (0 = today). Used for sorting & "À venir" tab. */
+  daysLeft?: number;
+  /** True if the event is in the future (≥1 day) — drives the "À venir" tab. */
+  upcoming?: boolean;
 }
 
 const DISMISSED_KEY = 'notif_dismissed';
