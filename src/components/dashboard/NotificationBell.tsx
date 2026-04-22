@@ -664,7 +664,7 @@ const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate
   );
 };
 
-type SeverityFilter = 'all' | 'critical' | 'warning' | 'success';
+type SeverityFilter = 'all' | 'upcoming' | 'critical' | 'warning' | 'success';
 
 export const NotificationBell = () => {
   const { notifications, refresh } = useBudgetNotifications();
@@ -709,6 +709,7 @@ export const NotificationBell = () => {
   // Apply severity filter
   const filtered = visible.filter(n => {
     if (filter === 'all') return true;
+    if (filter === 'upcoming') return !!n.upcoming;
     if (filter === 'critical') return n.severity === 'critical';
     if (filter === 'warning') return n.severity === 'warning';
     if (filter === 'success') return n.severity === 'success';
@@ -744,6 +745,7 @@ export const NotificationBell = () => {
 
   const filterTabs: { key: SeverityFilter; label: string; count: number; color: string }[] = [
     { key: 'all', label: isFr ? 'Tout' : 'All', count: visible.length, color: 'text-foreground' },
+    { key: 'upcoming', label: isFr ? 'À venir' : 'Upcoming', count: visible.filter(n => n.upcoming).length, color: 'text-primary' },
     { key: 'critical', label: isFr ? 'Critique' : 'Critical', count: visible.filter(n => n.severity === 'critical').length, color: 'text-destructive' },
     { key: 'warning', label: isFr ? 'Alertes' : 'Alerts', count: visible.filter(n => n.severity === 'warning').length, color: 'text-amber-600 dark:text-amber-400' },
     { key: 'success', label: isFr ? 'Succès' : 'Wins', count: successCount, color: 'text-secondary' },
