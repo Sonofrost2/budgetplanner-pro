@@ -27,7 +27,7 @@ export function getBudgetPeriodBounds(
     periodEnd.setDate(periodStart.getDate() + 6);
   } else if (period === 'quarterly') {
     if (referenceDate) {
-      const ref = new Date(referenceDate);
+      const ref = parseLocalDateLoose(referenceDate);
       periodStart = new Date(ref);
       while (periodStart > now) periodStart.setMonth(periodStart.getMonth() - 3);
       while (new Date(periodStart.getFullYear(), periodStart.getMonth() + 3, periodStart.getDate()) <= now) {
@@ -140,7 +140,7 @@ export function computeDaysRemaining(
       return { daysLeft: 0, label: 'today' };
     }
     if (occurrenceFrequency === 'once' && referenceDate) {
-      const ref = new Date(referenceDate);
+      const ref = parseLocalDateLoose(referenceDate);
       const refDay = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
       const diff = Math.floor((refDay.getTime() - today.getTime()) / 86400000);
       return { daysLeft: Math.max(0, diff), label: diff === 0 ? 'today' : diff < 0 ? 'passed' : undefined };
@@ -149,14 +149,14 @@ export function computeDaysRemaining(
       return { daysLeft: 0, label: 'thisWeek' };
     }
     if (occurrenceFrequency === 'biweekly' && referenceDate) {
-      const ref = new Date(referenceDate);
+      const ref = parseLocalDateLoose(referenceDate);
       const daysSinceRef = Math.floor((today.getTime() - ref.getTime()) / 86400000);
       const daysIntoCycle = ((daysSinceRef % 14) + 14) % 14;
       const daysLeft = daysIntoCycle === 0 ? 0 : 14 - daysIntoCycle;
       return { daysLeft, label: daysLeft === 0 ? 'today' : undefined };
     }
     if (occurrenceFrequency === 'monthly') {
-      const refDay = referenceDate ? new Date(referenceDate).getDate() : 1;
+      const refDay = referenceDate ? parseLocalDateLoose(referenceDate).getDate() : 1;
       const thisMonth = new Date(today.getFullYear(), today.getMonth(), refDay);
       if (thisMonth >= today) {
         const diff = Math.floor((thisMonth.getTime() - today.getTime()) / 86400000);
