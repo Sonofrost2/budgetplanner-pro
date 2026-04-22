@@ -95,7 +95,11 @@ export function shouldAlertForExpectedDay(
 }
 
 export function formatDateStr(d: Date): string {
-  return d.toISOString().split('T')[0];
+  // Local YYYY-MM-DD (avoid UTC shift around midnight in non-UTC zones)
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /**
