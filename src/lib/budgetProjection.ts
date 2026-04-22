@@ -4,6 +4,20 @@
  */
 
 /**
+ * Parse a date input that may be a `YYYY-MM-DD` string (Postgres DATE) or a
+ * full ISO timestamp. Bare DATE strings are interpreted in the **local**
+ * timezone — `new Date('2026-04-22')` would otherwise be UTC midnight and
+ * shift by one day for users west of UTC.
+ */
+function parseLocalDateLoose(input: string): Date {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    const [y, m, d] = input.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(input);
+}
+
+/**
  * Compute period boundaries for a budget.
  * @param offset - number of periods to shift backwards (e.g. 1 = previous period)
  */
@@ -27,7 +41,7 @@ export function getBudgetPeriodBounds(
     periodEnd.setDate(periodStart.getDate() + 6);
   } else if (period === 'quarterly') {
     if (referenceDate) {
-      const ref = new Date(referenceDate);
+      const ref = parseLocalDateLoose(referenceDate);
       periodStart = new Date(ref);
       while (periodStart > now) periodStart.setMonth(periodStart.getMonth() - 3);
       while (new Date(periodStart.getFullYear(), periodStart.getMonth() + 3, periodStart.getDate()) <= now) {
@@ -81,7 +95,11 @@ export function shouldAlertForExpectedDay(
 }
 
 export function formatDateStr(d: Date): string {
-  return d.toISOString().split('T')[0];
+  // Local YYYY-MM-DD (avoid UTC shift around midnight in non-UTC zones)
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /**
@@ -140,7 +158,7 @@ export function computeDaysRemaining(
       return { daysLeft: 0, label: 'today' };
     }
     if (occurrenceFrequency === 'once' && referenceDate) {
-      const ref = new Date(referenceDate);
+      const ref = parseLocalDateLoose(referenceDate);
       const refDay = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
       const diff = Math.floor((refDay.getTime() - today.getTime()) / 86400000);
       return { daysLeft: Math.max(0, diff), label: diff === 0 ? 'today' : diff < 0 ? 'passed' : undefined };
@@ -149,14 +167,14 @@ export function computeDaysRemaining(
       return { daysLeft: 0, label: 'thisWeek' };
     }
     if (occurrenceFrequency === 'biweekly' && referenceDate) {
-      const ref = new Date(referenceDate);
+      const ref = parseLocalDateLoose(referenceDate);
       const daysSinceRef = Math.floor((today.getTime() - ref.getTime()) / 86400000);
       const daysIntoCycle = ((daysSinceRef % 14) + 14) % 14;
       const daysLeft = daysIntoCycle === 0 ? 0 : 14 - daysIntoCycle;
       return { daysLeft, label: daysLeft === 0 ? 'today' : undefined };
     }
     if (occurrenceFrequency === 'monthly') {
-      const refDay = referenceDate ? new Date(referenceDate).getDate() : 1;
+      const refDay = referenceDate ? parseLocalDateLoose(referenceDate).getDate() : 1;
       const thisMonth = new Date(today.getFullYear(), today.getMonth(), refDay);
       if (thisMonth >= today) {
         const diff = Math.floor((thisMonth.getTime() - today.getTime()) / 86400000);

@@ -94,6 +94,23 @@ export function daysBetween(from: Date, to: Date): number {
   return Math.round((b.getTime() - a.getTime()) / 86400000);
 }
 
+/** Local-timezone YYYY-MM-DD (avoids the off-by-one around midnight that
+ *  `Date.toISOString()` introduces for users east/west of UTC). */
+export function localDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Parse a `YYYY-MM-DD` string as a LOCAL date (midnight local time),
+ *  not UTC. Required for fields stored as DATE in Postgres so that day-diffs
+ *  computed against `new Date()` don't drift by one day in non-UTC zones. */
+export function parseLocalDate(s: string): Date {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
 /** Days until next monthly anniversary of `day-of-month` (handles month rollover). */
 export function daysUntilMonthDay(targetDay: number, now: Date): number {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
