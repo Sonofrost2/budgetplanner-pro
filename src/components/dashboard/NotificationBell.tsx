@@ -944,6 +944,7 @@ export const NotificationBell = () => {
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] font-semibold leading-tight tracking-tight">{item.notif.title}</p>
                         <p className="text-[11.5px] text-muted-foreground mt-1 leading-snug break-words">{item.notif.message}</p>
+                        <DuePill notif={item.notif} locale={locale} />
                         <ActionLink action={item.notif.action} onNavigate={handleNavigate} />
                       </div>
                       <motion.button
