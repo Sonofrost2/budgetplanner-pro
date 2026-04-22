@@ -8,8 +8,9 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
-import { Suspense, lazy } from "react";
+import { Suspense, forwardRef } from "react";
 import { Loader2 } from "lucide-react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 
 // Eager-loaded (landing + auth - small, needed immediately)
 import Index from "./pages/Index";
@@ -20,43 +21,45 @@ import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 // Lazy-loaded pages
-const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
-const LegalPage = lazy(() => import("./pages/LegalPage"));
-const AboutPage = lazy(() => import("./pages/AboutPage"));
-const BlogPage = lazy(() => import("./pages/BlogPage"));
-const ContactPage = lazy(() => import("./pages/ContactPage"));
+const OnboardingPage = lazyWithRetry(() => import("./pages/OnboardingPage"), "onboarding-page");
+const LegalPage = lazyWithRetry(() => import("./pages/LegalPage"), "legal-page");
+const AboutPage = lazyWithRetry(() => import("./pages/AboutPage"), "about-page");
+const BlogPage = lazyWithRetry(() => import("./pages/BlogPage"), "blog-page");
+const ContactPage = lazyWithRetry(() => import("./pages/ContactPage"), "contact-page");
 
 // Dashboard (lazy)
-const DashboardLayout = lazy(() => import("./components/dashboard/DashboardLayout"));
-const DashboardHome = lazy(() => import("./pages/dashboard/DashboardHome"));
-const TransactionsPage = lazy(() => import("./pages/dashboard/TransactionsPage"));
-const BudgetsPage = lazy(() => import("./pages/dashboard/BudgetsPage"));
-const ForecastsPage = lazy(() => import("./pages/dashboard/ForecastsPage"));
-const SavingsPage = lazy(() => import("./pages/dashboard/SavingsPage"));
-const ReportsPage = lazy(() => import("./pages/dashboard/ReportsPage"));
-const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage"));
-const PaymentPage = lazy(() => import("./pages/dashboard/PaymentPage"));
-const AccountsPage = lazy(() => import("./pages/dashboard/AccountsPage"));
-const AdminPricingPage = lazy(() => import("./pages/dashboard/AdminPricingPage"));
-const AdminUsersPage = lazy(() => import("./pages/dashboard/AdminUsersPage"));
-const AdminSecurityPage = lazy(() => import("./pages/dashboard/AdminSecurityPage"));
-const CategoriesPage = lazy(() => import("./pages/dashboard/CategoriesPage"));
-const ReceiptsPage = lazy(() => import("./pages/dashboard/ReceiptsPage"));
-const FamilyPage = lazy(() => import("./pages/dashboard/FamilyPage"));
-const DebtsPage = lazy(() => import("./pages/dashboard/DebtsPage"));
-const RecurringPage = lazy(() => import("./pages/dashboard/RecurringPage"));
-const WealthPage = lazy(() => import("./pages/dashboard/WealthPage"));
-const GuidePage = lazy(() => import("./pages/dashboard/GuidePage"));
-const FamilyAcceptPage = lazy(() => import("./pages/FamilyAcceptPage"));
-const NotificationsPage = lazy(() => import("./pages/dashboard/NotificationsPage"));
+const DashboardLayout = lazyWithRetry(() => import("./components/dashboard/DashboardLayout"), "dashboard-layout");
+const DashboardHome = lazyWithRetry(() => import("./pages/dashboard/DashboardHome"), "dashboard-home");
+const TransactionsPage = lazyWithRetry(() => import("./pages/dashboard/TransactionsPage"), "transactions-page");
+const BudgetsPage = lazyWithRetry(() => import("./pages/dashboard/BudgetsPage"), "budgets-page");
+const ForecastsPage = lazyWithRetry(() => import("./pages/dashboard/ForecastsPage"), "forecasts-page");
+const SavingsPage = lazyWithRetry(() => import("./pages/dashboard/SavingsPage"), "savings-page");
+const ReportsPage = lazyWithRetry(() => import("./pages/dashboard/ReportsPage"), "reports-page");
+const SettingsPage = lazyWithRetry(() => import("./pages/dashboard/SettingsPage"), "settings-page");
+const PaymentPage = lazyWithRetry(() => import("./pages/dashboard/PaymentPage"), "payment-page");
+const AccountsPage = lazyWithRetry(() => import("./pages/dashboard/AccountsPage"), "accounts-page");
+const AdminPricingPage = lazyWithRetry(() => import("./pages/dashboard/AdminPricingPage"), "admin-pricing-page");
+const AdminUsersPage = lazyWithRetry(() => import("./pages/dashboard/AdminUsersPage"), "admin-users-page");
+const AdminSecurityPage = lazyWithRetry(() => import("./pages/dashboard/AdminSecurityPage"), "admin-security-page");
+const CategoriesPage = lazyWithRetry(() => import("./pages/dashboard/CategoriesPage"), "categories-page");
+const ReceiptsPage = lazyWithRetry(() => import("./pages/dashboard/ReceiptsPage"), "receipts-page");
+const FamilyPage = lazyWithRetry(() => import("./pages/dashboard/FamilyPage"), "family-page");
+const DebtsPage = lazyWithRetry(() => import("./pages/dashboard/DebtsPage"), "debts-page");
+const RecurringPage = lazyWithRetry(() => import("./pages/dashboard/RecurringPage"), "recurring-page");
+const WealthPage = lazyWithRetry(() => import("./pages/dashboard/WealthPage"), "wealth-page");
+const GuidePage = lazyWithRetry(() => import("./pages/dashboard/GuidePage"), "guide-page");
+const FamilyAcceptPage = lazyWithRetry(() => import("./pages/FamilyAcceptPage"), "family-accept-page");
+const NotificationsPage = lazyWithRetry(() => import("./pages/dashboard/NotificationsPage"), "notifications-page");
 
 const queryClient = new QueryClient();
 
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center">
+const PageLoader = forwardRef<HTMLDivElement>((_, ref) => (
+  <div ref={ref} className="min-h-screen flex items-center justify-center">
     <Loader2 className="w-8 h-8 animate-spin text-primary" />
   </div>
-);
+));
+
+PageLoader.displayName = "PageLoader";
 
 const AnimatedRoutes = () => {
   const location = useLocation();
