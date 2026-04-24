@@ -28,7 +28,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent, CheckCircle2 } from 'lucide-react';
+import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent, CheckCircle2, Search, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AddContributionDialog, WithdrawDialog, SimulationDialog } from '@/components/dashboard/savings/SavingsDialogs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -117,6 +117,43 @@ const SavingsPage = () => {
   const notifiedRef = useRef<Set<string>>(new Set());
   const milestoneRef = useRef<Map<string, Set<number>>>(new Map());
   const [reachedDialogGoalId, setReachedDialogGoalId] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Quick-search keyboard shortcuts: "/" focuses the search; Cmd/Ctrl+F too.
+  // Esc clears + blurs when focused. Only active on the Manage tab so it does
+  // not steal focus on Evolution/Projections charts.
+  useEffect(() => {
+    if (activeMainTab !== 'manage') return;
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const editing = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
+      // "/" — global focus shortcut (only when not already typing)
+      if (e.key === '/' && !editing && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+      // Cmd/Ctrl+F — intercept browser find for an in-app search
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+      // Esc — clear + blur when focused on our search
+      if (e.key === 'Escape' && document.activeElement === searchInputRef.current) {
+        if (searchQuery) {
+          e.preventDefault();
+          setSearchQuery('');
+        } else {
+          searchInputRef.current?.blur();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [activeMainTab, searchQuery]);
 
   const fmt = (n: number) => fmtCurrency(n, locale);
   const { invalidate } = useInvalidate();
@@ -811,6 +848,45 @@ const SavingsPage = () => {
       />
 
       <SavingsCoachInsights goals={goals} contributions={contributions} fmt={fmt} isFr={locale === 'fr'} />
+
+      {/* Sticky quick-search — keyboard accessible (/ or ⌘F), Esc to clear */}
+      <div className="sticky top-14 z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 backdrop-blur-xl bg-background/70 border-b border-border/40">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input
+            ref={searchInputRef}
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={locale === 'fr'
+              ? 'Rechercher un objectif ou une banque… (ex: voyage ; cag)'
+              : 'Search a goal or bank… (e.g. trip ; cag)'}
+            aria-label={locale === 'fr' ? "Rechercher un objectif d'épargne" : 'Search a savings goal'}
+            className="pl-9 pr-24 h-10 rounded-xl bg-background/60 border-border/60 focus-visible:ring-primary/40"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60"
+              aria-label={locale === 'fr' ? 'Effacer la recherche' : 'Clear search'}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          ) : (
+            <kbd className="hidden sm:inline-flex absolute right-2 top-1/2 -translate-y-1/2 h-6 items-center gap-0.5 rounded-md border border-border/60 bg-muted/60 px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+              /
+            </kbd>
+          )}
+        </div>
+        {searchQuery && (
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            {locale === 'fr'
+              ? `${filteredGoals.length} résultat(s) — Échap pour effacer`
+              : `${filteredGoals.length} result(s) — Esc to clear`}
+          </p>
+        )}
+      </div>
 
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
