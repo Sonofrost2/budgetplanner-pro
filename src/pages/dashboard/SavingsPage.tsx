@@ -1040,7 +1040,7 @@ const SavingsPage = () => {
                     <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                       <Target className="w-4 h-4" /> {t.activeGoals} ({activeGoals.length})
                     </h3>
-                    <VirtualizedGoalsGrid goals={activeGoals} render={renderGoalCard} />
+                    <VirtualizedGoalsGrid goals={activeGoals} render={renderGoalCard} isLoading={syncing || recalculating} skeletonCount={4} />
                   </div>
                 )}
                 {showCompleted && completedGoals.length > 0 && (
@@ -1048,7 +1048,7 @@ const SavingsPage = () => {
                     <h3 className="text-sm font-bold uppercase tracking-wider text-secondary flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4" /> {t.completedGoals} ({completedGoals.length})
                     </h3>
-                    <VirtualizedGoalsGrid goals={completedGoals} render={renderGoalCard} />
+                    <VirtualizedGoalsGrid goals={completedGoals} render={renderGoalCard} isLoading={syncing || recalculating} skeletonCount={2} />
                   </div>
                 )}
               </>
