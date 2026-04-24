@@ -850,9 +850,27 @@ const SavingsPage = () => {
       <SavingsSummaryTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
       <SavingsControlTable goals={goals} contributions={contributions} fmt={fmt} t={t} locale={locale} />
 
+      <FilterToolbar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder={locale === 'fr'
+          ? 'Rechercher un objectif ou une banque... (ex: voyage ; cag)'
+          : 'Search a goal or bank... (e.g. trip ; cag)'}
+        sortOptions={[
+          { value: 'name', label: locale === 'fr' ? 'Nom' : 'Name' },
+          { value: 'current_amount', label: locale === 'fr' ? 'Épargné' : 'Saved' },
+          { value: 'target_amount', label: locale === 'fr' ? 'Objectif' : 'Target' },
+        ]}
+        sortValue={sortField}
+        onSortChange={(v) => setSortField(v as 'name' | 'current_amount' | 'target_amount')}
+        sortOrder={sortOrder}
+        onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+        totalCount={filteredGoals.length}
+      />
+
       {(() => {
-        const activeGoals = goals.filter(g => (g as any).status !== 'completed');
-        const completedGoals = goals.filter(g => (g as any).status === 'completed');
+        const activeGoals = filteredGoals.filter(g => (g as any).status !== 'completed');
+        const completedGoals = filteredGoals.filter(g => (g as any).status === 'completed');
 
         const renderGoalCard = (g: typeof goals[0]) => (
             <SavingsGoalCard
