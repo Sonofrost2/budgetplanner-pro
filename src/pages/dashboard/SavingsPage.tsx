@@ -813,7 +813,9 @@ const SavingsPage = () => {
           <Skeleton className="h-9 w-36" />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-80 rounded-2xl" />)}
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-80 rounded-2xl" />
+          ))}
         </div>
       </div>
     );
@@ -1038,7 +1040,7 @@ const SavingsPage = () => {
                     <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                       <Target className="w-4 h-4" /> {t.activeGoals} ({activeGoals.length})
                     </h3>
-                    <VirtualizedGoalsGrid goals={activeGoals} render={renderGoalCard} />
+                    <VirtualizedGoalsGrid goals={activeGoals} render={renderGoalCard} isLoading={syncing || recalculating} skeletonCount={4} />
                   </div>
                 )}
                 {showCompleted && completedGoals.length > 0 && (
@@ -1046,7 +1048,7 @@ const SavingsPage = () => {
                     <h3 className="text-sm font-bold uppercase tracking-wider text-secondary flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4" /> {t.completedGoals} ({completedGoals.length})
                     </h3>
-                    <VirtualizedGoalsGrid goals={completedGoals} render={renderGoalCard} />
+                    <VirtualizedGoalsGrid goals={completedGoals} render={renderGoalCard} isLoading={syncing || recalculating} skeletonCount={2} />
                   </div>
                 )}
               </>

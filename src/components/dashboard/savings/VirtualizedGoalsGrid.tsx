@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { SavingsGoal } from '@/hooks/useDashboardData';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Props {
   goals: SavingsGoal[];
@@ -10,6 +11,10 @@ interface Props {
   threshold?: number;
   /** Estimated card height in px (used for windowing math). */
   estimatedRowHeight?: number;
+  /** Show skeleton placeholders during loading/re-sync. */
+  isLoading?: boolean;
+  /** Number of skeleton cards to show when loading. */
+  skeletonCount?: number;
 }
 
 /**
@@ -24,6 +29,8 @@ export const VirtualizedGoalsGrid = ({
   render,
   threshold = 30,
   estimatedRowHeight = 360,
+  isLoading = false,
+  skeletonCount = 4,
 }: Props) => {
   const isMobile = useIsMobile();
   const cols = isMobile ? 1 : 2;
@@ -41,6 +48,17 @@ export const VirtualizedGoalsGrid = ({
     estimateSize: () => estimatedRowHeight,
     overscan: 4,
   });
+
+  // Skeleton placeholder state during loading/re-sync
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {Array.from({ length: skeletonCount }).map((_, i) => (
+          <Skeleton key={i} className="h-80 rounded-2xl" />
+        ))}
+      </div>
+    );
+  }
 
   // Below threshold: render the plain grid (no scroll container, full reflow).
   if (goals.length <= threshold) {
