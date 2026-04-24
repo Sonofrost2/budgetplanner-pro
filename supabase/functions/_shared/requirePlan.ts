@@ -40,7 +40,8 @@ export interface PlanGateResult {
   ok: boolean;
   userId?: string;
   plan?: PlanName;
-  supabase?: ReturnType<typeof createClient>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase?: any;
   usage?: { used: number; limit: number | null; remaining: number | null };
   response?: Response;
 }
