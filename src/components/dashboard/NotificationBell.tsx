@@ -246,14 +246,19 @@ export const useBudgetNotifications = () => {
 
       // Upcoming budget deadline (J-5 / J-2 / J-0) — only if projections enabled
       if (allowProjections && shouldFireUpcoming(daysLeft) && daysLeft > 0) {
+        const isIncomeBudget = budgetType === 'income';
+        const kindIcon = isIncomeBudget ? '💰' : '📅';
+        const kindLabel = isIncomeBudget
+          ? (isFr ? 'Revenu attendu' : 'Expected income')
+          : (isFr ? 'Échéance prévue' : 'Upcoming deadline');
         notifs.push({
           id: `budget-upcoming-${budget.id}-d${daysLeft}`,
           type: 'budget_upcoming',
           severity: 'info',
           title: isFr
-            ? `📅 ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`
-            : `📅 ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`,
-          message: `${(budget.categories as any)?.icon || '📁'} ${isFr ? 'Échéance prévue' : 'Upcoming deadline'}: ${Math.round(amount).toLocaleString()}`,
+            ? `${kindIcon} ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`
+            : `${kindIcon} ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`,
+          message: `${(budget.categories as any)?.icon || '📁'} ${kindLabel}: ${Math.round(amount).toLocaleString()}`,
           action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           daysLeft,
           upcoming: true,
