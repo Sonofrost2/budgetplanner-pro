@@ -849,11 +849,48 @@ const SavingsPage = () => {
 
       <SavingsCoachInsights goals={goals} contributions={contributions} fmt={fmt} isFr={locale === 'fr'} />
 
+      {/* Sticky quick-search — keyboard accessible (/ or ⌘F), Esc to clear */}
+      <div className="sticky top-14 z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 backdrop-blur-xl bg-background/70 border-b border-border/40">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input
+            ref={searchInputRef}
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={locale === 'fr'
+              ? 'Rechercher un objectif ou une banque… (ex: voyage ; cag)'
+              : 'Search a goal or bank… (e.g. trip ; cag)'}
+            aria-label={locale === 'fr' ? "Rechercher un objectif d'épargne" : 'Search a savings goal'}
+            className="pl-9 pr-24 h-10 rounded-xl bg-background/60 border-border/60 focus-visible:ring-primary/40"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60"
+              aria-label={locale === 'fr' ? 'Effacer la recherche' : 'Clear search'}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          ) : (
+            <kbd className="hidden sm:inline-flex absolute right-2 top-1/2 -translate-y-1/2 h-6 items-center gap-0.5 rounded-md border border-border/60 bg-muted/60 px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+              /
+            </kbd>
+          )}
+        </div>
+        {searchQuery && (
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            {locale === 'fr'
+              ? `${filteredGoals.length} résultat(s) — Échap pour effacer`
+              : `${filteredGoals.length} result(s) — Esc to clear`}
+          </p>
+        )}
+      </div>
+
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-lg font-bold font-display">{t.savings}</h2>
-      {/* Sticky quick-search above the management list — keyboard accessible (/ or ⌘F) */}
-      </div></div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {goals.length} {locale === 'fr' ? 'objectif(s)' : 'goal(s)'}
             {goals.length > 0 && ` · ${fmt(goals.reduce((s, g) => s + Number(g.current_amount), 0))} ${locale === 'fr' ? 'épargnés' : 'saved'}`}
