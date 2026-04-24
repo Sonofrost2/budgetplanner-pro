@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
       console.error('Receipt update error:', receiptError);
     }
 
-    // 7. Send confirmation email
+    // 7. Send confirmation email + SMS/WhatsApp via notify-user
     try {
       const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
       const { data: profile } = await supabase
@@ -136,14 +136,36 @@ Deno.serve(async (req) => {
         .eq('user_id', userId)
         .single();
 
+      const displayName = profile?.display_name || authUser?.email || '';
+      const amountFmt = `${(txData.amount || 0).toLocaleString('fr-FR')} ${txData.currency || 'XOF'}`;
+      const planLabel = planName || 'Pro';
+
+      // Multi-channel notification (push + email + SMS/WhatsApp if enabled)
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notify-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          notification_type: 'payment_receipt',
+          title: `✅ Paiement confirmé — ${planLabel}`,
+          body: `Bonjour ${displayName}, votre paiement de ${amountFmt} pour le plan ${planLabel} a été confirmé. Merci !`,
+          url: '/dashboard/settings',
+          dedup_key: `paystack:${reference}`,
+        }),
+      });
+
+      // Keep the dedicated email template for richer formatting
       if (authUser?.email) {
         await supabase.functions.invoke('send-email', {
           body: {
             template: 'payment-confirmation',
             to: authUser.email,
             data: {
-              displayName: profile?.display_name || authUser.email,
-              planName: planName || 'Pro',
+              displayName,
+              planName: planLabel,
               amount: txData.amount,
               currency: txData.currency || 'XOF',
             },
@@ -151,7 +173,7 @@ Deno.serve(async (req) => {
         });
       }
     } catch (emailErr) {
-      console.error('Email notification error (non-blocking):', emailErr);
+      console.error('Notification error (non-blocking):', emailErr);
     }
 
     return new Response(JSON.stringify({ received: true, status: 'confirmed' }), {

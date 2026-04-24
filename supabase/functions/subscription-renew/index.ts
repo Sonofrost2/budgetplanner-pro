@@ -98,6 +98,27 @@ Deno.serve(async (req) => {
           status: 'past_due',
         }).eq('id', sub.id);
 
+        // Notify user about failed renewal (push + SMS/WhatsApp/email per prefs)
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/notify-user`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+            },
+            body: JSON.stringify({
+              user_id: sub.user_id,
+              notification_type: 'payment_failure',
+              title: `⚠️ Échec de renouvellement — ${plan.name}`,
+              body: `Votre paiement pour le plan ${plan.name} n'a pas pu être traité. Veuillez mettre à jour votre moyen de paiement pour continuer à profiter de votre abonnement.`,
+              url: '/dashboard/settings',
+              dedup_key: `renewal_failed:${sub.id}:${new Date().toISOString().slice(0,10)}`,
+            }),
+          });
+        } catch (notifyErr) {
+          console.error('notify-user error (non-blocking):', notifyErr);
+        }
+
         results.push({ sub_id: sub.id, status: 'renewal_failed', error: payData });
       }
     }
