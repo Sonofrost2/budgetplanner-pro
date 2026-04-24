@@ -246,14 +246,19 @@ export const useBudgetNotifications = () => {
 
       // Upcoming budget deadline (J-5 / J-2 / J-0) — only if projections enabled
       if (allowProjections && shouldFireUpcoming(daysLeft) && daysLeft > 0) {
+        const isIncomeBudget = budgetType === 'income';
+        const kindIcon = isIncomeBudget ? '💰' : '📅';
+        const kindLabel = isIncomeBudget
+          ? (isFr ? 'Revenu attendu' : 'Expected income')
+          : (isFr ? 'Échéance prévue' : 'Upcoming deadline');
         notifs.push({
           id: `budget-upcoming-${budget.id}-d${daysLeft}`,
           type: 'budget_upcoming',
           severity: 'info',
           title: isFr
-            ? `📅 ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`
-            : `📅 ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`,
-          message: `${(budget.categories as any)?.icon || '📁'} ${isFr ? 'Échéance prévue' : 'Upcoming deadline'}: ${Math.round(amount).toLocaleString()}`,
+            ? `${kindIcon} ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`
+            : `${kindIcon} ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`,
+          message: `${(budget.categories as any)?.icon || '📁'} ${kindLabel}: ${Math.round(amount).toLocaleString()}`,
           action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           daysLeft,
           upcoming: true,
@@ -538,10 +543,10 @@ const groupLabels: Record<string, Record<Notification['type'], string>> = {
     savings_reached: 'objectifs atteints',
     savings_behind: 'rappels épargne',
     budget_savings: 'budgets maîtrisés',
-    budget_upcoming: 'dépenses à venir',
-    savings_upcoming: 'cotisations à venir',
+    budget_upcoming: 'budgets à échéance',
+    savings_upcoming: 'épargne à échéance',
     balance_discrepancy: 'écarts de solde',
-    recurring_upcoming: 'échéances à venir',
+    recurring_upcoming: 'récurrences à venir',
     week_summary: 'bilans',
   },
   en: {
@@ -550,10 +555,10 @@ const groupLabels: Record<string, Record<Notification['type'], string>> = {
     savings_reached: 'goals reached',
     savings_behind: 'savings reminders',
     budget_savings: 'budgets on track',
-    budget_upcoming: 'upcoming expenses',
-    savings_upcoming: 'upcoming contributions',
+    budget_upcoming: 'budget deadlines',
+    savings_upcoming: 'savings deadlines',
     balance_discrepancy: 'balance discrepancies',
-    recurring_upcoming: 'upcoming due dates',
+    recurring_upcoming: 'upcoming recurring',
     week_summary: 'summaries',
   },
 };
