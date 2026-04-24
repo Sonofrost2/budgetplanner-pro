@@ -852,6 +852,8 @@ const SavingsPage = () => {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-lg font-bold font-display">{t.savings}</h2>
+      {/* Sticky quick-search above the management list — keyboard accessible (/ or ⌘F) */}
+      </div></div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {goals.length} {locale === 'fr' ? 'objectif(s)' : 'goal(s)'}
             {goals.length > 0 && ` · ${fmt(goals.reduce((s, g) => s + Number(g.current_amount), 0))} ${locale === 'fr' ? 'épargnés' : 'saved'}`}
