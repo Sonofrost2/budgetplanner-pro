@@ -29,6 +29,13 @@ export interface NotificationPreferences {
   evening_capture_hour: number;
   status_reminder_frequency: StatusFrequency;
   max_push_per_day: number;
+  // Channels (Twilio)
+  notify_via_sms: boolean;
+  notify_via_whatsapp: boolean;
+  // Subscription / billing notifications
+  notify_payment_receipts: boolean;
+  notify_subscription_expiry: boolean;
+  notify_payment_failure: boolean;
 }
 
 const defaultPrefs: NotificationPreferences = {
@@ -54,6 +61,11 @@ const defaultPrefs: NotificationPreferences = {
   evening_capture_hour: 20,
   status_reminder_frequency: 'weekly',
   max_push_per_day: 3,
+  notify_via_sms: false,
+  notify_via_whatsapp: false,
+  notify_payment_receipts: true,
+  notify_subscription_expiry: true,
+  notify_payment_failure: true,
 };
 
 export const useNotificationPreferences = () => {
@@ -95,6 +107,11 @@ export const useNotificationPreferences = () => {
           evening_capture_hour: (data as any).evening_capture_hour ?? 20,
           status_reminder_frequency: ((data as any).status_reminder_frequency ?? 'weekly') as StatusFrequency,
           max_push_per_day: (data as any).max_push_per_day ?? 3,
+          notify_via_sms: (data as any).notify_via_sms ?? false,
+          notify_via_whatsapp: (data as any).notify_via_whatsapp ?? false,
+          notify_payment_receipts: (data as any).notify_payment_receipts ?? true,
+          notify_subscription_expiry: (data as any).notify_subscription_expiry ?? true,
+          notify_payment_failure: (data as any).notify_payment_failure ?? true,
         });
       } else if (!error) {
         await supabase.from('notification_preferences').insert({ user_id: user.id });
