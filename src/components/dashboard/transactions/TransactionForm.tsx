@@ -197,12 +197,38 @@ export const TransactionForm = ({
         <div className="space-y-2 relative z-30">
           <div className="flex items-center justify-between">
             <Label className="form-label flex items-center gap-1.5"><FileText className="w-3 h-3" />{t.description}</Label>
-            {canUseAISuggestions && (
-              <Button type="button" variant="ghost" size="sm" className="h-7 text-xs rounded-lg text-primary" onClick={handleAISuggest} disabled={aiSuggesting}>
-                <Sparkles className="w-3 h-3 mr-1" />{aiSuggesting ? t.aiSuggesting : t.aiSuggest}
-              </Button>
-            )}
+            <div className="flex items-center gap-1">
+              {voiceSupported && (
+                <VoiceMicButton
+                  listening={quickVoice.listening}
+                  loading={voiceParsing}
+                  onClick={() => (quickVoice.listening ? quickVoice.stop() : quickVoice.start())}
+                  title={isFr ? 'Saisie vocale (IA)' : 'Voice input (AI)'}
+                />
+              )}
+              {canUseAISuggestions && (
+                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs rounded-lg text-primary" onClick={handleAISuggest} disabled={aiSuggesting}>
+                  <Sparkles className="w-3 h-3 mr-1" />{aiSuggesting ? t.aiSuggesting : t.aiSuggest}
+                </Button>
+              )}
+            </div>
           </div>
+          {(quickVoice.listening || quickVoice.interim) && (
+            <div className="flex items-center gap-2 text-xs text-primary bg-primary/5 border border-primary/20 rounded-lg px-2.5 py-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
+              </span>
+              <span className="truncate">
+                {quickVoice.interim || (isFr ? 'Parlez maintenant…' : 'Speak now…')}
+              </span>
+            </div>
+          )}
+          {quickVoice.error === 'not-allowed' && (
+            <p className="text-[11px] text-destructive">
+              {isFr ? 'Microphone refusé. Autorisez-le dans le navigateur.' : 'Microphone denied. Allow it in your browser.'}
+            </p>
+          )}
           <Input value={form.description} maxLength={200}
             onChange={e => { setForm(f => ({ ...f, description: e.target.value })); setShowSuggestions(true); }}
             onBlur={() => {
