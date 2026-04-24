@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import type { QuickParsedTransaction } from '@/components/dashboard/transactions/TransactionsHeroHeader';
@@ -58,18 +59,16 @@ export const DashboardHeroHeader = ({
   const [now, setNow] = useState<Date>(() => new Date());
   useEffect(() => {
     const tick = () => setNow(new Date());
-    // Align first tick to the next minute boundary, then every 60s.
     const msToNextMinute = 60_000 - (Date.now() % 60_000);
-    const timeout = setTimeout(() => {
+    let intervalId: number | null = null;
+    const timeoutId = window.setTimeout(() => {
       tick();
-      const interval = setInterval(tick, 60_000);
-      // Store on the timeout ref via closure cleanup
-      (timeout as any)._interval = interval;
+      intervalId = window.setInterval(tick, 60_000);
     }, msToNextMinute);
+
     return () => {
-      clearTimeout(timeout);
-      const interval = (timeout as any)._interval;
-      if (interval) clearInterval(interval);
+      window.clearTimeout(timeoutId);
+      if (intervalId) window.clearInterval(intervalId);
     };
   }, []);
 
@@ -106,11 +105,10 @@ export const DashboardHeroHeader = ({
         supabase.from('categories').select('id, name, type').is('deleted_at', null),
         supabase.from('payment_accounts').select('id, name').is('deleted_at', null).eq('status', 'active'),
       ]);
-      const { data, error } = await supabase.functions.invoke('ai-quick-parse', {
+      const data = await invokeAuthedEdgeFunction<QuickParsedTransaction>('ai-quick-parse', {
+        locale: isFr ? 'fr' : 'en',
         body: { input: text, categories: cats || [], accounts: accs || [], locale },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
       if (!data?.description || typeof data.amount !== 'number') {
         throw new Error(isFr ? 'Saisie non comprise' : 'Could not parse input');
       }

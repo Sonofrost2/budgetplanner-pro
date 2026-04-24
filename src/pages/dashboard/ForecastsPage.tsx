@@ -5,6 +5,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useForecastRawTx, useCategories } from '@/hooks/useDashboardData';
 import { Button } from '@/components/ui/button';
 import { AnimatedNumber } from '@/components/ui/animated-number';
@@ -158,10 +159,10 @@ const ForecastsPage = () => {
     if (!user || !rawTxData) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-forecast', {
+      const data = await invokeAuthedEdgeFunction<any>('ai-forecast', {
+        locale,
         body: { transactions: rawTxData, categories: categoriesData || [], locale },
       });
-      if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       setForecast(data);
       localStorage.setItem('forecast_data', JSON.stringify(data));

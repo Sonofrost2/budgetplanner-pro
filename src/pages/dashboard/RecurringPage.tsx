@@ -4,6 +4,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useRecurring, useCategories, useAccounts, useInvalidate } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -157,8 +158,7 @@ const RecurringPage = () => {
     setAiPatterns([]);
     setAiDone(false);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-detect-recurring');
-      if (error) throw error;
+      const data = await invokeAuthedEdgeFunction<any>('ai-detect-recurring', { locale });
       const patterns = data?.patterns || [];
       setAiPatterns(patterns);
       setAiDone(true);

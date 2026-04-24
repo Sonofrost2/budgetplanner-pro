@@ -13,6 +13,7 @@ import { useFamilyCategories } from '@/hooks/useFamilyCategories';
 import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote, Users, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { useSpeechRecognition, isSpeechRecognitionSupported } from '@/hooks/useSpeechRecognition';
@@ -65,7 +66,8 @@ export const TransactionForm = ({
       if (!canUseAISuggestions) return;
       setVoiceParsing(true);
       try {
-        const { data, error } = await supabase.functions.invoke('ai-quick-parse', {
+        const data = await invokeAuthedEdgeFunction<any>('ai-quick-parse', {
+          locale: isFr ? 'fr' : 'en',
           body: {
             input: transcript,
             categories: categories.map(c => ({ id: c.id, name: c.name, type: c.type })),
@@ -73,7 +75,6 @@ export const TransactionForm = ({
             locale,
           },
         });
-        if (error) throw error;
         if (data && !data.error) {
           setForm(f => ({
             ...f,
@@ -118,14 +119,14 @@ export const TransactionForm = ({
     if (!canUseAISuggestions) return;
     setAiSuggesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-suggest', {
+      const data = await invokeAuthedEdgeFunction<any>('ai-suggest', {
+        locale: isFr ? 'fr' : 'en',
         body: {
           description: form.description, type: form.type,
           categories: categories.filter(c => c.type === form.type).map(c => ({ id: c.id, name: c.name })),
           accounts: accounts.map(a => ({ id: a.id, name: a.name })), locale,
         },
       });
-      if (error) throw error;
       if (data?.description) setForm(f => ({ ...f, description: data.description }));
       if (data?.category_id) setForm(f => ({ ...f, category_id: data.category_id }));
       if (data?.amount) setForm(f => ({ ...f, amount: String(data.amount) }));
@@ -236,18 +237,19 @@ export const TransactionForm = ({
               if (canUseAISuggestions && form.description.trim().length >= 3 && !form.category_id && !aiSuggesting) {
                 (async () => {
                   try {
-                    const { data } = await supabase.functions.invoke('ai-categorize', {
-                      body: {
-                        description: form.description.trim(),
-                        type: form.type,
-                        categories: categories.filter(c => c.type === form.type).map(c => ({ id: c.id, name: c.name })),
-                        recentTransactions: recentDescriptions.slice(0, 30).map(tx => ({
-                          description: tx.description,
-                          category_name: categories.find(c => c.id === tx.category_id)?.name || null,
-                        })),
-                        locale,
-                      },
-                    });
+                      const data = await invokeAuthedEdgeFunction<any>('ai-categorize', {
+                        locale: isFr ? 'fr' : 'en',
+                        body: {
+                          description: form.description.trim(),
+                          type: form.type,
+                          categories: categories.filter(c => c.type === form.type).map(c => ({ id: c.id, name: c.name })),
+                          recentTransactions: recentDescriptions.slice(0, 30).map(tx => ({
+                            description: tx.description,
+                            category_name: categories.find(c => c.id === tx.category_id)?.name || null,
+                          })),
+                          locale,
+                        },
+                      });
                     if (data?.category_id && data.confidence >= 0.5) {
                       setForm(f => ({ ...f, category_id: data.category_id }));
                       toast.success(locale === 'fr' ? '🏷️ Catégorie détectée automatiquement' : '🏷️ Category auto-detected', { duration: 2000 });

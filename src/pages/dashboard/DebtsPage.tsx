@@ -5,6 +5,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useDebts, useInvalidate } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -164,7 +165,8 @@ const DebtsPage = () => {
       const monthlyIncome = Math.round(allTxs.filter(tx => tx.type === 'income').reduce((s, tx) => s + Number(tx.amount), 0) / monthCount);
       const monthlyExpenses = Math.round(allTxs.filter(tx => tx.type === 'expense').reduce((s, tx) => s + Number(tx.amount), 0) / monthCount);
 
-      const { data, error } = await supabase.functions.invoke('ai-debt-plan', {
+      const data = await invokeAuthedEdgeFunction<any>('ai-debt-plan', {
+        locale,
         body: {
           debts: debts.map(d => ({
             creditor: d.creditor_name,
@@ -179,7 +181,6 @@ const DebtsPage = () => {
           locale,
         },
       });
-      if (error) throw error;
       setAiPlan(data);
     } catch (e: any) {
       toast.error(e.message || 'AI error');
