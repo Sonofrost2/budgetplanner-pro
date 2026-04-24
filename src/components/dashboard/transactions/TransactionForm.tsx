@@ -67,7 +67,7 @@ export const TransactionForm = ({
       setVoiceParsing(true);
       try {
         const data = await invokeAuthedEdgeFunction<any>('ai-quick-parse', {
-          locale,
+          locale: isFr ? 'fr' : 'en',
           body: {
             input: transcript,
             categories: categories.map(c => ({ id: c.id, name: c.name, type: c.type })),
@@ -120,7 +120,7 @@ export const TransactionForm = ({
     setAiSuggesting(true);
     try {
       const data = await invokeAuthedEdgeFunction<any>('ai-suggest', {
-        locale,
+        locale: isFr ? 'fr' : 'en',
         body: {
           description: form.description, type: form.type,
           categories: categories.filter(c => c.type === form.type).map(c => ({ id: c.id, name: c.name })),
@@ -238,7 +238,7 @@ export const TransactionForm = ({
                 (async () => {
                   try {
                       const data = await invokeAuthedEdgeFunction<any>('ai-categorize', {
-                        locale,
+                        locale: isFr ? 'fr' : 'en',
                         body: {
                           description: form.description.trim(),
                           type: form.type,

@@ -60,7 +60,7 @@ export const TransactionsHeroHeader = ({
         supabase.from('categories').select('id, name, type').is('deleted_at', null),
         supabase.from('payment_accounts').select('id, name').is('deleted_at', null).eq('status', 'active'),
       ]);
-      const data = await invokeAuthedEdgeFunction<QuickParsedTransaction>('ai-quick-parse', {
+      const data = await invokeAuthedEdgeFunction<any>('ai-quick-parse', {
         locale,
         body: { input: text, categories: cats || [], accounts: accs || [], locale },
       });

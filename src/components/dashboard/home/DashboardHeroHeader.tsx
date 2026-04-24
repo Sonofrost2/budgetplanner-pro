@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import type { QuickParsedTransaction } from '@/components/dashboard/transactions/TransactionsHeroHeader';
@@ -59,7 +60,7 @@ export const DashboardHeroHeader = ({
   useEffect(() => {
     const tick = () => setNow(new Date());
     const msToNextMinute = 60_000 - (Date.now() % 60_000);
-    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let intervalId: number | null = null;
     const timeoutId = window.setTimeout(() => {
       tick();
       intervalId = window.setInterval(tick, 60_000);
