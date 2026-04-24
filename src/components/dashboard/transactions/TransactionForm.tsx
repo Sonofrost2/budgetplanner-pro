@@ -50,8 +50,59 @@ export const TransactionForm = ({
 }: TransactionFormProps) => {
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [voiceParsing, setVoiceParsing] = useState(false);
   const { data: familyCategories = [] } = useFamilyCategories();
   const isFr = locale === 'fr';
+  const speechLang = isFr ? 'fr-FR' : 'en-US';
+  const voiceSupported = !!isSpeechRecognitionSupported();
+
+  // Quick voice → AI parse: fills the whole form from a spoken sentence
+  const quickVoice = useSpeechRecognition({
+    lang: speechLang,
+    onFinal: async (transcript) => {
+      if (!transcript) return;
+      setForm(f => ({ ...f, description: f.description ? `${f.description} ${transcript}` : transcript }));
+      if (!canUseAISuggestions) return;
+      setVoiceParsing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('ai-quick-parse', {
+          body: {
+            input: transcript,
+            categories: categories.map(c => ({ id: c.id, name: c.name, type: c.type })),
+            accounts: accounts.map(a => ({ id: a.id, name: a.name })),
+            locale,
+          },
+        });
+        if (error) throw error;
+        if (data && !data.error) {
+          setForm(f => ({
+            ...f,
+            description: data.description || transcript,
+            amount: data.amount ? String(data.amount) : f.amount,
+            type: data.type === 'income' ? 'income' : 'expense',
+            category_id: data.category_id || f.category_id,
+            account_id: data.account_id || f.account_id,
+          }));
+          toast.success(isFr ? '🎙️ Saisie vocale interprétée' : '🎙️ Voice input parsed');
+        }
+      } catch (e: any) {
+        toast.error(e?.message || (isFr ? 'Erreur IA vocale' : 'Voice AI error'));
+      } finally {
+        setVoiceParsing(false);
+      }
+    },
+  });
+
+  // Notes dictation: appends raw transcript to the notes field
+  const notesVoice = useSpeechRecognition({
+    lang: speechLang,
+    onFinal: (transcript) => {
+      setForm(f => {
+        const next = f.notes ? `${f.notes} ${transcript}` : transcript;
+        return { ...f, notes: next.slice(0, 500) };
+      });
+    },
+  });
 
   const filteredCategories = categories.filter(c => c.type === form.type);
 
