@@ -726,6 +726,11 @@ export type Database = {
           max_push_per_day: number
           morning_digest_enabled: boolean
           morning_digest_hour: number
+          notify_payment_failure: boolean
+          notify_payment_receipts: boolean
+          notify_subscription_expiry: boolean
+          notify_via_sms: boolean
+          notify_via_whatsapp: boolean
           quiet_hours_enabled: boolean
           quiet_hours_end: number
           quiet_hours_start: number
@@ -754,6 +759,11 @@ export type Database = {
           max_push_per_day?: number
           morning_digest_enabled?: boolean
           morning_digest_hour?: number
+          notify_payment_failure?: boolean
+          notify_payment_receipts?: boolean
+          notify_subscription_expiry?: boolean
+          notify_via_sms?: boolean
+          notify_via_whatsapp?: boolean
           quiet_hours_enabled?: boolean
           quiet_hours_end?: number
           quiet_hours_start?: number
@@ -782,6 +792,11 @@ export type Database = {
           max_push_per_day?: number
           morning_digest_enabled?: boolean
           morning_digest_hour?: number
+          notify_payment_failure?: boolean
+          notify_payment_receipts?: boolean
+          notify_subscription_expiry?: boolean
+          notify_via_sms?: boolean
+          notify_via_whatsapp?: boolean
           quiet_hours_enabled?: boolean
           quiet_hours_end?: number
           quiet_hours_start?: number
@@ -917,6 +932,7 @@ export type Database = {
           id: string
           locale: string
           onboarding_completed: boolean
+          phone: string | null
           updated_at: string
           user_id: string
         }
@@ -928,6 +944,7 @@ export type Database = {
           id?: string
           locale?: string
           onboarding_completed?: boolean
+          phone?: string | null
           updated_at?: string
           user_id: string
         }
@@ -939,6 +956,7 @@ export type Database = {
           id?: string
           locale?: string
           onboarding_completed?: boolean
+          phone?: string | null
           updated_at?: string
           user_id?: string
         }
