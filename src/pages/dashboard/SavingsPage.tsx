@@ -1,7 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -51,6 +49,7 @@ import { SavingsGlobalStats } from '@/components/dashboard/savings/SavingsGlobal
 import { SavingsHeroHeader } from '@/components/dashboard/savings/SavingsHeroHeader';
 import { SavingsCoachInsights } from '@/components/dashboard/savings/SavingsCoachInsights';
 import { GoalReachedDialog } from '@/components/dashboard/savings/GoalReachedDialog';
+import { VirtualizedGoalsGrid } from '@/components/dashboard/savings/VirtualizedGoalsGrid';
 
 interface ScenarioData {
   monthly_projections: { month: number; capital: number; interest_earned: number; total: number }[];
