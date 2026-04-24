@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Send, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Send, AlertCircle, CheckCircle2, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -35,8 +35,8 @@ const SmsTestCard = ({ locale }: Props) => {
   const isFr = locale === 'fr';
   const [to, setTo] = useState('');
   const [body, setBody] = useState(isFr ? 'Test Budget Planner ✅' : 'Budget Planner test ✅');
-  const [sending, setSending] = useState(false);
-  const [lastSid, setLastSid] = useState<string | null>(null);
+  const [sendingChannel, setSendingChannel] = useState<null | 'sms' | 'whatsapp'>(null);
+  const [lastResult, setLastResult] = useState<{ channel: 'sms' | 'whatsapp'; sid: string | null } | null>(null);
 
   const check = useMemo(() => validatePhone(to), [to]);
   const bodyTrim = body.trim();
@@ -57,9 +57,9 @@ const SmsTestCard = ({ locale }: Props) => {
       })()
     : null;
 
-  const canSend = check.state === 'valid' && !bodyError && !sending;
+  const canSend = check.state === 'valid' && !bodyError && sendingChannel === null;
 
-  const send = async () => {
+  const send = async (channel: 'sms' | 'whatsapp') => {
     if (check.state !== 'valid') {
       toast.error(phoneError ?? (isFr ? 'Numéro invalide.' : 'Invalid number.'));
       return;
@@ -68,21 +68,23 @@ const SmsTestCard = ({ locale }: Props) => {
       toast.error(bodyError);
       return;
     }
-    setSending(true);
-    setLastSid(null);
+    const fnName = channel === 'sms' ? 'send-sms' : 'send-whatsapp';
+    const label = channel === 'sms' ? 'SMS' : 'WhatsApp';
+    setSendingChannel(channel);
+    setLastResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke('send-sms', {
+      const { data, error } = await supabase.functions.invoke(fnName, {
         body: { to: check.value, body: bodyTrim },
       });
       if (error) throw error;
       const sid = (data as { sid?: string })?.sid ?? null;
-      setLastSid(sid);
-      toast.success(isFr ? `SMS envoyé ✅ ${sid ?? ''}` : `SMS sent ✅ ${sid ?? ''}`);
+      setLastResult({ channel, sid });
+      toast.success(isFr ? `${label} envoyé ✅ ${sid ?? ''}` : `${label} sent ✅ ${sid ?? ''}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : (isFr ? 'Erreur inconnue' : 'Unknown error');
-      toast.error(isFr ? `Échec envoi: ${message}` : `Send failed: ${message}`);
+      toast.error(isFr ? `Échec ${label}: ${message}` : `${label} failed: ${message}`);
     } finally {
-      setSending(false);
+      setSendingChannel(null);
     }
   };
 
@@ -93,7 +95,7 @@ const SmsTestCard = ({ locale }: Props) => {
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Send className="w-4 h-4" />
-          {isFr ? 'Test SMS (Twilio)' : 'SMS Test (Twilio)'}
+          {isFr ? 'Test SMS & WhatsApp (Twilio)' : 'SMS & WhatsApp Test (Twilio)'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -149,12 +151,39 @@ const SmsTestCard = ({ locale }: Props) => {
             </p>
           )}
         </div>
-        <Button size="sm" onClick={send} disabled={!canSend} className="rounded-xl">
-          {sending ? (isFr ? 'Envoi...' : 'Sending...') : (isFr ? 'Envoyer le test' : 'Send test')}
-        </Button>
-        {lastSid && (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            onClick={() => send('sms')}
+            disabled={!canSend}
+            className="rounded-xl"
+          >
+            <Send className="w-3.5 h-3.5 mr-1.5" />
+            {sendingChannel === 'sms'
+              ? (isFr ? 'Envoi SMS...' : 'Sending SMS...')
+              : (isFr ? 'Envoyer SMS' : 'Send SMS')}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => send('whatsapp')}
+            disabled={!canSend}
+            className="rounded-xl border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+          >
+            <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
+            {sendingChannel === 'whatsapp'
+              ? (isFr ? 'Envoi WhatsApp...' : 'Sending WhatsApp...')
+              : (isFr ? 'Envoyer WhatsApp' : 'Send WhatsApp')}
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          {isFr
+            ? 'WhatsApp : le destinataire doit avoir rejoint le sandbox Twilio au préalable (sinon erreur 63007).'
+            : 'WhatsApp: recipient must have joined the Twilio sandbox first (otherwise error 63007).'}
+        </p>
+        {lastResult && (
           <p className="text-[11px] text-muted-foreground font-mono break-all">
-            SID: {lastSid}
+            {lastResult.channel === 'sms' ? 'SMS' : 'WhatsApp'} SID: {lastResult.sid ?? '—'}
           </p>
         )}
       </CardContent>
