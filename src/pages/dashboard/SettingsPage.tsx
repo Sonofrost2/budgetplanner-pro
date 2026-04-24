@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { User, Bell, Lock, Database, Settings as Cog, ShieldCheck, Trash2, Download, AlertTriangle, LogOut, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import NotificationPreferencesCard from '@/components/dashboard/settings/NotificationPreferencesCard';
+import PhoneNumberCard from '@/components/dashboard/settings/PhoneNumberCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { exportToCSV } from '@/lib/export';
 import { DataExportCard } from '@/components/dashboard/settings/DataExportCard';
@@ -282,7 +283,10 @@ const SettingsPage = () => {
               )}
 
               {activeSection === 'notifications' && (
-                <NotificationPreferencesCard locale={locale} />
+                <div className="space-y-5">
+                  <PhoneNumberCard locale={locale} />
+                  <NotificationPreferencesCard locale={locale} />
+                </div>
               )}
 
               {activeSection === 'security' && (
