@@ -58,18 +58,16 @@ export const DashboardHeroHeader = ({
   const [now, setNow] = useState<Date>(() => new Date());
   useEffect(() => {
     const tick = () => setNow(new Date());
-    // Align first tick to the next minute boundary, then every 60s.
     const msToNextMinute = 60_000 - (Date.now() % 60_000);
-    const timeout = setTimeout(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const timeoutId = window.setTimeout(() => {
       tick();
-      const interval = setInterval(tick, 60_000);
-      // Store on the timeout ref via closure cleanup
-      (timeout as any)._interval = interval;
+      intervalId = window.setInterval(tick, 60_000);
     }, msToNextMinute);
+
     return () => {
-      clearTimeout(timeout);
-      const interval = (timeout as any)._interval;
-      if (interval) clearInterval(interval);
+      window.clearTimeout(timeoutId);
+      if (intervalId) window.clearInterval(intervalId);
     };
   }, []);
 

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
@@ -59,10 +60,10 @@ export const TransactionsHeroHeader = ({
         supabase.from('categories').select('id, name, type').is('deleted_at', null),
         supabase.from('payment_accounts').select('id, name').is('deleted_at', null).eq('status', 'active'),
       ]);
-      const { data, error } = await supabase.functions.invoke('ai-quick-parse', {
+      const data = await invokeAuthedEdgeFunction<QuickParsedTransaction>('ai-quick-parse', {
+        locale,
         body: { input: text, categories: cats || [], accounts: accs || [], locale },
       });
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (!data?.description || typeof data.amount !== 'number') {
         throw new Error(isFr ? 'Saisie non comprise' : 'Could not parse input');

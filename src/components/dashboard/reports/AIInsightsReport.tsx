@@ -4,6 +4,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useReportsData, useDebts, useBudgets, useSavingsGoals } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,10 +78,10 @@ const AIInsightsReport = () => {
         dueDate: d.due_date,
       }));
 
-      const { data, error } = await supabase.functions.invoke('ai-report-insights', {
+      const data = await invokeAuthedEdgeFunction<any>('ai-report-insights', {
+        locale,
         body: { monthlyData, categoryData, savingsProgress, budgetPerformance, debtsOverview, locale },
       });
-      if (error) throw error;
       setInsights(data);
     } catch (e: any) {
       toast.error(e.message || 'AI error');

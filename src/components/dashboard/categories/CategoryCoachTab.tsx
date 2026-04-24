@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Lightbulb, TrendingDown, Merge, RefreshCcw, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { toast } from 'sonner';
 import type { Category } from '@/hooks/useDashboardData';
 import type { CategoryStats } from '@/lib/categoryAnalytics';
@@ -38,8 +38,7 @@ export const CategoryCoachTab = ({ categories, stats, isFr, onRefresh }: Props) 
         tx_count: stats[c.id]?.transaction_count ?? 0,
         total: stats[c.id]?.total_amount ?? 0,
       }));
-      const { data, error } = await supabase.functions.invoke('ai-categories-suggest', { body: { categories: payload, locale: isFr ? 'fr' : 'en' } });
-      if (error) throw error;
+      const data = await invokeAuthedEdgeFunction<any>('ai-categories-suggest', { locale: isFr ? 'fr' : 'en', body: { categories: payload, locale: isFr ? 'fr' : 'en' } });
       setSuggestions(data?.suggestions ?? []);
     } catch (e: any) {
       toast.error(e.message ?? 'AI error');
