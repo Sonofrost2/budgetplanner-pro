@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -178,15 +180,22 @@ const SavingsPage = () => {
       const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean);
       result = result.filter(g => terms.some(q => g.name.toLowerCase().includes(q) || (g as any).bank_name?.toLowerCase().includes(q)));
     }
-    result.sort((a, b) => {
-      let cmp = 0;
-      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
-      else if (sortField === 'current_amount') cmp = Number(a.current_amount) - Number(b.current_amount);
-      else if (sortField === 'target_amount') cmp = Number(a.target_amount) - Number(b.target_amount);
-      return sortOrder === 'desc' ? -cmp : cmp;
-    });
+    // Performant sort: pre-extract sort key once per item (Schwartzian transform)
+    // and use Intl.Collator (much faster than per-call localeCompare).
+    const collator = new Intl.Collator(locale, { sensitivity: 'base', numeric: true });
+    const dir = sortOrder === 'desc' ? -1 : 1;
+    if (sortField === 'name') {
+      const keyed = result.map(g => ({ g, k: g.name }));
+      keyed.sort((a, b) => dir * collator.compare(a.k, b.k));
+      result = keyed.map(x => x.g);
+    } else {
+      const field = sortField;
+      const keyed = result.map(g => ({ g, k: Number(g[field]) || 0 }));
+      keyed.sort((a, b) => dir * (a.k - b.k));
+      result = keyed.map(x => x.g);
+    }
     return result;
-  }, [goals, searchQuery, sortField, sortOrder, showCompleted]);
+  }, [goals, searchQuery, sortField, sortOrder, showCompleted, locale]);
 
   const refreshData = async () => { await refetchSavings(); };
 
