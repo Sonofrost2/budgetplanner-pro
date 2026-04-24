@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { useSpeechRecognition, isSpeechRecognitionSupported } from '@/hooks/useSpeechRecognition';
+import { VoiceMicButton } from './VoiceMicButton';
 
 interface TransactionFormProps {
   open: boolean;
