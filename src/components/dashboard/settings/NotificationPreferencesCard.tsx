@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Bell, TrendingUp, Wallet, PiggyBank, RotateCcw, AlertTriangle, Scale, Calendar, Zap, Moon, Target, ChevronDown, ChevronUp, Sunrise, Sunset, Clock } from 'lucide-react';
+import { Bell, TrendingUp, Wallet, PiggyBank, RotateCcw, AlertTriangle, Scale, Calendar, Zap, Moon, Target, ChevronDown, ChevronUp, Sunrise, Sunset, Clock, MessageSquare, Phone, Mail, CreditCard } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -372,6 +372,88 @@ const NotificationPreferencesCard = ({ locale }: Props) => {
                 </div>
               </div>
             )}
+
+            {/* === Channels (SMS / WhatsApp / Email) === */}
+            <Separator />
+            <div className="space-y-3">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-primary" />
+                {isFr ? 'Canaux de réception' : 'Receiving channels'}
+              </p>
+              <p className="text-xs text-muted-foreground -mt-1">
+                {isFr
+                  ? 'Choisis comment recevoir les notifications importantes (paiements, expirations, alertes).'
+                  : 'Choose how to receive important notifications (payments, expirations, alerts).'}
+              </p>
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <Phone className="w-4 h-4 mt-0.5 text-emerald-500" />
+                  <div>
+                    <p className="text-sm font-medium">SMS</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isFr ? 'Nécessite un numéro de téléphone valide' : 'Requires a valid phone number'}
+                    </p>
+                  </div>
+                </div>
+                <Switch checked={prefs.notify_via_sms} onCheckedChange={(v) => updatePref('notify_via_sms', v)} />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <MessageSquare className="w-4 h-4 mt-0.5 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium">WhatsApp</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isFr ? 'Le numéro doit être joignable sur WhatsApp' : 'Number must be reachable on WhatsApp'}
+                    </p>
+                  </div>
+                </div>
+                <Switch checked={prefs.notify_via_whatsapp} onCheckedChange={(v) => updatePref('notify_via_whatsapp', v)} />
+              </div>
+            </div>
+
+            {/* === Subscription / billing notifications === */}
+            <Separator />
+            <div className="space-y-3">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-primary" />
+                {isFr ? 'Abonnement & facturation' : 'Subscription & billing'}
+              </p>
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <Mail className="w-4 h-4 mt-0.5 text-blue-500" />
+                  <div>
+                    <p className="text-sm font-medium">{isFr ? 'Reçus de paiement' : 'Payment receipts'}</p>
+                    <p className="text-xs text-muted-foreground">{isFr ? 'Confirmation immédiate après chaque paiement' : 'Immediate confirmation after each payment'}</p>
+                  </div>
+                </div>
+                <Switch checked={prefs.notify_payment_receipts} onCheckedChange={(v) => updatePref('notify_payment_receipts', v)} />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <Calendar className="w-4 h-4 mt-0.5 text-amber-500" />
+                  <div>
+                    <p className="text-sm font-medium">{isFr ? 'Rappels d\'expiration' : 'Expiry reminders'}</p>
+                    <p className="text-xs text-muted-foreground">{isFr ? 'J-7, J-1 et le jour de l\'expiration' : 'D-7, D-1 and on expiry day'}</p>
+                  </div>
+                </div>
+                <Switch checked={prefs.notify_subscription_expiry} onCheckedChange={(v) => updatePref('notify_subscription_expiry', v)} />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 text-red-500" />
+                  <div>
+                    <p className="text-sm font-medium">{isFr ? 'Échec de paiement' : 'Payment failure'}</p>
+                    <p className="text-xs text-muted-foreground">{isFr ? 'Alerte en cas d\'échec de renouvellement' : 'Alert when renewal fails'}</p>
+                  </div>
+                </div>
+                <Switch checked={prefs.notify_payment_failure} onCheckedChange={(v) => updatePref('notify_payment_failure', v)} />
+              </div>
+            </div>
           </>
         )}
       </CardContent>
