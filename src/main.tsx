@@ -29,13 +29,45 @@ const previewHost =
     window.location.hostname.includes("lovable.dev"));
 const IS_PREVIEW = isInIframe || previewHost;
 
-if (typeof window !== "undefined" && "serviceWorker" in navigator && IS_PREVIEW) {
-  navigator.serviceWorker.getRegistrations()
-    .then((regs) => regs.forEach((r) => r.unregister()))
-    .catch(() => {});
-  if (window.caches) {
-    caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
-  }
+// Wipe every client-side cache layer used by the PWA stack (Workbox runtime
+// caches, precache manifest, IndexedDB metadata) so a stale shell can never
+// outlive a new build in preview.
+const purgePreviewCaches = async () => {
+  if (typeof window === "undefined") return;
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
+    }
+  } catch { /* noop */ }
+  try {
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k).catch(() => false)));
+    }
+  } catch { /* noop */ }
+  // Workbox stores its precache manifest in IndexedDB ("workbox-expiration",
+  // "workbox-precache-v2"). Drop them so a future SW registration cannot
+  // restore the old manifest from disk.
+  try {
+    const idb = (indexedDB as any);
+    if (idb?.databases) {
+      const dbs: { name?: string }[] = await idb.databases();
+      await Promise.all(
+        dbs
+          .map((d) => d.name)
+          .filter((n): n is string => !!n && /workbox|precache/i.test(n))
+          .map((name) => new Promise<void>((resolve) => {
+            const req = indexedDB.deleteDatabase(name);
+            req.onsuccess = req.onerror = req.onblocked = () => resolve();
+          })),
+      );
+    }
+  } catch { /* noop */ }
+};
+
+if (IS_PREVIEW) {
+  void purgePreviewCaches();
 }
 
 if (typeof window !== "undefined" && IS_PREVIEW) {
@@ -69,6 +101,9 @@ if (typeof window !== "undefined" && IS_PREVIEW) {
     if (signature === null) { signature = next; return; }
     if (next !== signature) {
       reloading = true;
+      // Purge every cache layer BEFORE reloading so the next boot cannot be
+      // served from a Workbox-cached shell or stale IndexedDB precache entry.
+      await purgePreviewCaches();
       // Silent refresh — no prompt, preview should always feel current.
       window.location.reload();
     }
