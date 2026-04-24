@@ -6,6 +6,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -386,14 +387,14 @@ const WealthPage = () => {
     setAiValuing(true);
     try {
       const vals = allValuations.filter(v => v.asset_id === assetId);
-      const { data, error } = await supabase.functions.invoke('ai-wealth-valuation', {
+      const data = await invokeAuthedEdgeFunction<any>('ai-wealth-valuation', {
+        locale,
         body: {
           asset: { name: asset.name, type: asset.asset_type, category: asset.category, location: asset.location, acquisition_cost: asset.acquisition_cost, current_value: asset.current_value, acquisition_date: asset.acquisition_date },
           valuations: vals.map(v => ({ date: v.valued_at, value: v.value })),
           locale,
         },
       });
-      if (error) throw error;
       if (data?.suggested_value) {
         setValuationDialog(assetId);
         setValuationValue(String(data.suggested_value));

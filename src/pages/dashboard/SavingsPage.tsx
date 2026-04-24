@@ -5,6 +5,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useInvalidate, useSavingsPageData } from '@/hooks/useDashboardData';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
 import { savingsGoalSchema, validateForm } from '@/lib/validationSchemas';
@@ -756,7 +757,8 @@ const SavingsPage = () => {
     setSimulation(null);
     setSimulating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-savings-simulate', {
+      const data = await invokeAuthedEdgeFunction<any>('ai-savings-simulate', {
+        locale,
         body: {
           goal_name: goal.name,
           current_amount: goal.current_amount,
@@ -773,7 +775,6 @@ const SavingsPage = () => {
           currency,
         },
       });
-      if (error) throw error;
       setSimulation(data);
     } catch (err: any) {
       toast.error(err.message || 'Erreur de simulation');

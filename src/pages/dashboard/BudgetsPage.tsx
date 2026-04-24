@@ -7,6 +7,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useBudgets, useCategories, useInvalidate } from '@/hooks/useDashboardData';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -314,7 +315,8 @@ const BudgetsPage = () => {
         summary[tx.category_id].count++;
       }
 
-      const { data: fnData, error: fnError } = await supabase.functions.invoke('ai-budget-suggest', {
+      const fnData = await invokeAuthedEdgeFunction<any>('ai-budget-suggest', {
+        locale,
         body: {
           categories: allCategories.map(c => ({ id: c.id, name: c.name, type: c.type, icon: c.icon })),
           existingBudgets: budgets.map(b => ({ name: b.name, category_id: b.category_id, amount: b.amount, period: b.period, budget_type: (b as any).budget_type })),
@@ -323,7 +325,6 @@ const BudgetsPage = () => {
         },
       });
 
-      if (fnError) throw fnError;
       setAiSuggestions(fnData?.suggestions || []);
     } catch (e: any) {
       coachToast.fail(e.message || 'AI error');
