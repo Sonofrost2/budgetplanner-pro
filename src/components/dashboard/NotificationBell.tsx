@@ -176,8 +176,22 @@ export const useBudgetNotifications = () => {
       const allowAlerts = prefs?.budget_alerts !== false;
       const allowProjections = prefs?.budget_projections !== false;
 
+      const isIncomeBudget = budgetType === 'income';
       if (isMax) {
-        if (spent > amount && allowAlerts) {
+        // Edge case: an income budget configured as "max" — exceeding is good
+        // news, not a critical alert. Surface it as a success instead.
+        if (spent > amount && allowAlerts && isIncomeBudget) {
+          notifs.push({
+            id: `budget-income-over-${budget.id}`,
+            type: 'budget_savings',
+            severity: 'success',
+            title: isFr ? '💰 Revenu au-dessus du plafond' : '💰 Income above ceiling',
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString()}`,
+            action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
+            daysLeft: 0,
+            dueLabelKey: 'now',
+          });
+        } else if (spent > amount && allowAlerts) {
           notifs.push({
             id: `budget-exceeded-${budget.id}`,
             type: 'budget_exceeded',
@@ -196,16 +210,19 @@ export const useBudgetNotifications = () => {
             notifs.push({
               id: `budget-warning-${budget.id}`,
               type: 'budget_warning',
-              severity: 'warning',
-              title: isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`,
+              severity: isIncomeBudget ? 'info' : 'warning',
+              title: isIncomeBudget
+                ? (isFr ? `💰 Revenu à ${Math.round(pct)}%` : `💰 Income at ${Math.round(pct)}%`)
+                : (isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`),
               message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
               action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
               daysLeft: 0,
               dueLabelKey: 'now',
             });
           }
-        } else if (pct < 50 && shouldFireBilan(periodEnd, now)) {
+        } else if (pct < 50 && !isIncomeBudget && shouldFireBilan(periodEnd, now)) {
           // Bilan only on the actual closing day
+          // Skip income budgets: low % at month-end is BAD, not "maîtrisé"
           notifs.push({
             id: `budget-savings-${budget.id}`,
             type: 'budget_savings',

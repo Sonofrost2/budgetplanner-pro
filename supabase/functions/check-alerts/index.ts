@@ -217,7 +217,17 @@ Deno.serve(async (req) => {
           const daysToExceed = dailyRate > 0 ? Math.round((amount - spent) / dailyRate) : Infinity;
 
           if (isMax) {
-            if (prefBudgetAlerts && spent > amount) {
+            const isIncomeBudget = budgetType === "income";
+            if (prefBudgetAlerts && spent > amount && isIncomeBudget) {
+              // Income budget exceeded = good news, not critical.
+              alerts.push({
+                title: isFr ? "💰 Revenu au-dessus du plafond" : "💰 Income above ceiling",
+                body: `${catIcon} ${budget.name}: +${Math.round(spent - amount).toLocaleString()}`,
+                notification_type: "budget_income_above",
+                dedup_key: `budget_income_above_${budget.id}_${todayStr}`,
+                reference_id: budget.id,
+              });
+            } else if (prefBudgetAlerts && spent > amount) {
               // CRITICAL — always fires, deduped per day
               alerts.push({
                 title: isFr ? "⚠️ Budget dépassé" : "⚠️ Budget exceeded",
@@ -230,7 +240,9 @@ Deno.serve(async (req) => {
             } else if (prefBudgetAlerts && pct >= threshold) {
               // Threshold reached — windowed by cadence + 10pt step
               alerts.push({
-                title: isFr ? `📊 Budget à ${Math.round(pct)}%` : `📊 Budget at ${Math.round(pct)}%`,
+                title: isIncomeBudget
+                  ? (isFr ? `💰 Revenu à ${Math.round(pct)}%` : `💰 Income at ${Math.round(pct)}%`)
+                  : (isFr ? `📊 Budget à ${Math.round(pct)}%` : `📊 Budget at ${Math.round(pct)}%`),
                 body: `${catIcon} ${budget.name} (${isFr ? "seuil" : "threshold"} ${threshold}%)`,
                 notification_type: "budget_threshold",
                 dedup_key: `budget_threshold_${budget.id}_step${pctStep}${statusWindow}`,
@@ -244,8 +256,9 @@ Deno.serve(async (req) => {
                 dedup_key: `budget_proj_${budget.id}_step${pctStep}${statusWindow}`,
                 reference_id: budget.id,
               });
-            } else if (prefGoalReached && isLastDayOfPeriod && pct < 90) {
+            } else if (prefGoalReached && isLastDayOfPeriod && pct < 90 && !isIncomeBudget) {
               // End-of-period bilan — only on the last day
+              // Skip income budgets: under-target on income is bad news.
               alerts.push({
                 title: isFr ? "🏁 Bilan : budget maîtrisé !" : "🏁 Bilan: budget under control!",
                 body: `${catIcon} ${budget.name}: ${Math.round(amount - spent).toLocaleString()} ${isFr ? "économisés" : "saved"}`,
@@ -277,19 +290,27 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Upcoming expense — J-5, J-2, J-0 (3 envois max)
-          if (prefBudgetAlerts && budget.expected_day && isMax) {
+          // Upcoming budget echeance — J-5, J-2, J-0 (3 envois max).
+          // Differentiates income (revenu attendu 💰) vs expense (échéance prévue 📅)
+          // so push titles match the in-app bell instead of always saying "Dépense".
+          if (prefBudgetAlerts && budget.expected_day) {
             const expDay = Number(budget.expected_day);
             const todayDay = now.getDate();
             const daysUntil = expDay >= todayDay ? expDay - todayDay : 0;
             if (daysUntil === 5 || daysUntil === 2 || daysUntil === 0) {
+              const isIncomeBudget = budgetType === "income";
+              const kindIcon = isIncomeBudget ? "💰" : "📅";
+              const todayLabel = isIncomeBudget
+                ? (isFr ? `${kindIcon} Revenu attendu aujourd'hui` : `${kindIcon} Income expected today`)
+                : (isFr ? `${kindIcon} Dépense prévue aujourd'hui` : `${kindIcon} Expense due today`);
+              const futureLabel = isIncomeBudget
+                ? (isFr ? `${kindIcon} Revenu attendu dans ${daysUntil}j` : `${kindIcon} Income expected in ${daysUntil}d`)
+                : (isFr ? `${kindIcon} Dépense prévue dans ${daysUntil}j` : `${kindIcon} Expense due in ${daysUntil}d`);
               alerts.push({
-                title: daysUntil === 0
-                  ? (isFr ? "📅 Dépense prévue aujourd'hui" : "📅 Expense due today")
-                  : (isFr ? `📅 Dépense prévue dans ${daysUntil}j` : `📅 Expense due in ${daysUntil}d`),
+                title: daysUntil === 0 ? todayLabel : futureLabel,
                 body: `${catIcon} ${budget.name}: ${Math.round(amount).toLocaleString()}`,
-                notification_type: "budget_upcoming_expense",
-                dedup_key: `budget_exp_${budget.id}_d${daysUntil}_${periodStartStr}`,
+                notification_type: isIncomeBudget ? "budget_upcoming_income" : "budget_upcoming_expense",
+                dedup_key: `budget_${isIncomeBudget ? "inc" : "exp"}_${budget.id}_d${daysUntil}_${periodStartStr}`,
                 reference_id: budget.id,
               });
             }
