@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { useSpeechRecognition, isSpeechRecognitionSupported } from '@/hooks/useSpeechRecognition';
+import { VoiceMicButton } from './VoiceMicButton';
 
 interface TransactionFormProps {
   open: boolean;
@@ -48,8 +50,59 @@ export const TransactionForm = ({
 }: TransactionFormProps) => {
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [voiceParsing, setVoiceParsing] = useState(false);
   const { data: familyCategories = [] } = useFamilyCategories();
   const isFr = locale === 'fr';
+  const speechLang = isFr ? 'fr-FR' : 'en-US';
+  const voiceSupported = !!isSpeechRecognitionSupported();
+
+  // Quick voice → AI parse: fills the whole form from a spoken sentence
+  const quickVoice = useSpeechRecognition({
+    lang: speechLang,
+    onFinal: async (transcript) => {
+      if (!transcript) return;
+      setForm(f => ({ ...f, description: f.description ? `${f.description} ${transcript}` : transcript }));
+      if (!canUseAISuggestions) return;
+      setVoiceParsing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('ai-quick-parse', {
+          body: {
+            input: transcript,
+            categories: categories.map(c => ({ id: c.id, name: c.name, type: c.type })),
+            accounts: accounts.map(a => ({ id: a.id, name: a.name })),
+            locale,
+          },
+        });
+        if (error) throw error;
+        if (data && !data.error) {
+          setForm(f => ({
+            ...f,
+            description: data.description || transcript,
+            amount: data.amount ? String(data.amount) : f.amount,
+            type: data.type === 'income' ? 'income' : 'expense',
+            category_id: data.category_id || f.category_id,
+            account_id: data.account_id || f.account_id,
+          }));
+          toast.success(isFr ? '🎙️ Saisie vocale interprétée' : '🎙️ Voice input parsed');
+        }
+      } catch (e: any) {
+        toast.error(e?.message || (isFr ? 'Erreur IA vocale' : 'Voice AI error'));
+      } finally {
+        setVoiceParsing(false);
+      }
+    },
+  });
+
+  // Notes dictation: appends raw transcript to the notes field
+  const notesVoice = useSpeechRecognition({
+    lang: speechLang,
+    onFinal: (transcript) => {
+      setForm(f => {
+        const next = f.notes ? `${f.notes} ${transcript}` : transcript;
+        return { ...f, notes: next.slice(0, 500) };
+      });
+    },
+  });
 
   const filteredCategories = categories.filter(c => c.type === form.type);
 
@@ -144,12 +197,38 @@ export const TransactionForm = ({
         <div className="space-y-2 relative z-30">
           <div className="flex items-center justify-between">
             <Label className="form-label flex items-center gap-1.5"><FileText className="w-3 h-3" />{t.description}</Label>
-            {canUseAISuggestions && (
-              <Button type="button" variant="ghost" size="sm" className="h-7 text-xs rounded-lg text-primary" onClick={handleAISuggest} disabled={aiSuggesting}>
-                <Sparkles className="w-3 h-3 mr-1" />{aiSuggesting ? t.aiSuggesting : t.aiSuggest}
-              </Button>
-            )}
+            <div className="flex items-center gap-1">
+              {voiceSupported && (
+                <VoiceMicButton
+                  listening={quickVoice.listening}
+                  loading={voiceParsing}
+                  onClick={() => (quickVoice.listening ? quickVoice.stop() : quickVoice.start())}
+                  title={isFr ? 'Saisie vocale (IA)' : 'Voice input (AI)'}
+                />
+              )}
+              {canUseAISuggestions && (
+                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs rounded-lg text-primary" onClick={handleAISuggest} disabled={aiSuggesting}>
+                  <Sparkles className="w-3 h-3 mr-1" />{aiSuggesting ? t.aiSuggesting : t.aiSuggest}
+                </Button>
+              )}
+            </div>
           </div>
+          {(quickVoice.listening || quickVoice.interim) && (
+            <div className="flex items-center gap-2 text-xs text-primary bg-primary/5 border border-primary/20 rounded-lg px-2.5 py-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
+              </span>
+              <span className="truncate">
+                {quickVoice.interim || (isFr ? 'Parlez maintenant…' : 'Speak now…')}
+              </span>
+            </div>
+          )}
+          {quickVoice.error === 'not-allowed' && (
+            <p className="text-[11px] text-destructive">
+              {isFr ? 'Microphone refusé. Autorisez-le dans le navigateur.' : 'Microphone denied. Allow it in your browser.'}
+            </p>
+          )}
           <Input value={form.description} maxLength={200}
             onChange={e => { setForm(f => ({ ...f, description: e.target.value })); setShowSuggestions(true); }}
             onBlur={() => {
@@ -293,14 +372,32 @@ export const TransactionForm = ({
               <StickyNote className="w-3 h-3" />
               {t.notes} <span className="text-muted-foreground/50 font-normal normal-case">({locale === 'fr' ? 'optionnel' : 'optional'})</span>
             </Label>
-            {form.notes && (
-              <span className={`text-[10px] tabular-nums ${form.notes.length > 450 ? 'text-destructive' : 'text-muted-foreground/50'}`}>
-                {form.notes.length}/500
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {form.notes && (
+                <span className={`text-[10px] tabular-nums ${form.notes.length > 450 ? 'text-destructive' : 'text-muted-foreground/50'}`}>
+                  {form.notes.length}/500
+                </span>
+              )}
+              {voiceSupported && (
+                <VoiceMicButton
+                  listening={notesVoice.listening}
+                  onClick={() => (notesVoice.listening ? notesVoice.stop() : notesVoice.start())}
+                  title={isFr ? 'Dicter une note' : 'Dictate a note'}
+                />
+              )}
+            </div>
           </div>
           <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} maxLength={500} rows={2}
             className={`rounded-xl resize-none ${errors.notes ? 'border-destructive' : ''}`} placeholder={locale === 'fr' ? 'Ajoutez une note...' : 'Add a note...'} />
+          {(notesVoice.listening || notesVoice.interim) && (
+            <div className="text-[11px] text-primary flex items-center gap-1.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-destructive" />
+              </span>
+              <span className="italic truncate">{notesVoice.interim || (isFr ? 'Dictée en cours…' : 'Listening…')}</span>
+            </div>
+          )}
           {errors.notes && <p className="text-xs text-destructive">{errors.notes}</p>}
         </div>
       </div>
