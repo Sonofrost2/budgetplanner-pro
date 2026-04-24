@@ -34,13 +34,21 @@ Deno.serve(async (req) => {
 
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')!
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')!
-    const fromNumber = Deno.env.get('TWILIO_PHONE_NUMBER')!
+    // WhatsApp requires a number explicitly enabled for WhatsApp (sandbox or approved sender),
+    // which is generally NOT the same as TWILIO_PHONE_NUMBER (SMS-only).
+    const whatsappFromRaw = Deno.env.get('TWILIO_WHATSAPP_FROM') || Deno.env.get('TWILIO_PHONE_NUMBER')
+    if (!whatsappFromRaw) {
+      return new Response(JSON.stringify({ error: 'TWILIO_WHATSAPP_FROM not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
 
     // WhatsApp uses whatsapp: prefix on both From and To numbers
     const whatsappTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`
-    const whatsappFrom = `whatsapp:${fromNumber}`
+    const whatsappFrom = whatsappFromRaw.startsWith('whatsapp:') ? whatsappFromRaw : `whatsapp:${whatsappFromRaw}`
 
     const response = await fetch(twilioUrl, {
       method: 'POST',
