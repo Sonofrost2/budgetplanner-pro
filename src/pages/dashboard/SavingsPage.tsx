@@ -980,6 +980,10 @@ const SavingsPage = () => {
             <Calculator className={`w-4 h-4 mr-1 ${recalculating ? 'animate-spin' : ''}`} />
             {recalculating ? (locale === 'fr' ? 'Recalcul...' : 'Recalculating...') : (locale === 'fr' ? 'Recalculer soldes' : 'Recalculate')}
           </Button>
+          <Button size="sm" variant="outline" className="rounded-xl" onClick={handleExportExcel} disabled={filteredGoals.length === 0} title={locale === 'fr' ? 'Exporter la liste filtrée en Excel' : 'Export filtered list to Excel'}>
+            <Download className="w-4 h-4 mr-1" />
+            {locale === 'fr' ? 'Exporter Excel' : 'Export Excel'}
+          </Button>
           <Button size="sm" variant="outline" className="rounded-xl" onClick={handleSyncSavings} disabled={syncing}>
             <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? (t.syncing) : (t.syncSavings)}
