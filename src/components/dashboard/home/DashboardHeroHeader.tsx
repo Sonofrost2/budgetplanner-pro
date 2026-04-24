@@ -109,7 +109,6 @@ export const DashboardHeroHeader = ({
         locale: isFr ? 'fr' : 'en',
         body: { input: text, categories: cats || [], accounts: accs || [], locale },
       });
-      if (data?.error) throw new Error(data.error);
       if (!data?.description || typeof data.amount !== 'number') {
         throw new Error(isFr ? 'Saisie non comprise' : 'Could not parse input');
       }
