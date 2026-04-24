@@ -372,14 +372,32 @@ export const TransactionForm = ({
               <StickyNote className="w-3 h-3" />
               {t.notes} <span className="text-muted-foreground/50 font-normal normal-case">({locale === 'fr' ? 'optionnel' : 'optional'})</span>
             </Label>
-            {form.notes && (
-              <span className={`text-[10px] tabular-nums ${form.notes.length > 450 ? 'text-destructive' : 'text-muted-foreground/50'}`}>
-                {form.notes.length}/500
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {form.notes && (
+                <span className={`text-[10px] tabular-nums ${form.notes.length > 450 ? 'text-destructive' : 'text-muted-foreground/50'}`}>
+                  {form.notes.length}/500
+                </span>
+              )}
+              {voiceSupported && (
+                <VoiceMicButton
+                  listening={notesVoice.listening}
+                  onClick={() => (notesVoice.listening ? notesVoice.stop() : notesVoice.start())}
+                  title={isFr ? 'Dicter une note' : 'Dictate a note'}
+                />
+              )}
+            </div>
           </div>
           <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} maxLength={500} rows={2}
             className={`rounded-xl resize-none ${errors.notes ? 'border-destructive' : ''}`} placeholder={locale === 'fr' ? 'Ajoutez une note...' : 'Add a note...'} />
+          {(notesVoice.listening || notesVoice.interim) && (
+            <div className="text-[11px] text-primary flex items-center gap-1.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-destructive" />
+              </span>
+              <span className="italic truncate">{notesVoice.interim || (isFr ? 'Dictée en cours…' : 'Listening…')}</span>
+            </div>
+          )}
           {errors.notes && <p className="text-xs text-destructive">{errors.notes}</p>}
         </div>
       </div>
