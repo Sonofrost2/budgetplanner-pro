@@ -210,6 +210,63 @@ const SavingsPage = () => {
 
   const refreshData = async () => { await refetchSavings(); };
 
+  // Export the *currently filtered & sorted* goals to an .xlsx workbook.
+  // Honors: search, showCompleted toggle, sortField + sortOrder.
+  const handleExportExcel = async () => {
+    if (filteredGoals.length === 0) {
+      toast.error(locale === 'fr' ? 'Aucun objectif à exporter' : 'No goal to export');
+      return;
+    }
+    try {
+      const XLSX = await import('xlsx');
+      const isFr = locale === 'fr';
+      const rows = filteredGoals.map((g) => {
+        const target = Number(g.target_amount) || 0;
+        const current = Number(g.current_amount) || 0;
+        const pct = target > 0 ? Math.min(100, (current / target) * 100) : 0;
+        const status = (g as any).status === 'completed'
+          ? (isFr ? 'Atteint' : 'Completed')
+          : (g as any).paused_at
+            ? (isFr ? 'En pause' : 'Paused')
+            : (isFr ? 'Actif' : 'Active');
+        return {
+          [isFr ? 'Icône' : 'Icon']: g.icon || '',
+          [isFr ? 'Nom' : 'Name']: g.name,
+          [isFr ? 'Banque' : 'Bank']: (g as any).bank_name || '',
+          [isFr ? 'Statut' : 'Status']: status,
+          [isFr ? 'Épargné' : 'Saved']: current,
+          [isFr ? 'Objectif' : 'Target']: target,
+          [isFr ? 'Restant' : 'Remaining']: Math.max(0, target - current),
+          [isFr ? 'Progression %' : 'Progress %']: Number(pct.toFixed(1)),
+          [isFr ? 'Cotisation mensuelle' : 'Monthly contribution']: Number(g.monthly_contribution) || 0,
+          [isFr ? "Taux d'intérêt %" : 'Interest rate %']: Number((g as any).interest_rate) || 0,
+          [isFr ? 'Échéance' : 'Deadline']: g.deadline || '',
+          [isFr ? 'Verrouillé' : 'Locked']: (g as any).is_locked ? (isFr ? 'Oui' : 'Yes') : (isFr ? 'Non' : 'No'),
+          [isFr ? 'Devise' : 'Currency']: currency,
+        };
+      });
+      const ws = XLSX.utils.json_to_sheet(rows);
+      // Auto-size columns based on header + sample values
+      const headers = Object.keys(rows[0]);
+      ws['!cols'] = headers.map((h) => {
+        const maxLen = Math.max(
+          h.length,
+          ...rows.slice(0, 50).map((r) => String((r as any)[h] ?? '').length)
+        );
+        return { wch: Math.min(40, Math.max(10, maxLen + 2)) };
+      });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, isFr ? 'Épargne' : 'Savings');
+      const stamp = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `${isFr ? 'epargne' : 'savings'}-${stamp}.xlsx`);
+      coachToast.saved(isFr
+        ? `${rows.length} objectif(s) exporté(s)`
+        : `${rows.length} goal(s) exported`);
+    } catch (err: any) {
+      coachToast.fail(err?.message || 'Export error');
+    }
+  };
+
   // Force recalculate all current_amounts from transactions
   const [recalculating, setRecalculating] = useState(false);
   const handleRecalculate = async () => {
