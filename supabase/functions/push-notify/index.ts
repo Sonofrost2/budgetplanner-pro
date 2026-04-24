@@ -38,12 +38,12 @@ function concatUint8(...arrays: Uint8Array[]): Uint8Array {
 async function hmacSha256(key: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
-    key.length ? key : new Uint8Array(32),
+    (key.length ? key : new Uint8Array(32)) as BufferSource,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
   );
-  return new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, data));
+  return new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, data as BufferSource));
 }
 
 // ─── HKDF-SHA256 ───
@@ -86,7 +86,7 @@ async function encryptPayload(
 
   const clientPublicKey = await crypto.subtle.importKey(
     "raw",
-    clientPublicKeyBytes,
+    clientPublicKeyBytes as BufferSource,
     { name: "ECDH", namedCurve: "P-256" },
     false,
     []
@@ -121,14 +121,14 @@ async function encryptPayload(
 
   const key = await crypto.subtle.importKey(
     "raw",
-    contentEncryptionKey,
+    contentEncryptionKey as BufferSource,
     { name: "AES-GCM" },
     false,
     ["encrypt"]
   );
 
   const encrypted = new Uint8Array(
-    await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, plaintext)
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce as BufferSource }, key, plaintext as BufferSource)
   );
 
   const rs = new Uint8Array(4);
@@ -371,9 +371,10 @@ Deno.serve(async (req) => {
             `Push failed for ${sub.endpoint}: ${res.status} ${responseText}`
           );
         }
-      } catch (e) {
-        errors.push(e.message);
-        console.error("Push send error:", e);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        errors.push(msg);
+        console.error("Push send error:", msg);
       }
     }
 
@@ -404,9 +405,10 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (e) {
-    console.error("Push notify error:", e);
-    return new Response(JSON.stringify({ error: e.message }), {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    console.error("Push notify error:", message);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
