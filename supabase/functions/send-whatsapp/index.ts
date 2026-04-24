@@ -68,9 +68,10 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ success: true, sid: data.sid }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-  } catch (err) {
-    console.error('send-whatsapp error:', err)
-    return new Response(JSON.stringify({ error: err.message }), {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('send-whatsapp error:', message)
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
