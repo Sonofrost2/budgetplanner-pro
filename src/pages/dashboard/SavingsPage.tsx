@@ -188,8 +188,20 @@ const SavingsPage = () => {
       keyed.sort((a, b) => dir * collator.compare(a.k, b.k));
       result = keyed.map(x => x.g);
     } else {
-      const field = sortField;
-      const keyed = result.map(g => ({ g, k: Number(g[field]) || 0 }));
+      // Robust numeric sort: handles null/undefined, formatted strings, and negatives
+      const parseNumeric = (val: unknown): number => {
+        if (val == null) return 0;
+        if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+        if (typeof val === 'string') {
+          // Remove common formatting: spaces, commas, currency symbols
+          const cleaned = val.replace(/[\s,\u202f\u00a0]/g, '').replace(/[^\d.\-]/g, '');
+          const n = parseFloat(cleaned);
+          return Number.isFinite(n) ? n : 0;
+        }
+        return 0;
+      };
+      const field = sortField as 'current_amount' | 'target_amount';
+      const keyed = result.map(g => ({ g, k: parseNumeric(g[field]) }));
       keyed.sort((a, b) => dir * (a.k - b.k));
       result = keyed.map(x => x.g);
     }
