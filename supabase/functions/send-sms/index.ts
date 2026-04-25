@@ -35,7 +35,14 @@ Deno.serve(async (req) => {
 
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')!
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')!
-    const fromNumber = Deno.env.get('TWILIO_PHONE_NUMBER')!
+    // Prefer branded Alphanumeric Sender ID ("BudgetPlanner-Pro") so recipients
+    // never see the raw Twilio number. Falls back to the long-code if not set.
+    // Note: Alphanumeric sender IDs are 1-way only (no replies) and require
+    // destination-country support (CI/+225 OK, US/CA NOT supported).
+    const senderId = Deno.env.get('TWILIO_SMS_SENDER_ID')?.trim()
+    const fromNumber = senderId && senderId.length > 0
+      ? senderId
+      : Deno.env.get('TWILIO_PHONE_NUMBER')!
 
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
 
