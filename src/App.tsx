@@ -41,6 +41,7 @@ const AccountsPage = lazyWithRetry(() => import("./pages/dashboard/AccountsPage"
 const AdminPricingPage = lazyWithRetry(() => import("./pages/dashboard/AdminPricingPage"), "admin-pricing-page");
 const AdminUsersPage = lazyWithRetry(() => import("./pages/dashboard/AdminUsersPage"), "admin-users-page");
 const AdminSecurityPage = lazyWithRetry(() => import("./pages/dashboard/AdminSecurityPage"), "admin-security-page");
+const AdminSmsTemplatesPage = lazyWithRetry(() => import("./pages/dashboard/AdminSmsTemplatesPage"), "admin-sms-templates-page");
 const CategoriesPage = lazyWithRetry(() => import("./pages/dashboard/CategoriesPage"), "categories-page");
 const ReceiptsPage = lazyWithRetry(() => import("./pages/dashboard/ReceiptsPage"), "receipts-page");
 const FamilyPage = lazyWithRetry(() => import("./pages/dashboard/FamilyPage"), "family-page");
@@ -100,6 +101,7 @@ const AnimatedRoutes = () => {
             <Route path="admin/pricing" element={<AdminPricingPage />} />
             <Route path="admin/users" element={<AdminUsersPage />} />
             <Route path="admin/security" element={<AdminSecurityPage />} />
+            <Route path="admin/sms-templates" element={<AdminSmsTemplatesPage />} />
             <Route path="guide" element={<GuidePage />} />
           </Route>
           <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
