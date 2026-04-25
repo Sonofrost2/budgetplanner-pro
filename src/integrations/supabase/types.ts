@@ -1238,9 +1238,15 @@ export type Database = {
           error_code: string | null
           error_message: string | null
           id: string
+          last_status_at: string | null
           recipient: string
           sent_by: string | null
           status: string
+          status_delivered_at: string | null
+          status_failed_at: string | null
+          status_queued_at: string | null
+          status_sent_at: string | null
+          status_undelivered_at: string | null
           template_id: string | null
           twilio_sid: string | null
         }
@@ -1250,9 +1256,15 @@ export type Database = {
           error_code?: string | null
           error_message?: string | null
           id?: string
+          last_status_at?: string | null
           recipient: string
           sent_by?: string | null
           status?: string
+          status_delivered_at?: string | null
+          status_failed_at?: string | null
+          status_queued_at?: string | null
+          status_sent_at?: string | null
+          status_undelivered_at?: string | null
           template_id?: string | null
           twilio_sid?: string | null
         }
@@ -1262,9 +1274,15 @@ export type Database = {
           error_code?: string | null
           error_message?: string | null
           id?: string
+          last_status_at?: string | null
           recipient?: string
           sent_by?: string | null
           status?: string
+          status_delivered_at?: string | null
+          status_failed_at?: string | null
+          status_queued_at?: string | null
+          status_sent_at?: string | null
+          status_undelivered_at?: string | null
           template_id?: string | null
           twilio_sid?: string | null
         }

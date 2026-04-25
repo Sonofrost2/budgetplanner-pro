@@ -52,6 +52,9 @@ Deno.serve(async (req) => {
 
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
 
+    // Public webhook URL for delivery status callbacks
+    const statusCallbackUrl = `${Deno.env.get('SUPABASE_URL')!}/functions/v1/twilio-status-webhook`
+
     const response = await fetch(twilioUrl, {
       method: 'POST',
       headers: {
@@ -62,6 +65,7 @@ Deno.serve(async (req) => {
         To: to,
         From: fromNumber,
         Body: body,
+        StatusCallback: statusCallbackUrl,
       }),
     })
 
@@ -92,6 +96,8 @@ Deno.serve(async (req) => {
       body,
       twilio_sid: data.sid ?? null,
       status: data.status ?? 'sent',
+      status_queued_at: new Date().toISOString(),
+      last_status_at: new Date().toISOString(),
     })
 
     return new Response(JSON.stringify({ success: true, sid: data.sid }), {
