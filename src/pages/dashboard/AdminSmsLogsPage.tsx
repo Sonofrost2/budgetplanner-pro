@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
-import { History, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Search, Trash2 } from 'lucide-react';
+import { History, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Search, Trash2, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 import { SMS_TEMPLATES } from '@/lib/smsTemplates';
 
@@ -118,6 +118,123 @@ const AdminSmsLogsPage = () => {
     if (r.status_failed_at) steps.push({ key: 'failed', label: isFr ? 'Échec' : 'Failed', at: r.status_failed_at, tone: 'bad' });
     if (r.status_undelivered_at) steps.push({ key: 'undelivered', label: isFr ? 'Non livré' : 'Undelivered', at: r.status_undelivered_at, tone: 'bad' });
     return steps;
+  };
+
+  // ---- Diagnostic helpers ----
+  // Detect destination country from E.164 prefix (focus on West-Africa + a few common ones)
+  const detectCountry = (phone: string): { code: string; name_fr: string; name_en: string; carrierStrictAlpha: boolean } | null => {
+    const p = (phone || '').replace(/\s+/g, '');
+    const map: Array<{ prefix: string; code: string; name_fr: string; name_en: string; carrierStrictAlpha: boolean }> = [
+      { prefix: '+225', code: 'CI', name_fr: "Côte d'Ivoire", name_en: "Côte d'Ivoire", carrierStrictAlpha: true },
+      { prefix: '+221', code: 'SN', name_fr: 'Sénégal', name_en: 'Senegal', carrierStrictAlpha: true },
+      { prefix: '+229', code: 'BJ', name_fr: 'Bénin', name_en: 'Benin', carrierStrictAlpha: true },
+      { prefix: '+228', code: 'TG', name_fr: 'Togo', name_en: 'Togo', carrierStrictAlpha: true },
+      { prefix: '+226', code: 'BF', name_fr: 'Burkina Faso', name_en: 'Burkina Faso', carrierStrictAlpha: true },
+      { prefix: '+223', code: 'ML', name_fr: 'Mali', name_en: 'Mali', carrierStrictAlpha: true },
+      { prefix: '+227', code: 'NE', name_fr: 'Niger', name_en: 'Niger', carrierStrictAlpha: true },
+      { prefix: '+237', code: 'CM', name_fr: 'Cameroun', name_en: 'Cameroon', carrierStrictAlpha: true },
+      { prefix: '+33', code: 'FR', name_fr: 'France', name_en: 'France', carrierStrictAlpha: false },
+      { prefix: '+1', code: 'US', name_fr: 'USA / Canada', name_en: 'USA / Canada', carrierStrictAlpha: true },
+      { prefix: '+44', code: 'GB', name_fr: 'Royaume-Uni', name_en: 'United Kingdom', carrierStrictAlpha: false },
+    ];
+    const hit = map.find(m => p.startsWith(m.prefix));
+    return hit || null;
+  };
+
+  // Sender ID: alphanumeric if it contains any non-digit (after stripping +)
+  const isAlphanumericSender = (sid: string | null): boolean => {
+    if (!sid) return false;
+    const s = sid.replace(/^\+/, '').trim();
+    return /[A-Za-z]/.test(s);
+  };
+
+  type Cause = { tone: 'warn' | 'info' | 'bad'; title: string; detail: string };
+
+  const buildCauses = (r: LogRow): Cause[] => {
+    const causes: Cause[] = [];
+    const country = detectCountry(r.recipient);
+    const status = (r.status || '').toLowerCase();
+    const sentSid = (r.twilio_sid || '').toString();
+    // Twilio doesn't expose the From in our log; infer alpha sender from configured env via heuristic on body length & status.
+    // We at least flag the alphanumeric-likely scenario when destination is in a strict-alpha country and message is delivered but unconfirmed.
+    const alphaLikely = country?.carrierStrictAlpha && status !== 'failed' && status !== 'undelivered';
+
+    // 1) Alphanumeric Sender ID filtering (carrier-side)
+    if (alphaLikely && country) {
+      causes.push({
+        tone: 'warn',
+        title: isFr
+          ? `Filtrage probable du Sender ID alphanumérique (${country.name_fr})`
+          : `Likely alphanumeric Sender ID filtering (${country.name_en})`,
+        detail: isFr
+          ? "Les opérateurs locaux (Orange, MTN, Moov) bloquent souvent les expéditeurs alphanumériques non pré-enregistrés. Réessayer avec le long-code Twilio pour confirmer."
+          : 'Local carriers (Orange, MTN, Moov) often block non-registered alphanumeric senders. Retry from the Twilio long-code to confirm.',
+      });
+    }
+
+    // 2) Anti-spam keywords / promotional content
+    const body = (r.body || '').toLowerCase();
+    const spammy = ['gratuit', 'free', 'promo', 'gagn', 'win', 'urgent', 'click', 'cliquez', 'offre', 'cadeau'];
+    const matched = spammy.filter(k => body.includes(k));
+    if (matched.length > 0) {
+      causes.push({
+        tone: 'warn',
+        title: isFr ? 'Contenu potentiellement filtré par anti-spam' : 'Content possibly flagged by anti-spam',
+        detail: isFr
+          ? `Mots-clés détectés : ${matched.join(', ')}. Reformuler en évitant un ton promotionnel.`
+          : `Keywords detected: ${matched.join(', ')}. Reword avoiding promotional tone.`,
+      });
+    }
+
+    // 3) Carrier delay (delivered to carrier, not yet to handset)
+    if (status === 'sent' && !r.status_delivered_at) {
+      causes.push({
+        tone: 'info',
+        title: isFr ? "Délai opérateur en cours" : 'Carrier delay in progress',
+        detail: isFr
+          ? "Twilio a remis le SMS à l'opérateur mais aucune confirmation de livraison reçue. Délai habituel : 10 s à 5 min, parfois plus."
+          : 'Twilio handed the SMS to the carrier but no delivery confirmation yet. Usual delay: 10s to 5 min, sometimes more.',
+      });
+    }
+
+    // 4) Delivered to carrier but reported as failed/undelivered
+    if (status === 'failed' || status === 'undelivered') {
+      causes.push({
+        tone: 'bad',
+        title: isFr ? "Rejet opérateur ou destinataire" : 'Carrier or handset rejection',
+        detail: r.error_code
+          ? (isFr
+              ? `Code Twilio ${r.error_code}. Vérifier la documentation Twilio pour la cause exacte (numéro invalide, blocage, etc.).`
+              : `Twilio code ${r.error_code}. Check Twilio docs for exact cause (invalid number, block, etc.).`)
+          : (isFr
+              ? "Aucun code d'erreur précis : souvent un blocage anti-spam carrier ou un numéro inactif."
+              : 'No precise error code: often a carrier anti-spam block or inactive number.'),
+      });
+    }
+
+    // 5) Number format check
+    if (!r.recipient.startsWith('+')) {
+      causes.push({
+        tone: 'bad',
+        title: isFr ? 'Format de numéro non E.164' : 'Number not in E.164 format',
+        detail: isFr
+          ? "Le destinataire devrait commencer par un '+' suivi de l'indicatif pays. Twilio peut rejeter ou mal router."
+          : "Recipient should start with '+' followed by country code. Twilio may reject or misroute.",
+      });
+    }
+
+    // 6) Recommended next check (if nothing else flagged)
+    if (causes.length === 0 && (status === 'delivered' || status === 'sent')) {
+      causes.push({
+        tone: 'info',
+        title: isFr ? 'Aucun problème détecté côté envoi' : 'No sending-side issue detected',
+        detail: isFr
+          ? "Si le destinataire ne reçoit rien, vérifier son dossier SMS bloqués/spam ou demander un test depuis un autre opérateur."
+          : 'If the recipient gets nothing, check their blocked/spam SMS folder or test from another carrier.',
+      });
+    }
+
+    return causes;
   };
 
   if (roleLoading) return <div className="p-6 text-sm text-muted-foreground">{isFr ? 'Chargement…' : 'Loading…'}</div>;
@@ -327,6 +444,35 @@ const AdminSmsLogsPage = () => {
                                 </p>
                               </div>
                             )}
+                            {/* Causes possibles */}
+                            <div>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                                <Lightbulb className="w-3 h-3" />
+                                {isFr ? 'Causes possibles & vérifications' : 'Possible causes & checks'}
+                              </span>
+                              <div className="mt-2 space-y-1.5">
+                                {buildCauses(r).map((c, i) => {
+                                  const toneClass =
+                                    c.tone === 'bad'
+                                      ? 'border-destructive/30 bg-destructive/5'
+                                      : c.tone === 'warn'
+                                        ? 'border-amber-500/30 bg-amber-500/5'
+                                        : 'border-border/40 bg-background/40';
+                                  const titleClass =
+                                    c.tone === 'bad'
+                                      ? 'text-destructive'
+                                      : c.tone === 'warn'
+                                        ? 'text-amber-700 dark:text-amber-300'
+                                        : 'text-foreground';
+                                  return (
+                                    <div key={i} className={`p-2 rounded-lg border ${toneClass}`}>
+                                      <p className={`text-[11px] font-semibold ${titleClass}`}>{c.title}</p>
+                                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{c.detail}</p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
