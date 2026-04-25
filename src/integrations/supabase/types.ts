@@ -1231,6 +1231,33 @@ export type Database = {
           },
         ]
       }
+      sms_template_overrides: {
+        Row: {
+          body_en: string
+          body_fr: string
+          created_at: string
+          template_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body_en: string
+          body_fr: string
+          created_at?: string
+          template_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body_en?: string
+          body_fr?: string
+          created_at?: string
+          template_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           active: boolean
