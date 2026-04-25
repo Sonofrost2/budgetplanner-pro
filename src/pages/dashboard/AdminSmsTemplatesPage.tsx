@@ -179,7 +179,7 @@ const AdminSmsTemplatesPage = () => {
     const body = lang === 'fr' ? previewFr : previewEn;
     if (!body.trim()) { toast.error(isFr ? 'Message vide' : 'Empty message'); return; }
     setSending(true);
-    const { data, error } = await supabase.functions.invoke('send-sms', { body: { to: phone, body } });
+    const { data, error } = await supabase.functions.invoke('send-sms', { body: { to: phone, body, template_id: activeId } });
     setSending(false);
     if (error || (data as any)?.error) {
       toast.error((error?.message || (data as any)?.error) ?? 'Error');
