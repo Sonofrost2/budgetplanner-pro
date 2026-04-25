@@ -167,3 +167,34 @@ export function renderTemplate(
   if (!tpl) return '';
   return tpl.build(vars, locale);
 }
+
+/** Render an arbitrary template body string with {placeholders}. */
+export function renderBody(
+  body: string,
+  vars: Record<string, string | number> = {},
+): string {
+  return fmt(body, vars);
+}
+
+/** Extract unique {placeholder} names from a template body. */
+export function extractPlaceholders(body: string): string[] {
+  const set = new Set<string>();
+  const re = /\{(\w+)\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(body)) !== null) set.add(m[1]);
+  return Array.from(set);
+}
+
+/** Default body strings (FR/EN) for each template, derived from the built-in builders. */
+export function getDefaultBodies(id: SmsTemplateId): { fr: string; en: string } {
+  // Build with identity-preserving placeholders so {x} stays as {x}.
+  const sample = SMS_TEMPLATE_SAMPLES[id] || {};
+  const placeholderVars: Record<string, string> = {};
+  for (const k of Object.keys(sample)) placeholderVars[k] = `{${k}}`;
+  const tpl = SMS_TEMPLATES.find((t) => t.id === id);
+  if (!tpl) return { fr: '', en: '' };
+  return {
+    fr: tpl.build(placeholderVars, 'fr'),
+    en: tpl.build(placeholderVars, 'en'),
+  };
+}
