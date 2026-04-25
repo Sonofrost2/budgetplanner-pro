@@ -83,7 +83,7 @@ const SmsTestCard = ({ locale }: Props) => {
     setLastSid(null);
     try {
       const { data, error } = await supabase.functions.invoke('send-sms', {
-        body: { to: check.value, body: bodyTrim },
+        body: { to: check.value, body: bodyTrim, template_id: templateId },
       });
       if (error) throw error;
       const sid = (data as { sid?: string })?.sid ?? null;

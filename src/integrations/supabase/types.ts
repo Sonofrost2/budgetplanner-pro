@@ -1231,6 +1231,45 @@ export type Database = {
           },
         ]
       }
+      sms_send_logs: {
+        Row: {
+          body: string
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          id: string
+          recipient: string
+          sent_by: string | null
+          status: string
+          template_id: string | null
+          twilio_sid: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          recipient: string
+          sent_by?: string | null
+          status?: string
+          template_id?: string | null
+          twilio_sid?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          recipient?: string
+          sent_by?: string | null
+          status?: string
+          template_id?: string | null
+          twilio_sid?: string | null
+        }
+        Relationships: []
+      }
       sms_template_overrides: {
         Row: {
           body_en: string

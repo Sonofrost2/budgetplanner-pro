@@ -134,6 +134,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
           { key: 'adminUsers', icon: Users, path: '/dashboard/admin/users' },
           { key: 'adminSecurity', icon: Shield, path: '/dashboard/admin/security' },
           { key: 'adminSmsTemplates', icon: Bell, path: '/dashboard/admin/sms-templates' },
+          { key: 'adminSmsLogs', icon: Bell, path: '/dashboard/admin/sms-logs' },
         ] : []),
       ],
     },
