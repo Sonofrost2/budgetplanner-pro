@@ -24,6 +24,12 @@ type LogRow = {
   error_message: string | null;
   error_code: string | null;
   created_at: string;
+  status_queued_at: string | null;
+  status_sent_at: string | null;
+  status_delivered_at: string | null;
+  status_failed_at: string | null;
+  status_undelivered_at: string | null;
+  last_status_at: string | null;
 };
 
 const PAGE_SIZE = 50;
@@ -93,6 +99,25 @@ const AdminSmsLogsPage = () => {
     return d.toLocaleString(isFr ? 'fr-FR' : 'en-US', {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
+  };
+
+  const fmtTime = (iso: string | null) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    return d.toLocaleTimeString(isFr ? 'fr-FR' : 'en-US', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+  };
+
+  const buildTimeline = (r: LogRow) => {
+    const steps: Array<{ key: string; label: string; at: string | null; tone: 'pending' | 'ok' | 'bad' }> = [
+      { key: 'queued', label: isFr ? 'En file' : 'Queued', at: r.status_queued_at, tone: 'ok' },
+      { key: 'sent', label: isFr ? 'Envoyé' : 'Sent', at: r.status_sent_at, tone: 'ok' },
+      { key: 'delivered', label: isFr ? 'Livré' : 'Delivered', at: r.status_delivered_at, tone: 'ok' },
+    ];
+    if (r.status_failed_at) steps.push({ key: 'failed', label: isFr ? 'Échec' : 'Failed', at: r.status_failed_at, tone: 'bad' });
+    if (r.status_undelivered_at) steps.push({ key: 'undelivered', label: isFr ? 'Non livré' : 'Undelivered', at: r.status_undelivered_at, tone: 'bad' });
+    return steps;
   };
 
   if (roleLoading) return <div className="p-6 text-sm text-muted-foreground">{isFr ? 'Chargement…' : 'Loading…'}</div>;
@@ -256,6 +281,40 @@ const AdminSmsLogsPage = () => {
                       <TableRow className="bg-muted/20 hover:bg-muted/20">
                         <TableCell colSpan={6} className="py-3">
                           <div className="space-y-2 text-xs">
+                            <div>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{isFr ? 'Chronologie Twilio' : 'Twilio timeline'}</span>
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                {buildTimeline(r).map((step) => {
+                                  const reached = !!step.at;
+                                  const isBad = step.tone === 'bad';
+                                  return (
+                                    <div
+                                      key={step.key}
+                                      className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] ${
+                                        reached
+                                          ? isBad
+                                            ? 'border-destructive/30 bg-destructive/5 text-destructive'
+                                            : 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300'
+                                          : 'border-border/40 bg-background/40 text-muted-foreground'
+                                      }`}
+                                    >
+                                      {reached ? (
+                                        isBad ? <XCircle className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />
+                                      ) : (
+                                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                                      )}
+                                      <span className="font-medium">{step.label}</span>
+                                      <span className="font-mono opacity-80">{reached ? fmtTime(step.at) : '—'}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {r.last_status_at && (
+                                <p className="mt-1.5 text-[10px] text-muted-foreground">
+                                  {isFr ? 'Dernière mise à jour' : 'Last update'}: {fmtDate(r.last_status_at)}
+                                </p>
+                              )}
+                            </div>
                             <div>
                               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{isFr ? 'Message' : 'Message'}</span>
                               <p className="mt-1 p-2 rounded-lg bg-background/60 border border-border/40 whitespace-pre-wrap break-words">{r.body}</p>
