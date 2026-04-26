@@ -27,10 +27,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const { to, body } = await req.json()
+    const { to, body, template_id } = await req.json()
     if (!to || !body) {
       return new Response(JSON.stringify({ error: 'Missing "to" or "body"' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
+
+    const adminDb = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
 
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')!
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')!
@@ -67,11 +72,25 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       console.error('Twilio WhatsApp error:', data)
+      await adminDb.from('sms_send_logs').insert({
+        sent_by: user.id, recipient: to, template_id: template_id ?? null,
+        body, twilio_sid: null, status: 'failed', channel: 'whatsapp',
+        error_message: data.message ?? 'Twilio error',
+        error_code: data.code ? String(data.code) : null,
+      })
       return new Response(JSON.stringify({ error: data.message || 'Twilio error', code: data.code }), {
         status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    await adminDb.from('sms_send_logs').insert({
+      sent_by: user.id, recipient: to, template_id: template_id ?? null,
+      body, twilio_sid: data.sid ?? null, status: data.status ?? 'sent',
+      channel: 'whatsapp',
+      status_queued_at: new Date().toISOString(),
+      last_status_at: new Date().toISOString(),
+    })
 
     return new Response(JSON.stringify({ success: true, sid: data.sid }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
