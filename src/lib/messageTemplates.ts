@@ -48,7 +48,7 @@ export const MESSAGE_TEMPLATE_SAMPLES: Record<MessageTemplateId, Record<string, 
 type DefaultBody = { fr: string; en: string };
 type EmailDefault = { subject_fr: string; subject_en: string; html_fr: string; html_en: string };
 
-export const DEFAULT_BODIES: Record<MessageChannel, Record<MessageTemplateId, DefaultBody>> = {
+export const DEFAULT_BODIES: Record<Exclude<MessageChannel, 'email'>, Record<MessageTemplateId, DefaultBody>> = {
   sms: {
     welcome: {
       fr: 'Bienvenue {name} sur {appName} ! Votre Coach Financier est pret a vous accompagner.',
