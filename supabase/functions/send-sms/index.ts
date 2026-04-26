@@ -80,6 +80,7 @@ Deno.serve(async (req) => {
         body,
         twilio_sid: null,
         status: 'failed',
+        channel: 'sms',
         error_message: data.message ?? 'Twilio error',
         error_code: data.code ? String(data.code) : null,
       })
@@ -96,6 +97,7 @@ Deno.serve(async (req) => {
       body,
       twilio_sid: data.sid ?? null,
       status: data.status ?? 'sent',
+      channel: 'sms',
       status_queued_at: new Date().toISOString(),
       last_status_at: new Date().toISOString(),
     })
