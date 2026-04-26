@@ -141,6 +141,19 @@ function checklist(items: string[]): string {
 // ─── Templates ───────────────────────────────────────────────────────
 const templates: Record<string, (data: Record<string, unknown>) => { subject: string; html: string }> = {
 
+  'generic': (data) => ({
+    subject: String(data.subject || data.title || 'Notification — Budget Planner'),
+    html: data.html
+      ? String(data.html)
+      : wrapHtml({
+          title: String(data.title || 'Notification'),
+          heroEmoji: '📬',
+          heroLabel: String(data.title || 'Notification'),
+          accent: 'primary',
+          body: `${greeting(data.displayName as string)}${paragraph(String(data.body || ''))}`,
+        }),
+  }),
+
   'confirm-signup': (data) => ({
     subject: '✉️ Confirmez votre compte — Budget Planner',
     html: wrapHtml({
