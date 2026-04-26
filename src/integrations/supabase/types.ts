@@ -671,6 +671,48 @@ export type Database = {
           },
         ]
       }
+      message_template_overrides: {
+        Row: {
+          body_en: string
+          body_fr: string
+          channel: string
+          created_at: string
+          html_en: string | null
+          html_fr: string | null
+          subject_en: string | null
+          subject_fr: string | null
+          template_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body_en: string
+          body_fr: string
+          channel?: string
+          created_at?: string
+          html_en?: string | null
+          html_fr?: string | null
+          subject_en?: string | null
+          subject_fr?: string | null
+          template_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body_en?: string
+          body_fr?: string
+          channel?: string
+          created_at?: string
+          html_en?: string | null
+          html_fr?: string | null
+          subject_en?: string | null
+          subject_fr?: string | null
+          template_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       notification_history: {
         Row: {
           body: string | null
@@ -1234,6 +1276,7 @@ export type Database = {
       sms_send_logs: {
         Row: {
           body: string
+          channel: string
           created_at: string
           error_code: string | null
           error_message: string | null
@@ -1252,6 +1295,7 @@ export type Database = {
         }
         Insert: {
           body: string
+          channel?: string
           created_at?: string
           error_code?: string | null
           error_message?: string | null
@@ -1270,6 +1314,7 @@ export type Database = {
         }
         Update: {
           body?: string
+          channel?: string
           created_at?: string
           error_code?: string | null
           error_message?: string | null
@@ -1285,33 +1330,6 @@ export type Database = {
           status_undelivered_at?: string | null
           template_id?: string | null
           twilio_sid?: string | null
-        }
-        Relationships: []
-      }
-      sms_template_overrides: {
-        Row: {
-          body_en: string
-          body_fr: string
-          created_at: string
-          template_id: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          body_en: string
-          body_fr: string
-          created_at?: string
-          template_id: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          body_en?: string
-          body_fr?: string
-          created_at?: string
-          template_id?: string
-          updated_at?: string
-          updated_by?: string | null
         }
         Relationships: []
       }
