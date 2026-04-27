@@ -9,6 +9,7 @@ import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useInvalidate, useSavingsPageData } from '@/hooks/useDashboardData';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
 import { savingsGoalSchema, validateForm } from '@/lib/validationSchemas';
+import { currencySymbol } from '@/lib/currency';
 
 interface SavingsContribution {
   id: string;
@@ -1169,7 +1170,7 @@ const SavingsPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <InputField
                 label={t.targetAmount}
-                prefix={locale === 'fr' ? 'FCFA' : '$'}
+                prefix={currencySymbol(currency)}
                 type="number"
                 min="1"
                 step="0.01"
@@ -1178,13 +1179,13 @@ const SavingsPage = () => {
               />
               <InputField
                 label={t.savingsMonthlyContribution}
-                prefix={locale === 'fr' ? 'FCFA' : '$'}
+                prefix={currencySymbol(currency)}
                 type="number"
                 min="0"
                 step="0.01"
                 value={form.monthly_contribution}
                 onChange={e => setForm(f => ({ ...f, monthly_contribution: e.target.value }))}
-                placeholder={locale === 'fr' ? 'Ex: 50 000' : 'E.g. 500'}
+                placeholder="0"
               />
             </div>
           </FormSection>
@@ -1303,6 +1304,7 @@ const SavingsPage = () => {
         sourceAccountId={sourceAccountId} setSourceAccountId={setSourceAccountId}
         accounts={accounts} goal={goals.find(g => g.id === addAmountDialog)}
         onSave={handleAddAmount} saving={saving} t={t} locale={locale}
+        currency={currency}
       />
 
       <WithdrawDialog
@@ -1312,6 +1314,7 @@ const SavingsPage = () => {
         targetAccountId={targetAccountId} setTargetAccountId={setTargetAccountId}
         accounts={accounts} goal={currentGoalForWithdraw}
         onSave={handleWithdraw} saving={saving} fmt={fmt} t={t} locale={locale}
+        currency={currency}
       />
 
       {partialWithdrawId && (() => {

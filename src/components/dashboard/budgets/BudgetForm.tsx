@@ -9,6 +9,7 @@ import { FormSection } from '@/components/ui/form-section';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { TrendingUp, TrendingDown, Calendar, Tag, Settings2, BarChart3, CalendarClock } from 'lucide-react';
 import { computeAnnualizedAmount } from '@/lib/budgetProjection';
+import { currencySymbol } from '@/lib/currency';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
 const VALID_PERIODS = ['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'] as const;
@@ -35,7 +36,7 @@ interface BudgetFormProps {
 
 export const BudgetForm = ({
   open, onOpenChange, editId, form, setForm, errors, saving, onSave,
-  allCategories, fmt, t, locale, currency = 'FCFA',
+  allCategories, fmt, t, locale, currency = 'EUR',
 }: BudgetFormProps) => {
   const isFr = locale === 'fr';
   const filteredCategories = useMemo(() =>
@@ -123,7 +124,7 @@ export const BudgetForm = ({
               type="number" min="1" step="0.01"
               value={form.amount}
               onChange={e => setForm(f => ({ ...f, amount: (e.target as HTMLInputElement).value }))}
-              prefix={currency}
+              prefix={currencySymbol(currency)}
               label={form.control_type === 'min' ? t.target : t.budgetAmount}
               error={errors.amount}
               placeholder="0"

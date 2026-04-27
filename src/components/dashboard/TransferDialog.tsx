@@ -8,6 +8,7 @@ import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { currencySymbol } from '@/lib/currency';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
 interface Account {
@@ -30,7 +31,7 @@ interface TransferDialogProps {
   currency?: string;
 }
 
-export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSuccess, defaultFromAccountId, defaultToAccountId, defaultAmount, defaultDescription, currency = 'FCFA' }: TransferDialogProps) => {
+export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSuccess, defaultFromAccountId, defaultToAccountId, defaultAmount, defaultDescription, currency = 'EUR' }: TransferDialogProps) => {
   const [fromAccountId, setFromAccountId] = useState(defaultFromAccountId || '');
   const [toAccountId, setToAccountId] = useState(defaultToAccountId || '');
   const [amount, setAmount] = useState(defaultAmount || '');
@@ -167,7 +168,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
           type="number" step="0.01"
           value={amount}
           onChange={e => setAmount((e.target as HTMLInputElement).value)}
-          prefix={currency}
+          prefix={currencySymbol(currency)}
           label={t.amount}
           error={errors.amount}
           placeholder="0"

@@ -41,7 +41,7 @@ type SortOrder = 'asc' | 'desc';
 const TransactionsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
+  const { fmt: fmtCurrency, currency } = useProfile();
   const { limits, isPremium, isPaid, canExportAdvanced, canUseAISuggestions } = useSubscription();
   const t = dashT[locale];
   const [searchParams] = useSearchParams();
@@ -897,6 +897,7 @@ const TransactionsPage = () => {
         canUseAISuggestions={canUseAISuggestions}
         t={t}
         locale={locale}
+        currency={currency}
       />
 
       <ConfirmDeleteDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} onConfirm={handleDelete} title={t.confirmDelete} description={t.confirmDeleteMessage} cancelLabel={t.cancel} confirmLabel={t.delete} />
@@ -913,6 +914,7 @@ const TransactionsPage = () => {
         defaultToAccountId={transferDefaults.to}
         defaultAmount={transferDefaults.amount}
         defaultDescription={transferDefaults.description}
+        currency={currency}
       />}
 
       <BulkModifyDialog

@@ -242,7 +242,7 @@ export const SavingsHeroHeader = ({
           >
             <Sparkles className="w-3.5 h-3.5 text-primary" />
             {isFr
-              ? 'Pas encore d\'objectif ? Commencez par un petit défi — même 5 000 FCFA/mois change tout 💡'
+              ? 'Pas encore d\'objectif ? Commencez par un petit défi — même un petit montant mensuel change tout 💡'
               : 'No goal yet? Start with a small challenge — even small monthly amounts add up 💡'}
           </motion.div>
         )}

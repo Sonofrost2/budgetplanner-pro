@@ -13,6 +13,7 @@ import { useFamilyCategories } from '@/hooks/useFamilyCategories';
 import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote, Users, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { currencySymbol } from '@/lib/currency';
 import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
@@ -47,7 +48,7 @@ interface TransactionFormProps {
 
 export const TransactionForm = ({
   open, onOpenChange, editing, form, setForm, errors, saving, onSave,
-  categories, accounts, recentDescriptions, canUseAISuggestions, t, locale, currency = 'FCFA',
+  categories, accounts, recentDescriptions, canUseAISuggestions, t, locale, currency = 'EUR',
 }: TransactionFormProps) => {
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -178,7 +179,7 @@ export const TransactionForm = ({
             type="number" min="0.01" step="0.01"
             value={form.amount}
             onChange={e => setForm(f => ({ ...f, amount: (e.target as HTMLInputElement).value }))}
-            prefix={currency}
+            prefix={currencySymbol(currency)}
             label={t.amount}
             error={errors.amount}
             placeholder="0"
