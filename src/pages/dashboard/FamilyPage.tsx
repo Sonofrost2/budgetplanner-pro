@@ -323,7 +323,7 @@ const FamilyPage = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setInviteOpen(false)} disabled={inviting}>Annuler</Button>
             <Button onClick={handleInvite} disabled={!inviteEmail.trim() || inviting} className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
-              {inviting ? 'Envoi…' : 'Envoyer l\'invitation'}
+              {inviting ? (locale === 'fr' ? 'Envoi…' : 'Sending…') : (locale === 'fr' ? "Envoyer l'invitation" : 'Send invitation')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -333,8 +333,10 @@ const FamilyPage = () => {
         open={!!deleteGroupId}
         onOpenChange={(o) => !o && setDeleteGroupId(null)}
         onConfirm={handleDeleteGroup}
-        title="Supprimer ce groupe ?"
-        description="Cette action supprime définitivement le groupe, ses invitations et budgets partagés. Les transactions des membres ne sont pas affectées."
+        title={locale === 'fr' ? 'Supprimer ce groupe ?' : 'Delete this group?'}
+        description={locale === 'fr'
+          ? 'Cette action supprime définitivement le groupe, ses invitations et budgets partagés. Les transactions des membres ne sont pas affectées.'
+          : 'This permanently deletes the group, its invitations, and shared budgets. Members\' transactions are not affected.'}
       />
     </div>
   );
