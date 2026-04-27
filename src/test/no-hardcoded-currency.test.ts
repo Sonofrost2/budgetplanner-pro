@@ -73,6 +73,13 @@ const PATTERNS: Array<{ name: string; re: RegExp }> = [
   // "$" as money prefix/suffix in a string literal (skip "${...}" templates)
   { name: '$ as money prefix',     re: /['"`][^'"`{}]*\$\s?\d[^'"`{}]*['"`]/ },
   { name: '$ as money suffix',     re: /['"`][^'"`{}]*\d\s?\$[^'"`{}]*['"`]/ },
+
+  // JSX text node containing a currency symbol next to a digit, e.g.
+  //   <span>€50</span>  or  >100 € <
+  // We require >…< boundaries so we only match real JSX text, not code.
+  { name: 'JSX text with currency+digit', re: />[^<>{}]*([€£₦¥]\s?\d|\d\s?[€£₦¥]|\$\s?\d|\d\s?\$)[^<>{}]*</ },
+  // JSX text with literal "FCFA" between tags
+  { name: 'JSX text with FCFA',     re: />[^<>{}]*\bFCFA\b[^<>{}]*</ },
 ];
 
 /** Lines containing any of these markers are tolerated (per-line opt-out). */
