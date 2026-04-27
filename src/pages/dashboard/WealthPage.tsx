@@ -33,7 +33,7 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { WealthProjectionChart } from '@/components/dashboard/wealth/WealthProjectionChart';
-import { currencySymbol, exampleAmount } from '@/lib/currency';
+import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 import { exportWealthPDF, exportWealthExcel } from '@/lib/wealthExport';
 import { useSubscription } from '@/hooks/useSubscription';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
@@ -824,7 +824,7 @@ const WealthPage = () => {
           <FormSection title={isFr ? 'Valorisation' : 'Valuation'} icon={<TrendingUp className="w-3.5 h-3.5" />}>
             <div className="grid grid-cols-2 gap-3">
               <InputField
-                label={(isFr ? 'Valeur actuelle' : 'Current Value') + ' *'}
+                label={amountLabel(isFr ? 'Valeur actuelle' : 'Current Value', currency) + ' *'}
                 prefix={currencySymbol(currency)}
                 type="number"
                 min="0"
@@ -836,7 +836,7 @@ const WealthPage = () => {
                 className="text-lg font-bold"
               />
               <InputField
-                label={`${isFr ? 'Coût d\'acquisition' : 'Acquisition Cost'} (${isFr ? 'optionnel' : 'optional'})`}
+                label={`${amountLabel(isFr ? 'Coût d\'acquisition' : 'Acquisition Cost', currency)} · ${isFr ? 'optionnel' : 'optional'}`}
                 prefix={currencySymbol(currency)}
                 type="number"
                 min="0"
