@@ -47,7 +47,7 @@ interface TransactionFormProps {
 
 export const TransactionForm = ({
   open, onOpenChange, editing, form, setForm, errors, saving, onSave,
-  categories, accounts, recentDescriptions, canUseAISuggestions, t, locale, currency = 'FCFA',
+  categories, accounts, recentDescriptions, canUseAISuggestions, t, locale, currency = 'EUR',
 }: TransactionFormProps) => {
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -178,7 +178,7 @@ export const TransactionForm = ({
             type="number" min="0.01" step="0.01"
             value={form.amount}
             onChange={e => setForm(f => ({ ...f, amount: (e.target as HTMLInputElement).value }))}
-            prefix={currency}
+            prefix={currencySymbol(currency)}
             label={t.amount}
             error={errors.amount}
             placeholder="0"

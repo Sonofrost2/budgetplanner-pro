@@ -28,7 +28,7 @@ interface SimulationResult {
 // ─── Add Contribution Dialog ──────────────────────────
 export const AddContributionDialog = ({
   open, onClose, amount, setAmount, sourceAccountId, setSourceAccountId,
-  accounts, goal, onSave, saving, t, locale, currency = 'FCFA'
+  accounts, goal, onSave, saving, t, locale, currency = 'EUR'
 }: {
   open: boolean; onClose: () => void; amount: string; setAmount: (v: string) => void;
   sourceAccountId: string; setSourceAccountId: (v: string) => void;
@@ -55,7 +55,7 @@ export const AddContributionDialog = ({
         type="number" min="0.01" step="0.01"
         value={amount}
         onChange={e => setAmount((e.target as HTMLInputElement).value)}
-        prefix={currency}
+        prefix={currencySymbol(currency)}
         label={t.amount}
         placeholder="0"
       />
@@ -77,7 +77,7 @@ export const AddContributionDialog = ({
 // ─── Withdraw Dialog ──────────────────────────────────
 export const WithdrawDialog = ({
   open, onClose, amount, setAmount, targetAccountId, setTargetAccountId,
-  accounts, goal, onSave, saving, fmt, t, locale, currency = 'FCFA'
+  accounts, goal, onSave, saving, fmt, t, locale, currency = 'EUR'
 }: {
   open: boolean; onClose: () => void; amount: string; setAmount: (v: string) => void;
   targetAccountId: string; setTargetAccountId: (v: string) => void;
@@ -108,7 +108,7 @@ export const WithdrawDialog = ({
         type="number" min="0.01" step="0.01" max={goal?.current_amount || 0}
         value={amount}
         onChange={e => setAmount((e.target as HTMLInputElement).value)}
-        prefix={currency}
+        prefix={currencySymbol(currency)}
         label={t.withdrawAmount}
         placeholder="0"
       />

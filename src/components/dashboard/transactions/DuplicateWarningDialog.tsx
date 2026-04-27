@@ -13,7 +13,10 @@ interface Props {
   locale?: string;
 }
 
-export const DuplicateWarningDialog = ({ open, onOpenChange, duplicates, onConfirm, currency = 'FCFA', locale = 'fr' }: Props) => {
+import { currencySymbol } from '@/lib/currency';
+
+export const DuplicateWarningDialog = ({ open, onOpenChange, duplicates, onConfirm, currency = 'EUR', locale = 'fr' }: Props) => {
+  const sym = currencySymbol(currency);
   const fr = locale === 'fr';
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -35,7 +38,7 @@ export const DuplicateWarningDialog = ({ open, onOpenChange, duplicates, onConfi
             <div key={d.id} className="p-3 rounded-lg border border-border bg-muted/30">
               <div className="flex justify-between items-start gap-2">
                 <span className="font-medium text-sm truncate">{d.description}</span>
-                <span className="text-sm font-semibold whitespace-nowrap">{Number(d.amount).toLocaleString()} {currency}</span>
+                <span className="text-sm font-semibold whitespace-nowrap">{Number(d.amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} {sym}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {new Date(d.created_at).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}
