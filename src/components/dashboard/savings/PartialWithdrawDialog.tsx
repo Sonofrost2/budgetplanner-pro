@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { ArrowDownToLine } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { coachToast } from '@/lib/coachToast';
+import { exampleAmount } from '@/lib/currency';
+import { useProfile } from '@/hooks/useProfile';
 
 interface Props {
   open: boolean;
@@ -19,6 +21,7 @@ interface Props {
 
 export const PartialWithdrawDialog = ({ open, onOpenChange, goal, accounts, onWithdrawn, locale = 'fr' }: Props) => {
   const fr = locale === 'fr';
+  const { currency } = useProfile();
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState('');
   const [saving, setSaving] = useState(false);
@@ -60,7 +63,7 @@ export const PartialWithdrawDialog = ({ open, onOpenChange, goal, accounts, onWi
       <div className="space-y-3">
         <InputField type="number" min="0.01" step="0.01" value={amount}
           onChange={e => setAmount((e.target as HTMLInputElement).value)}
-          label={fr ? 'Montant' : 'Amount'} placeholder="0" />
+          label={fr ? 'Montant' : 'Amount'} placeholder={exampleAmount(currency, locale)} />
         <div className="space-y-2">
           <Label className="form-label">{fr ? 'Compte de destination' : 'Destination account'}</Label>
           <AccountCombobox accounts={accounts} value={accountId} onValueChange={setAccountId}
