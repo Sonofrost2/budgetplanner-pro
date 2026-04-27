@@ -90,7 +90,10 @@ export async function requirePlan(
     { global: { headers: { Authorization: authHeader } } },
   );
 
-  const { data: userData, error: userError } = await userClient.auth.getUser();
+  // Pass the JWT explicitly — relying on session storage in Deno does not work
+  // and `auth.getUser()` without args returns "Auth session missing" → 401.
+  const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const { data: userData, error: userError } = await userClient.auth.getUser(jwt);
   if (userError || !userData?.user) {
     return {
       ok: false,
