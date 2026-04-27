@@ -331,6 +331,75 @@ const OnboardingPage = () => {
             </div>
           )}
 
+          {currentStep === 'notifications' && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-xl font-bold font-display flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-primary" />
+                  {isFr ? 'Vos canaux de notification' : 'Your notification channels'}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isFr
+                    ? 'Choisissez comment votre Coach Financier vous contacte. Modifiable à tout moment.'
+                    : 'Choose how your Financial Coach reaches you. Editable anytime.'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="onb-phone">{isFr ? 'Téléphone (optionnel)' : 'Phone (optional)'}</Label>
+                <Input
+                  id="onb-phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+225 07 08 09 09 10"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {isFr
+                    ? 'Format international (+225...). Requis pour SMS et WhatsApp.'
+                    : 'International format (+225...). Required for SMS and WhatsApp.'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <ChannelRow
+                  icon={Bell}
+                  title={isFr ? 'Notifications push' : 'Push notifications'}
+                  desc={isFr ? 'Alertes en temps réel sur ce navigateur / mobile' : 'Real-time alerts in this browser / mobile'}
+                  checked={notifPush}
+                  onChange={setNotifPush}
+                />
+                <ChannelRow
+                  icon={Mail}
+                  title="Email"
+                  desc={isFr ? 'Résumés et alertes importantes' : 'Digests and important alerts'}
+                  checked={notifEmail}
+                  onChange={setNotifEmail}
+                />
+                <ChannelRow
+                  icon={Smartphone}
+                  title="SMS"
+                  desc={isFr ? 'Alertes critiques (échéances, gros mouvements)' : 'Critical alerts (deadlines, large moves)'}
+                  checked={notifSms && !!phone.trim()}
+                  onChange={setNotifSms}
+                  disabled={!phone.trim()}
+                  disabledHint={isFr ? 'Renseignez un numéro pour activer' : 'Add a phone number to enable'}
+                />
+                <ChannelRow
+                  icon={MessageSquare}
+                  title="WhatsApp"
+                  desc={isFr ? 'Reçus de paiement et confirmations' : 'Payment receipts and confirmations'}
+                  checked={notifWhatsapp && !!phone.trim()}
+                  onChange={setNotifWhatsapp}
+                  disabled={!phone.trim()}
+                  disabledHint={isFr ? 'Renseignez un numéro pour activer' : 'Add a phone number to enable'}
+                />
+              </div>
+            </div>
+          )}
+
           {currentStep === 'accounts' && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold font-display flex items-center gap-2">
