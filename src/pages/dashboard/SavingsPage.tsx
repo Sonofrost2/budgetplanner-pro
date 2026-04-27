@@ -1304,6 +1304,7 @@ const SavingsPage = () => {
         sourceAccountId={sourceAccountId} setSourceAccountId={setSourceAccountId}
         accounts={accounts} goal={goals.find(g => g.id === addAmountDialog)}
         onSave={handleAddAmount} saving={saving} t={t} locale={locale}
+        currency={currency}
       />
 
       <WithdrawDialog
@@ -1313,6 +1314,7 @@ const SavingsPage = () => {
         targetAccountId={targetAccountId} setTargetAccountId={setTargetAccountId}
         accounts={accounts} goal={currentGoalForWithdraw}
         onSave={handleWithdraw} saving={saving} fmt={fmt} t={t} locale={locale}
+        currency={currency}
       />
 
       {partialWithdrawId && (() => {
