@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/i18n/LanguageContext';
 
 interface Account {
   id: string;
@@ -23,25 +24,38 @@ interface AccountComboboxProps {
   groupByType?: boolean;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  mobile_money: '📱 Mobile Money',
-  bank: '🏦 Banque',
-  cash: '💵 Espèces',
-  card: '💳 Carte',
-  savings: '🏦 Épargne',
+const TYPE_LABELS: Record<'fr' | 'en', Record<string, string>> = {
+  fr: {
+    mobile_money: '📱 Mobile Money',
+    bank: '🏦 Banque',
+    cash: '💵 Espèces',
+    card: '💳 Carte',
+    savings: '🏦 Épargne',
+  },
+  en: {
+    mobile_money: '📱 Mobile Money',
+    bank: '🏦 Bank',
+    cash: '💵 Cash',
+    card: '💳 Card',
+    savings: '🏦 Savings',
+  },
 };
 
 export const AccountCombobox = ({
   accounts,
   value,
   onValueChange,
-  placeholder = 'Sélectionner un compte...',
+  placeholder,
   excludeId,
   className,
   error,
   groupByType = true,
 }: AccountComboboxProps) => {
   const [open, setOpen] = useState(false);
+  const { language } = useLanguage();
+  const fr = language === 'fr';
+  const labels = TYPE_LABELS[fr ? 'fr' : 'en'];
+  const ph = placeholder ?? (fr ? 'Sélectionner un compte...' : 'Select an account...');
 
   const filteredAccounts = useMemo(
     () => (excludeId ? accounts.filter(a => a.id !== excludeId) : accounts),
