@@ -317,37 +317,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ────── Daily budget ──────
-      if (prefDailyBudget) {
-        const expenseBudgets = budgets.filter((b: any) => (b.budget_type || 'expense') === 'expense');
-        let weeklyExpenseTarget = 0;
-        for (const b of expenseBudgets) {
-          const period = b.period || 'monthly';
-          if (period === 'daily') weeklyExpenseTarget += Number(b.amount) * 7;
-          else if (period === 'weekly') weeklyExpenseTarget += Number(b.amount);
-          else if (period === 'monthly') weeklyExpenseTarget += Number(b.amount) / (30.44 / 7);
-          else if (period === 'quarterly') weeklyExpenseTarget += Number(b.amount) / (91.31 / 7);
-          else if (period === 'semi_annual') weeklyExpenseTarget += Number(b.amount) / (182.62 / 7);
-          else if (period === 'yearly') weeklyExpenseTarget += Number(b.amount) / (365.25 / 7);
-        }
-        const dailyBudgetTarget = weeklyExpenseTarget / 7;
-        if (dailyBudgetTarget > 0) {
-          const todaysExpenses = allTxs.filter((tx: any) => tx.type === 'expense' && tx.date === todayStr);
-          const todaySpent = todaysExpenses.reduce((s: number, tx: any) => s + Number(tx.amount), 0);
-          const dailyPct = (todaySpent / dailyBudgetTarget) * 100;
-          if (dailyPct >= 100) {
-            alerts.push({
-              title: isFr ? "🔥 Budget du jour dépassé !" : "🔥 Daily budget exceeded!",
-              body: isFr
-                ? `${Math.round(todaySpent).toLocaleString()} dépensés (${Math.round(dailyPct)}% de ${Math.round(dailyBudgetTarget).toLocaleString()})`
-                : `${Math.round(todaySpent).toLocaleString()} spent (${Math.round(dailyPct)}% of ${Math.round(dailyBudgetTarget).toLocaleString()})`,
-              notification_type: "daily_budget_exceeded",
-              dedup_key: `daily_exceeded_${todayStr}`,
-              critical: true,
-            });
-          }
-        }
-      }
+      // Daily budget alert removed — caused false positives (rythme normal en
+      // début de semaine déclenchait l'alerte). Le digest matinal et les seuils
+      // par budget couvrent déjà ce besoin sans fatiguer l'utilisateur.
 
       // ────── Recurring reminders — J-5, J-2, J-0 only ──────
       if (prefRecurring) {
