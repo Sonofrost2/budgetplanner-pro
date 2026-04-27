@@ -547,3 +547,42 @@ const OnboardingPage = () => {
 };
 
 export default OnboardingPage;
+
+const ChannelRow = ({
+  icon: Icon,
+  title,
+  desc,
+  checked,
+  onChange,
+  disabled,
+  disabledHint,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  disabledHint?: string;
+}) => (
+  <label
+    className={`flex items-start gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${
+      disabled ? 'opacity-60 cursor-not-allowed border-border/40' : checked ? 'border-primary/40 bg-primary/5' : 'border-border hover:border-primary/30'
+    }`}
+  >
+    <Checkbox
+      checked={checked}
+      onCheckedChange={(v) => onChange(v === true)}
+      disabled={disabled}
+      className="mt-0.5"
+    />
+    <Icon className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-medium leading-tight">{title}</p>
+      <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+      {disabled && disabledHint && (
+        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">{disabledHint}</p>
+      )}
+    </div>
+  </label>
+);
