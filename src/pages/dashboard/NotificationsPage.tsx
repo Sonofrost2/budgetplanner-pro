@@ -92,11 +92,12 @@ const NotificationsPage = () => {
   const { locale } = useLanguage();
   const isFr = locale === 'fr';
   const { prefs, loading } = useNotificationPreferences();
+  const { currency } = useProfile();
 
   // Simulated clock for the preview (defaults to "now")
   const [simHour, setSimHour] = useState<number>(new Date().getHours());
 
-  const mocks = useMemo(() => buildMocks(isFr), [isFr]);
+  const mocks = useMemo(() => buildMocks(isFr, currency), [isFr, currency]);
 
   const simulatedNow = useMemo(() => {
     const d = new Date();
