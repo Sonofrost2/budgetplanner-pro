@@ -151,7 +151,7 @@ const AdminPricingPage = () => {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Kpi icon={DollarSign} label="MRR" value={`${fmt(kpis.mrr, locale)} XOF`} sub={isFr ? 'Estimé' : 'Estimated'} accent="primary" />
+            <Kpi icon={DollarSign} label="MRR" value={fmt(kpis.mrr, locale)} sub={isFr ? 'Estimé' : 'Estimated'} accent="primary" />
             <Kpi icon={Users} label={isFr ? 'Abonnés actifs' : 'Active subs'} value={String(kpis.activeCount)} sub={`/ ${kpis.totalCount} ${isFr ? 'total' : 'total'}`} accent="secondary" />
             <Kpi icon={TrendingUp} label={isFr ? 'Conversion' : 'Conversion'} value={`${kpis.totalCount > 0 ? Math.round((kpis.activeCount / kpis.totalCount) * 100) : 0}%`} sub={isFr ? 'Actifs / Total' : 'Active / Total'} accent="accent" />
             <Kpi icon={Activity} label="Churn" value={`${kpis.churn.toFixed(1)}%`} sub={isFr ? 'Taux annulation' : 'Cancel rate'} accent="warning" />
@@ -355,9 +355,9 @@ const AdminPricingPage = () => {
                   {isFr ? 'Revenus estimés' : 'Estimated revenue'}
                 </h3>
                 <div className="space-y-3 text-xs">
-                  <Stat label={isFr ? 'MRR (Mensuel)' : 'MRR (Monthly)'} value={`${fmt(kpis.mrr, locale)} XOF`} />
-                  <Stat label={isFr ? 'ARR projeté' : 'Projected ARR'} value={`${fmt(kpis.mrr * 12, locale)} XOF`} />
-                  <Stat label={isFr ? 'Revenu moyen / abonné' : 'Avg revenue / sub'} value={`${kpis.activeCount > 0 ? fmt(Math.round(kpis.mrr / kpis.activeCount), locale) : '0'} XOF`} />
+                  <Stat label={isFr ? 'MRR (Mensuel)' : 'MRR (Monthly)'} value={fmt(kpis.mrr, locale)} />
+                  <Stat label={isFr ? 'ARR projeté' : 'Projected ARR'} value={fmt(kpis.mrr * 12, locale)} />
+                  <Stat label={isFr ? 'Revenu moyen / abonné' : 'Avg revenue / sub'} value={kpis.activeCount > 0 ? fmt(Math.round(kpis.mrr / kpis.activeCount), locale) : fmt(0, locale)} />
                   <Stat label={isFr ? 'Total abonnés (vie)' : 'Lifetime subs'} value={String(kpis.totalCount)} />
                 </div>
               </CardContent>

@@ -148,13 +148,13 @@ export const SMS_TEMPLATES: SmsTemplate[] = [
 export const SMS_TEMPLATE_SAMPLES: Record<SmsTemplateId, Record<string, string | number>> = {
   test_ping: {},
   welcome: { name: 'Cedric' },
-  budget_alert: { category: 'Alimentation', percent: 92, spent: '46 000 XOF', limit: '50 000 XOF' },
-  large_transaction: { amount: '125 000 XOF', account: 'Wave', description: 'Loyer' },
-  low_balance: { account: 'Orange Money', balance: '2 500 XOF' },
-  goal_reached: { goal: 'Vacances', amount: '500 000 XOF' },
-  recurring_due: { description: 'Abonnement Netflix', amount: '6 500 XOF', date: '01/12' },
-  weekly_summary: { income: '180 000 XOF', expense: '95 000 XOF', balance: '+85 000 XOF' },
-  payment_receipt: { amount: '5 000 XOF', plan: 'Pro' },
+  budget_alert: { category: 'Alimentation', percent: 92, spent: '46 000 FCFA', limit: '50 000 FCFA' },
+  large_transaction: { amount: '125 000 FCFA', account: 'Wave', description: 'Loyer' },
+  low_balance: { account: 'Orange Money', balance: '2 500 FCFA' },
+  goal_reached: { goal: 'Vacances', amount: '500 000 FCFA' },
+  recurring_due: { description: 'Abonnement Netflix', amount: '6 500 FCFA', date: '01/12' },
+  weekly_summary: { income: '180 000 FCFA', expense: '95 000 FCFA', balance: '+85 000 FCFA' },
+  payment_receipt: { amount: '5 000 FCFA', plan: 'Pro' },
   subscription_expiry: { plan: 'Pro', date: '15/12/2026' },
 };
 
