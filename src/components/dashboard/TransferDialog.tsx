@@ -9,6 +9,7 @@ import { ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { currencySymbol, exampleAmount } from '@/lib/currency';
+import { useLanguage } from '@/i18n/LanguageContext';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
 interface Account {
@@ -32,6 +33,7 @@ interface TransferDialogProps {
 }
 
 export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSuccess, defaultFromAccountId, defaultToAccountId, defaultAmount, defaultDescription, currency = 'EUR' }: TransferDialogProps) => {
+  const { locale } = useLanguage();
   const [fromAccountId, setFromAccountId] = useState(defaultFromAccountId || '');
   const [toAccountId, setToAccountId] = useState(defaultToAccountId || '');
   const [amount, setAmount] = useState(defaultAmount || '');
