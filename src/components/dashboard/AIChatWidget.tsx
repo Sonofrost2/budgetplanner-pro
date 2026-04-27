@@ -199,10 +199,18 @@ const AIChatWidget = () => {
         // ignore invalid JSON error body
       }
 
-      if (resp.status === 401) {
-        const sessionExpired = locale === 'fr' ? 'Session expirée. Reconnecte-toi.' : 'Session expired. Please sign in again.';
+      // Localize auth failures (401/403) — never surface raw "Unauthorized"
+      // / "Missing authorization header" / "invalid JWT" strings to the user.
+      const looksAuth =
+        resp.status === 401 ||
+        resp.status === 403 ||
+        /unauthor|missing auth|invalid (jwt|token)|jwt expired|sub claim/i.test(errorMessage);
+      if (looksAuth) {
+        const sessionExpired = locale === 'fr'
+          ? 'Session expirée. Reconnecte-toi pour continuer à discuter avec le Coach.'
+          : 'Session expired. Please sign in again to continue chatting with the Coach.';
         coachToast.fail(sessionExpired);
-        throw new Error('Unauthorized');
+        throw new Error('auth_expired');
       }
 
       coachToast.fail(errorMessage);
