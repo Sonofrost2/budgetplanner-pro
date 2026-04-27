@@ -326,7 +326,7 @@ export const DashboardHeroHeader = ({
                   if (e.key === 'Enter') { e.preventDefault(); handleQuickParse(); }
                   if (e.key === 'Escape') { setQuickOpen(false); setQuickInput(''); }
                 }}
-                placeholder={isFr ? 'Ex: Café 1500, Taxi 3k, Salaire 250000…' : 'e.g. Coffee 1500, Taxi 3k, Salary 250000…'}
+                placeholder={quickPh}
                 disabled={quickLoading}
                 maxLength={500}
                 className="h-9 rounded-xl bg-background/70 border-primary/25 focus-visible:ring-primary/40 text-sm flex-1 min-w-0"
