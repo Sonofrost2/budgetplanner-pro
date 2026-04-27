@@ -12,6 +12,7 @@ import { Plus, Pencil, Trash2, FolderTree, Sparkles, ShieldCheck } from 'lucide-
 import { toast } from 'sonner';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import type { Tables } from '@/integrations/supabase/types';
+import { useLanguage } from '@/i18n/LanguageContext';
 
 const ICON_PALETTE = ['👨‍👩‍👧', '🛒', '🏠', '👶', '💊', '🎉', '🚗', '🎒', '🍽️', '📚', '🐾', '🎁', '✈️', '⚡', '📁'];
 const COLOR_PALETTE = ['#8B5CF6', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899', '#10B981', '#6366F1', '#F97316', '#14B8A6'];
@@ -25,6 +26,8 @@ type FamilyCat = Tables<'family_categories'>;
 
 export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
   const { user } = useAuth();
+  const { locale } = useLanguage();
+  const fr = locale === 'fr';
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<FamilyCat | null>(null);
@@ -76,14 +79,14 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
         .eq('id', editing.id);
       setSaving(false);
       if (error) { toast.error(error.message); return; }
-      toast.success('Catégorie mise à jour ✨');
+      toast.success(fr ? 'Catégorie mise à jour ✨' : 'Category updated ✨');
     } else {
       const { error } = await supabase
         .from('family_categories')
         .insert({ group_id: groupId, name: form.name.trim(), icon: form.icon, color: form.color, created_by: user.id });
       setSaving(false);
       if (error) { toast.error(error.message); return; }
-      toast.success('Catégorie famille créée 🎉');
+      toast.success(fr ? 'Catégorie famille créée 🎉' : 'Family category created 🎉');
     }
     setDialogOpen(false);
     invalidate();
@@ -94,7 +97,7 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
     const { error } = await supabase.from('family_categories').delete().eq('id', deletingId);
     if (error) { toast.error(error.message); return; }
     setDeletingId(null);
-    toast.success('Catégorie supprimée');
+    toast.success(fr ? 'Catégorie supprimée' : 'Category deleted');
     invalidate();
   };
 
@@ -111,18 +114,20 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
             </div>
             <div className="space-y-1 min-w-0">
               <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                Catégories partagées
+                {fr ? 'Catégories partagées' : 'Shared categories'}
                 <Badge variant="outline" className="border-primary/40 text-primary text-[10px] gap-1 h-5">
-                  <ShieldCheck className="w-2.5 h-2.5" />Synchronisées
+                  <ShieldCheck className="w-2.5 h-2.5" />{fr ? 'Synchronisées' : 'Synced'}
                 </Badge>
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Ces catégories sont visibles par tous les membres. Quand un membre tague une transaction avec l'une d'elles, elle devient partagée dans le groupe.
+                {fr
+                  ? "Ces catégories sont visibles par tous les membres. Quand un membre tague une transaction avec l'une d'elles, elle devient partagée dans le groupe."
+                  : 'These categories are visible to all members. When a member tags a transaction with one of them, it becomes shared in the group.'}
               </p>
             </div>
           </div>
           <Button onClick={openNew} size="sm" className="text-primary-foreground shrink-0" style={{ background: 'var(--gradient-primary)' }}>
-            <Plus className="w-4 h-4 mr-1" />Nouvelle
+            <Plus className="w-4 h-4 mr-1" />{fr ? 'Nouvelle' : 'New'}
           </Button>
         </CardContent>
       </Card>
@@ -136,9 +141,11 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <Sparkles className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground mb-4">Aucune catégorie famille — crée la première pour commencer à partager !</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              {fr ? 'Aucune catégorie famille — crée la première pour commencer à partager !' : 'No family categories yet — create the first one to start sharing!'}
+            </p>
             <Button onClick={openNew} size="sm" variant="outline">
-              <Plus className="w-4 h-4 mr-1" />Créer une catégorie
+              <Plus className="w-4 h-4 mr-1" />{fr ? 'Créer une catégorie' : 'Create a category'}
             </Button>
           </CardContent>
         </Card>
@@ -158,7 +165,7 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{cat.name}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {cat.created_by === user?.id ? 'Créée par vous' : 'Créée par un membre'}
+                      {cat.created_by === user?.id ? (fr ? 'Créée par vous' : 'Created by you') : (fr ? 'Créée par un membre' : 'Created by a member')}
                     </p>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -168,7 +175,7 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
                       className="h-8 w-8"
                       onClick={() => openEdit(cat)}
                       disabled={!editable}
-                      title={editable ? 'Modifier' : 'Seul le créateur ou le propriétaire peut modifier'}
+                      title={editable ? (fr ? 'Modifier' : 'Edit') : (fr ? 'Seul le créateur ou le propriétaire peut modifier' : 'Only the creator or owner can edit')}
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
@@ -178,7 +185,7 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => setDeletingId(cat.id)}
                       disabled={!editable}
-                      title={editable ? 'Supprimer' : 'Seul le créateur ou le propriétaire peut supprimer'}
+                      title={editable ? (fr ? 'Supprimer' : 'Delete') : (fr ? 'Seul le créateur ou le propriétaire peut supprimer' : 'Only the creator or owner can delete')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
@@ -194,24 +201,26 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Modifier la catégorie' : 'Nouvelle catégorie famille'}</DialogTitle>
+            <DialogTitle>{editing ? (fr ? 'Modifier la catégorie' : 'Edit category') : (fr ? 'Nouvelle catégorie famille' : 'New family category')}</DialogTitle>
             <DialogDescription>
-              {editing ? 'Modifiez le nom, l\'icône ou la couleur. Les transactions déjà taguées restent liées.' : 'Cette catégorie sera visible par tous les membres du groupe.'}
+              {editing
+                ? (fr ? "Modifiez le nom, l'icône ou la couleur. Les transactions déjà taguées restent liées." : 'Edit the name, icon, or color. Transactions already tagged stay linked.')
+                : (fr ? 'Cette catégorie sera visible par tous les membres du groupe.' : 'This category will be visible to all group members.')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Nom</Label>
+              <Label>{fr ? 'Nom' : 'Name'}</Label>
               <Input
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="Ex: Courses ménage"
+                placeholder={fr ? 'Ex : Courses ménage' : 'E.g. Household groceries'}
                 maxLength={50}
                 autoFocus
               />
             </div>
             <div className="space-y-2">
-              <Label>Icône</Label>
+              <Label>{fr ? 'Icône' : 'Icon'}</Label>
               <div className="flex flex-wrap gap-1.5">
                 {ICON_PALETTE.map(icon => (
                   <button
@@ -228,7 +237,7 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Couleur</Label>
+              <Label>{fr ? 'Couleur' : 'Color'}</Label>
               <div className="flex flex-wrap gap-2">
                 {COLOR_PALETTE.map(color => (
                   <button
@@ -250,20 +259,20 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
                 {form.icon}
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Aperçu</p>
-                <p className="text-sm font-semibold">{form.name || 'Nom de la catégorie'}</p>
+                <p className="text-xs text-muted-foreground">{fr ? 'Aperçu' : 'Preview'}</p>
+                <p className="text-sm font-semibold">{form.name || (fr ? 'Nom de la catégorie' : 'Category name')}</p>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Annuler</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>{fr ? 'Annuler' : 'Cancel'}</Button>
             <Button
               onClick={handleSave}
               disabled={!form.name.trim() || saving}
               className="text-primary-foreground"
               style={{ background: 'var(--gradient-primary)' }}
             >
-              {saving ? 'Enregistrement…' : editing ? 'Enregistrer' : 'Créer'}
+              {saving ? (fr ? 'Enregistrement…' : 'Saving…') : editing ? (fr ? 'Enregistrer' : 'Save') : (fr ? 'Créer' : 'Create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -273,8 +282,10 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
         open={!!deletingId}
         onOpenChange={(o) => !o && setDeletingId(null)}
         onConfirm={handleDelete}
-        title="Supprimer cette catégorie ?"
-        description="Les transactions déjà taguées avec cette catégorie ne seront plus visibles dans le groupe famille (mais resteront dans les comptes personnels des membres)."
+        title={fr ? 'Supprimer cette catégorie ?' : 'Delete this category?'}
+        description={fr
+          ? 'Les transactions déjà taguées avec cette catégorie ne seront plus visibles dans le groupe famille (mais resteront dans les comptes personnels des membres).'
+          : 'Transactions already tagged with this category will no longer appear in the family group (but stay in members\' personal accounts).'}
       />
     </div>
   );
