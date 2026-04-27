@@ -1,4 +1,5 @@
-import { parsePhoneNumberFromString, AsYouType, type CountryCode } from 'libphonenumber-js';
+import { parsePhoneNumberFromString, AsYouType, getExampleNumber, type CountryCode } from 'libphonenumber-js';
+import examples from 'libphonenumber-js/examples.mobile.json';
 import { findCountryByCode } from './countries';
 
 /** Validate a national-format number against a country code. Returns the E.164 string if valid. */
@@ -51,6 +52,26 @@ export const getNationalPart = (e164: string): string => {
   try {
     const parsed = parsePhoneNumberFromString(e164);
     return parsed?.nationalNumber ?? '';
+  } catch {
+    return '';
+  }
+};
+
+/** Get a realistic national-format placeholder for a country (e.g. "07 08 09 10 11" for CI). */
+export const getExampleNational = (countryCode: string): string => {
+  try {
+    const ex = getExampleNumber(countryCode.toUpperCase() as CountryCode, examples as never);
+    return ex?.formatNational() ?? '';
+  } catch {
+    return '';
+  }
+};
+
+/** Get a realistic E.164 international example for a country (e.g. "+2250708091011"). */
+export const getExampleE164 = (countryCode: string): string => {
+  try {
+    const ex = getExampleNumber(countryCode.toUpperCase() as CountryCode, examples as never);
+    return ex?.number ?? '';
   } catch {
     return '';
   }

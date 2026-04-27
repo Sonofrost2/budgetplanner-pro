@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { COUNTRIES, DEFAULT_COUNTRY_CODE, findCountryByCode, getOrderedCountries, type Country } from '@/lib/countries';
-import { formatAsYouType, validatePhone } from '@/lib/phoneValidation';
+import { formatAsYouType, validatePhone, getExampleNational } from '@/lib/phoneValidation';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -39,6 +39,7 @@ export const CountryPhoneInput = ({
 
   const ordered = useMemo(() => getOrderedCountries(locale), [locale]);
   const country = findCountryByCode(countryCode) || findCountryByCode(DEFAULT_COUNTRY_CODE)!;
+  const placeholder = useMemo(() => getExampleNational(country.code) || '', [country.code]);
 
   // Sync national input when value changes externally
   useEffect(() => {
@@ -129,7 +130,7 @@ export const CountryPhoneInput = ({
             value={national}
             onChange={(e) => handleNationalChange(e.target.value)}
             onBlur={() => setTouched(true)}
-            placeholder={locale === 'fr' ? '07 08 09 10' : '07 08 09 10'}
+            placeholder={placeholder}
             required={required}
             className={cn(
               'pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60',
