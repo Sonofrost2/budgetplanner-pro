@@ -21,6 +21,8 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/dashboard/AppSidebar';
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
 import DashboardBreadcrumb from '@/components/dashboard/Breadcrumb';
+import DemoBanner from '@/components/dashboard/DemoBanner';
+import { isDemoUserEmail } from '@/lib/demo';
 
 const DashboardLayout = () => {
   useRealtimeSync();
@@ -42,6 +44,12 @@ const DashboardLayout = () => {
 
   useEffect(() => {
     if (!user) return;
+    // Demo account skips onboarding regardless of DB flag
+    if (isDemoUserEmail(user.email)) {
+      setProfile({ display_name: 'Compte Démo', onboarding_completed: true, avatar_url: null });
+      setUserPlan(null);
+      return;
+    }
     supabase.from('profiles').select('display_name, onboarding_completed, avatar_url').eq('user_id', user.id).single()
       .then(({ data }) => {
         setProfile(data);
