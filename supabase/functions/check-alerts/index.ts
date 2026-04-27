@@ -389,7 +389,8 @@ Deno.serve(async (req) => {
                 dedup_key: `savings_contrib_${goal.id}_${now.getFullYear()}m${now.getMonth()}`,
                 reference_id: goal.id,
               });
-            } else if (daysUntil === 5 || daysUntil === 2) {
+            } else if ((daysUntil === 5 || daysUntil === 2) && totalContributed < (Number(goal.monthly_contribution) || 0) * 0.9) {
+              // Ne plus rappeler J-5/J-2 si l'utilisateur a déjà cotisé le besoin
               alerts.push({
                 title: isFr ? `🐷 Cotisation dans ${daysUntil}j` : `🐷 Contribution in ${daysUntil}d`,
                 body: `${goal.icon} ${goal.name}: ${Math.round(Number(goal.monthly_contribution || 0)).toLocaleString()}`,
@@ -410,8 +411,16 @@ Deno.serve(async (req) => {
           }
           if (monthlyNeeded <= 0) continue;
 
+          // ⚠️ Garde-fou anti-faux-positif : si contribution_day est dans le futur,
+          // l'utilisateur n'est PAS en retard. Grâce de 2j après le jour J.
+          if (goal.contribution_day) {
+            const cd = Number(goal.contribution_day);
+            if (todayDay < cd) continue;
+            if (todayDay - cd < 2 && totalContributed === 0) continue;
+          }
+
           // Status reminders — once per cadence window only
-          if (totalContributed === 0 && !(goal.contribution_day && todayDay === Number(goal.contribution_day))) {
+          if (totalContributed === 0) {
             alerts.push({
               title: isFr ? "🐷 Rappel épargne" : "🐷 Savings reminder",
               body: `${goal.icon} ${isFr ? "Aucun versement ce mois pour" : "No contribution this month for"} ${goal.name}`,
