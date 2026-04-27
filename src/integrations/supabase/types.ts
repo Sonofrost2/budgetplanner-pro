@@ -79,6 +79,36 @@ export type Database = {
           },
         ]
       }
+      alert_resolutions: {
+        Row: {
+          alert_type: string
+          cancelled_count: number
+          id: string
+          reason: string
+          reference_id: string
+          resolved_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          cancelled_count?: number
+          id?: string
+          reason: string
+          reference_id: string
+          resolved_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          cancelled_count?: number
+          id?: string
+          reason?: string
+          reference_id?: string
+          resolved_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asset_valuations: {
         Row: {
           asset_id: string
@@ -754,18 +784,25 @@ export type Database = {
           balance_discrepancy: boolean
           budget_alerts: boolean
           budget_projections: boolean
+          coach_channels: string[]
           created_at: string
           daily_budget: boolean
+          deadline_lead_days: number[]
           debt_alerts: boolean
           evening_capture_enabled: boolean
           evening_capture_hour: number
+          evening_digest_enabled: boolean
+          evening_digest_hour: number
           goal_reached: boolean
           id: string
           large_transaction: boolean
           large_transaction_threshold: number
           low_balance: boolean
           low_balance_threshold: number
+          max_email_per_day: number
           max_push_per_day: number
+          max_sms_per_day: number
+          max_whatsapp_per_day: number
           morning_digest_enabled: boolean
           morning_digest_hour: number
           notify_payment_failure: boolean
@@ -775,9 +812,11 @@ export type Database = {
           notify_via_whatsapp: boolean
           quiet_hours_enabled: boolean
           quiet_hours_end: number
+          quiet_hours_mode: string
           quiet_hours_start: number
           recurring_reminders: boolean
           savings_reminders: boolean
+          smart_grouping_enabled: boolean
           status_reminder_frequency: string
           updated_at: string
           user_id: string
@@ -787,18 +826,25 @@ export type Database = {
           balance_discrepancy?: boolean
           budget_alerts?: boolean
           budget_projections?: boolean
+          coach_channels?: string[]
           created_at?: string
           daily_budget?: boolean
+          deadline_lead_days?: number[]
           debt_alerts?: boolean
           evening_capture_enabled?: boolean
           evening_capture_hour?: number
+          evening_digest_enabled?: boolean
+          evening_digest_hour?: number
           goal_reached?: boolean
           id?: string
           large_transaction?: boolean
           large_transaction_threshold?: number
           low_balance?: boolean
           low_balance_threshold?: number
+          max_email_per_day?: number
           max_push_per_day?: number
+          max_sms_per_day?: number
+          max_whatsapp_per_day?: number
           morning_digest_enabled?: boolean
           morning_digest_hour?: number
           notify_payment_failure?: boolean
@@ -808,9 +854,11 @@ export type Database = {
           notify_via_whatsapp?: boolean
           quiet_hours_enabled?: boolean
           quiet_hours_end?: number
+          quiet_hours_mode?: string
           quiet_hours_start?: number
           recurring_reminders?: boolean
           savings_reminders?: boolean
+          smart_grouping_enabled?: boolean
           status_reminder_frequency?: string
           updated_at?: string
           user_id: string
@@ -820,18 +868,25 @@ export type Database = {
           balance_discrepancy?: boolean
           budget_alerts?: boolean
           budget_projections?: boolean
+          coach_channels?: string[]
           created_at?: string
           daily_budget?: boolean
+          deadline_lead_days?: number[]
           debt_alerts?: boolean
           evening_capture_enabled?: boolean
           evening_capture_hour?: number
+          evening_digest_enabled?: boolean
+          evening_digest_hour?: number
           goal_reached?: boolean
           id?: string
           large_transaction?: boolean
           large_transaction_threshold?: number
           low_balance?: boolean
           low_balance_threshold?: number
+          max_email_per_day?: number
           max_push_per_day?: number
+          max_sms_per_day?: number
+          max_whatsapp_per_day?: number
           morning_digest_enabled?: boolean
           morning_digest_hour?: number
           notify_payment_failure?: boolean
@@ -841,13 +896,69 @@ export type Database = {
           notify_via_whatsapp?: boolean
           quiet_hours_enabled?: boolean
           quiet_hours_end?: number
+          quiet_hours_mode?: string
           quiet_hours_start?: number
           recurring_reminders?: boolean
           savings_reminders?: boolean
+          smart_grouping_enabled?: boolean
           status_reminder_frequency?: string
           updated_at?: string
           user_id?: string
           weekly_summary?: boolean
+        }
+        Relationships: []
+      }
+      notification_queue: {
+        Row: {
+          attempts: number
+          body: string | null
+          channel: string
+          created_at: string
+          dedup_key: string | null
+          id: string
+          last_error: string | null
+          notification_type: string
+          payload: Json
+          processed_at: string | null
+          reference_id: string | null
+          scheduled_for: string
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          body?: string | null
+          channel: string
+          created_at?: string
+          dedup_key?: string | null
+          id?: string
+          last_error?: string | null
+          notification_type: string
+          payload?: Json
+          processed_at?: string | null
+          reference_id?: string | null
+          scheduled_for: string
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          body?: string | null
+          channel?: string
+          created_at?: string
+          dedup_key?: string | null
+          id?: string
+          last_error?: string | null
+          notification_type?: string
+          payload?: Json
+          processed_at?: string | null
+          reference_id?: string | null
+          scheduled_for?: string
+          status?: string
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1868,9 +1979,27 @@ export type Database = {
         Args: { p_account_id: string }
         Returns: undefined
       }
+      resolve_pending_alerts: {
+        Args: {
+          p_alert_types: string[]
+          p_reason?: string
+          p_reference_id: string
+          p_user_id: string
+        }
+        Returns: number
+      }
       seed_default_family_group_categories: {
         Args: { p_creator: string; p_group_id: string }
         Returns: undefined
+      }
+      should_send_notification: {
+        Args: {
+          p_channel: string
+          p_dedup_key: string
+          p_dedup_window_days?: number
+          p_user_id: string
+        }
+        Returns: Json
       }
       transfer_family_ownership: {
         Args: { p_group_id: string; p_new_owner_id: string }

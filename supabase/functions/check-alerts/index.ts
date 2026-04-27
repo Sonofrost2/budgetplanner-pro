@@ -75,7 +75,6 @@ type Alert = {
 
 const CRITICAL_TYPES = new Set([
   "budget_exceeded",
-  "daily_budget_exceeded",
   "debt_overdue",
 ]);
 
@@ -318,37 +317,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ────── Daily budget ──────
-      if (prefDailyBudget) {
-        const expenseBudgets = budgets.filter((b: any) => (b.budget_type || 'expense') === 'expense');
-        let weeklyExpenseTarget = 0;
-        for (const b of expenseBudgets) {
-          const period = b.period || 'monthly';
-          if (period === 'daily') weeklyExpenseTarget += Number(b.amount) * 7;
-          else if (period === 'weekly') weeklyExpenseTarget += Number(b.amount);
-          else if (period === 'monthly') weeklyExpenseTarget += Number(b.amount) / (30.44 / 7);
-          else if (period === 'quarterly') weeklyExpenseTarget += Number(b.amount) / (91.31 / 7);
-          else if (period === 'semi_annual') weeklyExpenseTarget += Number(b.amount) / (182.62 / 7);
-          else if (period === 'yearly') weeklyExpenseTarget += Number(b.amount) / (365.25 / 7);
-        }
-        const dailyBudgetTarget = weeklyExpenseTarget / 7;
-        if (dailyBudgetTarget > 0) {
-          const todaysExpenses = allTxs.filter((tx: any) => tx.type === 'expense' && tx.date === todayStr);
-          const todaySpent = todaysExpenses.reduce((s: number, tx: any) => s + Number(tx.amount), 0);
-          const dailyPct = (todaySpent / dailyBudgetTarget) * 100;
-          if (dailyPct >= 100) {
-            alerts.push({
-              title: isFr ? "🔥 Budget du jour dépassé !" : "🔥 Daily budget exceeded!",
-              body: isFr
-                ? `${Math.round(todaySpent).toLocaleString()} dépensés (${Math.round(dailyPct)}% de ${Math.round(dailyBudgetTarget).toLocaleString()})`
-                : `${Math.round(todaySpent).toLocaleString()} spent (${Math.round(dailyPct)}% of ${Math.round(dailyBudgetTarget).toLocaleString()})`,
-              notification_type: "daily_budget_exceeded",
-              dedup_key: `daily_exceeded_${todayStr}`,
-              critical: true,
-            });
-          }
-        }
-      }
+      // Daily budget alert removed — caused false positives (rythme normal en
+      // début de semaine déclenchait l'alerte). Le digest matinal et les seuils
+      // par budget couvrent déjà ce besoin sans fatiguer l'utilisateur.
 
       // ────── Recurring reminders — J-5, J-2, J-0 only ──────
       if (prefRecurring) {
@@ -499,8 +470,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ────── Balance discrepancy — 1× / week ──────
+      // ────── Balance discrepancy — 1× / month (lowered from weekly to reduce fatigue) ──────
       if (prefBalance) {
+        const monthTag = `${now.getFullYear()}m${now.getMonth()}`;
         for (const account of accounts) {
           const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
           const txSum = acctTxs.reduce((s: number, tx: any) =>
@@ -515,7 +487,7 @@ Deno.serve(async (req) => {
               title: isFr ? "🔍 Écart de solde détecté" : "🔍 Balance discrepancy",
               body: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString()}`,
               notification_type: "balance_discrepancy",
-              dedup_key: `balance_disc_${account.id}_w${weekTag}`,
+              dedup_key: `balance_disc_${account.id}_${monthTag}`,
               reference_id: account.id,
             });
           }
@@ -541,7 +513,7 @@ Deno.serve(async (req) => {
 
       const sendOne = async (a: Alert, channelMeta: Record<string, unknown> = {}) => {
         try {
-          const res = await fetch(`${supabaseUrl}/functions/v1/push-notify`, {
+          const res = await fetch(`${supabaseUrl}/functions/v1/notify-dispatch`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
             body: JSON.stringify({
@@ -551,11 +523,18 @@ Deno.serve(async (req) => {
               notification_type: a.notification_type,
               dedup_key: a.dedup_key,
               reference_id: a.reference_id,
-              data: { url: "/dashboard", ...channelMeta },
+              critical: !!a.critical,
+              data: { ...channelMeta },
+              url: "/dashboard",
             }),
           });
           const j = await res.json().catch(() => ({}));
-          if (j.reason !== "dedup_skipped") {
+          // Count as a sent push only when at least one channel actually delivered.
+          const results = (j as any)?.results || {};
+          const anyDelivered = Object.values(results).some(
+            (r: any) => r && typeof r === "object" && !("error" in r) && !String(JSON.stringify(r)).startsWith('"skipped'),
+          );
+          if (anyDelivered || j?.ok) {
             totalAlerts++;
             usedToday++;
             return true;

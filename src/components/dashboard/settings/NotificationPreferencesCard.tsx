@@ -266,22 +266,85 @@ const NotificationPreferencesCard = ({ locale }: Props) => {
                       <SelectItem value="weekly">{isFr ? '1× par semaine' : 'Once a week'}</SelectItem>
                       <SelectItem value="every_3d">{isFr ? 'Tous les 3 jours' : 'Every 3 days'}</SelectItem>
                       <SelectItem value="on_change_only">{isFr ? 'Seulement si ça change' : 'Only when status changes'}</SelectItem>
+                      <SelectItem value="monthly">{isFr ? '1× par mois' : 'Once a month'}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {/* Daily push cap */}
+              {/* Evening digest (J-1 deadlines) — opt-in */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <Sunset className="w-4 h-4 mt-0.5 text-purple-500" />
+                    <div>
+                      <p className="text-sm font-medium">{isFr ? 'Digest du soir (échéances J-1)' : 'Evening digest (D-1 deadlines)'}</p>
+                      <p className="text-xs text-muted-foreground">{isFr ? 'Récapitulatif des échéances de demain' : "Recap of tomorrow's deadlines"}</p>
+                    </div>
+                  </div>
+                  <Switch checked={prefs.evening_digest_enabled} onCheckedChange={(v) => updatePref('evening_digest_enabled', v)} />
+                </div>
+                {prefs.evening_digest_enabled && (
+                  <div className="ml-6 flex items-center gap-2 text-xs">
+                    <Label className="text-muted-foreground">{isFr ? 'Heure' : 'Hour'}</Label>
+                    <Input type="number" min={17} max={22} className="rounded-xl h-8 w-16 text-xs text-center"
+                      value={prefs.evening_digest_hour}
+                      onChange={(e) => { const v = Number(e.target.value); if (v >= 17 && v <= 22) updatePref('evening_digest_hour', v); }} />
+                    <span className="text-muted-foreground">h</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Per-channel daily quotas */}
               <div className="flex items-start gap-2.5">
                 <Bell className="w-4 h-4 mt-0.5 text-primary" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{isFr ? 'Plafond quotidien' : 'Daily cap'}</p>
-                  <p className="text-xs text-muted-foreground mb-2">{isFr ? 'Au-delà, les alertes sont regroupées en digest' : 'Beyond this, alerts group into a digest'}</p>
-                  <div className="flex items-center gap-2">
-                    <Input type="number" min={1} max={10} className="rounded-xl h-9 w-20 text-xs text-center"
-                      value={prefs.max_push_per_day}
-                      onChange={(e) => { const v = Number(e.target.value); if (v >= 1 && v <= 10) updatePref('max_push_per_day', v); }} />
-                    <span className="text-xs text-muted-foreground">{isFr ? 'notifications / jour' : 'notifications / day'}</span>
+                  <p className="text-sm font-medium">{isFr ? 'Plafonds quotidiens par canal' : 'Daily caps per channel'}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{isFr ? 'Au-delà, les alertes sont regroupées' : 'Beyond, alerts are grouped'}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { key: 'max_push_per_day' as const, label: 'Push', max: 20 },
+                      { key: 'max_email_per_day' as const, label: 'Email', max: 20 },
+                      { key: 'max_sms_per_day' as const, label: 'SMS', max: 10 },
+                      { key: 'max_whatsapp_per_day' as const, label: 'WhatsApp', max: 10 },
+                    ]).map((q) => (
+                      <div key={q.key} className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground w-16">{q.label}</Label>
+                        <Input type="number" min={0} max={q.max} className="rounded-xl h-8 w-16 text-xs text-center"
+                          value={prefs[q.key]}
+                          onChange={(e) => { const v = Number(e.target.value); if (v >= 0 && v <= q.max) updatePref(q.key, v); }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Coach channels — multi-select */}
+              <div className="flex items-start gap-2.5">
+                <MessageSquare className="w-4 h-4 mt-0.5 text-primary" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{isFr ? 'Canaux des alertes Coach' : 'Coach alert channels'}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{isFr ? 'Où recevoir budgets, épargne, dettes…' : 'Where to receive budgets, savings, debts…'}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(['push','email','sms','whatsapp'] as const).map((c) => {
+                      const selected = prefs.coach_channels.includes(c);
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => {
+                            const next = selected
+                              ? prefs.coach_channels.filter(x => x !== c)
+                              : [...prefs.coach_channels, c];
+                            if (next.length === 0) return;
+                            updatePref('coach_channels', next as any);
+                          }}
+                          className={`px-3 py-1 rounded-full text-xs border transition-colors ${selected ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted'}`}
+                        >
+                          {c.charAt(0).toUpperCase() + c.slice(1)}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -348,7 +411,8 @@ const NotificationPreferencesCard = ({ locale }: Props) => {
                     />
                   </div>
                   {prefs.quiet_hours_enabled && (
-                    <div className="ml-6.5 flex items-center gap-2 text-xs">
+                    <div className="ml-6.5 space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
                       <Label className="text-muted-foreground">{isFr ? 'De' : 'From'}</Label>
                       <Input
                         type="number"
@@ -367,6 +431,17 @@ const NotificationPreferencesCard = ({ locale }: Props) => {
                         onChange={(e) => updatePref('quiet_hours_end', Number(e.target.value))}
                       />
                       <span className="text-muted-foreground">h</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Label className="text-muted-foreground">{isFr ? 'Comportement' : 'Behavior'}</Label>
+                        <Select value={prefs.quiet_hours_mode} onValueChange={(v) => updatePref('quiet_hours_mode', v)}>
+                          <SelectTrigger className="rounded-xl h-8 w-44 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="defer">{isFr ? 'Différer (envoyer plus tard)' : 'Defer (send later)'}</SelectItem>
+                            <SelectItem value="skip">{isFr ? 'Ignorer' : 'Skip'}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   )}
                 </div>
