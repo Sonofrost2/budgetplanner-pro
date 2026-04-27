@@ -563,6 +563,8 @@ const AccountsPage = () => {
           userId={user.id}
           t={t}
           onSuccess={refreshAll}
+          currency={currency}
+          locale={locale}
         />
       )}
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(bulk.count)} cancelLabel={t.cancel} confirmLabel={t.delete} />
