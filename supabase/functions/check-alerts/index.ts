@@ -470,8 +470,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      // ────── Balance discrepancy — 1× / week ──────
+      // ────── Balance discrepancy — 1× / month (lowered from weekly to reduce fatigue) ──────
       if (prefBalance) {
+        const monthTag = `${now.getFullYear()}m${now.getMonth()}`;
         for (const account of accounts) {
           const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
           const txSum = acctTxs.reduce((s: number, tx: any) =>
@@ -486,7 +487,7 @@ Deno.serve(async (req) => {
               title: isFr ? "🔍 Écart de solde détecté" : "🔍 Balance discrepancy",
               body: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString()}`,
               notification_type: "balance_discrepancy",
-              dedup_key: `balance_disc_${account.id}_w${weekTag}`,
+              dedup_key: `balance_disc_${account.id}_${monthTag}`,
               reference_id: account.id,
             });
           }
