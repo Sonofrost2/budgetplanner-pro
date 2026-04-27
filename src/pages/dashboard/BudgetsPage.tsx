@@ -47,7 +47,7 @@ const PERIOD_MULTIPLIER: Record<string, number> = {
 const BudgetsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
+  const { fmt: fmtCurrency, currency } = useProfile();
   const { limits, isPremium, canExportAdvanced } = useSubscription();
   const t = dashT[locale];
   const isFr = locale === 'fr';
@@ -675,6 +675,7 @@ const BudgetsPage = () => {
         fmt={fmt}
         t={t}
         locale={locale}
+        currency={currency}
       />
 
       {/* Bulk Modify Dialog */}
