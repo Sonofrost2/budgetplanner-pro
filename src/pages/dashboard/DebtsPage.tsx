@@ -27,11 +27,12 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import ReactMarkdown from 'react-markdown';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { debtSchema, validateForm } from '@/lib/validationSchemas';
+import { currencySymbol } from '@/lib/currency';
 
 const DebtsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
+  const { fmt: fmtCurrency, currency } = useProfile();
   const t = dashT[locale];
   const { invalidate } = useInvalidate();
 
@@ -414,7 +415,7 @@ const DebtsPage = () => {
                 type="number" min="1"
                 value={form.total_amount}
                 onChange={e => setForm(f => ({ ...f, total_amount: (e.target as HTMLInputElement).value }))}
-                prefix="FCFA"
+                prefix={currencySymbol(currency)}
                 label={t.totalDebt}
                 error={formErrors.total_amount}
                 placeholder="0"
@@ -423,7 +424,7 @@ const DebtsPage = () => {
                 type="number" min="0"
                 value={form.paid_amount}
                 onChange={e => setForm(f => ({ ...f, paid_amount: (e.target as HTMLInputElement).value }))}
-                prefix="FCFA"
+                prefix={currencySymbol(currency)}
                 label={t.paidAmount}
                 error={formErrors.paid_amount}
                 placeholder="0"
