@@ -52,8 +52,8 @@ export const AccountCombobox = ({
   groupByType = true,
 }: AccountComboboxProps) => {
   const [open, setOpen] = useState(false);
-  const { language } = useLanguage();
-  const fr = language === 'fr';
+  const { locale } = useLanguage();
+  const fr = locale === 'fr';
   const labels = TYPE_LABELS[fr ? 'fr' : 'en'];
   const ph = placeholder ?? (fr ? 'Sélectionner un compte...' : 'Select an account...');
 
