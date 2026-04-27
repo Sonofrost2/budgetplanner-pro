@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/i18n/LanguageContext';
 
 interface Category {
   id: string;
@@ -23,21 +24,25 @@ interface CategoryComboboxProps {
   groupByType?: boolean;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  expense: '📉 Dépenses',
-  income: '📈 Revenus',
+const TYPE_LABELS: Record<'fr' | 'en', Record<string, string>> = {
+  fr: { expense: '📉 Dépenses', income: '📈 Revenus' },
+  en: { expense: '📉 Expenses', income: '📈 Income' },
 };
 
 export const CategoryCombobox = ({
   categories,
   value,
   onValueChange,
-  placeholder = 'Sélectionner une catégorie...',
+  placeholder,
   className,
   error,
   groupByType = false,
 }: CategoryComboboxProps) => {
   const [open, setOpen] = useState(false);
+  const { locale } = useLanguage();
+  const fr = locale === 'fr';
+  const labels = TYPE_LABELS[fr ? 'fr' : 'en'];
+  const ph = placeholder ?? (fr ? 'Sélectionner une catégorie...' : 'Select a category...');
 
   const grouped = useMemo(() => {
     if (!groupByType) return { all: categories };
@@ -72,18 +77,18 @@ export const CategoryCombobox = ({
               <span className="truncate">{selected.name}</span>
             </span>
           ) : (
-            placeholder
+            ph
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Rechercher une catégorie..." />
+          <CommandInput placeholder={fr ? 'Rechercher une catégorie...' : 'Search category...'} />
           <CommandList>
-            <CommandEmpty>Aucune catégorie trouvée.</CommandEmpty>
+            <CommandEmpty>{fr ? 'Aucune catégorie trouvée.' : 'No category found.'}</CommandEmpty>
             {Object.entries(grouped).map(([type, cats]) => (
-              <CommandGroup key={type} heading={groupByType ? (TYPE_LABELS[type] || type) : undefined}>
+              <CommandGroup key={type} heading={groupByType ? (labels[type] || type) : undefined}>
                 {cats.map(cat => (
                   <CommandItem
                     key={cat.id}
