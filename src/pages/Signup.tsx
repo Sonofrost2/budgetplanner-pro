@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wallet, Mail, Lock, User, CheckCircle, Loader2, Phone } from 'lucide-react';
+import { Wallet, Mail, Lock, User, CheckCircle, Loader2, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable/index';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { CountryPhoneInput } from '@/components/ui/country-phone-input';
+import { useGeoCountry } from '@/hooks/useGeoCountry';
+import { DEFAULT_COUNTRY_CODE, findCountryByCode } from '@/lib/countries';
+import { supabase } from '@/integrations/supabase/client';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
@@ -21,9 +25,12 @@ const Signup = () => {
   const { t } = useLanguage();
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
+  const geo = useGeoCountry();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneValid, setPhoneValid] = useState(false);
+  const [countryCode, setCountryCode] = useState<string>(DEFAULT_COUNTRY_CODE);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -31,11 +38,40 @@ const Signup = () => {
   const [smsConsent, setSmsConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [securityWarning, setSecurityWarning] = useState<string | null>(null);
 
   // Redirect if already logged in
   useEffect(() => {
     if (user) navigate('/dashboard', { replace: true });
   }, [user, navigate]);
+
+  // Auto-pick country from geolocation on first load
+  useEffect(() => {
+    if (geo.country && findCountryByCode(geo.country)) {
+      setCountryCode(geo.country);
+    }
+  }, [geo.country]);
+
+  // Run security pre-check (VPN/proxy/Tor) once geo info available
+  useEffect(() => {
+    if (geo.loading) return;
+    supabase.functions.invoke('security-check', {
+      body: { source: 'signup', declaredCountry: countryCode },
+    }).then(({ data }) => {
+      if (data?.flags?.isTor || data?.flags?.isVpn || data?.flags?.isProxy) {
+        setSecurityWarning(
+          (t as any).auth?.vpnDetected ||
+            "Connexion via VPN/Proxy détectée. Pour des raisons de sécurité et d'antifraude, nous vous recommandons de désactiver votre VPN avant de créer un compte."
+        );
+      } else if (geo.suspectedHosting) {
+        setSecurityWarning(
+          (t as any).auth?.hostingDetected ||
+            'Connexion suspecte détectée (datacenter). Si vous utilisez un VPN, désactivez-le pour continuer.'
+        );
+      }
+    }).catch(() => { /* fail open */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geo.loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,17 +87,18 @@ const Signup = () => {
       toast.error(t.auth.consentRequired);
       return;
     }
-    const trimmedPhone = phone.trim();
-    if (trimmedPhone && !/^\+\d{8,15}$/.test(trimmedPhone)) {
+    if (phone && !phoneValid) {
       toast.error(t.auth.phoneInvalid);
       return;
     }
     setLoading(true);
     const { error } = await signUp(email.trim(), password, name.trim(), {
-      phone: trimmedPhone || undefined,
+      phone: phone || undefined,
       marketingConsent,
-      smsConsent: smsConsent && !!trimmedPhone,
+      smsConsent: smsConsent && !!phone && phoneValid,
       termsAccepted: acceptTerms,
+      countryCode,
+      signupCountry: geo.country || undefined,
     });
     setLoading(false);
     if (error) {
@@ -173,21 +210,24 @@ const Signup = () => {
 
                 <motion.div {...fadeUp(0.32)} className="space-y-2">
                   <Label htmlFor="phone" className="form-label">{t.auth.phoneOptional}</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+225 07 08 09 09 10"
-                      className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60"
-                      inputMode="tel"
-                      autoComplete="tel"
-                    />
-                  </div>
+                  <CountryPhoneInput
+                    id="phone"
+                    value={phone}
+                    countryCode={countryCode}
+                    onCountryChange={setCountryCode}
+                    onChange={(e164, _cc, valid) => { setPhone(e164); setPhoneValid(valid); }}
+                    detectedCountry={geo.country}
+                    locale={(t as any).__locale === 'en' ? 'en' : 'fr'}
+                  />
                   <p className="text-[11px] text-muted-foreground leading-snug">{t.auth.phoneHint}</p>
                 </motion.div>
+
+                {securityWarning && (
+                  <motion.div {...fadeUp(0.33)} className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+                    <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <p className="text-xs leading-snug text-amber-800 dark:text-amber-200">{securityWarning}</p>
+                  </motion.div>
+                )}
 
                 <motion.div {...fadeUp(0.34)} className="space-y-2.5 rounded-xl border border-border/40 bg-background/40 backdrop-blur-sm p-3">
                   <label className="flex items-start gap-2.5 cursor-pointer">
