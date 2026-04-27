@@ -182,7 +182,7 @@ export const TransactionForm = ({
             prefix={currencySymbol(currency)}
             label={t.amount}
             error={errors.amount}
-            placeholder="0"
+            placeholder={exampleAmount(currency, locale)}
             className={errors.amount ? 'border-destructive' : ''}
           />
           <InputField

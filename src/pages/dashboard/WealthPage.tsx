@@ -832,7 +832,7 @@ const WealthPage = () => {
                 value={form.current_value}
                 onChange={e => { setForm(f => ({ ...f, current_value: e.target.value })); setFormErrors(e => ({ ...e, current_value: '' })); }}
                 error={formErrors.current_value}
-                placeholder="0"
+                placeholder={exampleAmount(currency, locale)}
                 className="text-lg font-bold"
               />
               <InputField
@@ -844,7 +844,7 @@ const WealthPage = () => {
                 value={form.acquisition_cost}
                 onChange={e => { setForm(f => ({ ...f, acquisition_cost: e.target.value })); setFormErrors(e => ({ ...e, acquisition_cost: '' })); }}
                 error={formErrors.acquisition_cost}
-                placeholder="0"
+                placeholder={exampleAmount(currency, locale)}
               />
             </div>
           </FormSection>

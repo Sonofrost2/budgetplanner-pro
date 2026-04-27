@@ -58,7 +58,7 @@ export const AddContributionDialog = ({
         onChange={e => setAmount((e.target as HTMLInputElement).value)}
         prefix={currencySymbol(currency)}
         label={t.amount}
-        placeholder="0"
+        placeholder={exampleAmount(currency, locale)}
       />
       <div className="space-y-2">
         <Label className="form-label">{t.savingsSourceAccount} ({t.optional})</Label>
@@ -111,7 +111,7 @@ export const WithdrawDialog = ({
         onChange={e => setAmount((e.target as HTMLInputElement).value)}
         prefix={currencySymbol(currency)}
         label={t.withdrawAmount}
-        placeholder="0"
+        placeholder={exampleAmount(currency, locale)}
       />
       <div className="space-y-2">
         <Label className="form-label">{t.savingsTargetAccount} ({t.optional})</Label>

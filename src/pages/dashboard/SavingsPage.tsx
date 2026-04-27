@@ -1185,7 +1185,7 @@ const SavingsPage = () => {
                 step="0.01"
                 value={form.monthly_contribution}
                 onChange={e => setForm(f => ({ ...f, monthly_contribution: e.target.value }))}
-                placeholder="0"
+                placeholder={exampleAmount(currency, locale)}
               />
             </div>
           </FormSection>

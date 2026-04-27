@@ -171,7 +171,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
           prefix={currencySymbol(currency)}
           label={t.amount}
           error={errors.amount}
-          placeholder="0"
+          placeholder={exampleAmount(currency, locale)}
         />
 
         <InputField

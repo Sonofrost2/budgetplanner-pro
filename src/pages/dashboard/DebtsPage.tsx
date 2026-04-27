@@ -418,7 +418,7 @@ const DebtsPage = () => {
                 prefix={currencySymbol(currency)}
                 label={t.totalDebt}
                 error={formErrors.total_amount}
-                placeholder="0"
+                placeholder={exampleAmount(currency, locale)}
               />
               <InputField
                 type="number" min="0"
@@ -427,7 +427,7 @@ const DebtsPage = () => {
                 prefix={currencySymbol(currency)}
                 label={t.paidAmount}
                 error={formErrors.paid_amount}
-                placeholder="0"
+                placeholder={exampleAmount(currency, locale)}
               />
             </div>
             {Number(form.total_amount) > 0 && Number(form.paid_amount) >= 0 && (
