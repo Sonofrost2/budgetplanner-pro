@@ -11,7 +11,7 @@ import {
   Sparkles, User, ChevronUp, Landmark, RefreshCw, Gem,
   Wallet2, Compass, LineChart, Building2, BookOpen, MessageCircle,
   Star, ChevronDown, Pin,
-  Bell,
+  Bell, Activity,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -135,6 +135,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
           { key: 'adminSecurity', icon: Shield, path: '/dashboard/admin/security' },
           { key: 'adminSmsTemplates', icon: Bell, path: '/dashboard/admin/sms-templates' },
           { key: 'adminSmsLogs', icon: Bell, path: '/dashboard/admin/sms-logs' },
+          { key: 'adminNotificationMetrics', icon: Activity, path: '/dashboard/admin/notification-metrics' },
         ] : []),
       ],
     },
