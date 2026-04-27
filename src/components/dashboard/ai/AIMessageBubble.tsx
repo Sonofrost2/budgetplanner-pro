@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { AICoachAvatar } from './AICoachAvatar';
 import { parseAIActions, type AIAction } from '@/lib/aiActionParser';
 import { ArrowRight, Plus, Target } from 'lucide-react';
+import { useLanguage } from '@/i18n/LanguageContext';
+import { formatNumber } from '@/lib/currency';
 
 interface Props {
   role: 'user' | 'assistant';
@@ -22,7 +24,8 @@ const formatTime = (iso?: string) => {
 
 const ActionButton = ({ action }: { action: AIAction }) => {
   const navigate = useNavigate();
-  const fmt = (n: number) => n.toLocaleString();
+  const { locale } = useLanguage();
+  const fmt = (n: number) => formatNumber(n, locale);
   switch (action.type) {
     case 'create_budget':
       return (
