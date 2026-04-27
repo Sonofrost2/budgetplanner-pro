@@ -9,6 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { useProfile } from '@/hooks/useProfile';
+import { exampleValue } from '@/lib/currency';
 
 export interface QuickParsedTransaction {
   description: string;
@@ -46,6 +48,15 @@ export const TransactionsHeroHeader = ({
   const [quickInput, setQuickInput] = useState('');
   const [quickLoading, setQuickLoading] = useState(false);
   const isFr = locale === 'fr';
+  const { currency } = useProfile();
+  const quickPh = (() => {
+    const c = exampleValue('coffee', currency);
+    const t = exampleValue('taxi', currency);
+    const s = exampleValue('salary', currency);
+    return isFr
+      ? `Ex: Café ${c}, Taxi ${t}, Salaire ${s}…`
+      : `e.g. Coffee ${c}, Taxi ${t}, Salary ${s}…`;
+  })();
 
   const handleQuickParse = async () => {
     const text = quickInput.trim();
@@ -305,7 +316,7 @@ export const TransactionsHeroHeader = ({
                     if (e.key === 'Enter') { e.preventDefault(); handleQuickParse(); }
                     if (e.key === 'Escape') { setQuickOpen(false); setQuickInput(''); }
                   }}
-                  placeholder={isFr ? 'Ex: Café 1500, Taxi 3k, Salaire 250000…' : 'e.g. Coffee 1500, Taxi 3k, Salary 250000…'}
+                  placeholder={quickPh}
                   disabled={quickLoading}
                   maxLength={500}
                   className="h-9 rounded-xl bg-background/70 border-primary/25 focus-visible:ring-primary/40 text-sm"

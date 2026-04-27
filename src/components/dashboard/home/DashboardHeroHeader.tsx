@@ -11,6 +11,8 @@ import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import type { QuickParsedTransaction } from '@/components/dashboard/transactions/TransactionsHeroHeader';
+import { useProfile } from '@/hooks/useProfile';
+import { exampleValue } from '@/lib/currency';
 
 type PeriodKey = 'today' | 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisSemester' | 'thisYear' | 'custom';
 
@@ -51,6 +53,13 @@ export const DashboardHeroHeader = ({
   onAddTransaction, onQuickAdd,
 }: Props) => {
   const isFr = locale === 'fr';
+  const { currency } = useProfile();
+  const exCoffee = exampleValue('coffee', currency);
+  const exTaxi = exampleValue('taxi', currency);
+  const exSalary = exampleValue('salary', currency);
+  const quickPh = isFr
+    ? `Ex: Café ${exCoffee}, Taxi ${exTaxi}, Salaire ${exSalary}…`
+    : `e.g. Coffee ${exCoffee}, Taxi ${exTaxi}, Salary ${exSalary}…`;
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickInput, setQuickInput] = useState('');
   const [quickLoading, setQuickLoading] = useState(false);
@@ -317,7 +326,7 @@ export const DashboardHeroHeader = ({
                   if (e.key === 'Enter') { e.preventDefault(); handleQuickParse(); }
                   if (e.key === 'Escape') { setQuickOpen(false); setQuickInput(''); }
                 }}
-                placeholder={isFr ? 'Ex: Café 1500, Taxi 3k, Salaire 250000…' : 'e.g. Coffee 1500, Taxi 3k, Salary 250000…'}
+                placeholder={quickPh}
                 disabled={quickLoading}
                 maxLength={500}
                 className="h-9 rounded-xl bg-background/70 border-primary/25 focus-visible:ring-primary/40 text-sm flex-1 min-w-0"

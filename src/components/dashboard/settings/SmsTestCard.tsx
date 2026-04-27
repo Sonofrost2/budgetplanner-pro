@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Send, AlertCircle, CheckCircle2, MessageSquareText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SMS_TEMPLATES, renderTemplate, type SmsTemplateId } from '@/lib/smsTemplates';
+import { SMS_TEMPLATES, renderTemplate, buildSmsSamples, type SmsTemplateId } from '@/lib/smsTemplates';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 
 interface Props { locale: 'fr' | 'en' }
 
@@ -36,9 +37,10 @@ function validatePhone(raw: string): PhoneCheck {
 const SmsTestCard = ({ locale }: Props) => {
   const isFr = locale === 'fr';
   const { user } = useAuth();
+  const { currency } = useProfile();
   const [to, setTo] = useState('');
   const [templateId, setTemplateId] = useState<SmsTemplateId>('test_ping');
-  const [body, setBody] = useState(renderTemplate('test_ping', locale));
+  const [body, setBody] = useState(renderTemplate('test_ping', locale, buildSmsSamples(currency, locale)['test_ping']));
   const [sending, setSending] = useState(false);
   const [lastSid, setLastSid] = useState<string | null>(null);
 
@@ -52,8 +54,8 @@ const SmsTestCard = ({ locale }: Props) => {
 
   // Re-render template body when template or locale changes
   useEffect(() => {
-    setBody(renderTemplate(templateId, locale));
-  }, [templateId, locale]);
+    setBody(renderTemplate(templateId, locale, buildSmsSamples(currency, locale)[templateId]));
+  }, [templateId, locale, currency]);
 
   const check = useMemo(() => validatePhone(to), [to]);
   const bodyTrim = body.trim();
