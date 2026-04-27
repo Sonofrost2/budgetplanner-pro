@@ -513,7 +513,7 @@ Deno.serve(async (req) => {
 
       const sendOne = async (a: Alert, channelMeta: Record<string, unknown> = {}) => {
         try {
-          const res = await fetch(`${supabaseUrl}/functions/v1/push-notify`, {
+          const res = await fetch(`${supabaseUrl}/functions/v1/notify-dispatch`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
             body: JSON.stringify({
@@ -523,11 +523,18 @@ Deno.serve(async (req) => {
               notification_type: a.notification_type,
               dedup_key: a.dedup_key,
               reference_id: a.reference_id,
-              data: { url: "/dashboard", ...channelMeta },
+              critical: !!a.critical,
+              data: { ...channelMeta },
+              url: "/dashboard",
             }),
           });
           const j = await res.json().catch(() => ({}));
-          if (j.reason !== "dedup_skipped") {
+          // Count as a sent push only when at least one channel actually delivered.
+          const results = (j as any)?.results || {};
+          const anyDelivered = Object.values(results).some(
+            (r: any) => r && typeof r === "object" && !("error" in r) && !String(JSON.stringify(r)).startsWith('"skipped'),
+          );
+          if (anyDelivered || j?.ok) {
             totalAlerts++;
             usedToday++;
             return true;
