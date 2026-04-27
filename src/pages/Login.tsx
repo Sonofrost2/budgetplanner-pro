@@ -17,7 +17,7 @@ const fadeUp = (delay = 0) => ({
 });
 
 const Login = () => {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -138,9 +138,8 @@ const Login = () => {
                 onClick={() => navigate('/demo')}
               >
                 <Sparkles className="w-4 h-4" />
-                {t.locale === 'fr' || true
-                  ? ((t.auth as any).tryDemo || 'Essayer la démo sans inscription')
-                  : 'Try the demo without signup'}
+                {(t.auth as any).tryDemo ||
+                  (locale === 'fr' ? 'Essayer la démo sans inscription' : 'Try the demo without signup')}
               </Button>
             </motion.div>
           </form>

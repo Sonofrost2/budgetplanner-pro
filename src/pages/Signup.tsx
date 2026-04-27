@@ -301,6 +301,20 @@ const Signup = () => {
                     Google
                   </Button>
                 </motion.div>
+
+                <motion.div {...fadeUp(0.42)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full h-11 rounded-xl text-primary hover:bg-primary/10 gap-2"
+                    disabled={loading}
+                    onClick={() => navigate('/demo')}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    {(t.auth as any).tryDemo ||
+                      (locale === 'fr' ? 'Essayer la démo sans inscription' : 'Try the demo without signup')}
+                  </Button>
+                </motion.div>
               </form>
 
               <motion.p {...fadeUp(0.45)} className="mt-6 text-center text-sm text-muted-foreground">
