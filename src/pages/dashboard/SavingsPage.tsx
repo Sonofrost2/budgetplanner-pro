@@ -1328,6 +1328,7 @@ const SavingsPage = () => {
             accounts={accounts}
             onWithdrawn={() => { setPartialWithdrawId(null); refreshData(); }}
             locale={locale}
+            currency={currency}
           />
         );
       })()}

@@ -915,6 +915,7 @@ const TransactionsPage = () => {
         defaultAmount={transferDefaults.amount}
         defaultDescription={transferDefaults.description}
         currency={currency}
+        locale={locale}
       />}
 
       <BulkModifyDialog

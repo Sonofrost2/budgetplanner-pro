@@ -8,7 +8,6 @@ import { ArrowDownToLine } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { coachToast } from '@/lib/coachToast';
 import { exampleAmount } from '@/lib/currency';
-import { useProfile } from '@/hooks/useProfile';
 
 interface Props {
   open: boolean;
@@ -17,11 +16,11 @@ interface Props {
   accounts: any[];
   onWithdrawn: () => void;
   locale?: string;
+  currency?: string;
 }
 
-export const PartialWithdrawDialog = ({ open, onOpenChange, goal, accounts, onWithdrawn, locale = 'fr' }: Props) => {
+export const PartialWithdrawDialog = ({ open, onOpenChange, goal, accounts, onWithdrawn, locale = 'fr', currency = 'EUR' }: Props) => {
   const fr = locale === 'fr';
-  const { currency } = useProfile();
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState('');
   const [saving, setSaving] = useState(false);
