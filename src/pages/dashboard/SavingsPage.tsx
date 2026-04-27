@@ -9,7 +9,7 @@ import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useInvalidate, useSavingsPageData } from '@/hooks/useDashboardData';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
 import { savingsGoalSchema, validateForm } from '@/lib/validationSchemas';
-import { currencySymbol } from '@/lib/currency';
+import { currencySymbol, exampleAmount } from '@/lib/currency';
 
 interface SavingsContribution {
   id: string;

@@ -27,7 +27,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import ReactMarkdown from 'react-markdown';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { debtSchema, validateForm } from '@/lib/validationSchemas';
-import { currencySymbol } from '@/lib/currency';
+import { currencySymbol, exampleAmount } from '@/lib/currency';
 
 const DebtsPage = () => {
   const { user } = useAuth();
