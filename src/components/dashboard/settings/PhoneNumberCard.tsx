@@ -1,21 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Phone } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { CountryPhoneInput } from '@/components/ui/country-phone-input';
+import { useGeoCountry } from '@/hooks/useGeoCountry';
+import { DEFAULT_COUNTRY_CODE, findCountryByCode } from '@/lib/countries';
+import { detectCountryFromE164 } from '@/lib/phoneValidation';
 
 interface Props { locale: string }
 
-const E164 = /^\+[1-9]\d{6,14}$/;
-
 const PhoneNumberCard = ({ locale }: Props) => {
   const { user } = useAuth();
+  const geo = useGeoCountry();
   const isFr = locale === 'fr';
   const [phone, setPhone] = useState('');
+  const [phoneValid, setPhoneValid] = useState(true); // empty is valid (optional)
+  const [countryCode, setCountryCode] = useState<string>(DEFAULT_COUNTRY_CODE);
   const [initial, setInitial] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,37 +29,42 @@ const PhoneNumberCard = ({ locale }: Props) => {
     (async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('phone')
+        .select('phone, country_code')
         .eq('user_id', user.id)
         .maybeSingle();
-      const p = (data as { phone?: string | null } | null)?.phone ?? '';
+      const row = data as { phone?: string | null; country_code?: string | null } | null;
+      const p = row?.phone ?? '';
+      const cc = row?.country_code
+        || (p ? detectCountryFromE164(p) : null)
+        || geo.country
+        || DEFAULT_COUNTRY_CODE;
+      if (findCountryByCode(cc)) setCountryCode(cc);
       setPhone(p);
       setInitial(p);
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, geo.country]);
 
   const save = async () => {
     if (!user) return;
-    const trimmed = phone.trim();
-    if (trimmed && !E164.test(trimmed)) {
+    if (phone && !phoneValid) {
       toast.error(isFr
-        ? 'Format invalide. Utilisez le format international: +225...'
-        : 'Invalid format. Use international format: +225...');
+        ? 'Numéro invalide pour le pays sélectionné.'
+        : 'Invalid number for the selected country.');
       return;
     }
     setSaving(true);
     const { error } = await supabase
       .from('profiles')
-      .update({ phone: trimmed || null } as never)
+      .update({ phone: phone || null, country_code: countryCode } as never)
       .eq('user_id', user.id);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    setInitial(trimmed);
+    setInitial(phone);
     toast.success(isFr ? 'Numéro enregistré' : 'Phone number saved');
   };
 
-  const dirty = phone.trim() !== initial.trim();
+  const dirty = phone !== initial;
 
   return (
     <Card className="border-none shadow-[var(--shadow-card)]">
@@ -68,16 +77,18 @@ const PhoneNumberCard = ({ locale }: Props) => {
       <CardContent className="space-y-3">
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">
-            {isFr ? 'Numéro au format international' : 'International format'}
+            {isFr ? 'Pays et numéro' : 'Country and number'}
           </Label>
-          <Input
-            type="tel"
-            placeholder="+2250700000000"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            disabled={loading}
-            className="rounded-xl"
-          />
+          {!loading && (
+            <CountryPhoneInput
+              value={phone}
+              countryCode={countryCode}
+              onCountryChange={setCountryCode}
+              onChange={(e164, _cc, valid) => { setPhone(e164); setPhoneValid(valid || !e164); }}
+              detectedCountry={geo.country}
+              locale={isFr ? 'fr' : 'en'}
+            />
+          )}
           <p className="text-[11px] text-muted-foreground">
             {isFr
               ? 'Utilisé pour les reçus de paiement, rappels d’expiration et alertes financières.'

@@ -15,6 +15,8 @@ interface AuthContextType {
       marketingConsent?: boolean;
       smsConsent?: boolean;
       termsAccepted?: boolean;
+      countryCode?: string;
+      signupCountry?: string;
     },
   ) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -66,6 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           marketing_consent: !!extra?.marketingConsent,
           sms_consent: !!extra?.smsConsent,
           terms_accepted: !!extra?.termsAccepted,
+          country_code: extra?.countryCode ?? null,
+          signup_country: extra?.signupCountry ?? null,
         },
         emailRedirectTo: window.location.origin,
       },
@@ -84,6 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             sms_consent: !!extra?.smsConsent,
             terms_accepted_at: extra?.termsAccepted ? now : null,
             consent_updated_at: now,
+            country_code: extra?.countryCode ?? null,
+            signup_country: extra?.signupCountry ?? null,
           })
           .eq('user_id', userId)
           .then(({ error: pErr }) => {
