@@ -95,18 +95,18 @@ export const AccountCombobox = ({
               <span className="truncate">{selected.name}</span>
             </span>
           ) : (
-            placeholder
+            ph
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Rechercher un compte..." />
+          <CommandInput placeholder={fr ? 'Rechercher un compte...' : 'Search account...'} />
           <CommandList>
-            <CommandEmpty>Aucun compte trouvé.</CommandEmpty>
+            <CommandEmpty>{fr ? 'Aucun compte trouvé.' : 'No account found.'}</CommandEmpty>
             {Object.entries(grouped).map(([type, accs]) => (
-              <CommandGroup key={type} heading={groupByType ? (TYPE_LABELS[type] || type) : undefined}>
+              <CommandGroup key={type} heading={groupByType ? (labels[type] || type) : undefined}>
                 {accs.map(account => (
                   <CommandItem
                     key={account.id}
