@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useGeolocatedCurrency } from '@/hooks/useGeolocatedCurrency';
+import { translateFeature } from '@/lib/planFeatures';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { Card, CardContent } from '@/components/ui/card';
