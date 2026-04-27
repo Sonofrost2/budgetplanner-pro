@@ -44,32 +44,51 @@ const FILE_WHITELIST = new Set<string>([
 const DIR_SKIP = ['integrations/', 'test/__snapshots__/'];
 
 /**
- * Patterns that flag a hardcoded currency mention.
- * We deliberately match the SYMBOL/LIBELLÉ inside a string-like context.
+ * Patterns that flag a hardcoded currency mention in USER-FACING strings.
+ *
+ * We intentionally ignore programmatic uses of ISO codes (default values,
+ * <SelectItem value="EUR">, currency lists, etc.) because those are required
+ * to wire the dynamic system. We only flag literal symbols/labels that
+ * would appear verbatim in the UI.
  */
 const PATTERNS: Array<{ name: string; re: RegExp }> = [
-  { name: 'FCFA',     re: /\bFCFA\b/ },
-  { name: 'XOF/XAF code in string',  re: /['"`][^'"`]*\b(XOF|XAF|GNF)\b[^'"`]*['"`]/ },
-  { name: 'EUR/USD code in string',  re: /['"`][^'"`]*\b(EUR|USD|GBP)\b[^'"`]*['"`]/ },
-  // € / £ / ₦ / ¥ inside a string literal (any quote type)
-  { name: 'currency symbol in string', re: /['"`][^'"`]*[€£₦¥][^'"`]*['"`]/ },
-  // "$" used as a money prefix inside a string literal: "$100", "$ 50", "100$"
-  // (we ignore "${...}" template interpolations and JS identifiers).
-  { name: '$ as money prefix',  re: /['"`][^'"`{}]*\$\s?\d/ },
-  { name: '$ as money suffix',  re: /['"`][^'"`{}]*\d\s?\$[^'"`{}]*['"`]/ },
+  // "FCFA" appears literally in any code form — always a regression
+  { name: 'FCFA literal',     re: /\bFCFA\b/ },
+
+  // ISO code embedded INSIDE a longer UI sentence:
+  //   "Montant en EUR par mois"  → flagged
+  //   = 'EUR'                    → ignored (default value, no spaces around)
+  //   value="EUR"                → ignored
+  //   ['EUR', 'USD', …]          → ignored
+  // Heuristic: the ISO code must be surrounded by other words (whitespace + letters)
+  // inside the same string literal.
+  {
+    name: 'ISO code inside UI sentence',
+    re: /['"`][^'"`]*\s(XOF|XAF|GNF|EUR|USD|GBP|CAD|CHF)\s[^'"`]*['"`]|['"`][^'"`]*\s(XOF|XAF|GNF|EUR|USD|GBP|CAD|CHF)['"`]|['"`](XOF|XAF|GNF|EUR|USD|GBP|CAD|CHF)\s[^'"`]*['"`]/,
+  },
+
+  // Currency symbol followed (or preceded) by a digit inside a string —
+  // typical hardcoded price like "€50", "100 €", "$25"
+  { name: '€/£/₦ next to digit',   re: /['"`][^'"`]*([€£₦¥]\s?\d|\d\s?[€££₦¥])[^'"`]*['"`]/ },
+  // "$" as money prefix/suffix in a string literal (skip "${...}" templates)
+  { name: '$ as money prefix',     re: /['"`][^'"`{}]*\$\s?\d[^'"`{}]*['"`]/ },
+  { name: '$ as money suffix',     re: /['"`][^'"`{}]*\d\s?\$[^'"`{}]*['"`]/ },
 ];
 
 /** Lines containing any of these markers are tolerated (per-line opt-out). */
 const LINE_TOLERATE = [
-  'currency:',           // Intl.NumberFormat({ currency: 'XOF' }) — programmatic
-  "from '@/lib/currency'", // imports
+  'currency:',                 // Intl.NumberFormat({ currency: 'XOF' })
+  "from '@/lib/currency'",     // imports
   'from "@/lib/currency"',
   'currencySymbol(',
   'formatExample(',
   'exampleValue(',
   'exampleAmount(',
+  'priceCurrency:',            // schema.org JSON-LD field name
+  'SelectItem value=',         // ISO picker entries
+  'CURRENCIES =',              // currency arrays
   'eslint-disable',
-  '// allow-currency',   // explicit per-line opt-out marker
+  '// allow-currency',         // explicit per-line opt-out marker
 ];
 
 function* walk(dir: string): Generator<string> {
