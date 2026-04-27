@@ -3,7 +3,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export type StatusFrequency = 'weekly' | 'every_3d' | 'on_change_only';
+export type StatusFrequency = 'weekly' | 'every_3d' | 'on_change_only' | 'monthly';
+export type QuietHoursMode = 'defer' | 'skip';
+export type CoachChannel = 'push' | 'email' | 'sms' | 'whatsapp';
 
 export interface NotificationPreferences {
   budget_alerts: boolean;
@@ -29,6 +31,15 @@ export interface NotificationPreferences {
   evening_capture_hour: number;
   status_reminder_frequency: StatusFrequency;
   max_push_per_day: number;
+  max_email_per_day: number;
+  max_sms_per_day: number;
+  max_whatsapp_per_day: number;
+  quiet_hours_mode: QuietHoursMode;
+  evening_digest_enabled: boolean;
+  evening_digest_hour: number;
+  deadline_lead_days: number[];
+  coach_channels: CoachChannel[];
+  smart_grouping_enabled: boolean;
   // Channels (Twilio)
   notify_via_sms: boolean;
   notify_via_whatsapp: boolean;
@@ -61,6 +72,15 @@ const defaultPrefs: NotificationPreferences = {
   evening_capture_hour: 20,
   status_reminder_frequency: 'weekly',
   max_push_per_day: 3,
+  max_email_per_day: 5,
+  max_sms_per_day: 2,
+  max_whatsapp_per_day: 3,
+  quiet_hours_mode: 'defer',
+  evening_digest_enabled: false,
+  evening_digest_hour: 19,
+  deadline_lead_days: [5, 2, 0],
+  coach_channels: ['push', 'email'],
+  smart_grouping_enabled: true,
   notify_via_sms: false,
   notify_via_whatsapp: false,
   notify_payment_receipts: true,
@@ -107,6 +127,15 @@ export const useNotificationPreferences = () => {
           evening_capture_hour: (data as any).evening_capture_hour ?? 20,
           status_reminder_frequency: ((data as any).status_reminder_frequency ?? 'weekly') as StatusFrequency,
           max_push_per_day: (data as any).max_push_per_day ?? 3,
+          max_email_per_day: (data as any).max_email_per_day ?? 5,
+          max_sms_per_day: (data as any).max_sms_per_day ?? 2,
+          max_whatsapp_per_day: (data as any).max_whatsapp_per_day ?? 3,
+          quiet_hours_mode: ((data as any).quiet_hours_mode ?? 'defer') as QuietHoursMode,
+          evening_digest_enabled: (data as any).evening_digest_enabled ?? false,
+          evening_digest_hour: (data as any).evening_digest_hour ?? 19,
+          deadline_lead_days: (data as any).deadline_lead_days ?? [5, 2, 0],
+          coach_channels: ((data as any).coach_channels ?? ['push', 'email']) as CoachChannel[],
+          smart_grouping_enabled: (data as any).smart_grouping_enabled ?? true,
           notify_via_sms: (data as any).notify_via_sms ?? false,
           notify_via_whatsapp: (data as any).notify_via_whatsapp ?? false,
           notify_payment_receipts: (data as any).notify_payment_receipts ?? true,
