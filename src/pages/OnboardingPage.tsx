@@ -286,7 +286,7 @@ const OnboardingPage = () => {
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1">
                         {(Array.isArray(plan.features) ? plan.features : []).map((f: unknown, i: number) => (
-                          <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">{String(f)}</span>
+                          <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">{translateFeature(String(f), isFr ? 'fr' : 'en')}</span>
                         ))}
                       </div>
                     </button>
