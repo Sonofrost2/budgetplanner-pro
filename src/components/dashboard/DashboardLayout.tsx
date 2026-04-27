@@ -21,6 +21,8 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/dashboard/AppSidebar';
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
 import DashboardBreadcrumb from '@/components/dashboard/Breadcrumb';
+import DemoBanner from '@/components/dashboard/DemoBanner';
+import { isDemoUserEmail } from '@/lib/demo';
 
 const DashboardLayout = () => {
   useRealtimeSync();
@@ -42,6 +44,12 @@ const DashboardLayout = () => {
 
   useEffect(() => {
     if (!user) return;
+    // Demo account skips onboarding regardless of DB flag
+    if (isDemoUserEmail(user.email)) {
+      setProfile({ display_name: 'Compte Démo', onboarding_completed: true, avatar_url: null });
+      setUserPlan(null);
+      return;
+    }
     supabase.from('profiles').select('display_name, onboarding_completed, avatar_url').eq('user_id', user.id).single()
       .then(({ data }) => {
         setProfile(data);
@@ -157,6 +165,7 @@ const DashboardLayout = () => {
 
         {/* Main content */}
         <main className="flex-1 min-w-0 pb-20 lg:pb-0">
+          <DemoBanner />
           <header className="sticky top-0 z-30 bg-background/60 backdrop-blur-xl border-b border-border/50 px-4 lg:px-6 h-14 flex items-center gap-3">
             {/* Sidebar toggle — desktop only */}
             <SidebarTrigger className="hidden lg:flex h-8 w-8 rounded-xl" />

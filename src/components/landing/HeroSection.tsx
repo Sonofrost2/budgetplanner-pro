@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
 
 const HeroSection = () => {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { user } = useAuth();
 
   const handleLearnMore = () => {
@@ -61,6 +61,12 @@ const HeroSection = () => {
               <Button size="lg" variant="outline" className="w-full sm:w-auto text-sm px-7 h-11 rounded-xl glass border-glass-border hover:bg-glass-hover" onClick={handleLearnMore}>
                 {t.hero.ctaSecondary}
               </Button>
+              <Link to="/demo">
+                <Button size="lg" variant="ghost" className="w-full sm:w-auto text-sm px-7 h-11 rounded-xl text-primary hover:bg-primary/10 gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  {locale === 'fr' ? 'Voir la démo' : 'Try the demo'}
+                </Button>
+              </Link>
             </motion.div>
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.5 }}

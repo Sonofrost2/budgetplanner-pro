@@ -19,6 +19,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import DemoLoginPage from "./pages/DemoLoginPage";
 
 // Lazy-loaded pages
 const OnboardingPage = lazyWithRetry(() => import("./pages/OnboardingPage"), "onboarding-page");
@@ -77,6 +78,7 @@ const AnimatedRoutes = () => {
           <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
           <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
           <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
+          <Route path="/demo" element={<PageTransition><DemoLoginPage /></PageTransition>} />
           <Route path="/onboarding" element={<PageTransition><OnboardingPage /></PageTransition>} />
           <Route path="/legal/:slug" element={<PageTransition><LegalPage /></PageTransition>} />
           <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
