@@ -668,7 +668,7 @@ const FeatureComparisonTable = ({ plans, isFr }: { plans: Plan[]; isFr: boolean 
           <tbody>
             {allFeatures.map((feat, i) => (
               <tr key={i} className="border-b border-border/30 last:border-b-0 hover:bg-muted/20">
-                <td className="px-5 py-2.5 text-foreground">{feat}</td>
+                <td className="px-5 py-2.5 text-foreground">{translateFeature(feat, isFr ? 'fr' : 'en')}</td>
                 {plans.map(p => (
                   <td key={p.id} className="text-center px-3 py-2.5">
                     {p.features.includes(feat)
