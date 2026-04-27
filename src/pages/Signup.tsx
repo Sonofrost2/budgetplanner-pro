@@ -89,7 +89,12 @@ const Signup = () => {
       return;
     }
     if (phone && !phoneValid) {
-      toast.error(t.auth.phoneInvalid);
+      const ex = getExampleE164(countryCode);
+      toast.error(
+        ex
+          ? `${t.auth.phoneInvalid.replace('+XXX...', ex)}`
+          : t.auth.phoneInvalid
+      );
       return;
     }
     setLoading(true);
