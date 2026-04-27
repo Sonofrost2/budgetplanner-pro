@@ -411,7 +411,8 @@ const NotificationPreferencesCard = ({ locale }: Props) => {
                     />
                   </div>
                   {prefs.quiet_hours_enabled && (
-                    <div className="ml-6.5 flex items-center gap-2 text-xs">
+                    <div className="ml-6.5 space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
                       <Label className="text-muted-foreground">{isFr ? 'De' : 'From'}</Label>
                       <Input
                         type="number"
@@ -430,6 +431,17 @@ const NotificationPreferencesCard = ({ locale }: Props) => {
                         onChange={(e) => updatePref('quiet_hours_end', Number(e.target.value))}
                       />
                       <span className="text-muted-foreground">h</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Label className="text-muted-foreground">{isFr ? 'Comportement' : 'Behavior'}</Label>
+                        <Select value={prefs.quiet_hours_mode} onValueChange={(v) => updatePref('quiet_hours_mode', v)}>
+                          <SelectTrigger className="rounded-xl h-8 w-44 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="defer">{isFr ? 'Différer (envoyer plus tard)' : 'Defer (send later)'}</SelectItem>
+                            <SelectItem value="skip">{isFr ? 'Ignorer' : 'Skip'}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   )}
                 </div>
