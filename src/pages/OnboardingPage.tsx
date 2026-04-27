@@ -157,7 +157,40 @@ const OnboardingPage = () => {
 
   const handleFinish = async () => {
     if (!user) return;
-    await supabase.from('profiles').update({ currency, locale: lang, onboarding_completed: true }).eq('user_id', user.id);
+    const trimmedPhone = phone.trim();
+    const phoneValid = !trimmedPhone || /^\+\d{8,15}$/.test(trimmedPhone);
+    if (!phoneValid) {
+      toast.error(isFr ? 'Numéro invalide. Format : +XXX...' : 'Invalid number. Format: +XXX...');
+      return;
+    }
+    await supabase
+      .from('profiles')
+      .update({
+        currency,
+        locale: lang,
+        onboarding_completed: true,
+        phone: trimmedPhone || null,
+      })
+      .eq('user_id', user.id);
+
+    // Persist notification channel preferences
+    const coachChannels = [
+      notifPush ? 'push' : null,
+      notifEmail ? 'email' : null,
+      notifSms && trimmedPhone ? 'sms' : null,
+      notifWhatsapp && trimmedPhone ? 'whatsapp' : null,
+    ].filter(Boolean) as string[];
+    await supabase
+      .from('notification_preferences')
+      .upsert(
+        {
+          user_id: user.id,
+          notify_via_sms: notifSms && !!trimmedPhone,
+          notify_via_whatsapp: notifWhatsapp && !!trimmedPhone,
+          coach_channels: coachChannels.length > 0 ? coachChannels : ['push', 'email'],
+        },
+        { onConflict: 'user_id' },
+      );
     setLocale(lang as 'fr' | 'en');
     const validAccounts = accounts.filter(a => a.name.trim());
     if (validAccounts.length > 0) {
