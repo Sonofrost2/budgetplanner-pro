@@ -149,17 +149,27 @@ const AIChatWidget = () => {
   const streamChat = async (allMessages: Msg[]) => {
     // Get the current user's session token — sending the publishable anon key
     // here would make requirePlan() fail with "missing sub claim" (403).
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) {
+    const getToken = async (forceRefresh = false): Promise<string | null> => {
+      if (forceRefresh) {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (error || !data?.session?.access_token) return null;
+        return data.session.access_token;
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.access_token ?? null;
+    };
+
+    let token = await getToken();
+    if (!token) {
       coachToast.fail(locale === 'fr' ? 'Session expirée. Reconnecte-toi.' : 'Session expired. Please sign in again.');
       throw new Error('No session');
     }
 
-    const resp = await fetch(CHAT_URL, {
+    const doFetch = (jwt: string) => fetch(CHAT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${jwt}`,
         apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({
@@ -169,6 +179,17 @@ const AIChatWidget = () => {
       }),
     });
 
+    let resp = await doFetch(token);
+
+    // Retry once on 401/Unauthorized after refreshing the JWT
+    if (resp.status === 401) {
+      const refreshed = await getToken(true);
+      if (refreshed) {
+        token = refreshed;
+        resp = await doFetch(refreshed);
+      }
+    }
+
     if (!resp.ok) {
       let errorMessage = locale === 'fr' ? 'Erreur du service IA' : 'AI service error';
       try {
@@ -176,6 +197,12 @@ const AIChatWidget = () => {
         errorMessage = payload?.error || errorMessage;
       } catch {
         // ignore invalid JSON error body
+      }
+
+      if (resp.status === 401) {
+        const sessionExpired = locale === 'fr' ? 'Session expirée. Reconnecte-toi.' : 'Session expired. Please sign in again.';
+        coachToast.fail(sessionExpired);
+        throw new Error('Unauthorized');
       }
 
       coachToast.fail(errorMessage);
