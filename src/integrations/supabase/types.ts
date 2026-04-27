@@ -1736,6 +1736,20 @@ export type Database = {
       }
     }
     Views: {
+      admin_notification_metrics: {
+        Row: {
+          auto_resolved_count: number | null
+          cancelled_alerts_total: number | null
+          channel: string | null
+          day: string | null
+          queued_cancelled: number | null
+          queued_failed: number | null
+          queued_pending: number | null
+          queued_sent: number | null
+          sent_count: number | null
+        }
+        Relationships: []
+      }
       admin_user_overview: {
         Row: {
           account_count: number | null
@@ -1923,6 +1937,20 @@ export type Database = {
           id: string
           type: string
           user_id: string
+        }[]
+      }
+      get_notification_metrics: {
+        Args: { days_back?: number }
+        Returns: {
+          auto_resolved_count: number
+          cancelled_alerts_total: number
+          channel: string
+          day: string
+          queued_cancelled: number
+          queued_failed: number
+          queued_pending: number
+          queued_sent: number
+          sent_count: number
         }[]
       }
       has_role: {
