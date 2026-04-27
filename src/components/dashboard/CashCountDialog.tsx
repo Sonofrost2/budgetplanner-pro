@@ -126,7 +126,7 @@ const CashCountDialog = ({ open, onOpenChange, account, theoreticalBalance, user
                 const subtotal = qty * d;
                 return (
                   <div key={d} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
-                    <span className="text-sm font-semibold w-16 tabular-nums">{d >= 1 ? d.toLocaleString() : d}</span>
+                    <span className="text-sm font-semibold w-16 tabular-nums">{d >= 1 ? d.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US') : d}</span>
                     <span className="text-muted-foreground text-xs">×</span>
                     <Input
                       type="number"
