@@ -505,7 +505,7 @@ const MyPlanTab = ({ plan, subscription, isFr, t, currency, fmt, locale, onCance
             {plan.features.map((f: string, i: number) => (
               <li key={i} className="flex items-start gap-2 text-xs">
                 <Check className="w-3.5 h-3.5 text-secondary mt-0.5 shrink-0" />
-                <span>{f}</span>
+                <span>{translateFeature(f, isFr ? 'fr' : 'en')}</span>
               </li>
             ))}
           </ul>
