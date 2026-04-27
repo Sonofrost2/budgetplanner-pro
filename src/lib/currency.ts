@@ -52,6 +52,17 @@ const FIAT_EXAMPLES: Record<ExampleKey, number> = {
 
 const isCfaCode = (code: string) => code === 'XOF' || code === 'XAF' || code === 'GNF';
 
+/**
+ * Append the currency unit to a field label for clarity.
+ * Example: amountLabel('Montant', 'XOF') → "Montant (FCFA)"
+ * Use on amount inputs so users instantly know which unit the
+ * placeholder/value represents.
+ */
+export const amountLabel = (label: string, currency?: string | null): string => {
+  const sym = currencySymbol(currency);
+  return `${label} (${sym})`;
+};
+
 /** Map our short locale codes to BCP-47 tags used by Intl. */
 export const bcp47 = (locale?: string | null): string =>
   (locale || 'fr').toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-US';
