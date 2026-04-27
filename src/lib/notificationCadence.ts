@@ -10,7 +10,7 @@ export interface CadencePrefs {
   quiet_hours_enabled?: boolean;
   quiet_hours_start?: number;
   quiet_hours_end?: number;
-  status_reminder_frequency?: 'weekly' | 'every_3d' | 'on_change_only';
+  status_reminder_frequency?: 'weekly' | 'every_3d' | 'on_change_only' | 'monthly';
   budget_alerts?: boolean;
   budget_projections?: boolean;
   savings_reminders?: boolean;
