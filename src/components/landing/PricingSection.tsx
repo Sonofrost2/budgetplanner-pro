@@ -3,6 +3,7 @@ import { Check, X, Sparkles, Crown, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { currencySymbol } from '@/lib/currency';
 import { useAuth } from '@/hooks/useAuth';
 import { useGeolocatedCurrency } from '@/hooks/useGeolocatedCurrency';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +20,7 @@ type Plan = {
 };
 
 const PricingSection = () => {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { user } = useAuth();
   const { formatPrice, loading: geoLoading, detectedCurrency } = useGeolocatedCurrency();
   const [plans, setPlans] = useState<Plan[]>([]);
