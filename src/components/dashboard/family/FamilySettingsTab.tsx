@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Settings2, Save, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { exampleAmount } from '@/lib/currency';
 
 const SettingsSchema = z.object({
   name: z.string().trim().min(1, 'Nom requis').max(100, 'Max 100 caractères'),
@@ -136,7 +137,7 @@ export const FamilySettingsTab = ({ group, canEdit, onChange }: Props) => {
               value={threshold}
               onChange={(e) => setThreshold(e.target.value)}
               disabled={!canEdit}
-              placeholder="100000"
+              placeholder={exampleAmount(currency, locale)}
             />
             {errors.large_tx_threshold && <p className="text-xs text-destructive">{errors.large_tx_threshold}</p>}
             <p className="text-xs text-muted-foreground">

@@ -27,7 +27,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import ReactMarkdown from 'react-markdown';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { debtSchema, validateForm } from '@/lib/validationSchemas';
-import { currencySymbol } from '@/lib/currency';
+import { currencySymbol, exampleAmount } from '@/lib/currency';
 
 const DebtsPage = () => {
   const { user } = useAuth();
@@ -418,7 +418,7 @@ const DebtsPage = () => {
                 prefix={currencySymbol(currency)}
                 label={t.totalDebt}
                 error={formErrors.total_amount}
-                placeholder="0"
+                placeholder={exampleAmount(currency, locale)}
               />
               <InputField
                 type="number" min="0"
@@ -427,7 +427,7 @@ const DebtsPage = () => {
                 prefix={currencySymbol(currency)}
                 label={t.paidAmount}
                 error={formErrors.paid_amount}
-                placeholder="0"
+                placeholder={exampleAmount(currency, locale)}
               />
             </div>
             {Number(form.total_amount) > 0 && Number(form.paid_amount) >= 0 && (
