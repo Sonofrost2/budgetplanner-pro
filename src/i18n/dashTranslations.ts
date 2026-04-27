@@ -95,6 +95,7 @@ export const dashT = {
     adminSecurity: 'Admin Sécurité',
     adminSmsTemplates: 'Admin Modèles messages',
     adminSmsLogs: 'Admin Historique SMS',
+    adminNotificationMetrics: 'Admin Métriques notifications',
     analysis: 'Analyse',
     detailed: 'Détaillé',
     global: 'Global',
