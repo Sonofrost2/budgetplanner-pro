@@ -93,7 +93,7 @@ export const SplitTransactionDialog = ({ open, onOpenChange, parentTransaction, 
             <Input placeholder={fr ? 'Description' : 'Description'} value={line.description}
               onChange={e => setLines(L => L.map(l => l.id === line.id ? { ...l, description: e.target.value } : l))} />
             <div className="grid grid-cols-2 gap-2">
-              <Input type="number" placeholder="Montant" value={line.amount}
+              <Input type="number" placeholder={fr ? 'Montant' : 'Amount'} value={line.amount}
                 onChange={e => setLines(L => L.map(l => l.id === line.id ? { ...l, amount: e.target.value } : l))} />
               <CategoryCombobox categories={filteredCats} value={line.category_id}
                 onValueChange={v => setLines(L => L.map(l => l.id === line.id ? { ...l, category_id: v } : l))}
