@@ -595,7 +595,7 @@ const PlanCards = ({ plans, subscription, currency, fmt, locale, isFr, t, annual
                     <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isHighlighted || isPremium ? 'bg-primary/15' : 'bg-secondary/15'}`}>
                       <Check className={`w-2.5 h-2.5 ${isHighlighted || isPremium ? 'text-primary' : 'text-secondary'}`} />
                     </div>
-                    <span className={isHighlighted ? 'font-medium' : ''}>{f}</span>
+                    <span className={isHighlighted ? 'font-medium' : ''}>{translateFeature(f, isFr ? 'fr' : 'en')}</span>
                   </li>
                 ))}
                 {disabledFeatures.map((f: string, i: number) => (
