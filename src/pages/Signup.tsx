@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import { useGeoCountry } from '@/hooks/useGeoCountry';
 import { DEFAULT_COUNTRY_CODE, findCountryByCode } from '@/lib/countries';
+import { getExampleE164 } from '@/lib/phoneValidation';
 import { supabase } from '@/integrations/supabase/client';
 
 const fadeUp = (delay = 0) => ({
@@ -219,7 +220,11 @@ const Signup = () => {
                     detectedCountry={geo.country}
                     locale={locale === 'en' ? 'en' : 'fr'}
                   />
-                  <p className="text-[11px] text-muted-foreground leading-snug">{t.auth.phoneHint}</p>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    {locale === 'fr'
+                      ? `Format international, ex : ${getExampleE164(countryCode) || '+2250708091011'} — utilisé pour les SMS et WhatsApp`
+                      : `International format, e.g. ${getExampleE164(countryCode) || '+2250708091011'} — used for SMS and WhatsApp`}
+                  </p>
                 </motion.div>
 
                 {securityWarning && (
