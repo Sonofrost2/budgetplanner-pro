@@ -89,7 +89,12 @@ const Signup = () => {
       return;
     }
     if (phone && !phoneValid) {
-      toast.error(t.auth.phoneInvalid);
+      const ex = getExampleE164(countryCode);
+      toast.error(
+        ex
+          ? `${t.auth.phoneInvalid.replace('+XXX...', ex)}`
+          : t.auth.phoneInvalid
+      );
       return;
     }
     setLoading(true);
@@ -181,7 +186,7 @@ const Signup = () => {
                   <Label htmlFor="name" className="form-label">{t.auth.name}</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jean Dupont" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required />
+                    <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={(t.auth as any).namePlaceholder || 'Jean Dupont'} className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required />
                   </div>
                 </motion.div>
 
@@ -189,7 +194,7 @@ const Signup = () => {
                   <Label htmlFor="email" className="form-label">{t.auth.email}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.com" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required />
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={(t.auth as any).emailPlaceholder || 'vous@exemple.com'} className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required />
                   </div>
                 </motion.div>
 
@@ -282,7 +287,7 @@ const Signup = () => {
 
                 <motion.div {...fadeUp(0.38)} className="relative my-2">
                   <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/40" /></div>
-                  <div className="relative flex justify-center text-[10px] uppercase tracking-wider"><span className="bg-background/80 backdrop-blur-sm px-3 py-0.5 rounded-full text-muted-foreground">ou</span></div>
+                  <div className="relative flex justify-center text-[10px] uppercase tracking-wider"><span className="bg-background/80 backdrop-blur-sm px-3 py-0.5 rounded-full text-muted-foreground">{(t.auth as any).orDivider || 'ou'}</span></div>
                 </motion.div>
 
                 <motion.div {...fadeUp(0.4)}>
