@@ -114,7 +114,7 @@ interface Valuation {
 const WealthPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
+  const { fmt: fmtCurrency, currency } = useProfile();
   const { canUseWealth, canUseAIPremium } = useSubscription();
   const t = dashT[locale];
   const isFr = locale === 'fr';
@@ -824,7 +824,7 @@ const WealthPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <InputField
                 label={(isFr ? 'Valeur actuelle' : 'Current Value') + ' *'}
-                prefix={isFr ? 'FCFA' : '$'}
+                prefix={currencySymbol(currency)}
                 type="number"
                 min="0"
                 step="1"
@@ -836,7 +836,7 @@ const WealthPage = () => {
               />
               <InputField
                 label={`${isFr ? 'Coût d\'acquisition' : 'Acquisition Cost'} (${isFr ? 'optionnel' : 'optional'})`}
-                prefix={isFr ? 'FCFA' : '$'}
+                prefix={currencySymbol(currency)}
                 type="number"
                 min="0"
                 step="1"
@@ -895,7 +895,7 @@ const WealthPage = () => {
         <div className="space-y-4 py-2">
           <InputField
             label={isFr ? 'Nouvelle valeur' : 'New Value'}
-            prefix={isFr ? 'FCFA' : '$'}
+            prefix={currencySymbol(currency)}
             type="number"
             min="0"
             value={valuationValue}
