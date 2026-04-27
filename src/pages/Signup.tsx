@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wallet, Mail, Lock, User, CheckCircle, Loader2 } from 'lucide-react';
+import { Wallet, Mail, Lock, User, CheckCircle, Loader2, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable/index';
@@ -22,8 +23,12 @@ const Signup = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [smsConsent, setSmsConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -42,8 +47,22 @@ const Signup = () => {
       toast.error('Password must be at least 8 characters');
       return;
     }
+    if (!acceptTerms) {
+      toast.error(t.auth.consentRequired);
+      return;
+    }
+    const trimmedPhone = phone.trim();
+    if (trimmedPhone && !/^\+\d{8,15}$/.test(trimmedPhone)) {
+      toast.error(t.auth.phoneInvalid);
+      return;
+    }
     setLoading(true);
-    const { error } = await signUp(email.trim(), password, name.trim());
+    const { error } = await signUp(email.trim(), password, name.trim(), {
+      phone: trimmedPhone || undefined,
+      marketingConsent,
+      smsConsent: smsConsent && !!trimmedPhone,
+      termsAccepted: acceptTerms,
+    });
     setLoading(false);
     if (error) {
       toast.error(error.message);
