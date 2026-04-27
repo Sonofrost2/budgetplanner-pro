@@ -22,8 +22,7 @@ const fadeUp = (delay = 0) => ({
 });
 
 const Signup = () => {
-  const { t } = useLanguage();
-  // Re-fetch locale from context to feed CountryPhoneInput
+  const { t, locale } = useLanguage();
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
   const geo = useGeoCountry();
@@ -218,7 +217,7 @@ const Signup = () => {
                     onCountryChange={setCountryCode}
                     onChange={(e164, _cc, valid) => { setPhone(e164); setPhoneValid(valid); }}
                     detectedCountry={geo.country}
-                    locale={(t as any).__locale === 'en' ? 'en' : 'fr'}
+                    locale={locale === 'en' ? 'en' : 'fr'}
                   />
                   <p className="text-[11px] text-muted-foreground leading-snug">{t.auth.phoneHint}</p>
                 </motion.div>
