@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sparkles, Wallet, Globe, CreditCard, ArrowRight, ArrowLeft, Plus, Trash2, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Sparkles, Wallet, Globe, CreditCard, ArrowRight, ArrowLeft, Plus, Trash2, Loader2, XCircle, Bell, Mail, MessageSquare, Smartphone } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
-const STEPS = ['welcome', 'plan', 'preferences', 'accounts', 'payment', 'done'] as const;
+const STEPS = ['welcome', 'plan', 'preferences', 'notifications', 'accounts', 'payment', 'done'] as const;
 
 const ACCOUNT_TYPES = [
   { value: 'mobile_money', label: '📱 Mobile Money' },
@@ -33,6 +34,11 @@ const OnboardingPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
   const [currency, setCurrency] = useState('EUR');
   const [lang, setLang] = useState(locale);
+  const [phone, setPhone] = useState('');
+  const [notifPush, setNotifPush] = useState(true);
+  const [notifEmail, setNotifEmail] = useState(true);
+  const [notifSms, setNotifSms] = useState(false);
+  const [notifWhatsapp, setNotifWhatsapp] = useState(false);
   const [accounts, setAccounts] = useState<{ name: string; type: string; icon: string; opening_balance: string }[]>([
     { name: '', type: 'mobile_money', icon: '📱', opening_balance: '0' },
   ]);
@@ -53,11 +59,16 @@ const OnboardingPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('currency, locale, onboarding_completed').eq('user_id', user.id).single()
+    supabase.from('profiles').select('currency, locale, onboarding_completed, phone, sms_consent').eq('user_id', user.id).single()
       .then(({ data }) => {
         if (data?.onboarding_completed) { navigate('/dashboard'); return; }
         if (data?.currency) setCurrency(data.currency);
         if (data?.locale) setLang(data.locale as 'fr' | 'en');
+        if (data?.phone) setPhone(data.phone);
+        if (data?.sms_consent) {
+          setNotifSms(true);
+          setNotifWhatsapp(true);
+        }
       });
   }, [user, navigate]);
 
