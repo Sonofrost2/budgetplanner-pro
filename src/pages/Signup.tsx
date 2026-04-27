@@ -23,6 +23,7 @@ const fadeUp = (delay = 0) => ({
 
 const Signup = () => {
   const { t } = useLanguage();
+  // Re-fetch locale from context to feed CountryPhoneInput
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
   const geo = useGeoCountry();
