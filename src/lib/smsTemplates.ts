@@ -21,6 +21,8 @@ export interface SmsTemplate {
   build: (vars: Record<string, string | number>, locale: 'fr' | 'en') => string;
 }
 
+import { formatExample, type ExampleKey } from './currency';
+
 const fmt = (s: string, vars: Record<string, string | number>) =>
   s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
 
@@ -144,28 +146,42 @@ export const SMS_TEMPLATES: SmsTemplate[] = [
   },
 ];
 
-/** Sample variables used for previews & test sends. */
-export const SMS_TEMPLATE_SAMPLES: Record<SmsTemplateId, Record<string, string | number>> = {
-  test_ping: {},
-  welcome: { name: 'Cedric' },
-  budget_alert: { category: 'Alimentation', percent: 92, spent: '46 000 FCFA', limit: '50 000 FCFA' },
-  large_transaction: { amount: '125 000 FCFA', account: 'Wave', description: 'Loyer' },
-  low_balance: { account: 'Orange Money', balance: '2 500 FCFA' },
-  goal_reached: { goal: 'Vacances', amount: '500 000 FCFA' },
-  recurring_due: { description: 'Abonnement Netflix', amount: '6 500 FCFA', date: '01/12' },
-  weekly_summary: { income: '180 000 FCFA', expense: '95 000 FCFA', balance: '+85 000 FCFA' },
-  payment_receipt: { amount: '5 000 FCFA', plan: 'Pro' },
-  subscription_expiry: { plan: 'Pro', date: '15/12/2026' },
+/**
+ * Sample variables used for previews & test sends.
+ * Amounts are derived from the active currency so that "FCFA" / "€" / "$"
+ * placeholders stay coherent with the user's profile.
+ */
+export const buildSmsSamples = (
+  currency: string = 'XOF',
+  locale: 'fr' | 'en' = 'fr',
+): Record<SmsTemplateId, Record<string, string | number>> => {
+  const ex = (k: ExampleKey) => formatExample(k, currency, locale);
+  return {
+    test_ping: {},
+    welcome: { name: 'Cedric' },
+    budget_alert: { category: locale === 'fr' ? 'Alimentation' : 'Food', percent: 92, spent: ex('groceries'), limit: ex('groceries') },
+    large_transaction: { amount: ex('large'), account: 'Wave', description: locale === 'fr' ? 'Loyer' : 'Rent' },
+    low_balance: { account: 'Orange Money', balance: ex('low') },
+    goal_reached: { goal: locale === 'fr' ? 'Vacances' : 'Vacation', amount: ex('goal') },
+    recurring_due: { description: locale === 'fr' ? 'Abonnement Netflix' : 'Netflix subscription', amount: ex('subscription'), date: '01/12' },
+    weekly_summary: { income: ex('salary'), expense: ex('rent'), balance: ex('monthly') },
+    payment_receipt: { amount: ex('subscription'), plan: 'Pro' },
+    subscription_expiry: { plan: 'Pro', date: '15/12/2026' },
+  };
 };
+
+/** @deprecated Use buildSmsSamples(currency, locale) instead. Kept for backward compatibility. */
+export const SMS_TEMPLATE_SAMPLES = buildSmsSamples('XOF', 'fr');
 
 export function renderTemplate(
   id: SmsTemplateId,
   locale: 'fr' | 'en',
-  vars: Record<string, string | number> = SMS_TEMPLATE_SAMPLES[id],
+  vars?: Record<string, string | number>,
 ): string {
   const tpl = SMS_TEMPLATES.find((t) => t.id === id);
   if (!tpl) return '';
-  return tpl.build(vars, locale);
+  const v = vars ?? buildSmsSamples('XOF', locale)[id];
+  return tpl.build(v, locale);
 }
 
 /** Render an arbitrary template body string with {placeholders}. */
