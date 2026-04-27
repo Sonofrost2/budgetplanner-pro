@@ -62,8 +62,7 @@ const PricingSection = () => {
 
   const getDisplayPrice = (plan: Plan) => {
     if (plan.name === 'free') {
-      const isCfa = detectedCurrency === 'XOF' || detectedCurrency === 'XAF';
-      const formatted = isCfa ? '0 CFA' : detectedCurrency === 'EUR' ? '0 €' : detectedCurrency === 'USD' ? '0 $' : `0 ${detectedCurrency}`;
+      const formatted = `0 ${currencySymbol(detectedCurrency)}`;
       return { amount: 0, formatted, currency: detectedCurrency, monthlyEquivalent: '' };
     }
     const base = formatPrice(plan.currency_prices);
@@ -74,13 +73,14 @@ const PricingSection = () => {
     const monthlyDiscounted = Math.round(base.amount * 0.8 * 100) / 100;
     const totalAnnual = Math.round(monthlyDiscounted * 12);
     const { currency } = base;
-    const isCfa = currency === 'XOF' || currency === 'XAF';
+    const isCfa = currency === 'XOF' || currency === 'XAF' || currency === 'GNF';
+    const symbol = currencySymbol(currency);
     const formatted = isCfa
-      ? `${totalAnnual.toLocaleString('fr-FR')} CFA`
-      : `${totalAnnual.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency}`;
+      ? `${totalAnnual.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} ${symbol}`
+      : `${totalAnnual.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { minimumFractionDigits: 2 })} ${symbol}`;
     const monthlyFormatted = isCfa
-      ? `${Math.round(monthlyDiscounted).toLocaleString('fr-FR')} CFA`
-      : `${monthlyDiscounted.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} ${currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency}`;
+      ? `${Math.round(monthlyDiscounted).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} ${symbol}`
+      : `${monthlyDiscounted.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { minimumFractionDigits: 2 })} ${symbol}`;
     return { amount: totalAnnual, formatted, currency, monthlyEquivalent: monthlyFormatted };
   };
 

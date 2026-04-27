@@ -107,8 +107,8 @@ const HeroSection = () => {
                 <div className="grid grid-cols-3 gap-3 mb-5">
                   {[
                     { icon: Wallet, label: locale === 'fr' ? 'Solde total' : 'Total balance', value: locale === 'fr' ? '430 K' : '430K', color: '' },
-                    { icon: TrendingUp, label: 'Revenus', value: '+850K', color: 'text-secondary' },
-                    { icon: TrendingDown, label: 'Dépenses', value: '-420K', color: 'text-destructive' },
+                    { icon: TrendingUp, label: locale === 'fr' ? 'Revenus' : 'Income', value: '+850K', color: 'text-secondary' },
+                    { icon: TrendingDown, label: locale === 'fr' ? 'Dépenses' : 'Expenses', value: '-420K', color: 'text-destructive' },
                   ].map((item, i) => (
                     <motion.div key={i}
                       initial={{ opacity: 0, y: 8 }}

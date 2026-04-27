@@ -48,11 +48,12 @@ export const UserSnapshotDrawer = ({ userId, open, onOpenChange }: Props) => {
       .finally(() => setLoading(false));
   }, [open, userId]);
 
-  const fmtMoney = (n: number, ccy = 'XOF') => {
+  const fmtMoney = (n: number, ccy?: string | null) => {
+    const code = (ccy || 'EUR').toUpperCase();
     try {
-      return new Intl.NumberFormat(isFr ? 'fr-FR' : 'en-US', { style: 'currency', currency: ccy, maximumFractionDigits: 0 }).format(n || 0);
+      return new Intl.NumberFormat(isFr ? 'fr-FR' : 'en-US', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(n || 0);
     } catch {
-      return `${Math.round(n || 0)} ${ccy}`;
+      return `${Math.round(n || 0)} ${code}`;
     }
   };
   const fmtDate = (d: string | null | undefined) => (d ? format(new Date(d), 'dd MMM yyyy HH:mm', { locale: dl }) : '—');
