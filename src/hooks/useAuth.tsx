@@ -6,7 +6,17 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, displayName: string) => Promise<{ error: Error | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    displayName: string,
+    extra?: {
+      phone?: string;
+      marketingConsent?: boolean;
+      smsConsent?: boolean;
+      termsAccepted?: boolean;
+    },
+  ) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -44,15 +54,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, displayName: string) => {
-    const { error } = await supabase.auth.signUp({
+  const signUp: AuthContextType['signUp'] = async (email, password, displayName, extra) => {
+    const phone = extra?.phone?.trim() || null;
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { display_name: displayName },
+        data: {
+          display_name: displayName,
+          phone,
+          marketing_consent: !!extra?.marketingConsent,
+          sms_consent: !!extra?.smsConsent,
+          terms_accepted: !!extra?.termsAccepted,
+        },
         emailRedirectTo: window.location.origin,
       },
     });
+    // Persist consent + phone on the profile row (created via DB trigger)
+    if (!error && data?.user?.id) {
+      const userId = data.user.id;
+      const now = new Date().toISOString();
+      // Wait briefly for the profile-creation trigger then upsert consent fields
+      setTimeout(() => {
+        supabase
+          .from('profiles')
+          .update({
+            phone,
+            marketing_consent: !!extra?.marketingConsent,
+            sms_consent: !!extra?.smsConsent,
+            terms_accepted_at: extra?.termsAccepted ? now : null,
+            consent_updated_at: now,
+          })
+          .eq('user_id', userId)
+          .then(({ error: pErr }) => {
+            if (pErr) console.warn('Profile consent update failed:', pErr.message);
+          });
+      }, 800);
+    }
     // Send welcome email (fire-and-forget)
     if (!error) {
       supabase.functions.invoke('send-email', {

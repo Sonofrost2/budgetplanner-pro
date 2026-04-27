@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wallet, Mail, Lock, User, CheckCircle, Loader2 } from 'lucide-react';
+import { Wallet, Mail, Lock, User, CheckCircle, Loader2, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable/index';
@@ -22,8 +23,12 @@ const Signup = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [smsConsent, setSmsConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -42,8 +47,22 @@ const Signup = () => {
       toast.error('Password must be at least 8 characters');
       return;
     }
+    if (!acceptTerms) {
+      toast.error(t.auth.consentRequired);
+      return;
+    }
+    const trimmedPhone = phone.trim();
+    if (trimmedPhone && !/^\+\d{8,15}$/.test(trimmedPhone)) {
+      toast.error(t.auth.phoneInvalid);
+      return;
+    }
     setLoading(true);
-    const { error } = await signUp(email.trim(), password, name.trim());
+    const { error } = await signUp(email.trim(), password, name.trim(), {
+      phone: trimmedPhone || undefined,
+      marketingConsent,
+      smsConsent: smsConsent && !!trimmedPhone,
+      termsAccepted: acceptTerms,
+    });
     setLoading(false);
     if (error) {
       toast.error(error.message);
@@ -150,6 +169,64 @@ const Signup = () => {
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required minLength={8} />
                   </div>
+                </motion.div>
+
+                <motion.div {...fadeUp(0.32)} className="space-y-2">
+                  <Label htmlFor="phone" className="form-label">{t.auth.phoneOptional}</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+225 07 08 09 09 10"
+                      className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60"
+                      inputMode="tel"
+                      autoComplete="tel"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">{t.auth.phoneHint}</p>
+                </motion.div>
+
+                <motion.div {...fadeUp(0.34)} className="space-y-2.5 rounded-xl border border-border/40 bg-background/40 backdrop-blur-sm p-3">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <Checkbox
+                      checked={acceptTerms}
+                      onCheckedChange={(v) => setAcceptTerms(v === true)}
+                      className="mt-0.5"
+                      required
+                    />
+                    <span className="text-xs leading-relaxed text-foreground/80">
+                      {t.auth.acceptTerms}{' '}
+                      <Link to="/legal/terms" target="_blank" className="text-primary font-medium hover:underline">{t.auth.termsLink}</Link>
+                      {' '}{t.auth.andLink}{' '}
+                      <Link to="/legal/privacy" target="_blank" className="text-primary font-medium hover:underline">{t.auth.privacyLink}</Link>
+                      {' '}<span className="text-destructive">*</span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <Checkbox
+                      checked={marketingConsent}
+                      onCheckedChange={(v) => setMarketingConsent(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-xs leading-relaxed text-foreground/80">{t.auth.marketingOptin}</span>
+                  </label>
+                  <label className={`flex items-start gap-2.5 cursor-pointer ${!phone.trim() ? 'opacity-60' : ''}`}>
+                    <Checkbox
+                      checked={smsConsent && !!phone.trim()}
+                      onCheckedChange={(v) => setSmsConsent(v === true)}
+                      disabled={!phone.trim()}
+                      className="mt-0.5"
+                    />
+                    <span className="text-xs leading-relaxed text-foreground/80">
+                      {t.auth.smsOptin}
+                      {!phone.trim() && (
+                        <span className="block text-[10px] text-muted-foreground mt-0.5">{t.auth.smsOptinHint}</span>
+                      )}
+                    </span>
+                  </label>
                 </motion.div>
 
                 <motion.div {...fadeUp(0.35)}>

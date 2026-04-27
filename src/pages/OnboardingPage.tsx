@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sparkles, Wallet, Globe, CreditCard, ArrowRight, ArrowLeft, Plus, Trash2, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Sparkles, Wallet, Globe, CreditCard, ArrowRight, ArrowLeft, Plus, Trash2, Loader2, XCircle, Bell, Mail, MessageSquare, Smartphone } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
-const STEPS = ['welcome', 'plan', 'preferences', 'accounts', 'payment', 'done'] as const;
+const STEPS = ['welcome', 'plan', 'preferences', 'notifications', 'accounts', 'payment', 'done'] as const;
 
 const ACCOUNT_TYPES = [
   { value: 'mobile_money', label: '📱 Mobile Money' },
@@ -33,6 +34,11 @@ const OnboardingPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
   const [currency, setCurrency] = useState('EUR');
   const [lang, setLang] = useState(locale);
+  const [phone, setPhone] = useState('');
+  const [notifPush, setNotifPush] = useState(true);
+  const [notifEmail, setNotifEmail] = useState(true);
+  const [notifSms, setNotifSms] = useState(false);
+  const [notifWhatsapp, setNotifWhatsapp] = useState(false);
   const [accounts, setAccounts] = useState<{ name: string; type: string; icon: string; opening_balance: string }[]>([
     { name: '', type: 'mobile_money', icon: '📱', opening_balance: '0' },
   ]);
@@ -53,11 +59,16 @@ const OnboardingPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('currency, locale, onboarding_completed').eq('user_id', user.id).single()
+    supabase.from('profiles').select('currency, locale, onboarding_completed, phone, sms_consent').eq('user_id', user.id).single()
       .then(({ data }) => {
         if (data?.onboarding_completed) { navigate('/dashboard'); return; }
         if (data?.currency) setCurrency(data.currency);
         if (data?.locale) setLang(data.locale as 'fr' | 'en');
+        if (data?.phone) setPhone(data.phone);
+        if (data?.sms_consent) {
+          setNotifSms(true);
+          setNotifWhatsapp(true);
+        }
       });
   }, [user, navigate]);
 
@@ -146,7 +157,40 @@ const OnboardingPage = () => {
 
   const handleFinish = async () => {
     if (!user) return;
-    await supabase.from('profiles').update({ currency, locale: lang, onboarding_completed: true }).eq('user_id', user.id);
+    const trimmedPhone = phone.trim();
+    const phoneValid = !trimmedPhone || /^\+\d{8,15}$/.test(trimmedPhone);
+    if (!phoneValid) {
+      toast.error(isFr ? 'Numéro invalide. Format : +XXX...' : 'Invalid number. Format: +XXX...');
+      return;
+    }
+    await supabase
+      .from('profiles')
+      .update({
+        currency,
+        locale: lang,
+        onboarding_completed: true,
+        phone: trimmedPhone || null,
+      })
+      .eq('user_id', user.id);
+
+    // Persist notification channel preferences
+    const coachChannels = [
+      notifPush ? 'push' : null,
+      notifEmail ? 'email' : null,
+      notifSms && trimmedPhone ? 'sms' : null,
+      notifWhatsapp && trimmedPhone ? 'whatsapp' : null,
+    ].filter(Boolean) as string[];
+    await supabase
+      .from('notification_preferences')
+      .upsert(
+        {
+          user_id: user.id,
+          notify_via_sms: notifSms && !!trimmedPhone,
+          notify_via_whatsapp: notifWhatsapp && !!trimmedPhone,
+          coach_channels: coachChannels.length > 0 ? coachChannels : ['push', 'email'],
+        },
+        { onConflict: 'user_id' },
+      );
     setLocale(lang as 'fr' | 'en');
     const validAccounts = accounts.filter(a => a.name.trim());
     if (validAccounts.length > 0) {
@@ -283,6 +327,75 @@ const OnboardingPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {currentStep === 'notifications' && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-xl font-bold font-display flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-primary" />
+                  {isFr ? 'Vos canaux de notification' : 'Your notification channels'}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isFr
+                    ? 'Choisissez comment votre Coach Financier vous contacte. Modifiable à tout moment.'
+                    : 'Choose how your Financial Coach reaches you. Editable anytime.'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="onb-phone">{isFr ? 'Téléphone (optionnel)' : 'Phone (optional)'}</Label>
+                <Input
+                  id="onb-phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+225 07 08 09 09 10"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {isFr
+                    ? 'Format international (+225...). Requis pour SMS et WhatsApp.'
+                    : 'International format (+225...). Required for SMS and WhatsApp.'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <ChannelRow
+                  icon={Bell}
+                  title={isFr ? 'Notifications push' : 'Push notifications'}
+                  desc={isFr ? 'Alertes en temps réel sur ce navigateur / mobile' : 'Real-time alerts in this browser / mobile'}
+                  checked={notifPush}
+                  onChange={setNotifPush}
+                />
+                <ChannelRow
+                  icon={Mail}
+                  title="Email"
+                  desc={isFr ? 'Résumés et alertes importantes' : 'Digests and important alerts'}
+                  checked={notifEmail}
+                  onChange={setNotifEmail}
+                />
+                <ChannelRow
+                  icon={Smartphone}
+                  title="SMS"
+                  desc={isFr ? 'Alertes critiques (échéances, gros mouvements)' : 'Critical alerts (deadlines, large moves)'}
+                  checked={notifSms && !!phone.trim()}
+                  onChange={setNotifSms}
+                  disabled={!phone.trim()}
+                  disabledHint={isFr ? 'Renseignez un numéro pour activer' : 'Add a phone number to enable'}
+                />
+                <ChannelRow
+                  icon={MessageSquare}
+                  title="WhatsApp"
+                  desc={isFr ? 'Reçus de paiement et confirmations' : 'Payment receipts and confirmations'}
+                  checked={notifWhatsapp && !!phone.trim()}
+                  onChange={setNotifWhatsapp}
+                  disabled={!phone.trim()}
+                  disabledHint={isFr ? 'Renseignez un numéro pour activer' : 'Add a phone number to enable'}
+                />
               </div>
             </div>
           )}
@@ -434,3 +547,42 @@ const OnboardingPage = () => {
 };
 
 export default OnboardingPage;
+
+const ChannelRow = ({
+  icon: Icon,
+  title,
+  desc,
+  checked,
+  onChange,
+  disabled,
+  disabledHint,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  disabledHint?: string;
+}) => (
+  <label
+    className={`flex items-start gap-3 p-3 rounded-xl border transition-colors cursor-pointer ${
+      disabled ? 'opacity-60 cursor-not-allowed border-border/40' : checked ? 'border-primary/40 bg-primary/5' : 'border-border hover:border-primary/30'
+    }`}
+  >
+    <Checkbox
+      checked={checked}
+      onCheckedChange={(v) => onChange(v === true)}
+      disabled={disabled}
+      className="mt-0.5"
+    />
+    <Icon className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-medium leading-tight">{title}</p>
+      <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+      {disabled && disabledHint && (
+        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">{disabledHint}</p>
+      )}
+    </div>
+  </label>
+);

@@ -1079,37 +1079,49 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          consent_updated_at: string | null
           created_at: string
           currency: string
           display_name: string | null
           id: string
           locale: string
+          marketing_consent: boolean
           onboarding_completed: boolean
           phone: string | null
+          sms_consent: boolean
+          terms_accepted_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          consent_updated_at?: string | null
           created_at?: string
           currency?: string
           display_name?: string | null
           id?: string
           locale?: string
+          marketing_consent?: boolean
           onboarding_completed?: boolean
           phone?: string | null
+          sms_consent?: boolean
+          terms_accepted_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          consent_updated_at?: string | null
           created_at?: string
           currency?: string
           display_name?: string | null
           id?: string
           locale?: string
+          marketing_consent?: boolean
           onboarding_completed?: boolean
           phone?: string | null
+          sms_consent?: boolean
+          terms_accepted_at?: string | null
           updated_at?: string
           user_id?: string
         }
