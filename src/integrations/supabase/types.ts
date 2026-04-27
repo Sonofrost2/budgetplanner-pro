@@ -1080,6 +1080,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           consent_updated_at: string | null
+          country_code: string | null
           created_at: string
           currency: string
           display_name: string | null
@@ -1088,6 +1089,8 @@ export type Database = {
           marketing_consent: boolean
           onboarding_completed: boolean
           phone: string | null
+          signup_country: string | null
+          signup_ip: unknown
           sms_consent: boolean
           terms_accepted_at: string | null
           updated_at: string
@@ -1096,6 +1099,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           consent_updated_at?: string | null
+          country_code?: string | null
           created_at?: string
           currency?: string
           display_name?: string | null
@@ -1104,6 +1108,8 @@ export type Database = {
           marketing_consent?: boolean
           onboarding_completed?: boolean
           phone?: string | null
+          signup_country?: string | null
+          signup_ip?: unknown
           sms_consent?: boolean
           terms_accepted_at?: string | null
           updated_at?: string
@@ -1112,6 +1118,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           consent_updated_at?: string | null
+          country_code?: string | null
           created_at?: string
           currency?: string
           display_name?: string | null
@@ -1120,6 +1127,8 @@ export type Database = {
           marketing_consent?: boolean
           onboarding_completed?: boolean
           phone?: string | null
+          signup_country?: string | null
+          signup_ip?: unknown
           sms_consent?: boolean
           terms_accepted_at?: string | null
           updated_at?: string
@@ -1349,6 +1358,57 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      security_signals: {
+        Row: {
+          created_at: string
+          declared_country: string | null
+          detected_country: string | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          is_hosting: boolean
+          is_proxy: boolean
+          is_tor: boolean
+          is_vpn: boolean
+          metadata: Json
+          risk_score: number
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          declared_country?: string | null
+          detected_country?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          is_hosting?: boolean
+          is_proxy?: boolean
+          is_tor?: boolean
+          is_vpn?: boolean
+          metadata?: Json
+          risk_score?: number
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          declared_country?: string | null
+          detected_country?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          is_hosting?: boolean
+          is_proxy?: boolean
+          is_tor?: boolean
+          is_vpn?: boolean
+          metadata?: Json
+          risk_score?: number
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       shared_budgets: {
         Row: {
