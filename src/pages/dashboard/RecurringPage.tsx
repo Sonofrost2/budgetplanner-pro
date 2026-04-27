@@ -28,6 +28,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { useSubscription } from '@/hooks/useSubscription';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import { currencySymbol } from '@/lib/currency';
 import { Lock } from 'lucide-react';
 
 interface AIPattern {
@@ -48,7 +49,7 @@ interface AIPattern {
 const RecurringPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
-  const { fmt: fmtCurrency } = useProfile();
+  const { fmt: fmtCurrency, currency } = useProfile();
   const { canUseRecurring, canUseAIPremium } = useSubscription();
   const t = dashT[locale] as any;
   const { invalidate } = useInvalidate();
@@ -507,7 +508,7 @@ const RecurringPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <InputField
                   label={t.amount}
-                  prefix={locale === 'fr' ? 'FCFA' : '$'}
+                  prefix={currencySymbol(currency)}
                   type="number"
                   min="1"
                   value={form.amount}
