@@ -20,6 +20,7 @@ import { format, differenceInDays } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
+import { translateFeature } from '@/lib/planFeatures';
 
 const downloadReceiptPDF = (receipt: any, locale: string, fmtFn: (v: number, l: string) => string) => {
   const doc = new jsPDF({ unit: 'mm', format: 'a5' });
