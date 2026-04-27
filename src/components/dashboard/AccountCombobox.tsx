@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/i18n/LanguageContext';
 
 interface Account {
   id: string;
@@ -23,25 +24,38 @@ interface AccountComboboxProps {
   groupByType?: boolean;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  mobile_money: '📱 Mobile Money',
-  bank: '🏦 Banque',
-  cash: '💵 Espèces',
-  card: '💳 Carte',
-  savings: '🏦 Épargne',
+const TYPE_LABELS: Record<'fr' | 'en', Record<string, string>> = {
+  fr: {
+    mobile_money: '📱 Mobile Money',
+    bank: '🏦 Banque',
+    cash: '💵 Espèces',
+    card: '💳 Carte',
+    savings: '🏦 Épargne',
+  },
+  en: {
+    mobile_money: '📱 Mobile Money',
+    bank: '🏦 Bank',
+    cash: '💵 Cash',
+    card: '💳 Card',
+    savings: '🏦 Savings',
+  },
 };
 
 export const AccountCombobox = ({
   accounts,
   value,
   onValueChange,
-  placeholder = 'Sélectionner un compte...',
+  placeholder,
   excludeId,
   className,
   error,
   groupByType = true,
 }: AccountComboboxProps) => {
   const [open, setOpen] = useState(false);
+  const { locale } = useLanguage();
+  const fr = locale === 'fr';
+  const labels = TYPE_LABELS[fr ? 'fr' : 'en'];
+  const ph = placeholder ?? (fr ? 'Sélectionner un compte...' : 'Select an account...');
 
   const filteredAccounts = useMemo(
     () => (excludeId ? accounts.filter(a => a.id !== excludeId) : accounts),
@@ -81,18 +95,18 @@ export const AccountCombobox = ({
               <span className="truncate">{selected.name}</span>
             </span>
           ) : (
-            placeholder
+            ph
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Rechercher un compte..." />
+          <CommandInput placeholder={fr ? 'Rechercher un compte...' : 'Search account...'} />
           <CommandList>
-            <CommandEmpty>Aucun compte trouvé.</CommandEmpty>
+            <CommandEmpty>{fr ? 'Aucun compte trouvé.' : 'No account found.'}</CommandEmpty>
             {Object.entries(grouped).map(([type, accs]) => (
-              <CommandGroup key={type} heading={groupByType ? (TYPE_LABELS[type] || type) : undefined}>
+              <CommandGroup key={type} heading={groupByType ? (labels[type] || type) : undefined}>
                 {accs.map(account => (
                   <CommandItem
                     key={account.id}

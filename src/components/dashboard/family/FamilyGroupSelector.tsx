@@ -2,6 +2,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Trash2, Users, Crown } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
+import { useLanguage } from '@/i18n/LanguageContext';
 
 interface Props {
   groups: Tables<'family_groups'>[];
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export const FamilyGroupSelector = ({ groups, selectedId, onSelect, currentUserId, onDeleteRequest }: Props) => {
+  const { locale } = useLanguage();
+  const fr = locale === 'fr';
   const selected = groups.find((g) => g.id === selectedId);
   const isOwner = selected?.owner_id === currentUserId;
 
@@ -20,7 +23,7 @@ export const FamilyGroupSelector = ({ groups, selectedId, onSelect, currentUserI
       <Select value={selectedId || ''} onValueChange={onSelect}>
         <SelectTrigger className="w-[280px] h-10">
           <Users className="w-4 h-4 mr-2 text-primary" />
-          <SelectValue placeholder="Sélectionner un groupe" />
+          <SelectValue placeholder={fr ? 'Sélectionner un groupe' : 'Select a group'} />
         </SelectTrigger>
         <SelectContent>
           {groups.map((g) => (
@@ -36,7 +39,7 @@ export const FamilyGroupSelector = ({ groups, selectedId, onSelect, currentUserI
 
       {selected && isOwner && (
         <Button size="sm" variant="outline" className="text-destructive" onClick={() => onDeleteRequest(selected.id)}>
-          <Trash2 className="w-3.5 h-3.5 mr-1" />Supprimer
+          <Trash2 className="w-3.5 h-3.5 mr-1" />{fr ? 'Supprimer' : 'Delete'}
         </Button>
       )}
     </div>

@@ -1278,7 +1278,7 @@ const SavingsPage = () => {
                 step="0.01"
                 value={form.interest_rate}
                 onChange={e => setForm(f => ({ ...f, interest_rate: e.target.value }))}
-                placeholder="Ex: 3.5"
+                placeholder={locale === 'fr' ? 'Ex : 3,5' : 'E.g. 3.5'}
               />
               <div className="space-y-1.5">
                 <Label className="form-label">{t.interestFrequency}</Label>

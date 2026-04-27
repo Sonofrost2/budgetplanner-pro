@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useCategories } from '@/hooks/useDashboardData';
 import type { Tables } from '@/integrations/supabase/types';
 import type { FamilyDashboard } from '@/hooks/useFamilyData';
+import { useLanguage } from '@/i18n/LanguageContext';
 
 interface Props {
   dashboard: FamilyDashboard | null;
@@ -23,9 +24,12 @@ interface Props {
   onChange: () => void;
 }
 
-const fmt = (n: number, c: string) => `${Math.round(n).toLocaleString('fr-FR')} ${c}`;
+const fmt = (n: number, c: string, loc = 'fr-FR') => `${Math.round(n).toLocaleString(loc)} ${c}`;
 
 export const FamilySharedBudgetsTab = ({ dashboard, groupId, isOwner, myBudgets, sharedBudgets, currency, currentUserId, onChange }: Props) => {
+  const { locale } = useLanguage();
+  const fr = locale === 'fr';
+  const numLoc = fr ? 'fr-FR' : 'en-US';
   const [shareOpen, setShareOpen] = useState(false);
   const [budgetId, setBudgetId] = useState('');
   const { data: categories = [] } = useCategories();
@@ -53,16 +57,16 @@ export const FamilySharedBudgetsTab = ({ dashboard, groupId, isOwner, myBudgets,
     if (!budgetId) return;
     const { error } = await supabase.from('shared_budgets').insert({ budget_id: budgetId, group_id: groupId, shared_by: currentUserId });
     if (error) { toast.error(error.message); return; }
-    toast.success('Budget partagé');
+    toast.success(fr ? 'Budget partagé' : 'Budget shared');
     setShareOpen(false); setBudgetId('');
     onChange();
   };
 
   const handleUnshare = async (id: string) => {
-    if (!confirm('Retirer ce budget partagé ?')) return;
+    if (!confirm(fr ? 'Retirer ce budget partagé ?' : 'Remove this shared budget?')) return;
     const { error } = await supabase.from('shared_budgets').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
-    toast.success('Budget retiré');
+    toast.success(fr ? 'Budget retiré' : 'Budget removed');
     onChange();
   };
 
@@ -70,24 +74,24 @@ export const FamilySharedBudgetsTab = ({ dashboard, groupId, isOwner, myBudgets,
     <Card className="border-none shadow-[var(--shadow-card)]">
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <CardTitle className="text-sm flex items-center gap-2">
-          <Share2 className="w-4 h-4 text-primary" />Budgets partagés ({groupShared.length})
+          <Share2 className="w-4 h-4 text-primary" />{fr ? 'Budgets partagés' : 'Shared budgets'} ({groupShared.length})
         </CardTitle>
         {isOwner && availableBudgets.length > 0 && (
           <Button size="sm" variant="outline" onClick={() => setShareOpen(true)}>
-            <Plus className="w-3.5 h-3.5 mr-1" />Partager
+            <Plus className="w-3.5 h-3.5 mr-1" />{fr ? 'Partager' : 'Share'}
           </Button>
         )}
       </CardHeader>
       <CardContent>
         {groupShared.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
-            Aucun budget partagé. {isOwner && availableBudgets.length > 0 && 'Cliquez sur "Partager" pour mettre un budget en commun.'}
+            {fr ? 'Aucun budget partagé.' : 'No shared budget.'} {isOwner && availableBudgets.length > 0 && (fr ? 'Cliquez sur « Partager » pour mettre un budget en commun.' : 'Click "Share" to put a budget in common.')}
           </p>
         ) : (
           <div className="space-y-3">
             {groupShared.map((sb) => {
               const dashEntry = dashboard?.shared_budgets.find((b) => b.budget_id === sb.budget_id);
-              const name = sb.budgets?.name || dashEntry?.name || 'Budget';
+              const name = sb.budgets?.name || dashEntry?.name || (fr ? 'Budget' : 'Budget');
               const amount = sb.budgets?.amount || dashEntry?.amount || 0;
               const spent = dashEntry?.spent || 0;
               const pct = dashEntry?.pct || 0;
@@ -98,7 +102,7 @@ export const FamilySharedBudgetsTab = ({ dashboard, groupId, isOwner, myBudgets,
                     <span className="font-medium text-sm">{name}</span>
                     <div className="flex items-center gap-2">
                       <span className={`text-sm tabular-nums font-semibold ${over ? 'text-destructive' : 'text-foreground'}`}>
-                        {fmt(spent, currency)} / {fmt(amount, currency)}
+                        {fmt(spent, currency, numLoc)} / {fmt(amount, currency, numLoc)}
                       </span>
                       {isOwner && (
                         <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleUnshare(sb.id)}>
@@ -109,7 +113,7 @@ export const FamilySharedBudgetsTab = ({ dashboard, groupId, isOwner, myBudgets,
                   </div>
                   <Progress value={Math.min(100, pct)} className="h-2" />
                   <p className={`text-[11px] mt-1 ${over ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                    {pct.toFixed(0)}% {over && '· Dépassé'}
+                    {pct.toFixed(0)}% {over && (fr ? '· Dépassé' : '· Over')}
                   </p>
                 </div>
               );
@@ -121,32 +125,36 @@ export const FamilySharedBudgetsTab = ({ dashboard, groupId, isOwner, myBudgets,
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Partager un budget</DialogTitle>
+            <DialogTitle>{fr ? 'Partager un budget' : 'Share a budget'}</DialogTitle>
             <DialogDescription className="flex items-start gap-1.5 text-xs">
               <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
-              Seuls les budgets rattachés à une catégorie <strong>Famille</strong> peuvent être partagés (Privacy by Design).
+              {fr
+                ? <>Seuls les budgets rattachés à une catégorie <strong>Famille</strong> peuvent être partagés (Privacy by Design).</>
+                : <>Only budgets attached to a <strong>Family</strong> category can be shared (Privacy by Design).</>}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <Label>Budget</Label>
+            <Label>{fr ? 'Budget' : 'Budget'}</Label>
             {noFamilyBudget ? (
               <p className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/40 border border-dashed">
-                Aucun budget éligible. Créez d'abord un budget sur une sous-catégorie de votre racine <strong>Famille</strong> dans la page Catégories.
+                {fr
+                  ? <>Aucun budget éligible. Créez d'abord un budget sur une sous-catégorie de votre racine <strong>Famille</strong> dans la page Catégories.</>
+                  : <>No eligible budget. First create a budget on a sub-category of your <strong>Family</strong> root in the Categories page.</>}
               </p>
             ) : (
               <Select value={budgetId} onValueChange={setBudgetId}>
-                <SelectTrigger><SelectValue placeholder="Choisir un budget Famille" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={fr ? 'Choisir un budget Famille' : 'Choose a Family budget'} /></SelectTrigger>
                 <SelectContent>
                   {availableBudgets.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>{b.name} · {fmt(b.amount, currency)}</SelectItem>
+                    <SelectItem key={b.id} value={b.id}>{b.name} · {fmt(b.amount, currency, numLoc)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShareOpen(false)}>Annuler</Button>
-            <Button onClick={handleShare} disabled={!budgetId}>Partager</Button>
+            <Button variant="outline" onClick={() => setShareOpen(false)}>{fr ? 'Annuler' : 'Cancel'}</Button>
+            <Button onClick={handleShare} disabled={!budgetId}>{fr ? 'Partager' : 'Share'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
