@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Settings2, Save, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { exampleAmount } from '@/lib/currency';
+import { exampleAmount, amountLabel } from '@/lib/currency';
 
 const SettingsSchema = z.object({
   name: z.string().trim().min(1, 'Nom requis').max(100, 'Max 100 caractères'),
@@ -127,7 +127,7 @@ export const FamilySettingsTab = ({ group, canEdit, onChange }: Props) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="group-threshold">{fr ? `Seuil de transaction importante (${currency})` : `Large transaction threshold (${currency})`}</Label>
+            <Label htmlFor="group-threshold">{amountLabel(fr ? 'Seuil de transaction importante' : 'Large transaction threshold', currency)}</Label>
             <Input
               id="group-threshold"
               type="number"

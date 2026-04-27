@@ -9,7 +9,7 @@ import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useInvalidate, useSavingsPageData } from '@/hooks/useDashboardData';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
 import { savingsGoalSchema, validateForm } from '@/lib/validationSchemas';
-import { currencySymbol, exampleAmount } from '@/lib/currency';
+import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 
 interface SavingsContribution {
   id: string;
@@ -1169,7 +1169,7 @@ const SavingsPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <InputField
-                label={t.targetAmount}
+                label={amountLabel(t.targetAmount, currency)}
                 prefix={currencySymbol(currency)}
                 type="number"
                 min="1"
@@ -1178,7 +1178,7 @@ const SavingsPage = () => {
                 onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))}
               />
               <InputField
-                label={t.savingsMonthlyContribution}
+                label={amountLabel(t.savingsMonthlyContribution, currency)}
                 prefix={currencySymbol(currency)}
                 type="number"
                 min="0"

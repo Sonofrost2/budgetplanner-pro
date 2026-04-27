@@ -7,7 +7,7 @@ import { Sparkles, TrendingUp, Lock, Lightbulb, BarChart3, Download } from 'luci
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { currencySymbol, exampleAmount } from '@/lib/currency';
+import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
 
 interface ScenarioData {
@@ -57,7 +57,7 @@ export const AddContributionDialog = ({
         value={amount}
         onChange={e => setAmount((e.target as HTMLInputElement).value)}
         prefix={currencySymbol(currency)}
-        label={t.amount}
+        label={amountLabel(t.amount, currency)}
         placeholder={exampleAmount(currency, locale)}
       />
       <div className="space-y-2">
@@ -110,7 +110,7 @@ export const WithdrawDialog = ({
         value={amount}
         onChange={e => setAmount((e.target as HTMLInputElement).value)}
         prefix={currencySymbol(currency)}
-        label={t.withdrawAmount}
+        label={amountLabel(t.withdrawAmount, currency)}
         placeholder={exampleAmount(currency, locale)}
       />
       <div className="space-y-2">

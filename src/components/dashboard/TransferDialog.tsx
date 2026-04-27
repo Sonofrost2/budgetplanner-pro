@@ -8,7 +8,7 @@ import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { currencySymbol, exampleAmount } from '@/lib/currency';
+import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 import { useLanguage } from '@/i18n/LanguageContext';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
@@ -175,7 +175,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
           value={amount}
           onChange={e => setAmount((e.target as HTMLInputElement).value)}
           prefix={currencySymbol(currency)}
-          label={t.amount}
+          label={amountLabel(t.amount, currency)}
           error={errors.amount}
           placeholder={exampleAmount(currency, locale)}
         />
