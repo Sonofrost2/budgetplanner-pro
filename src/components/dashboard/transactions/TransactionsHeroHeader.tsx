@@ -9,6 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { toast } from 'sonner';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { useProfile } from '@/hooks/useProfile';
+import { exampleValue } from '@/lib/currency';
 
 export interface QuickParsedTransaction {
   description: string;
