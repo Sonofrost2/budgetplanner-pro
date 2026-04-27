@@ -75,7 +75,6 @@ type Alert = {
 
 const CRITICAL_TYPES = new Set([
   "budget_exceeded",
-  "daily_budget_exceeded",
   "debt_overdue",
 ]);
 
