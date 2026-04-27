@@ -328,10 +328,27 @@ export const useBudgetNotifications = () => {
         continue;
       }
 
+      // Pré-calcul du total cotisé ce mois pour CE goal — source de vérité
+      // pour décider d'afficher (ou de masquer) toutes les alertes ci-dessous.
+      let monthlyActualForGoal = 0;
+      for (const tx of savingsMonthTxs) {
+        if (tx.type !== 'income') continue;
+        const isReturn = typeof tx.description === 'string' && tx.description.includes('↩');
+        if (isReturn) continue;
+        if (goal.account_id) {
+          if (tx.account_id === goal.account_id) monthlyActualForGoal += Number(tx.amount);
+        } else if (tx.notes === `🎯 ${goal.name}`) {
+          monthlyActualForGoal += Number(tx.amount);
+        }
+      }
+      const monthlyNeededRaw = Number(goal.monthly_contribution) || 0;
+      const alreadyFunded = monthlyNeededRaw > 0 && monthlyActualForGoal >= monthlyNeededRaw * 0.9;
+
       const contribDay = (goal as any).contribution_day;
       if (contribDay && allowSavings) {
         const daysUntil = daysUntilMonthDay(contribDay, now);
-        if (shouldFireUpcoming(daysUntil)) {
+        // Ne pas rappeler la cotisation si elle est déjà faite (≥ 90% du besoin mensuel)
+        if (shouldFireUpcoming(daysUntil) && !alreadyFunded) {
           notifs.push({
             id: `savings-upcoming-${goal.id}-d${daysUntil}`,
             type: 'savings_upcoming',
@@ -384,25 +401,20 @@ export const useBudgetNotifications = () => {
       // Skip "insufficient" warnings on locked goals — withdrawals/contribs are constrained
       if (goal.is_locked) continue;
 
-      // Calculate this month's contributions:
-      // For goals WITH linked account: income transactions on that account
-      // For goals WITHOUT linked account: income transactions with 🎯 note
-      let monthlyActual = 0;
+      // Réutilise le pré-calcul fait plus haut (évite double comptage)
+      const monthlyActual = monthlyActualForGoal;
 
-      for (const tx of savingsMonthTxs) {
-        if (tx.type !== 'income') continue;
-        
-        if (goal.account_id) {
-          // Account-based matching only
-          if (tx.account_id === goal.account_id) {
-            monthlyActual += Number(tx.amount);
-          }
-        } else {
-          // 🎯 note matching for goals without linked account
-          if (tx.notes === `🎯 ${goal.name}`) {
-            monthlyActual += Number(tx.amount);
-          }
-        }
+      // ⚠️ Garde-fou anti-faux-positif : si l'utilisateur a un contribution_day
+      // futur (ex. cotise le 25, on est le 10), on n'est PAS en retard — on
+      // attend le jour J + une grâce de 2 jours avant d'alerter "no contribution"
+      // ou "insufficient". Idem pour deadline future sans contribution_day.
+      if (contribDay) {
+        const cd = Number(contribDay);
+        const todayDay = now.getDate();
+        // Pas encore arrivé ce mois-ci → pas d'alerte de retard
+        if (todayDay < cd) continue;
+        // Grâce de 2 jours après le contribution_day pour laisser le temps de saisir
+        if (todayDay - cd < 2 && monthlyActual === 0) continue;
       }
 
       // "No contribution" → status reminder, gated by frequency
