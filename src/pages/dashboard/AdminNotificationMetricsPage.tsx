@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRole } from '@/hooks/useRole';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { formatNumber } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -299,6 +300,7 @@ const KpiCard = ({
   value: number;
   tone: 'primary' | 'accent' | 'warning' | 'destructive' | 'success';
 }) => {
+  const { locale } = useLanguage();
   const toneClass: Record<string, string> = {
     primary: 'text-primary',
     accent: 'text-accent',
@@ -313,7 +315,7 @@ const KpiCard = ({
           <Icon className="w-3.5 h-3.5" />
           <p className="text-[10px] font-bold uppercase tracking-wider">{label}</p>
         </div>
-        <p className="text-2xl font-bold font-display mt-1">{value.toLocaleString()}</p>
+        <p className="text-2xl font-bold font-display mt-1">{formatNumber(value, locale)}</p>
       </CardContent>
     </Card>
   );

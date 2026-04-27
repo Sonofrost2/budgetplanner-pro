@@ -4,15 +4,17 @@ import { Progress } from '@/components/ui/progress';
 import { TrendingUp, TrendingDown, Crown, Wallet } from 'lucide-react';
 import { MemberAvatar } from './MemberAvatar';
 import type { FamilyDashboard } from '@/hooks/useFamilyData';
+import { useLanguage } from '@/i18n/LanguageContext';
+import { formatNumber } from '@/lib/currency';
 
 interface Props {
   dashboard: FamilyDashboard | null;
   currency: string;
 }
 
-const fmt = (n: number, c: string) => `${Math.round(n).toLocaleString('fr-FR')} ${c}`;
-
 export const FamilyOverviewTab = ({ dashboard, currency }: Props) => {
+  const { locale } = useLanguage();
+  const fmt = (n: number, c: string) => `${formatNumber(Math.round(n), locale)} ${c}`;
   if (!dashboard) {
     return (
       <Card className="border-dashed">

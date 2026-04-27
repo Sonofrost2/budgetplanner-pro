@@ -173,7 +173,7 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
                     <p className="text-[10px] text-muted-foreground">{tx.date} · {(tx.categories as any)?.name || '-'}</p>
                   </div>
                   <span className={`text-xs font-bold ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
-                    {tx.type === 'income' ? '+' : '-'}{Number(tx.amount).toLocaleString()}
+                    {tx.type === 'income' ? '+' : '-'}{Number(tx.amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}
                   </span>
                 </CommandItem>
               ))}
@@ -194,7 +194,7 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
                 >
                   <span className="text-base">{a.icon}</span>
                   <span className="flex-1">{a.name}</span>
-                  <span className="text-xs font-bold">{Number(a.real_balance).toLocaleString()}</span>
+                  <span className="text-xs font-bold">{Number(a.real_balance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -217,7 +217,7 @@ const GlobalSearchCommand = ({ open, onOpenChange }: GlobalSearchCommandProps) =
                     <p className="text-sm">{b.name}</p>
                     <p className="text-[10px] text-muted-foreground">{(b.categories as any)?.name || '-'} · {b.period}</p>
                   </div>
-                  <span className="text-xs font-bold">{Number(b.amount).toLocaleString()}</span>
+                  <span className="text-xs font-bold">{Number(b.amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

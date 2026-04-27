@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useSpring, useTransform, useMotionValue } from 'framer-motion';
 
+const docLocale = (): string => {
+  if (typeof document === 'undefined') return 'fr-FR';
+  const lang = (document.documentElement.lang || 'fr').toLowerCase();
+  return lang.startsWith('fr') ? 'fr-FR' : 'en-US';
+};
+
 interface AnimatedNumberProps {
   value: number;
   format?: (n: number) => string;
@@ -28,7 +34,7 @@ export const AnimatedNumber = ({ value, format, className, duration = 0.8 }: Ani
 
   useEffect(() => {
     const unsubscribe = spring.on('change', (latest) => {
-      setDisplay(format ? format(latest) : Math.round(latest).toLocaleString());
+      setDisplay(format ? format(latest) : Math.round(latest).toLocaleString(docLocale()));
     });
     return unsubscribe;
   }, [spring, format]);

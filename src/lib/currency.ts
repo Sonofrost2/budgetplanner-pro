@@ -52,6 +52,44 @@ const FIAT_EXAMPLES: Record<ExampleKey, number> = {
 
 const isCfaCode = (code: string) => code === 'XOF' || code === 'XAF' || code === 'GNF';
 
+/** Map our short locale codes to BCP-47 tags used by Intl. */
+export const bcp47 = (locale?: string | null): string =>
+  (locale || 'fr').toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-US';
+
+/**
+ * Format a number with the active locale's separators
+ * (e.g. 1 234,56 in fr-FR, 1,234.56 in en-US).
+ * Use this everywhere instead of `n.toLocaleString()` (which silently uses
+ * the browser locale and breaks consistency).
+ */
+export const formatNumber = (
+  n: number,
+  locale?: string | null,
+  options?: Intl.NumberFormatOptions,
+): string => {
+  const v = Number.isFinite(n) ? n : 0;
+  return v.toLocaleString(bcp47(locale), options);
+};
+
+/**
+ * Format a percentage with the active locale.
+ * `value` is the raw percent (e.g. 12.5 → "12,5 %").
+ */
+export const formatPercent = (
+  value: number,
+  locale?: string | null,
+  fractionDigits = 1,
+): string => {
+  const v = Number.isFinite(value) ? value : 0;
+  const lang = bcp47(locale);
+  const formatted = v.toLocaleString(lang, {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+  // fr-FR uses a non-breaking space before %, en-US has no space.
+  return lang.startsWith('fr') ? `${formatted} %` : `${formatted}%`;
+};
+
 /** Numeric example for a given semantic key, scaled to the active currency. */
 export const exampleValue = (key: ExampleKey, currency?: string | null): number => {
   const code = (currency || 'EUR').toUpperCase();

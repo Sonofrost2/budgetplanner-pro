@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { translations, type Locale } from './translations';
 
 type TranslationType = typeof translations.fr | typeof translations.en;
@@ -22,6 +22,15 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setLocaleState(newLocale);
     localStorage.setItem('budgetplan-locale', newLocale);
   }, []);
+
+  // Mirror the active locale on <html lang="…"> so generic UI helpers
+  // (charts, animated numbers, native date pickers) can pick up the right
+  // number/date separators when they don't have access to React context.
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = locale === 'fr' ? 'fr-FR' : 'en-US';
+    }
+  }, [locale]);
 
   const toggleLocale = useCallback(() => {
     setLocale(locale === 'fr' ? 'en' : 'fr');
