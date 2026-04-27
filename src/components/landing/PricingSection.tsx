@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { currencySymbol } from '@/lib/currency';
+import { translateFeatures } from '@/lib/planFeatures';
 import { useAuth } from '@/hooks/useAuth';
 import { useGeolocatedCurrency } from '@/hooks/useGeolocatedCurrency';
 import { supabase } from '@/integrations/supabase/client';
@@ -90,7 +91,7 @@ const PricingSection = () => {
       plan: freePlan, name: t.pricing.free, icon: Zap,
       price: freePlan ? getDisplayPrice(freePlan) : { formatted: '0', monthlyEquivalent: '' },
       cta: t.pricing.ctaFree, featured: false,
-      features: freePlan?.features || [],
+      features: translateFeatures(freePlan?.features || [], locale),
       excluded: t.pricing.excludedFree as readonly string[],
       trial: 0,
     },
@@ -98,7 +99,7 @@ const PricingSection = () => {
       plan: proPlan, name: 'Pro', icon: Sparkles,
       price: proPlan ? getDisplayPrice(proPlan) : null,
       cta: t.pricing.ctaPro, featured: true,
-      features: proPlan?.features || [],
+      features: translateFeatures(proPlan?.features || [], locale),
       excluded: t.pricing.excludedPro as readonly string[],
       trial: proPlan?.trial_days || 0,
     },
@@ -106,7 +107,7 @@ const PricingSection = () => {
       plan: premiumPlan, name: 'Premium', icon: Crown,
       price: premiumPlan ? getDisplayPrice(premiumPlan) : null,
       cta: t.pricing.ctaPremium, featured: false,
-      features: premiumPlan?.features || [],
+      features: translateFeatures(premiumPlan?.features || [], locale),
       excluded: [] as string[],
       trial: premiumPlan?.trial_days || 0,
     },

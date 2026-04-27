@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useGeolocatedCurrency } from '@/hooks/useGeolocatedCurrency';
+import { translateFeature } from '@/lib/planFeatures';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { Card, CardContent } from '@/components/ui/card';
@@ -285,7 +286,7 @@ const OnboardingPage = () => {
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1">
                         {(Array.isArray(plan.features) ? plan.features : []).map((f: unknown, i: number) => (
-                          <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">{String(f)}</span>
+                          <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">{translateFeature(String(f), isFr ? 'fr' : 'en')}</span>
                         ))}
                       </div>
                     </button>

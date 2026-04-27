@@ -20,6 +20,7 @@ import { format, differenceInDays } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
+import { translateFeature } from '@/lib/planFeatures';
 
 const downloadReceiptPDF = (receipt: any, locale: string, fmtFn: (v: number, l: string) => string) => {
   const doc = new jsPDF({ unit: 'mm', format: 'a5' });
@@ -504,7 +505,7 @@ const MyPlanTab = ({ plan, subscription, isFr, t, currency, fmt, locale, onCance
             {plan.features.map((f: string, i: number) => (
               <li key={i} className="flex items-start gap-2 text-xs">
                 <Check className="w-3.5 h-3.5 text-secondary mt-0.5 shrink-0" />
-                <span>{f}</span>
+                <span>{translateFeature(f, isFr ? 'fr' : 'en')}</span>
               </li>
             ))}
           </ul>
@@ -594,7 +595,7 @@ const PlanCards = ({ plans, subscription, currency, fmt, locale, isFr, t, annual
                     <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isHighlighted || isPremium ? 'bg-primary/15' : 'bg-secondary/15'}`}>
                       <Check className={`w-2.5 h-2.5 ${isHighlighted || isPremium ? 'text-primary' : 'text-secondary'}`} />
                     </div>
-                    <span className={isHighlighted ? 'font-medium' : ''}>{f}</span>
+                    <span className={isHighlighted ? 'font-medium' : ''}>{translateFeature(f, isFr ? 'fr' : 'en')}</span>
                   </li>
                 ))}
                 {disabledFeatures.map((f: string, i: number) => (
@@ -667,7 +668,7 @@ const FeatureComparisonTable = ({ plans, isFr }: { plans: Plan[]; isFr: boolean 
           <tbody>
             {allFeatures.map((feat, i) => (
               <tr key={i} className="border-b border-border/30 last:border-b-0 hover:bg-muted/20">
-                <td className="px-5 py-2.5 text-foreground">{feat}</td>
+                <td className="px-5 py-2.5 text-foreground">{translateFeature(feat, isFr ? 'fr' : 'en')}</td>
                 {plans.map(p => (
                   <td key={p.id} className="text-center px-3 py-2.5">
                     {p.features.includes(feat)
