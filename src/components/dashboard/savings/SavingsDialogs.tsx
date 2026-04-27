@@ -7,6 +7,7 @@ import { Sparkles, TrendingUp, Lock, Lightbulb, BarChart3, Download } from 'luci
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { currencySymbol } from '@/lib/currency';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
 
 interface ScenarioData {
