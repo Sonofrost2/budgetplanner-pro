@@ -10,6 +10,8 @@ import { Separator } from '@/components/ui/separator';
 import { Bell, AlertTriangle, CheckCircle2, Calendar, PiggyBank, Clock, RotateCcw, Wand2 } from 'lucide-react';
 import NotificationPreferencesCard from '@/components/dashboard/settings/NotificationPreferencesCard';
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
+import { useProfile } from '@/hooks/useProfile';
+import { formatExample } from '@/lib/currency';
 import {
   inQuietHours,
   shouldFireUpcoming,
@@ -31,12 +33,14 @@ type MockNotif = {
   kind: 'budget' | 'savings' | 'recurring' | 'discrepancy' | 'goal';
 };
 
-const buildMocks = (isFr: boolean): MockNotif[] => [
+const buildMocks = (isFr: boolean, currency: string): MockNotif[] => {
+  const ex = (k: Parameters<typeof formatExample>[0]) => formatExample(k, currency, isFr ? 'fr' : 'en');
+  return [
   {
     id: 'm1', kind: 'budget', severity: 'critical', daysLeft: 0, prefKey: 'budget_alerts',
     icon: <AlertTriangle className="w-4 h-4 text-destructive" />,
     title: isFr ? 'Budget dépassé' : 'Budget exceeded',
-    message: isFr ? '🍔 Restaurants : 112% — +6 700' : '🍔 Restaurants: 112% — +6,700',
+    message: isFr ? `🍔 Restaurants : 112% — +${ex('coffee')}` : `🍔 Restaurants: 112% — +${ex('coffee')}`,
   },
   {
     id: 'm2', kind: 'budget', severity: 'warning', daysLeft: 0, prefKey: 'budget_alerts',
@@ -48,13 +52,13 @@ const buildMocks = (isFr: boolean): MockNotif[] => [
     id: 'm3', kind: 'budget', severity: 'info', daysLeft: 5, prefKey: 'budget_projections', upcoming: true,
     icon: <Calendar className="w-4 h-4 text-primary" />,
     title: isFr ? '📅 Loyer — dans 5 jours' : '📅 Rent — in 5 days',
-    message: isFr ? '🏠 Échéance prévue : 250 000' : '🏠 Upcoming deadline: 250,000',
+    message: isFr ? `🏠 Échéance prévue : ${ex('rent')}` : `🏠 Upcoming deadline: ${ex('rent')}`,
   },
   {
     id: 'm4', kind: 'savings', severity: 'info', daysLeft: 2, prefKey: 'savings_reminders', upcoming: true,
     icon: <PiggyBank className="w-4 h-4 text-emerald-500" />,
     title: isFr ? '🐷 Cotisation dans 2j' : '🐷 Contribution in 2d',
-    message: isFr ? '🏖️ Vacances : 50 000' : '🏖️ Vacation: 50,000',
+    message: isFr ? `🏖️ Vacances : ${ex('monthly')}` : `🏖️ Vacation: ${ex('monthly')}`,
   },
   {
     id: 'm5', kind: 'goal', severity: 'success', daysLeft: 0, prefKey: 'goal_reached',
@@ -66,15 +70,16 @@ const buildMocks = (isFr: boolean): MockNotif[] => [
     id: 'm6', kind: 'recurring', severity: 'info', daysLeft: 0, prefKey: 'recurring_reminders',
     icon: <RotateCcw className="w-4 h-4 text-purple-500" />,
     title: isFr ? "📋 Échéance aujourd'hui" : '📋 Due today',
-    message: isFr ? 'Netflix : 4 990 (dépense)' : 'Netflix: 4,990 (expense)',
+    message: isFr ? `Netflix : ${ex('subscription')} (dépense)` : `Netflix: ${ex('subscription')} (expense)`,
   },
   {
     id: 'm7', kind: 'discrepancy', severity: 'warning', daysLeft: 0, prefKey: 'balance_discrepancy',
     icon: <AlertTriangle className="w-4 h-4 text-amber-600" />,
     title: isFr ? 'Écart de solde' : 'Balance discrepancy',
-    message: isFr ? '💳 Wave : -2 350 vs théorique' : '💳 Wave: -2,350 vs calculated',
+    message: isFr ? `💳 Wave : -${ex('low')} vs théorique` : `💳 Wave: -${ex('low')} vs calculated`,
   },
-];
+  ];
+};
 
 const sevColor = {
   critical: 'border-l-destructive bg-destructive/5',
