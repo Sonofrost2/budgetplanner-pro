@@ -1975,6 +1975,7 @@ export type Database = {
           transaction_count: number
         }[]
       }
+      get_demo_user_id: { Args: never; Returns: string }
       get_dormant_accounts: {
         Args: { p_days?: number; p_user_id: string }
         Returns: {
@@ -2032,6 +2033,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_demo_user: { Args: { _user_id: string }; Returns: boolean }
       is_family_admin: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
@@ -2079,6 +2081,7 @@ export type Database = {
         Args: { p_account_id: string }
         Returns: undefined
       }
+      reset_demo_account: { Args: never; Returns: undefined }
       resolve_pending_alerts: {
         Args: {
           p_alert_types: string[]
