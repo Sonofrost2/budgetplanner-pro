@@ -202,20 +202,20 @@ const BudgetsPage = () => {
     if (budgetLimitReached) { coachToast.warn(t.limitBudgetsToast(limits.budgets)); return; }
     const cats = allCategories.filter(c => c.type === budgetType);
     setErrors({}); setEditId(null);
-    setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max', expected_day: '', occurrence_frequency: '', reference_date: '', active_days: '' });
+    setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max', expected_day: '', occurrence_frequency: '', reference_date: '', active_days: '', linked_savings_goal_id: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (b: any) => {
     setErrors({}); setEditId(b.id);
-    setForm({ name: b.name, amount: String(b.amount), category_id: b.category_id || '', period: b.period || 'monthly', alert_threshold: String(b.alert_threshold ?? 80), budget_type: b.budget_type || 'expense', control_type: b.control_type || 'max', expected_day: b.expected_day ? String(b.expected_day) : '', occurrence_frequency: b.occurrence_frequency || '', reference_date: b.reference_date || '', active_days: b.active_days || '' });
+    setForm({ name: b.name, amount: String(b.amount), category_id: b.category_id || '', period: b.period || 'monthly', alert_threshold: String(b.alert_threshold ?? 80), budget_type: b.budget_type || 'expense', control_type: b.control_type || 'max', expected_day: b.expected_day ? String(b.expected_day) : '', occurrence_frequency: b.occurrence_frequency || '', reference_date: b.reference_date || '', active_days: b.active_days || '', linked_savings_goal_id: b.linked_savings_goal_id || '' });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
     if (!user || !validate()) return;
     setSaving(true);
-    const payload = { name: form.name.trim(), amount: Number(form.amount), category_id: form.category_id || null, period: form.period, alert_threshold: Number(form.alert_threshold) || 80, budget_type: form.budget_type, control_type: form.control_type, expected_day: form.expected_day ? Number(form.expected_day) : null, occurrence_frequency: form.occurrence_frequency || null, reference_date: form.reference_date || null, active_days: form.active_days || null };
+    const payload = { name: form.name.trim(), amount: Number(form.amount), category_id: form.category_id || null, period: form.period, alert_threshold: Number(form.alert_threshold) || 80, budget_type: form.budget_type, control_type: form.control_type, expected_day: form.expected_day ? Number(form.expected_day) : null, occurrence_frequency: form.occurrence_frequency || null, reference_date: form.reference_date || null, active_days: form.active_days || null, linked_savings_goal_id: form.linked_savings_goal_id || null };
     const { error } = editId
       ? await supabase.from('budgets').update(payload).eq('id', editId)
       : await supabase.from('budgets').insert({ ...payload, user_id: user.id });
@@ -351,6 +351,7 @@ const BudgetsPage = () => {
       occurrence_frequency: '',
       reference_date: '',
       active_days: '',
+      linked_savings_goal_id: '',
     });
     setDialogOpen(true);
   };
@@ -673,6 +674,7 @@ const BudgetsPage = () => {
         saving={saving}
         onSave={handleSave}
         allCategories={allCategories}
+        savingsGoals={savingsGoals}
         fmt={fmt}
         t={t}
         locale={locale}
