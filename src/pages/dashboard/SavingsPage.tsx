@@ -1252,6 +1252,43 @@ const SavingsPage = () => {
             </div>
           </FormSection>
 
+          {(() => {
+            const eligibleBudgets = (budgetsAll || []).filter((b: any) =>
+              !b.deleted_at && !b.paused_at && (b.budget_type || 'expense') === 'expense'
+            );
+            if (eligibleBudgets.length === 0) return null;
+            return (
+              <FormSection
+                title={locale === 'fr' ? 'Lier à un budget' : 'Link to a budget'}
+                icon={<Link2 className="w-3.5 h-3.5" />}
+                collapsible
+                defaultOpen={!!form.linked_budget_id}
+              >
+                <div className="space-y-1.5">
+                  <Select
+                    value={form.linked_budget_id || '__none__'}
+                    onValueChange={v => setForm(f => ({ ...f, linked_budget_id: v === '__none__' ? '' : v }))}
+                  >
+                    <SelectTrigger className="rounded-xl h-11">
+                      <SelectValue placeholder={locale === 'fr' ? 'Aucun budget lié' : 'No linked budget'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">{locale === 'fr' ? '— Aucun —' : '— None —'}</SelectItem>
+                      {eligibleBudgets.map((b: any) => (
+                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground italic">
+                    💡 {locale === 'fr'
+                      ? 'Le montant, le jour prévu et la date de démarrage seront automatiquement synchronisés avec le budget lié.'
+                      : 'Amount, expected day and start date will automatically sync with the linked budget.'}
+                  </p>
+                </div>
+              </FormSection>
+            );
+          })()}
+
           <FormSection title={locale === 'fr' ? 'Banque & Intérêts' : 'Bank & Interest'} icon={<Building2 className="w-3.5 h-3.5" />} collapsible defaultOpen={!!form.bank_name || !!form.interest_rate}>
             <div className="space-y-1.5">
               <Label className="form-label">{t.bankName} ({t.optional})</Label>
