@@ -26,6 +26,10 @@ RÈGLES:
 - Calcule le taux d'épargne et compare aux recommandations (20% minimum)
 - Évalue la santé financière globale sur 100
 - Donne 3-5 recommandations prioritaires et concrètes
+- IMPORTANT : tous les champs annualRatePct et annualInterestCost sont DÉJÀ
+  exprimés en équivalent annuel. Compare directement, ne reconvertis pas.
+  Pour comparer deux objectifs d'épargne, utilise UNIQUEMENT annualRatePct.
+  Pour prioriser des dettes, utilise annualInterestCost (méthode avalanche).
 - Contexte africain/UEMOA si montants en CFA`;
 
     const userPrompt = `Données financières:
