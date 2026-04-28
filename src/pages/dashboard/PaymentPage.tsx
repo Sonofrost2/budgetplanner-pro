@@ -108,6 +108,12 @@ const PaymentPage = () => {
   const [activeTab, setActiveTab] = useState<string>('plan');
 
   useEffect(() => {
+    if (!loading && (!subscription || !plans.find(p => p.id === subscription.plan_id))) {
+      setActiveTab((prev) => (prev === 'plan' ? 'compare' : prev));
+    }
+  }, [loading, subscription, plans]);
+
+  useEffect(() => {
     if (!user) return;
     const load = async () => {
       const [plansRes, subRes] = await Promise.all([
