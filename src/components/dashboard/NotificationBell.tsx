@@ -601,6 +601,26 @@ export const useBudgetNotifications = () => {
         const sig = issues.join('|');
         if (!shouldEmitForSignature(sigKey, sig)) continue;
 
+        // Build the realignment payload: budget is the source of truth.
+        // Only include fields that are actually divergent so the SQL trigger
+        // sees a meaningful UPDATE and the UPDATE itself is minimal.
+        const repairPatch: Record<string, any> = {};
+        if (isMonthly && bAmount > 0 && Math.abs(bAmount - gAmount) > 1) {
+          repairPatch.monthly_contribution = bAmount;
+        }
+        if (bDay && bDay !== gDay) {
+          repairPatch.contribution_day = bDay;
+        }
+        if (bRef && gStart && bRef > gStart) {
+          repairPatch.start_date = bRef;
+        }
+        if (gDeadline && bRef && gDeadline < bRef) {
+          // Bump deadline 1 year past budget start so the goal stays valid.
+          const d = parseLocalDate(bRef);
+          d.setFullYear(d.getFullYear() + 1);
+          repairPatch.deadline = localDateStr(d);
+        }
+
         notifs.push({
           id: `link-mismatch-${budget.id}-${goal.id}`,
           type: 'link_mismatch',
@@ -613,6 +633,9 @@ export const useBudgetNotifications = () => {
             label: isFr ? 'Modifier le budget' : 'Edit budget',
             path: `/dashboard/budgets?edit=${budget.id}`,
           },
+          repair: Object.keys(repairPatch).length > 0
+            ? { kind: 'link', budgetId: budget.id, goalId: goal.id, patch: repairPatch }
+            : undefined,
           daysLeft: 0,
           dueLabelKey: 'now',
         });
