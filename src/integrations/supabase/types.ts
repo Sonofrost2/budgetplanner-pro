@@ -278,6 +278,7 @@ export type Database = {
           deleted_at: string | null
           expected_day: number | null
           id: string
+          linked_savings_goal_id: string | null
           name: string
           occurrence_frequency: string | null
           paused_at: string | null
@@ -299,6 +300,7 @@ export type Database = {
           deleted_at?: string | null
           expected_day?: number | null
           id?: string
+          linked_savings_goal_id?: string | null
           name: string
           occurrence_frequency?: string | null
           paused_at?: string | null
@@ -320,6 +322,7 @@ export type Database = {
           deleted_at?: string | null
           expected_day?: number | null
           id?: string
+          linked_savings_goal_id?: string | null
           name?: string
           occurrence_frequency?: string | null
           paused_at?: string | null
@@ -334,6 +337,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_linked_savings_goal_id_fkey"
+            columns: ["linked_savings_goal_id"]
+            isOneToOne: false
+            referencedRelation: "savings_goals"
             referencedColumns: ["id"]
           },
           {
@@ -1287,6 +1297,7 @@ export type Database = {
           interest_rate: number | null
           is_locked: boolean
           last_capitalized_at: string | null
+          linked_budget_id: string | null
           monthly_contribution: number | null
           name: string
           paused_at: string | null
@@ -1310,6 +1321,7 @@ export type Database = {
           interest_rate?: number | null
           is_locked?: boolean
           last_capitalized_at?: string | null
+          linked_budget_id?: string | null
           monthly_contribution?: number | null
           name: string
           paused_at?: string | null
@@ -1333,6 +1345,7 @@ export type Database = {
           interest_rate?: number | null
           is_locked?: boolean
           last_capitalized_at?: string | null
+          linked_budget_id?: string | null
           monthly_contribution?: number | null
           name?: string
           paused_at?: string | null
@@ -1348,6 +1361,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_goals_linked_budget_id_fkey"
+            columns: ["linked_budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
             referencedColumns: ["id"]
           },
           {
