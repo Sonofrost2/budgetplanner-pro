@@ -978,17 +978,17 @@ export const NotificationBell = () => {
     try {
       const { error } = await supabase
         .from('savings_goals')
-        .update(notif.repair.patch)
+        .update(notif.repair.patch as any)
         .eq('id', notif.repair.goalId);
       if (error) throw error;
-      coachToast.success(isFr ? '🔗 Liaison réparée' : '🔗 Link repaired');
+      coachToast.saved(isFr ? 'Liaison réparée' : 'Link repaired');
       // Hide the notif optimistically; refresh re-evaluates real divergences.
       handleDismiss(notif.id);
       await refresh();
     } catch (err: any) {
-      coachToast.error(
-        isFr ? 'Réparation impossible' : 'Repair failed',
-        err?.message
+      coachToast.fail(
+        (isFr ? 'Réparation impossible' : 'Repair failed') +
+          (err?.message ? ` — ${err.message}` : '')
       );
     } finally {
       setRepairingId(null);
