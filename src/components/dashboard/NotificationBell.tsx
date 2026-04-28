@@ -7,11 +7,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { getBudgetPeriodBounds, shouldAlertForExpectedDay, computeDaysRemaining } from '@/lib/budgetProjection';
 import {
   shouldFireUpcoming,
+  shouldFireUpcomingWide,
   shouldFireDeadline,
   shouldFireBilan,
   inQuietHours,
   getStepBucket,
   hasStepChanged,
+  shouldEmitForSignature,
   daysBetween,
   daysUntilMonthDay,
   formatDaysLeftLabel,
@@ -178,10 +180,15 @@ export const useBudgetNotifications = () => {
       const allowProjections = prefs?.budget_projections !== false;
 
       const isIncomeBudget = budgetType === 'income';
+      // Activity signature: tx count + rounded total. While unchanged, we don't
+      // re-emit any of the budget status notifs (warning / exceeded / target).
+      const activitySig = `tx${periodTxs.length}_amt${Math.round(spent)}_pct${getStepBucket(pct)}`;
+      const sigKeyBase = `budget-${budget.id}-${localDateStr(periodStart)}`;
+
       if (isMax) {
         // Edge case: an income budget configured as "max" — exceeding is good
         // news, not a critical alert. Surface it as a success instead.
-        if (spent > amount && allowAlerts && isIncomeBudget) {
+        if (spent > amount && allowAlerts && isIncomeBudget && shouldEmitForSignature(`${sigKeyBase}-incover`, activitySig)) {
           notifs.push({
             id: `budget-income-over-${budget.id}`,
             type: 'budget_savings',
@@ -192,22 +199,21 @@ export const useBudgetNotifications = () => {
             daysLeft: 0,
             dueLabelKey: 'now',
           });
-        } else if (spent > amount && allowAlerts) {
+        } else if (spent > amount && allowAlerts && shouldEmitForSignature(`${sigKeyBase}-exceeded`, activitySig)) {
           notifs.push({
             id: `budget-exceeded-${budget.id}`,
             type: 'budget_exceeded',
             severity: 'critical',
-            title: isFr ? 'Budget dépassé' : 'Budget exceeded',
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+            title: isFr ? `Budget dépassé (${Math.round(pct)}%)` : `Budget exceeded (${Math.round(pct)}%)`,
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(spent).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} / ${Math.round(amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} — +${Math.round(spent - amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
             action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}&type=${budgetType}&from=${periodStartStr}&to=${periodEndStr}` },
             daysLeft: 0,
             dueLabelKey: 'now',
           });
         } else if (pct >= threshold && allowAlerts) {
-          // Suppress if user wants on-change-only and bucket hasn't shifted
-          const bucket = getStepBucket(pct);
-          const changed = onChangeOnly ? hasStepChanged(`budget-${budget.id}`, bucket) : true;
-          if (changed) {
+          // Always require activity-signature change to avoid daily spam.
+          // Bucket shift is implicit in the signature.
+          if (shouldEmitForSignature(`${sigKeyBase}-warning`, activitySig)) {
             notifs.push({
               id: `budget-warning-${budget.id}`,
               type: 'budget_warning',
@@ -215,16 +221,16 @@ export const useBudgetNotifications = () => {
               title: isIncomeBudget
                 ? (isFr ? `💰 Revenu à ${Math.round(pct)}%` : `💰 Income at ${Math.round(pct)}%`)
                 : (isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`),
-              message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
+              message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(spent).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} / ${Math.round(amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} ${isFr ? `(seuil ${threshold}%)` : `(threshold ${threshold}%)`}`,
               action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
               daysLeft: 0,
               dueLabelKey: 'now',
             });
           }
         } else if (pct < 50 && !isIncomeBudget && shouldFireBilan(periodEnd, now)) {
-          // Bilan only on the actual closing day
-          // Skip income budgets: low % at month-end is BAD, not "maîtrisé"
-          notifs.push({
+          // Bilan only on the actual closing day, AND only once per period.
+          if (shouldEmitForSignature(`${sigKeyBase}-bilan`, `closed_${Math.round(spent)}`)) {
+            notifs.push({
             id: `budget-savings-${budget.id}`,
             type: 'budget_savings',
             severity: 'success',
@@ -233,11 +239,12 @@ export const useBudgetNotifications = () => {
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
             dueLabelKey: 'closed',
-          });
+            });
+          }
         }
       } else {
         // Min budget (income target)
-        if (spent >= amount && allowAlerts) {
+        if (spent >= amount && allowAlerts && shouldEmitForSignature(`${sigKeyBase}-target`, activitySig)) {
           notifs.push({
             id: `budget-target-reached-${budget.id}`,
             type: 'budget_savings',
@@ -248,7 +255,7 @@ export const useBudgetNotifications = () => {
             daysLeft: 0,
             dueLabelKey: 'now',
           });
-        } else if (allowAlerts && shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal)) {
+        } else if (allowAlerts && shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal) && shouldEmitForSignature(`${sigKeyBase}-behind`, activitySig)) {
           notifs.push({
             id: `budget-below-${budget.id}`,
             type: 'budget_warning',
@@ -262,11 +269,12 @@ export const useBudgetNotifications = () => {
         }
       }
 
-      // Upcoming budget deadline (J-5 / J-2 / J-0) — only if projections enabled
-      if (allowProjections && shouldFireUpcoming(daysLeft) && daysLeft > 0) {
-        const isIncomeBudget = budgetType === 'income';
-        const kindIcon = isIncomeBudget ? '💰' : '📅';
-        const kindLabel = isIncomeBudget
+      // Upcoming budget deadline (continuous J-7..J-0) — dedup by daysLeft so
+      // the user sees "in 4 days" without waiting for a fixed bucket day.
+      if (allowProjections && shouldFireUpcomingWide(daysLeft) && daysLeft > 0) {
+        const isIncomeBudgetUp = budgetType === 'income';
+        const kindIcon = isIncomeBudgetUp ? '💰' : '📅';
+        const kindLabel = isIncomeBudgetUp
           ? (isFr ? 'Revenu attendu' : 'Expected income')
           : (isFr ? 'Échéance prévue' : 'Upcoming deadline');
         notifs.push({
