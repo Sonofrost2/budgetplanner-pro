@@ -7,7 +7,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
-import { TrendingUp, TrendingDown, Calendar, Tag, Settings2, BarChart3, CalendarClock } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Tag, Settings2, BarChart3, CalendarClock, Link2 } from 'lucide-react';
 import { computeAnnualizedAmount } from '@/lib/budgetProjection';
 import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 import type { DashTranslations } from '@/i18n/dashTranslations';
@@ -22,12 +22,14 @@ interface BudgetFormProps {
     name: string; amount: string; category_id: string; period: string;
     alert_threshold: string; budget_type: string; control_type: string;
     expected_day: string; occurrence_frequency: string; reference_date: string; active_days: string;
+    linked_savings_goal_id: string;
   };
   setForm: React.Dispatch<React.SetStateAction<BudgetFormProps['form']>>;
   errors: Record<string, string>;
   saving: boolean;
   onSave: () => void;
   allCategories: any[];
+  savingsGoals?: any[];
   fmt: (n: number) => string;
   t: DashTranslations;
   locale: string;
@@ -36,12 +38,16 @@ interface BudgetFormProps {
 
 export const BudgetForm = ({
   open, onOpenChange, editId, form, setForm, errors, saving, onSave,
-  allCategories, fmt, t, locale, currency = 'EUR',
+  allCategories, savingsGoals = [], fmt, t, locale, currency = 'EUR',
 }: BudgetFormProps) => {
   const isFr = locale === 'fr';
   const filteredCategories = useMemo(() =>
     allCategories.filter(c => c.type === form.budget_type),
     [allCategories, form.budget_type]
+  );
+  const eligibleGoals = useMemo(
+    () => savingsGoals.filter((g: any) => !g.deleted_at && !g.paused_at && (g.status ?? 'active') === 'active'),
+    [savingsGoals]
   );
 
   const periodLabels: Record<string, string> = {
@@ -152,6 +158,40 @@ export const BudgetForm = ({
             hint={isFr ? 'Seuil d\'alerte en pourcentage du budget' : 'Alert threshold as percentage of budget'}
           />
         </FormSection>
+
+        {/* Cross-link with a savings goal */}
+        {form.budget_type === 'expense' && eligibleGoals.length > 0 && (
+          <FormSection
+            title={isFr ? 'Lier à un objectif d\'épargne' : 'Link to a savings goal'}
+            icon={<Link2 className="w-3.5 h-3.5" />}
+            collapsible
+            defaultOpen={!!form.linked_savings_goal_id}
+          >
+            <div className="space-y-1.5">
+              <Select
+                value={form.linked_savings_goal_id || 'none'}
+                onValueChange={(v) => setForm(f => ({ ...f, linked_savings_goal_id: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger className="rounded-xl h-10">
+                  <SelectValue placeholder={isFr ? 'Aucun objectif lié' : 'No linked goal'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{isFr ? '— Aucun —' : '— None —'}</SelectItem>
+                  {eligibleGoals.map((g: any) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.icon || '🎯'} {g.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground italic">
+                💡 {isFr
+                  ? 'Le montant, le jour prévu et la date de démarrage seront automatiquement synchronisés avec l\'objectif lié.'
+                  : 'Amount, expected day and start date will automatically sync with the linked goal.'}
+              </p>
+            </div>
+          </FormSection>
+        )}
 
         {/* Impact Preview */}
         <div className="rounded-xl border border-primary/15 px-4 py-3 space-y-1" style={{ background: 'hsl(var(--primary) / 0.04)' }}>

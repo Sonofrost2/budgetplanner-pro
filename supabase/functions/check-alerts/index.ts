@@ -307,7 +307,8 @@ Deno.serve(async (req) => {
             const expDay = Number(budget.expected_day);
             const todayDay = now.getDate();
             const daysUntil = expDay >= todayDay ? expDay - todayDay : 0;
-            if (daysUntil === 5 || daysUntil === 2 || daysUntil === 0) {
+            // Continuous J-7 → J-0 window (was [5,2,0]) — dedup_key per daysUntil
+            if (daysUntil >= 0 && daysUntil <= 7) {
               const isIncomeBudget = budgetType === "income";
               const kindIcon = isIncomeBudget ? "💰" : "📅";
               const todayLabel = isIncomeBudget
@@ -337,7 +338,7 @@ Deno.serve(async (req) => {
         for (const rec of recurringTxs) {
           const nextDate = new Date(rec.next_date);
           const daysUntil = Math.max(0, Math.floor((nextDate.getTime() - now.getTime()) / 86400000));
-          if (daysUntil === 5 || daysUntil === 2 || daysUntil === 0) {
+          if (daysUntil >= 0 && daysUntil <= 7) {
             const typeLabel = rec.type === "income"
               ? (isFr ? "revenu" : "income")
               : (isFr ? "dépense" : "expense");
@@ -357,6 +358,11 @@ Deno.serve(async (req) => {
       // ────── Savings ──────
       if (prefSavings || prefGoalReached) {
         for (const goal of savings) {
+          // Skip goals that haven't started yet — pending state
+          if (goal.start_date) {
+            const sd = new Date(goal.start_date);
+            if (sd > now) continue;
+          }
           if (Number(goal.current_amount) >= Number(goal.target_amount)) {
             if (prefGoalReached) {
               alerts.push({
@@ -476,7 +482,7 @@ Deno.serve(async (req) => {
               reference_id: debt.id,
               critical: true,
             });
-          } else if (daysUntilDue === 7 || daysUntilDue === 2 || daysUntilDue === 0) {
+          } else if (daysUntilDue >= 0 && daysUntilDue <= 7) {
             alerts.push({
               title: daysUntilDue === 0
                 ? (isFr ? "⚠️ Dette due aujourd'hui" : "⚠️ Debt due today")
@@ -493,24 +499,54 @@ Deno.serve(async (req) => {
       // ────── Balance discrepancy — 1× / month (lowered from weekly to reduce fatigue) ──────
       if (prefBalance) {
         const monthTag = `${now.getFullYear()}m${now.getMonth()}`;
+        const discrepancies: { name: string; icon: string; sign: string; diff: number }[] = [];
         for (const account of accounts) {
+          // Cash accounts auto-reconcile via cash_counts → real_balance, skip
+          if ((account.type || "") === "cash") continue;
           const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
-          const txSum = acctTxs.reduce((s: number, tx: any) =>
-            s + (tx.type === "income" ? Number(tx.amount) : -Number(tx.amount)), 0);
-          const theoreticalBalance = Number(account.opening_balance) + txSum;
+          // Only standalone tx (transfers handled separately)
+          const txSum = acctTxs
+            .filter((tx: any) => !tx.linked_transfer_id)
+            .reduce((s: number, tx: any) =>
+              s + (tx.type === "income" ? Number(tx.amount) : -Number(tx.amount)), 0);
+          // Transfers in/out for this account
+          const transferSum = acctTxs
+            .filter((tx: any) => tx.linked_transfer_id)
+            .reduce((s: number, tx: any) =>
+              s + (tx.type === "income" ? Number(tx.amount) : -Number(tx.amount)), 0);
+          const theoreticalBalance = Number(account.opening_balance) + txSum + transferSum;
           const realBalance = Number(account.real_balance);
           const diff = Math.abs(realBalance - theoreticalBalance);
-          const discThreshold = Math.min(500, Math.abs(realBalance) * 0.01 || 500);
-          if (diff > discThreshold && diff > 0) {
-            const sign = realBalance > theoreticalBalance ? "+" : "-";
-            alerts.push({
-              title: isFr ? "🔍 Écart de solde détecté" : "🔍 Balance discrepancy",
-              body: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString()}`,
-              notification_type: "balance_discrepancy",
-              dedup_key: `balance_disc_${account.id}_${monthTag}`,
-              reference_id: account.id,
+          const discThreshold = Math.max(1000, Math.abs(realBalance) * 0.005);
+          if (diff > discThreshold) {
+            discrepancies.push({
+              name: account.name,
+              icon: account.icon || "💳",
+              sign: realBalance > theoreticalBalance ? "+" : "-",
+              diff,
             });
           }
+        }
+        if (discrepancies.length === 1) {
+          const d = discrepancies[0];
+          alerts.push({
+            title: isFr ? "🔍 Écart de solde détecté" : "🔍 Balance discrepancy",
+            body: `${d.icon} ${d.name}: ${d.sign}${Math.round(d.diff).toLocaleString()}`,
+            notification_type: "balance_discrepancy",
+            dedup_key: `balance_disc_single_${monthTag}`,
+            reference_id: undefined as any,
+          });
+        } else if (discrepancies.length > 1) {
+          const total = discrepancies.reduce((s, d) => s + d.diff, 0);
+          alerts.push({
+            title: isFr
+              ? `🔍 Écart sur ${discrepancies.length} comptes`
+              : `🔍 Discrepancy on ${discrepancies.length} accounts`,
+            body: `${isFr ? "Total" : "Total"}: ${Math.round(total).toLocaleString()} — ${isFr ? "lancez un comptage" : "run a count"}`,
+            notification_type: "balance_discrepancy",
+            dedup_key: `balance_disc_multi_${monthTag}`,
+            reference_id: undefined as any,
+          });
         }
       }
 
