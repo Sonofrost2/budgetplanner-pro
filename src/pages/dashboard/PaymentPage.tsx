@@ -105,6 +105,7 @@ const PaymentPage = () => {
   const [receiptsLoading, setReceiptsLoading] = useState(true);
   const [receiptSearch, setReceiptSearch] = useState('');
   const [receiptStatus, setReceiptStatus] = useState<'all' | 'confirmed' | 'pending'>('all');
+  const [activeTab, setActiveTab] = useState<string>('plan');
 
   useEffect(() => {
     if (!user) return;
@@ -310,7 +311,7 @@ const PaymentPage = () => {
             <Button
               className="text-primary-foreground rounded-xl gap-2 h-11 px-5 shrink-0"
               style={{ background: 'var(--gradient-primary)' }}
-              onClick={() => document.querySelector('[data-tab-compare]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))}
+              onClick={() => setActiveTab('compare')}
             >
               <Sparkles className="w-4 h-4" />
               {isFr ? 'Découvrir les plans' : 'Discover plans'}
@@ -320,7 +321,7 @@ const PaymentPage = () => {
       </HeroHeaderShell>
 
       {/* TABS */}
-      <Tabs defaultValue={isOnFreePlan ? 'compare' : 'plan'}>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="rounded-xl glass">
           <TabsTrigger value="plan" className="rounded-lg gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Star className="w-4 h-4" />{isFr ? 'Mon plan' : 'My plan'}
