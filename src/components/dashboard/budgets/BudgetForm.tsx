@@ -7,7 +7,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
-import { TrendingUp, TrendingDown, Calendar, Tag, Settings2, BarChart3, CalendarClock } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Tag, Settings2, BarChart3, CalendarClock, Link2 } from 'lucide-react';
 import { computeAnnualizedAmount } from '@/lib/budgetProjection';
 import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 import type { DashTranslations } from '@/i18n/dashTranslations';
@@ -22,12 +22,14 @@ interface BudgetFormProps {
     name: string; amount: string; category_id: string; period: string;
     alert_threshold: string; budget_type: string; control_type: string;
     expected_day: string; occurrence_frequency: string; reference_date: string; active_days: string;
+    linked_savings_goal_id: string;
   };
   setForm: React.Dispatch<React.SetStateAction<BudgetFormProps['form']>>;
   errors: Record<string, string>;
   saving: boolean;
   onSave: () => void;
   allCategories: any[];
+  savingsGoals?: any[];
   fmt: (n: number) => string;
   t: DashTranslations;
   locale: string;
@@ -36,12 +38,16 @@ interface BudgetFormProps {
 
 export const BudgetForm = ({
   open, onOpenChange, editId, form, setForm, errors, saving, onSave,
-  allCategories, fmt, t, locale, currency = 'EUR',
+  allCategories, savingsGoals = [], fmt, t, locale, currency = 'EUR',
 }: BudgetFormProps) => {
   const isFr = locale === 'fr';
   const filteredCategories = useMemo(() =>
     allCategories.filter(c => c.type === form.budget_type),
     [allCategories, form.budget_type]
+  );
+  const eligibleGoals = useMemo(
+    () => savingsGoals.filter((g: any) => !g.deleted_at && !g.paused_at && (g.status ?? 'active') === 'active'),
+    [savingsGoals]
   );
 
   const periodLabels: Record<string, string> = {
