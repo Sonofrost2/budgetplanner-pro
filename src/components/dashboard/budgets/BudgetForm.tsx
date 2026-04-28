@@ -7,6 +7,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
+import { LinkPicker } from '@/components/dashboard/LinkPicker';
 import { TrendingUp, TrendingDown, Calendar, Tag, Settings2, BarChart3, CalendarClock, Link2 } from 'lucide-react';
 import { computeAnnualizedAmount } from '@/lib/budgetProjection';
 import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
@@ -168,26 +169,28 @@ export const BudgetForm = ({
             defaultOpen={!!form.linked_savings_goal_id}
           >
             <div className="space-y-1.5">
-              <Select
-                value={form.linked_savings_goal_id || 'none'}
-                onValueChange={(v) => setForm(f => ({ ...f, linked_savings_goal_id: v === 'none' ? '' : v }))}
-              >
-                <SelectTrigger className="rounded-xl h-10">
-                  <SelectValue placeholder={isFr ? 'Aucun objectif lié' : 'No linked goal'} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{isFr ? '— Aucun —' : '— None —'}</SelectItem>
-                  {eligibleGoals.map((g: any) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {g.icon || '🎯'} {g.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <LinkPicker
+                value={form.linked_savings_goal_id}
+                onChange={(id) => setForm(f => ({ ...f, linked_savings_goal_id: id }))}
+                options={eligibleGoals.map((g: any) => ({
+                  id: g.id,
+                  name: g.name,
+                  icon: g.icon || '🎯',
+                  amount: Number(g.monthly_contribution) || 0,
+                  amountSuffix: isFr ? '/mois' : '/mo',
+                  day: g.contribution_day ?? null,
+                  linkedToOtherId: g.linked_budget_id || null,
+                }))}
+                fmt={fmt}
+                locale={locale}
+                selfId={editId}
+                placeholder={isFr ? 'Aucun objectif lié' : 'No linked goal'}
+                emptyHint={isFr ? 'Aucun objectif actif' : 'No active goal'}
+              />
               <p className="text-[10px] text-muted-foreground italic">
                 💡 {isFr
-                  ? 'Le montant, le jour prévu et la date de démarrage seront automatiquement synchronisés avec l\'objectif lié.'
-                  : 'Amount, expected day and start date will automatically sync with the linked goal.'}
+                  ? 'Le montant, le jour prévu et la date de démarrage seront synchronisés avec l\'objectif lié.'
+                  : 'Amount, expected day and start date will sync with the linked goal.'}
               </p>
             </div>
           </FormSection>
