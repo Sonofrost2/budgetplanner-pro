@@ -457,32 +457,60 @@ export const useBudgetNotifications = () => {
       }
     }
 
-    // ────── Balance discrepancy alerts ──────
-    for (const account of accounts) {
-      if (prefs?.balance_discrepancy === false) break;
-      // Compute theoretical balance: opening_balance + income - expenses for this account
-      const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
-      const txSum = acctTxs.reduce((sum: number, tx: any) => {
-        return sum + (tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount));
-      }, 0);
-      const theoreticalBalance = Number(account.opening_balance) + txSum;
-      const realBalance = Number(account.real_balance);
-      const diff = Math.abs(realBalance - theoreticalBalance);
-      // Alert if discrepancy > 500 or > 1% of real balance (whichever is smaller)
-      const threshold = Math.min(500, Math.abs(realBalance) * 0.01 || 500);
+    // ────── Balance discrepancy alerts (corrected) ──────
+    // Cash accounts are intentionally excluded: their `real_balance` is set
+    // by manual cash counts (`cash_counts`) so a divergence vs the theoretical
+    // ledger is expected and tracked elsewhere.
+    if (prefs?.balance_discrepancy !== false) {
+      type Discrep = { account: any; diff: number; realBalance: number; theoreticalBalance: number };
+      const discrepancies: Discrep[] = [];
+      for (const account of accounts) {
+        if ((account as any).type === 'cash') continue;
+        const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
+        const txSum = acctTxs.reduce((sum: number, tx: any) => {
+          return sum + (tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount));
+        }, 0);
+        const theoreticalBalance = Number(account.opening_balance) + txSum;
+        const realBalance = Number(account.real_balance);
+        const diff = Math.abs(realBalance - theoreticalBalance);
+        // 1 000 XOF mini, 0,5% pour les gros soldes
+        const threshold = Math.max(1000, Math.abs(realBalance) * 0.005);
+        if (diff > threshold) {
+          discrepancies.push({ account, diff, realBalance, theoreticalBalance });
+        }
+      }
 
-      if (diff > threshold && diff > 0) {
+      if (discrepancies.length === 1) {
+        const { account, diff, realBalance, theoreticalBalance } = discrepancies[0];
         const sign = realBalance > theoreticalBalance ? '+' : '-';
-        notifs.push({
-          id: `balance-discrepancy-${account.id}`,
-          type: 'balance_discrepancy',
-          severity: 'warning',
-          title: isFr ? `🔍 Écart de solde détecté` : `🔍 Balance discrepancy`,
-          message: `${account.icon} ${account.name}: ${isFr ? 'écart de' : 'difference of'} ${sign}${Math.round(diff).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} vs ${isFr ? 'théorique' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')})`,
-          action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
-          daysLeft: 0,
-          dueLabelKey: 'now',
-        });
+        // Dedup by signed diff so we don't re-emit if nothing changed.
+        if (shouldEmitForSignature(`bal-${account.id}`, `${sign}${Math.round(diff)}`)) {
+          notifs.push({
+            id: `balance-discrepancy-${account.id}`,
+            type: 'balance_discrepancy',
+            severity: 'warning',
+            title: isFr ? `🔍 Écart de solde` : `🔍 Balance discrepancy`,
+            message: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} / ${isFr ? 'calculé' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')})`,
+            action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
+            daysLeft: 0,
+            dueLabelKey: 'now',
+          });
+        }
+      } else if (discrepancies.length > 1) {
+        const totalDiff = discrepancies.reduce((s, d) => s + d.diff, 0);
+        const sig = `n${discrepancies.length}_t${Math.round(totalDiff)}`;
+        if (shouldEmitForSignature('bal-aggregate', sig)) {
+          notifs.push({
+            id: 'balance-discrepancy-aggregate',
+            type: 'balance_discrepancy',
+            severity: 'warning',
+            title: isFr ? `🔍 Écart sur ${discrepancies.length} comptes` : `🔍 Discrepancy on ${discrepancies.length} accounts`,
+            message: `${isFr ? 'Total' : 'Total'}: ${Math.round(totalDiff).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+            action: { label: isFr ? 'Voir les comptes' : 'View accounts', path: `/dashboard/accounts` },
+            daysLeft: 0,
+            dueLabelKey: 'now',
+          });
+        }
       }
     }
 
