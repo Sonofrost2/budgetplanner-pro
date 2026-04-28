@@ -37,7 +37,7 @@ import { WealthWidget } from '@/components/dashboard/home/WealthWidget';
 import { HealthScoreWidget } from '@/components/dashboard/home/HealthScoreWidget';
 import { SortableWidget } from '@/components/dashboard/home/SortableWidget';
 import { useDashboardLayout, type WidgetId } from '@/hooks/useDashboardLayout';
-import { useAccounts, useTransactionsRange, useBudgets, useSavingsGoals, useChartData } from '@/hooks/useDashboardData';
+import { useAccounts, useTransactionsRange, useBudgets, useSavingsGoals, useChartData, useDebts, useRecurring } from '@/hooks/useDashboardData';
 
 type PeriodKey = 'today' | 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisSemester' | 'thisYear' | 'custom';
 
@@ -187,6 +187,8 @@ const DashboardHome = () => {
   const { data: budgetsRaw = [], isLoading: budLoading } = useBudgets();
   const { data: savingsGoals = [], isLoading: savLoading } = useSavingsGoals();
   const { data: monthlyData = [] } = useChartData(locale);
+  const { data: debts = [] } = useDebts();
+  const { data: recurring = [] } = useRecurring();
 
   const yearStartForPlanner = useMemo(() => `${new Date().getFullYear()}-01-01`, []);
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -268,7 +270,14 @@ const DashboardHome = () => {
 
   // Widget render map
   const widgetRenderers: Record<WidgetId, ReactNode> = {
-    planner: <WeeklyPlannerWidget budgets={budgetsRaw} transactions={plannerTransactions} fmt={fmt} t={t} locale={locale} />,
+    planner: <WeeklyPlannerWidget
+      budgets={budgetsRaw}
+      transactions={plannerTransactions}
+      fmt={fmt} t={t} locale={locale}
+      savingsGoals={savingsGoals}
+      debts={debts}
+      recurring={recurring}
+    />,
     accounts: <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />,
     charts: <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} locale={locale} />,
     budgets: <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />,
