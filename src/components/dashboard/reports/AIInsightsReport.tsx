@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Sparkles, Loader2, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Info, ShieldAlert, Heart } from 'lucide-react';
 import { toast } from 'sonner';
+import { annualizeRate, annualInterestCost } from '@/lib/financialNormalization';
 
 const healthColors: Record<string, string> = {
   excellent: 'text-secondary',
@@ -62,6 +63,12 @@ const AIInsightsReport = () => {
         current: s.current_amount,
         target: s.target_amount,
         pct: Number(s.target_amount) > 0 ? Math.round((Number(s.current_amount) / Number(s.target_amount)) * 100) : 0,
+        // ⚠️ Taux annualisé pour comparaison juste entre objectifs ayant
+        // des fréquences de capitalisation différentes (mensuel/trim/annuel).
+        annualRatePct: annualizeRate(Number((s as any).interest_rate) || 0, (s as any).interest_frequency),
+        rateFrequency: (s as any).interest_frequency || 'yearly',
+        monthlyContribution: Number((s as any).monthly_contribution) || 0,
+        deadline: s.deadline,
       }));
 
       const budgetPerformance = budgets.map(b => ({
@@ -76,6 +83,12 @@ const AIInsightsReport = () => {
         creditor: d.creditor_name,
         remaining: Number(d.total_amount) - Number(d.paid_amount),
         dueDate: d.due_date,
+        annualRatePct: annualizeRate(Number((d as any).interest_rate) || 0, 'yearly'),
+        annualInterestCost: annualInterestCost(
+          Number(d.total_amount) - Number(d.paid_amount),
+          Number((d as any).interest_rate) || 0,
+          (d as any).interest_type,
+        ),
       }));
 
       const data = await invokeAuthedEdgeFunction<any>('ai-report-insights', {
