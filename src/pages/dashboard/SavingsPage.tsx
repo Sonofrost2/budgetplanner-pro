@@ -1280,7 +1280,7 @@ const SavingsPage = () => {
                     }))}
                     fmt={fmt}
                     locale={locale}
-                    selfId={editId}
+                    selfId={editGoalId}
                     placeholder={locale === 'fr' ? 'Aucun budget lié' : 'No linked budget'}
                     emptyHint={locale === 'fr' ? 'Aucun budget de dépense actif' : 'No active expense budget'}
                   />
