@@ -2087,16 +2087,28 @@ export type Database = {
         Args: { p_source_ids: string[]; p_target_id: string; p_user_id: string }
         Returns: Json
       }
-      perform_transfer: {
-        Args: {
-          p_amount: number
-          p_description: string
-          p_from_account_id: string
-          p_to_account_id: string
-          p_user_id: string
-        }
-        Returns: Json
-      }
+      perform_transfer:
+        | {
+            Args: {
+              p_amount: number
+              p_description: string
+              p_from_account_id: string
+              p_to_account_id: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_description: string
+              p_expense_category_id?: string
+              p_from_account_id: string
+              p_to_account_id: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
       recalculate_account_balance: {
         Args: { p_account_id: string }
         Returns: undefined
