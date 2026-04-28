@@ -6,7 +6,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
-import { useInvalidate, useSavingsPageData } from '@/hooks/useDashboardData';
+import { useInvalidate, useSavingsPageData, useBudgets } from '@/hooks/useDashboardData';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
 import { savingsGoalSchema, validateForm } from '@/lib/validationSchemas';
 import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
@@ -30,7 +30,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent, CheckCircle2, Search, X } from 'lucide-react';
+import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent, CheckCircle2, Search, X, Link2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AddContributionDialog, WithdrawDialog, SimulationDialog } from '@/components/dashboard/savings/SavingsDialogs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -77,6 +77,7 @@ const SavingsPage = () => {
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get('q') || '';
   const { data: savingsData, isLoading: loading, refetch: refetchSavings } = useSavingsPageData();
+  const { data: budgetsAll = [] } = useBudgets();
   const goals = savingsData?.goals ?? [];
   const accounts = savingsData?.accounts ?? [];
   const contributions = savingsData?.contributions ?? {};
@@ -96,6 +97,7 @@ const SavingsPage = () => {
     name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '',
     monthly_contribution: '', start_date: '', contribution_day: '',
     is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
+    linked_budget_id: '',
   });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -435,6 +437,7 @@ const SavingsPage = () => {
         interest_rate: form.interest_rate ? Number(form.interest_rate) : 0,
         interest_frequency: form.interest_frequency || 'yearly',
         bank_name: form.bank_name?.trim() || null,
+        linked_budget_id: form.linked_budget_id || null,
       };
 
       if (editGoalId) {
@@ -673,6 +676,7 @@ const SavingsPage = () => {
       interest_rate: (goal as any).interest_rate ? String((goal as any).interest_rate) : '',
       interest_frequency: (goal as any).interest_frequency || 'yearly',
       bank_name: (goal as any).bank_name || '',
+      linked_budget_id: '',
     });
     setCustomBankMode(false);
     setDialogOpen(true);
@@ -922,7 +926,7 @@ const SavingsPage = () => {
         onViewChange={setSavingsView}
         onNewGoal={() => {
           setEditGoalId(null);
-          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '', linked_budget_id: '' });
           setCustomBankMode(false);
           setDialogOpen(true);
         }}
@@ -1080,6 +1084,7 @@ const SavingsPage = () => {
                   interest_rate: (g as any).interest_rate ? String((g as any).interest_rate) : '',
                   interest_frequency: (g as any).interest_frequency || 'yearly',
                   bank_name: (g as any).bank_name || '',
+                  linked_budget_id: (g as any).linked_budget_id || '',
                 });
                 setCustomBankMode(false);
                 setDialogOpen(true);
@@ -1114,7 +1119,7 @@ const SavingsPage = () => {
                   </p>
                   <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
                     setEditGoalId(null);
-                    setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+                    setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '', linked_budget_id: '' });
                     setCustomBankMode(false);
                     setDialogOpen(true);
                   }}>
@@ -1246,6 +1251,43 @@ const SavingsPage = () => {
               <Switch checked={form.is_locked} onCheckedChange={v => setForm(f => ({ ...f, is_locked: v }))} />
             </div>
           </FormSection>
+
+          {(() => {
+            const eligibleBudgets = (budgetsAll || []).filter((b: any) =>
+              !b.deleted_at && !b.paused_at && (b.budget_type || 'expense') === 'expense'
+            );
+            if (eligibleBudgets.length === 0) return null;
+            return (
+              <FormSection
+                title={locale === 'fr' ? 'Lier à un budget' : 'Link to a budget'}
+                icon={<Link2 className="w-3.5 h-3.5" />}
+                collapsible
+                defaultOpen={!!form.linked_budget_id}
+              >
+                <div className="space-y-1.5">
+                  <Select
+                    value={form.linked_budget_id || '__none__'}
+                    onValueChange={v => setForm(f => ({ ...f, linked_budget_id: v === '__none__' ? '' : v }))}
+                  >
+                    <SelectTrigger className="rounded-xl h-11">
+                      <SelectValue placeholder={locale === 'fr' ? 'Aucun budget lié' : 'No linked budget'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">{locale === 'fr' ? '— Aucun —' : '— None —'}</SelectItem>
+                      {eligibleBudgets.map((b: any) => (
+                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground italic">
+                    💡 {locale === 'fr'
+                      ? 'Le montant, le jour prévu et la date de démarrage seront automatiquement synchronisés avec le budget lié.'
+                      : 'Amount, expected day and start date will automatically sync with the linked budget.'}
+                  </p>
+                </div>
+              </FormSection>
+            );
+          })()}
 
           <FormSection title={locale === 'fr' ? 'Banque & Intérêts' : 'Bank & Interest'} icon={<Building2 className="w-3.5 h-3.5" />} collapsible defaultOpen={!!form.bank_name || !!form.interest_rate}>
             <div className="space-y-1.5">
