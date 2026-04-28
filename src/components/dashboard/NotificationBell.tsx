@@ -851,12 +851,14 @@ const notifItemVariants = {
   exit: { opacity: 0, x: 12, scale: 0.96, transition: { duration: 0.2 } },
 };
 
-const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate, index }: {
+const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate, onRepair, repairingId, index }: {
   group: NotifGroup;
   locale: string;
   onDismiss: (id: string) => void;
   onDismissGroup: (ids: string[]) => void;
   onNavigate: (path: string) => void;
+  onRepair: (n: Notification) => void;
+  repairingId: string | null;
   index: number;
 }) => {
   const [expanded, setExpanded] = useState(false);
