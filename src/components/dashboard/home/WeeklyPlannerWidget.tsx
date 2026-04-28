@@ -741,6 +741,115 @@ export const WeeklyPlannerWidget = ({
           </div>
         )}
 
+        {/* ── Real events of the week (savings, debts, recurring) ── */}
+        <div className="px-4 pb-1">
+          <button
+            onClick={() => setShowEvents(!showEvents)}
+            className="w-full flex items-center justify-between py-2.5 border-t border-border/30"
+          >
+            <span className="text-[11px] font-bold flex items-center gap-1.5 text-foreground">
+              <ListChecks className="w-3.5 h-3.5 text-primary" />
+              {isFr ? 'Échéances de la semaine' : 'Week events'}
+              <span className="text-[9px] font-medium text-muted-foreground bg-muted/40 rounded-full px-1.5 py-0.5">
+                {eventsSummary.count}
+              </span>
+              {eventsSummary.overdue > 0 && (
+                <span className="text-[9px] font-bold text-destructive bg-destructive/10 rounded-full px-1.5 py-0.5 flex items-center gap-0.5">
+                  <AlertCircle className="w-2.5 h-2.5" />
+                  {eventsSummary.overdue}
+                </span>
+              )}
+            </span>
+            <div className="flex items-center gap-2">
+              {eventsSummary.count > 0 && (
+                <span className="text-[10px] tabular-nums font-semibold text-muted-foreground">
+                  −{fmt(eventsSummary.outflow)}
+                  {eventsSummary.inflow > 0 && <span className="text-secondary"> +{fmt(eventsSummary.inflow)}</span>}
+                </span>
+              )}
+              <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${showEvents ? 'rotate-90' : ''}`} />
+            </div>
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {showEvents && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="px-3 pb-3 space-y-0.5 max-h-[280px] overflow-y-auto scrollbar-thin">
+                {weekEvents.length === 0 ? (
+                  <div className="text-center py-4 text-[10px] text-muted-foreground">
+                    {isFr
+                      ? 'Aucune échéance prévue cette semaine.'
+                      : 'No events scheduled this week.'}
+                  </div>
+                ) : weekEvents.map((ev, i) => {
+                  const KindIcon = ev.kind === 'savings' ? PiggyBank : ev.kind === 'debt' ? CreditCard : Repeat;
+                  const isOverdue = ev.status === 'overdue';
+                  const isDone = ev.status === 'done';
+                  return (
+                    <motion.button
+                      key={ev.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.02 }}
+                      onClick={() => ev.href && navigate(ev.href)}
+                      className="w-full text-left rounded-xl hover:bg-muted/20 transition-colors px-2.5 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 ${
+                          isOverdue ? 'bg-destructive/15' : isDone ? 'bg-secondary/15' : 'bg-primary/10'
+                        }`}>
+                          {ev.icon}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-semibold truncate">{ev.title}</span>
+                            {isOverdue && (
+                              <span className="text-[8px] font-bold text-destructive bg-destructive/10 rounded-full px-1 py-px">
+                                {isFr ? 'En retard' : 'Overdue'}
+                              </span>
+                            )}
+                            {isDone && (
+                              <span className="text-[8px] font-bold text-secondary bg-secondary/10 rounded-full px-1 py-px">
+                                {isFr ? 'Payé' : 'Paid'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                            <KindIcon className="w-2.5 h-2.5" />
+                            <span className="truncate">{ev.meta}</span>
+                            <span className="opacity-50">·</span>
+                            <span className="tabular-nums">{formatEventDate(ev.date)}</span>
+                          </div>
+                        </div>
+                        <span className={`text-[11px] font-bold tabular-nums shrink-0 ${
+                          ev.direction === 'in' ? 'text-secondary' : 'text-foreground'
+                        }`}>
+                          {ev.direction === 'in' ? '+' : '−'}{fmt(ev.amount)}
+                        </span>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+
+                {weekEvents.length > 0 && (
+                  <div className="flex items-center justify-between px-2.5 pt-2 mt-1 border-t border-border/30 text-[10px] font-bold tabular-nums">
+                    <span>{isFr ? 'Net attendu' : 'Net expected'}</span>
+                    <span className={eventsSummary.net >= 0 ? 'text-secondary' : 'text-destructive'}>
+                      {eventsSummary.net >= 0 ? '+' : ''}{fmt(eventsSummary.net)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* ── EXPENSE details ── */}
         <div className="px-4 pb-1">
           <button
