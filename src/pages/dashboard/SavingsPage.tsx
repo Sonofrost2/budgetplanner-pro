@@ -475,7 +475,13 @@ const SavingsPage = () => {
     try {
       const amountToAdd = Number(addAmount);
       const today = new Date().toISOString().split('T')[0];
-      const desc = `${t.savings}: ${goal.name}`;
+      // Si l'objectif est lié à un budget, on récupère sa catégorie pour l'appliquer
+      // à la transaction "expense" → consomme automatiquement le budget lié.
+      const linkedBudget = budgetsAll.find(b => (b as any).linked_savings_goal_id === goal.id);
+      const linkedCategoryId = linkedBudget?.category_id || null;
+      const desc = linkedBudget
+        ? `${t.savings}: ${goal.name} · ${linkedBudget.name}`
+        : `${t.savings}: ${goal.name}`;
 
       // Use atomic transfer when both source and savings accounts exist
       if (sourceAccountId && goal.account_id && sourceAccountId !== goal.account_id) {
@@ -485,7 +491,8 @@ const SavingsPage = () => {
           p_to_account_id: goal.account_id,
           p_amount: amountToAdd,
           p_description: desc,
-        });
+          p_expense_category_id: linkedCategoryId,
+        } as any);
         if (error) throw error;
       } else {
         // Fallback: create individual transactions
@@ -493,6 +500,7 @@ const SavingsPage = () => {
           await supabase.from('transactions').insert({
             user_id: user.id, type: 'expense', amount: amountToAdd,
             description: desc, account_id: sourceAccountId, date: today,
+            category_id: linkedCategoryId,
           });
         }
         if (goal.account_id) {
@@ -1366,6 +1374,17 @@ const SavingsPage = () => {
         accounts={accounts} goal={goals.find(g => g.id === addAmountDialog)}
         onSave={handleAddAmount} saving={saving} t={t} locale={locale}
         currency={currency}
+        linkedBudget={(() => {
+          const g = goals.find(x => x.id === addAmountDialog);
+          if (!g) return null;
+          const b: any = budgetsAll.find((x: any) => x.linked_savings_goal_id === g.id);
+          if (!b) return null;
+          return {
+            name: b.name,
+            categoryName: b.categories?.name || null,
+            categoryIcon: b.categories?.icon || null,
+          };
+        })()}
       />
 
       <WithdrawDialog
