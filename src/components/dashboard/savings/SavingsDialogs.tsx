@@ -3,7 +3,7 @@ import { InputField } from '@/components/ui/input-field';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { Label } from '@/components/ui/label';
-import { Sparkles, TrendingUp, Lock, Lightbulb, BarChart3, Download } from 'lucide-react';
+import { Sparkles, TrendingUp, Lock, Lightbulb, BarChart3, Download, Link2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,12 +29,14 @@ interface SimulationResult {
 // ─── Add Contribution Dialog ──────────────────────────
 export const AddContributionDialog = ({
   open, onClose, amount, setAmount, sourceAccountId, setSourceAccountId,
-  accounts, goal, onSave, saving, t, locale, currency = 'EUR'
+  accounts, goal, onSave, saving, t, locale, currency = 'EUR',
+  linkedBudget,
 }: {
   open: boolean; onClose: () => void; amount: string; setAmount: (v: string) => void;
   sourceAccountId: string; setSourceAccountId: (v: string) => void;
   accounts: Account[]; goal: SavingsGoal | undefined;
   onSave: () => void; saving: boolean; t: any; locale: string; currency?: string;
+  linkedBudget?: { name: string; categoryName?: string | null; categoryIcon?: string | null } | null;
 }) => (
   <ResponsiveFormDialog
     open={open}
@@ -65,6 +67,21 @@ export const AddContributionDialog = ({
         <AccountCombobox accounts={accounts} value={sourceAccountId} onValueChange={setSourceAccountId}
           placeholder={locale === 'fr' ? 'Débiter depuis...' : 'Debit from...'} excludeId={goal?.account_id} />
       </div>
+      {linkedBudget && (
+        <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+          <Link2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+          <div className="space-y-0.5">
+            <p className="font-medium">
+              {locale === 'fr' ? 'Consomme le budget' : 'Will consume budget'} : {linkedBudget.name}
+            </p>
+            {linkedBudget.categoryName && (
+              <p className="text-xs text-muted-foreground">
+                {locale === 'fr' ? 'Catégorie' : 'Category'} : {linkedBudget.categoryIcon || '📁'} {linkedBudget.categoryName}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
       {goal?.payment_accounts && (
         <div className="bg-muted/50 rounded-xl p-3 text-sm">
           <span className="text-muted-foreground">{t.savingsTargetAccount}: </span>
