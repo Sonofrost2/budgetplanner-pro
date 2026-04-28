@@ -31,7 +31,7 @@ import { formatNumber } from '@/lib/currency';
 
 interface Notification {
   id: string;
-  type: 'budget_exceeded' | 'budget_warning' | 'savings_reached' | 'savings_behind' | 'budget_savings' | 'budget_upcoming' | 'savings_upcoming' | 'balance_discrepancy' | 'recurring_upcoming' | 'week_summary';
+  type: 'budget_exceeded' | 'budget_warning' | 'savings_reached' | 'savings_behind' | 'budget_savings' | 'budget_upcoming' | 'savings_upcoming' | 'balance_discrepancy' | 'recurring_upcoming' | 'week_summary' | 'link_mismatch';
   title: string;
   message: string;
   severity: 'critical' | 'warning' | 'success' | 'info';
