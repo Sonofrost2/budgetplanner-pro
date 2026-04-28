@@ -35,6 +35,7 @@ const TransactionsPage = lazyWithRetry(() => import("./pages/dashboard/Transacti
 const BudgetsPage = lazyWithRetry(() => import("./pages/dashboard/BudgetsPage"), "budgets-page");
 const ForecastsPage = lazyWithRetry(() => import("./pages/dashboard/ForecastsPage"), "forecasts-page");
 const SavingsPage = lazyWithRetry(() => import("./pages/dashboard/SavingsPage"), "savings-page");
+const BudgetSavingsLinksPage = lazyWithRetry(() => import("./pages/dashboard/BudgetSavingsLinksPage"), "budget-savings-links-page");
 const ReportsPage = lazyWithRetry(() => import("./pages/dashboard/ReportsPage"), "reports-page");
 const SettingsPage = lazyWithRetry(() => import("./pages/dashboard/SettingsPage"), "settings-page");
 const PaymentPage = lazyWithRetry(() => import("./pages/dashboard/PaymentPage"), "payment-page");
@@ -91,6 +92,7 @@ const AnimatedRoutes = () => {
             <Route path="budgets" element={<BudgetsPage />} />
             <Route path="forecasts" element={<ForecastsPage />} />
             <Route path="savings" element={<SavingsPage />} />
+            <Route path="links" element={<BudgetSavingsLinksPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
