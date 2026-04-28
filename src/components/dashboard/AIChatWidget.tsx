@@ -14,6 +14,7 @@ import { AIMessageBubble } from './ai/AIMessageBubble';
 import { AIQuickPrompts } from './ai/AIQuickPrompts';
 import { AIConversationList } from './ai/AIConversationList';
 import { isLiveGoal, isLiveAccount, liveSavingsTotal } from '@/lib/savingsLogic';
+import { annualizeRate, annualInterestCost } from '@/lib/financialNormalization';
 
 type Msg = { role: 'user' | 'assistant'; content: string; created_at?: string };
 
