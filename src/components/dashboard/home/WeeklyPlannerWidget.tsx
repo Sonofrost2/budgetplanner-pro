@@ -3,7 +3,8 @@ import {
   CalendarClock, TrendingDown, TrendingUp, PiggyBank,
   ChevronRight, ChevronLeft, Pencil, Check, X, Target,
   AlertTriangle, CheckCircle2, ArrowRight, Wallet, Compass,
-  Flame, Zap, CalendarPlus, GitCompareArrows, BarChart3
+  Flame, Zap, CalendarPlus, GitCompareArrows, BarChart3,
+  ListChecks, CreditCard, Repeat, AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { buildWeekEvents, summarizeWeekEvents, type WeekEvent } from '@/lib/weeklyEvents';
 
 interface Budget {
   id: string;
@@ -41,6 +43,9 @@ interface WeeklyPlannerWidgetProps {
   fmt: (n: number) => string;
   t: DashTranslations;
   locale?: string;
+  savingsGoals?: any[];
+  debts?: any[];
+  recurring?: any[];
 }
 
 /* ── date helpers ─────────────────────────────────────────── */
@@ -320,7 +325,10 @@ const DAY_SHORT_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const DAY_SHORT_EN = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 /* ── Component ─────────────────────────────────────────────── */
-export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'fr' }: WeeklyPlannerWidgetProps) => {
+export const WeeklyPlannerWidget = ({
+  budgets, transactions, fmt, t, locale = 'fr',
+  savingsGoals = [], debts = [], recurring = [],
+}: WeeklyPlannerWidgetProps) => {
   const navigate = useNavigate();
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
   const [showIncomeDetails, setShowIncomeDetails] = useState(false);
@@ -329,6 +337,7 @@ export const WeeklyPlannerWidget = ({ budgets, transactions, fmt, t, locale = 'f
   const [customTargets, setCustomTargets] = useState<Record<string, number>>(loadTargets);
   const [weekOffset, setWeekOffset] = useState(0);
   const [showComparison, setShowComparison] = useState(false);
+  const [showEvents, setShowEvents] = useState(true);
 
   const isFr = locale === 'fr';
 
