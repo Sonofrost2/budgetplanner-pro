@@ -322,6 +322,11 @@ export const useBudgetNotifications = () => {
       const allowSavings = prefs?.savings_reminders !== false;
       const allowGoalReached = prefs?.goal_reached !== false;
 
+      // Skip goals that haven't started yet (start_date in the future).
+      // They are NOT late and shouldn't generate any reminder.
+      const goalStart = (goal as any).start_date ? parseLocalDate((goal as any).start_date) : null;
+      if (goalStart && goalStart > now) continue;
+
       if (Number(goal.current_amount) >= Number(goal.target_amount)) {
         if (allowGoalReached) {
           notifs.push({
