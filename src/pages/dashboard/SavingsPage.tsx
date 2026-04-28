@@ -96,6 +96,7 @@ const SavingsPage = () => {
     name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '',
     monthly_contribution: '', start_date: '', contribution_day: '',
     is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
+    linked_budget_id: '',
   });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -435,6 +436,7 @@ const SavingsPage = () => {
         interest_rate: form.interest_rate ? Number(form.interest_rate) : 0,
         interest_frequency: form.interest_frequency || 'yearly',
         bank_name: form.bank_name?.trim() || null,
+        linked_budget_id: form.linked_budget_id || null,
       };
 
       if (editGoalId) {
@@ -673,6 +675,7 @@ const SavingsPage = () => {
       interest_rate: (goal as any).interest_rate ? String((goal as any).interest_rate) : '',
       interest_frequency: (goal as any).interest_frequency || 'yearly',
       bank_name: (goal as any).bank_name || '',
+      linked_budget_id: '',
     });
     setCustomBankMode(false);
     setDialogOpen(true);
@@ -922,7 +925,7 @@ const SavingsPage = () => {
         onViewChange={setSavingsView}
         onNewGoal={() => {
           setEditGoalId(null);
-          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '', linked_budget_id: '' });
           setCustomBankMode(false);
           setDialogOpen(true);
         }}
@@ -1080,6 +1083,7 @@ const SavingsPage = () => {
                   interest_rate: (g as any).interest_rate ? String((g as any).interest_rate) : '',
                   interest_frequency: (g as any).interest_frequency || 'yearly',
                   bank_name: (g as any).bank_name || '',
+                  linked_budget_id: (g as any).linked_budget_id || '',
                 });
                 setCustomBankMode(false);
                 setDialogOpen(true);
@@ -1114,7 +1118,7 @@ const SavingsPage = () => {
                   </p>
                   <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
                     setEditGoalId(null);
-                    setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '' });
+                    setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '', linked_budget_id: '' });
                     setCustomBankMode(false);
                     setDialogOpen(true);
                   }}>
