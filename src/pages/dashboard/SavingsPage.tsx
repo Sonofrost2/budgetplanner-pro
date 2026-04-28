@@ -77,6 +77,7 @@ const SavingsPage = () => {
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get('q') || '';
   const { data: savingsData, isLoading: loading, refetch: refetchSavings } = useSavingsPageData();
+  const { data: budgetsAll = [] } = useBudgets();
   const goals = savingsData?.goals ?? [];
   const accounts = savingsData?.accounts ?? [];
   const contributions = savingsData?.contributions ?? {};
