@@ -782,6 +782,28 @@ const ActionLink = ({ action, onNavigate }: { action: Notification['action']; on
   );
 };
 
+const RepairButton = ({ notif, onRepair, busy, locale }: {
+  notif: Notification;
+  onRepair: (n: Notification) => void;
+  busy: boolean;
+  locale: string;
+}) => {
+  if (!notif.repair) return null;
+  const isFr = locale === 'fr';
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onRepair(notif); }}
+      disabled={busy}
+      className="inline-flex items-center gap-1 mt-1.5 ml-2 text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-500 transition-colors group disabled:opacity-50 disabled:cursor-wait"
+    >
+      <Wrench className={`w-3 h-3 transition-transform ${busy ? 'animate-spin' : 'group-hover:rotate-12'}`} />
+      {busy
+        ? (isFr ? 'Réparation…' : 'Repairing…')
+        : (isFr ? 'Réparer la liaison' : 'Repair link')}
+    </button>
+  );
+};
+
 /** Compact pill showing the temporal context of a notification.
  *  Resolves `dueLabelKey` first, then falls back to a numeric "in N days". */
 const DuePill = ({ notif, locale }: { notif: Notification; locale: string }) => {
