@@ -215,6 +215,11 @@ Deno.serve(async (req) => {
           const projection = spent + dailyRate * daysRemaining;
           const daysToExceed = dailyRate > 0 ? Math.round((amount - spent) / dailyRate) : Infinity;
 
+          // Signature d'activité : si rien n'a bougé depuis la dernière notif,
+          // on ne re-notifie pas, même si la cadence (semaine) est passée.
+          // On hashe le nombre de tx + le montant total pour signer l'état.
+          const activitySig = `tx${periodTxs.length}_amt${Math.round(spent)}`;
+
           if (isMax) {
             const isIncomeBudget = budgetType === "income";
             if (prefBudgetAlerts && spent > amount && isIncomeBudget) {
@@ -238,13 +243,14 @@ Deno.serve(async (req) => {
               });
             } else if (prefBudgetAlerts && pct >= threshold) {
               // Threshold reached — windowed by cadence + 10pt step
+              // ⚠️ Inclut l'activitySig : si rien n'a bougé, même bucket = pas de re-notif
               alerts.push({
                 title: isIncomeBudget
                   ? (isFr ? `💰 Revenu à ${Math.round(pct)}%` : `💰 Income at ${Math.round(pct)}%`)
                   : (isFr ? `📊 Budget à ${Math.round(pct)}%` : `📊 Budget at ${Math.round(pct)}%`),
                 body: `${catIcon} ${budget.name} (${isFr ? "seuil" : "threshold"} ${threshold}%)`,
                 notification_type: "budget_threshold",
-                dedup_key: `budget_threshold_${budget.id}_step${pctStep}${statusWindow}`,
+                dedup_key: `budget_threshold_${budget.id}_step${pctStep}_${activitySig}${statusWindow}`,
                 reference_id: budget.id,
               });
             } else if (prefBudgetProjections && projection > amount && pct >= 40 && daysToExceed < daysRemaining && daysToExceed > 0) {
@@ -252,7 +258,7 @@ Deno.serve(async (req) => {
                 title: isFr ? `📈 Dépassement estimé dans ~${daysToExceed}j` : `📈 Projected to exceed in ~${daysToExceed}d`,
                 body: `${catIcon} ${budget.name}: ${Math.round(projection).toLocaleString()} (${Math.round((projection / amount) * 100)}%)`,
                 notification_type: "budget_projection",
-                dedup_key: `budget_proj_${budget.id}_step${pctStep}${statusWindow}`,
+                dedup_key: `budget_proj_${budget.id}_step${pctStep}_${activitySig}${statusWindow}`,
                 reference_id: budget.id,
               });
             } else if (prefGoalReached && isLastDayOfPeriod && pct < 90 && !isIncomeBudget) {
@@ -283,7 +289,7 @@ Deno.serve(async (req) => {
                 title: isFr ? `📊 Objectif à ${Math.round(pct)}%` : `📊 Target at ${Math.round(pct)}%`,
                 body: `${catIcon} ${budget.name}: ${isFr ? "manque" : "missing"} ${Math.round(amount - spent).toLocaleString()}`,
                 notification_type: "budget_target_behind",
-                dedup_key: `budget_target_${budget.id}_step${pctStep}${statusWindow}`,
+                dedup_key: `budget_target_${budget.id}_step${pctStep}_${activitySig}${statusWindow}`,
                 reference_id: budget.id,
               });
             }
@@ -292,7 +298,12 @@ Deno.serve(async (req) => {
           // Upcoming budget echeance — J-5, J-2, J-0 (3 envois max).
           // Differentiates income (revenu attendu 💰) vs expense (échéance prévue 📅)
           // so push titles match the in-app bell instead of always saying "Dépense".
-          if (prefBudgetAlerts && budget.expected_day) {
+          // ⚠️ Skip si l'échéance prévue est DÉJÀ couverte par les transactions du mois
+          // (pour expense : spent >= amount ; pour income : déjà reçu)
+          const expectedAlreadyMet = isMax
+            ? (budgetType === "expense" ? spent >= amount * 0.95 : spent >= amount * 0.95)
+            : spent >= amount * 0.95;
+          if (prefBudgetAlerts && budget.expected_day && !expectedAlreadyMet) {
             const expDay = Number(budget.expected_day);
             const todayDay = now.getDate();
             const daysUntil = expDay >= todayDay ? expDay - todayDay : 0;
