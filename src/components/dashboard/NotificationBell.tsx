@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatNumber } from '@/lib/currency';
+import { coachToast } from '@/lib/coachToast';
 
 interface Notification {
   id: string;
@@ -968,6 +969,30 @@ export const NotificationBell = () => {
   const handleNavigate = (path: string) => {
     setIsOpen(false);
     navigate(path);
+  };
+
+  const [repairingId, setRepairingId] = useState<string | null>(null);
+  const handleRepair = async (notif: Notification) => {
+    if (!notif.repair || repairingId) return;
+    setRepairingId(notif.id);
+    try {
+      const { error } = await supabase
+        .from('savings_goals')
+        .update(notif.repair.patch)
+        .eq('id', notif.repair.goalId);
+      if (error) throw error;
+      coachToast.success(isFr ? '🔗 Liaison réparée' : '🔗 Link repaired');
+      // Hide the notif optimistically; refresh re-evaluates real divergences.
+      handleDismiss(notif.id);
+      await refresh();
+    } catch (err: any) {
+      coachToast.error(
+        isFr ? 'Réparation impossible' : 'Repair failed',
+        err?.message
+      );
+    } finally {
+      setRepairingId(null);
+    }
   };
 
   // Apply severity filter
