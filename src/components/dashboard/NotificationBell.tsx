@@ -929,7 +929,10 @@ const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate
                   <p className="text-[12px] font-semibold leading-tight">{n.title}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{n.message}</p>
                   <DuePill notif={n} locale={locale} />
-                  <ActionLink action={n.action} onNavigate={onNavigate} />
+                  <div className="flex items-center flex-wrap gap-x-3">
+                    <ActionLink action={n.action} onNavigate={onNavigate} />
+                    <RepairButton notif={n} onRepair={onRepair} busy={repairingId === n.id} locale={locale} />
+                  </div>
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); onDismiss(n.id); }}
