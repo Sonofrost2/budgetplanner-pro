@@ -11,7 +11,7 @@ import {
   Sparkles, User, ChevronUp, Landmark, RefreshCw, Gem,
   Wallet2, Compass, LineChart, Building2, BookOpen, MessageCircle,
   Star, ChevronDown, Pin,
-  Bell, Activity,
+  Bell, Activity, Link2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -107,6 +107,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       items: [
         { key: 'budgets', icon: PieChart, path: '/dashboard/budgets', badge: 'budgetsExceeded' },
         { key: 'savings', icon: Target, path: '/dashboard/savings' },
+        { key: 'budgetSavingsLinks', icon: Link2, path: '/dashboard/links' },
         { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
       ],
     },
