@@ -42,6 +42,7 @@ import { coachToast } from '@/lib/coachToast';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
+import { LinkPicker } from '@/components/dashboard/LinkPicker';
 import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 import { SavingsGoalCard } from '@/components/dashboard/savings/SavingsGoalCard';
 import { PartialWithdrawDialog } from '@/components/dashboard/savings/PartialWithdrawDialog';
@@ -1265,24 +1266,28 @@ const SavingsPage = () => {
                 defaultOpen={!!form.linked_budget_id}
               >
                 <div className="space-y-1.5">
-                  <Select
-                    value={form.linked_budget_id || '__none__'}
-                    onValueChange={v => setForm(f => ({ ...f, linked_budget_id: v === '__none__' ? '' : v }))}
-                  >
-                    <SelectTrigger className="rounded-xl h-11">
-                      <SelectValue placeholder={locale === 'fr' ? 'Aucun budget lié' : 'No linked budget'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">{locale === 'fr' ? '— Aucun —' : '— None —'}</SelectItem>
-                      {eligibleBudgets.map((b: any) => (
-                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <LinkPicker
+                    value={form.linked_budget_id}
+                    onChange={(id) => setForm(f => ({ ...f, linked_budget_id: id }))}
+                    options={eligibleBudgets.map((b: any) => ({
+                      id: b.id,
+                      name: b.name,
+                      icon: '💰',
+                      amount: Number(b.amount) || 0,
+                      amountSuffix: locale === 'fr' ? `/${b.period === 'monthly' ? 'mois' : (b.period || 'mois')}` : `/${b.period || 'mo'}`,
+                      day: b.expected_day ?? null,
+                      linkedToOtherId: b.linked_savings_goal_id || null,
+                    }))}
+                    fmt={fmt}
+                    locale={locale}
+                    selfId={editGoalId}
+                    placeholder={locale === 'fr' ? 'Aucun budget lié' : 'No linked budget'}
+                    emptyHint={locale === 'fr' ? 'Aucun budget de dépense actif' : 'No active expense budget'}
+                  />
                   <p className="text-[10px] text-muted-foreground italic">
                     💡 {locale === 'fr'
-                      ? 'Le montant, le jour prévu et la date de démarrage seront automatiquement synchronisés avec le budget lié.'
-                      : 'Amount, expected day and start date will automatically sync with the linked budget.'}
+                      ? 'Le montant, le jour prévu et la date de démarrage seront synchronisés avec le budget lié.'
+                      : 'Amount, expected day and start date will sync with the linked budget.'}
                   </p>
                 </div>
               </FormSection>
