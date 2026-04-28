@@ -589,6 +589,7 @@ const iconMap: Record<Notification['type'], React.ReactNode> = {
   balance_discrepancy: <Search className="w-4 h-4" />,
   recurring_upcoming: <Calendar className="w-4 h-4" />,
   week_summary: <CheckCircle2 className="w-4 h-4" />,
+  link_mismatch: <AlertTriangle className="w-4 h-4" />,
 };
 
 // Glassmorphism severity styles — gradient bar + tinted surface
@@ -621,6 +622,7 @@ const groupLabels: Record<string, Record<Notification['type'], string>> = {
     balance_discrepancy: 'écarts de solde',
     recurring_upcoming: 'récurrences à venir',
     week_summary: 'bilans',
+    link_mismatch: 'liens incohérents',
   },
   en: {
     budget_exceeded: 'budgets exceeded',
@@ -633,6 +635,7 @@ const groupLabels: Record<string, Record<Notification['type'], string>> = {
     balance_discrepancy: 'balance discrepancies',
     recurring_upcoming: 'upcoming recurring',
     week_summary: 'summaries',
+    link_mismatch: 'inconsistent links',
   },
 };
 
