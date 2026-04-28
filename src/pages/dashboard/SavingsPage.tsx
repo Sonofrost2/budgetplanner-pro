@@ -477,7 +477,7 @@ const SavingsPage = () => {
       const today = new Date().toISOString().split('T')[0];
       // Si l'objectif est lié à un budget, on récupère sa catégorie pour l'appliquer
       // à la transaction "expense" → consomme automatiquement le budget lié.
-      const linkedBudget = budgets.find(b => b.linked_savings_goal_id === goal.id);
+      const linkedBudget = budgetsAll.find(b => (b as any).linked_savings_goal_id === goal.id);
       const linkedCategoryId = linkedBudget?.category_id || null;
       const desc = linkedBudget
         ? `${t.savings}: ${goal.name} · ${linkedBudget.name}`
