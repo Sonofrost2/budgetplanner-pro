@@ -159,6 +159,40 @@ export const BudgetForm = ({
           />
         </FormSection>
 
+        {/* Cross-link with a savings goal */}
+        {form.budget_type === 'expense' && eligibleGoals.length > 0 && (
+          <FormSection
+            title={isFr ? 'Lier à un objectif d\'épargne' : 'Link to a savings goal'}
+            icon={<Link2 className="w-3.5 h-3.5" />}
+            collapsible
+            defaultOpen={!!form.linked_savings_goal_id}
+          >
+            <div className="space-y-1.5">
+              <Select
+                value={form.linked_savings_goal_id || 'none'}
+                onValueChange={(v) => setForm(f => ({ ...f, linked_savings_goal_id: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger className="rounded-xl h-10">
+                  <SelectValue placeholder={isFr ? 'Aucun objectif lié' : 'No linked goal'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{isFr ? '— Aucun —' : '— None —'}</SelectItem>
+                  {eligibleGoals.map((g: any) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.icon || '🎯'} {g.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground italic">
+                💡 {isFr
+                  ? 'Le montant, le jour prévu et la date de démarrage seront automatiquement synchronisés avec l\'objectif lié.'
+                  : 'Amount, expected day and start date will automatically sync with the linked goal.'}
+              </p>
+            </div>
+          </FormSection>
+        )}
+
         {/* Impact Preview */}
         <div className="rounded-xl border border-primary/15 px-4 py-3 space-y-1" style={{ background: 'hsl(var(--primary) / 0.04)' }}>
           <p className="text-[11px] font-bold text-primary flex items-center gap-1.5">
