@@ -22,6 +22,7 @@ import {
   type CadencePrefs,
 } from '@/lib/notificationCadence';
 import { AlertTriangle, CheckCircle2, Bell, PiggyBank, X, TrendingDown, ChevronDown, ChevronUp, Calendar, Search, Trophy, Clock, ExternalLink } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +37,14 @@ interface Notification {
   message: string;
   severity: 'critical' | 'warning' | 'success' | 'info';
   action?: { label: string; path: string };
+  /** Optional one-click repair payload — used by `link_mismatch` to realign
+   *  a savings goal with its linked budget without opening the editor. */
+  repair?: {
+    kind: 'link';
+    budgetId: string;
+    goalId: string;
+    patch: Record<string, any>;
+  };
   /** Days until the relevant event (0 = today). Used for sorting & "À venir" tab. */
   daysLeft?: number;
   /** True if the event is in the future (≥1 day) — drives the "À venir" tab. */
