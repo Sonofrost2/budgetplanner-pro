@@ -1374,6 +1374,17 @@ const SavingsPage = () => {
         accounts={accounts} goal={goals.find(g => g.id === addAmountDialog)}
         onSave={handleAddAmount} saving={saving} t={t} locale={locale}
         currency={currency}
+        linkedBudget={(() => {
+          const g = goals.find(x => x.id === addAmountDialog);
+          if (!g) return null;
+          const b: any = budgetsAll.find((x: any) => x.linked_savings_goal_id === g.id);
+          if (!b) return null;
+          return {
+            name: b.name,
+            categoryName: b.categories?.name || null,
+            categoryIcon: b.categories?.icon || null,
+          };
+        })()}
       />
 
       <WithdrawDialog
