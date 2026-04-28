@@ -73,10 +73,10 @@ const AIChatWidget = () => {
       const [accRes, budRes, savRes, txRes, profRes, debtRes, recRes, healthRes] = await Promise.all([
         supabase.from('payment_accounts').select('name, type, real_balance, opening_balance, icon, status, archived_at, deleted_at').eq('user_id', user.id).is('deleted_at', null).is('archived_at', null),
         supabase.from('budgets').select('name, amount, period, budget_type, control_type, alert_threshold, category_id, categories(name)').eq('user_id', user.id),
-        supabase.from('savings_goals').select('name, current_amount, target_amount, interest_rate, bank_name, deadline, monthly_contribution, is_locked, status, paused_at, deleted_at').eq('user_id', user.id).is('deleted_at', null),
+        supabase.from('savings_goals').select('name, current_amount, target_amount, interest_rate, interest_frequency, bank_name, deadline, monthly_contribution, is_locked, status, paused_at, deleted_at').eq('user_id', user.id).is('deleted_at', null),
         supabase.from('transactions').select('amount, type, category_id, date, description, categories(name)').eq('user_id', user.id).order('date', { ascending: false }).limit(80),
         supabase.from('profiles').select('display_name, currency, locale').eq('user_id', user.id).single(),
-        supabase.from('debts').select('creditor_name, total_amount, paid_amount, due_date').eq('user_id', user.id),
+        supabase.from('debts').select('creditor_name, total_amount, paid_amount, due_date, interest_rate, interest_type').eq('user_id', user.id),
         supabase.from('recurring_transactions').select('description, amount, type, frequency, next_date, active, categories(name)').eq('user_id', user.id).eq('active', true),
         supabase.rpc('compute_health_score', { p_user_id: user.id }),
       ]);
@@ -117,8 +117,34 @@ const AIChatWidget = () => {
         topCategoriesThisMonth: topCategories,
         accounts: accounts.map(a => ({ name: a.name, type: a.type, balance: a.real_balance })),
         budgets: (budRes.data || []).map(b => ({ name: b.name, amount: b.amount, period: b.period, type: b.budget_type, category: (b.categories as any)?.name })),
-        savings: savings.map(s => ({ name: s.name, current: s.current_amount, target: s.target_amount, rate: s.interest_rate, deadline: s.deadline })),
-        debts: debts.map(d => ({ creditor: d.creditor_name, total: d.total_amount, paid: d.paid_amount, remaining: Number(d.total_amount) - Number(d.paid_amount), dueDate: d.due_date })),
+        // ⚠️ Tous les taux sont ANNUALISÉS avant l'envoi pour que l'IA
+        // puisse comparer des objectifs/dettes ayant des fréquences
+        // d'intérêt différentes (mensuel vs trimestriel vs annuel).
+        savings: savings.map(s => ({
+          name: s.name,
+          current: s.current_amount,
+          target: s.target_amount,
+          monthlyContribution: (s as any).monthly_contribution,
+          rateAnnualizedPct: annualizeRate(Number((s as any).interest_rate) || 0, (s as any).interest_frequency),
+          rateRawPct: (s as any).interest_rate,
+          rateFrequency: (s as any).interest_frequency || 'yearly',
+          deadline: s.deadline,
+          isLocked: (s as any).is_locked,
+        })),
+        debts: debts.map(d => {
+          const remaining = Number(d.total_amount) - Number(d.paid_amount);
+          const annualRate = annualizeRate(Number((d as any).interest_rate) || 0, 'yearly');
+          return {
+            creditor: d.creditor_name,
+            total: d.total_amount,
+            paid: d.paid_amount,
+            remaining,
+            dueDate: d.due_date,
+            rateAnnualizedPct: annualRate,
+            interestType: (d as any).interest_type || 'simple',
+            annualInterestCost: annualInterestCost(remaining, annualRate, (d as any).interest_type),
+          };
+        }),
         recurring: (recRes.data || []).map(r => ({ description: r.description, amount: r.amount, type: r.type, frequency: r.frequency, nextDate: r.next_date })),
         recentTransactions: transactions.slice(0, 25).map(tx => ({ amount: tx.amount, type: tx.type, date: tx.date, description: tx.description, category: (tx.categories as any)?.name })),
         profile: profRes.data, currency, locale,
