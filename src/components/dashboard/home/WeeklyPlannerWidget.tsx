@@ -492,6 +492,22 @@ export const WeeklyPlannerWidget = ({
   const dayLabels = isFr ? DAY_LABELS_FR : DAY_LABELS_EN;
   const dayShort = isFr ? DAY_SHORT_FR : DAY_SHORT_EN;
 
+  /* ── Week real events (savings, debts, recurring) ────────── */
+  const weekEvents = useMemo<WeekEvent[]>(
+    () => buildWeekEvents(weekStartDate, weekEndDate, {
+      savingsGoals: savingsGoals as any,
+      debts: debts as any,
+      recurring: recurring as any,
+    }),
+    [weekStartDate, weekEndDate, savingsGoals, debts, recurring]
+  );
+  const eventsSummary = useMemo(() => summarizeWeekEvents(weekEvents), [weekEvents]);
+
+  const formatEventDate = useCallback((dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+  }, [isFr]);
+
   // Compute full day dates for tooltips
   const dayDates = useMemo(() => {
     const ws = new Date(thisWeek.start);
