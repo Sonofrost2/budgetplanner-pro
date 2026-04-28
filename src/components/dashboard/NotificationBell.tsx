@@ -1180,6 +1180,8 @@ export const NotificationBell = () => {
                       onDismiss={handleDismiss}
                       onDismissGroup={handleDismissGroup}
                       onNavigate={handleNavigate}
+                      onRepair={handleRepair}
+                      repairingId={repairingId}
                       index={i}
                     />
                   ) : (
@@ -1204,7 +1206,15 @@ export const NotificationBell = () => {
                         <p className="text-[13px] font-semibold leading-tight tracking-tight">{item.notif.title}</p>
                         <p className="text-[11.5px] text-muted-foreground mt-1 leading-snug break-words">{item.notif.message}</p>
                         <DuePill notif={item.notif} locale={locale} />
-                        <ActionLink action={item.notif.action} onNavigate={handleNavigate} />
+                        <div className="flex items-center flex-wrap gap-x-3">
+                          <ActionLink action={item.notif.action} onNavigate={handleNavigate} />
+                          <RepairButton
+                            notif={item.notif}
+                            onRepair={handleRepair}
+                            busy={repairingId === item.notif.id}
+                            locale={locale}
+                          />
+                        </div>
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.15 }}
