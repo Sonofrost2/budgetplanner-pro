@@ -107,15 +107,17 @@ export const useBudgetNotifications = () => {
         .eq('user_id', user.id)
         .is('deleted_at', null).is('linked_transfer_id', null)
         .gte('date', monthStart).lte('date', todayStr),
-      supabase.from('payment_accounts').select('id, name, icon, real_balance, opening_balance').eq('user_id', user.id)
+      supabase.from('payment_accounts').select('id, name, icon, real_balance, opening_balance, type').eq('user_id', user.id)
         .is('deleted_at', null).is('archived_at', null),
       supabase.from('recurring_transactions').select('*').eq('user_id', user.id).eq('active', true)
         .is('deleted_at', null)
         .or(`end_date.is.null,end_date.gte.${todayStr}`)
         .lte('next_date', sevenDaysLaterStr),
-      // Exclude transfers from theoretical balance calculation
-      supabase.from('transactions').select('account_id, amount, type, linked_transfer_id').eq('user_id', user.id)
-        .is('deleted_at', null).is('linked_transfer_id', null)
+      // Include ALL transactions (including transfer legs) — both legs already
+      // hit `account_id` with the right sign, so the theoretical balance must
+      // count them. Excluding them was the source of the false discrepancies.
+      supabase.from('transactions').select('account_id, amount, type').eq('user_id', user.id)
+        .is('deleted_at', null)
         .not('account_id', 'is', null).limit(100000),
       supabase.from('notification_preferences').select('*').eq('user_id', user.id).maybeSingle(),
     ]);
