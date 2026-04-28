@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requirePlan } from "../_shared/requirePlan.ts";
+import { annualInterestCost, annualizeRate } from "../_shared/financialNormalization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,11 +18,30 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Enrichissement : on calcule les coûts annuels d'intérêt AVANT d'envoyer
+    // à l'IA. Sinon elle compare des taux mensuels et annuels sans le savoir.
+    const enrichedDebts = (debts || []).map((d: any) => {
+      const rateRaw = Number(d.interestRatePct ?? d.interest_rate ?? 0);
+      const annualRate = annualizeRate(rateRaw, "yearly");
+      const remaining = Number(d.remaining ?? (Number(d.total) - Number(d.paid)));
+      return {
+        ...d,
+        annual_rate_pct: annualRate,
+        annual_interest_cost: annualInterestCost(remaining, annualRate, d.interestType || d.interest_type),
+        remaining,
+      };
+    });
+    // Tri par coût d'intérêt annuel décroissant — utile pour avalanche.
+    const debtsByAvalanche = [...enrichedDebts].sort((a, b) => b.annual_interest_cost - a.annual_interest_cost);
+    const debtsBySnowball = [...enrichedDebts].sort((a, b) => a.remaining - b.remaining);
+
     const lang = locale === 'fr' ? 'français' : 'English';
     const systemPrompt = `Tu es un expert en finances personnelles spécialisé dans le remboursement de dettes. Analyse les dettes de l'utilisateur et propose un plan de remboursement optimal. Réponds en ${lang}.
 
 RÈGLES:
-- Compare les méthodes "Boule de neige" (petite dette d'abord) et "Avalanche" (taux le plus élevé d'abord)
+- Compare les méthodes "Boule de neige" (plus PETIT capital restant d'abord) et "Avalanche" (PLUS HAUT coût d'intérêt annuel d'abord)
+- Les taux fournis sont DÉJÀ ANNUALISÉS — ne les reconvertis pas
+- annual_interest_cost = coût d'intérêt sur 1 an au taux courant ; c'est l'arbitre pour avalanche
 - Tiens compte du revenu disponible (revenus - dépenses)
 - Propose des montants réalistes de remboursement mensuel
 - Indique la date estimée de fin de remboursement total
@@ -34,8 +54,14 @@ RÈGLES:
 ## Dépenses mensuelles moyennes: ${monthlyExpenses}
 ## Revenu disponible: ${monthlyIncome - monthlyExpenses}
 
-## Dettes en cours:
-${JSON.stringify(debts, null, 2)}
+## Dettes en cours (taux DÉJÀ annualisés, coût d'intérêt annuel pré-calculé):
+${JSON.stringify(enrichedDebts, null, 2)}
+
+## Ordre AVALANCHE (coût d'intérêt décroissant):
+${debtsByAvalanche.map((d: any, i: number) => `${i + 1}. ${d.creditor} — ${d.annual_rate_pct}% ann., coût annuel ≈ ${d.annual_interest_cost}, restant ${d.remaining}`).join("\n")}
+
+## Ordre BOULE DE NEIGE (capital restant croissant):
+${debtsBySnowball.map((d: any, i: number) => `${i + 1}. ${d.creditor} — restant ${d.remaining}, coût annuel ≈ ${d.annual_interest_cost}`).join("\n")}
 
 Propose un plan de remboursement optimal.`;
 
