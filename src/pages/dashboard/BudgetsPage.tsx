@@ -212,6 +212,16 @@ const BudgetsPage = () => {
     setDialogOpen(true);
   };
 
+  // Open the edit dialog automatically when a notification deep-links here
+  // with `?edit=<budget_id>` (e.g. link-mismatch alert from the bell).
+  useEffect(() => {
+    const editParam = searchParams.get('edit');
+    if (!editParam || budgets.length === 0 || dialogOpen) return;
+    const target = budgets.find((b: any) => b.id === editParam);
+    if (target) openEdit(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, budgets]);
+
   const handleSave = async () => {
     if (!user || !validate()) return;
     setSaving(true);

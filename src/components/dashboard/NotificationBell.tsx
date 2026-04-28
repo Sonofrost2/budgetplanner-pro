@@ -31,7 +31,7 @@ import { formatNumber } from '@/lib/currency';
 
 interface Notification {
   id: string;
-  type: 'budget_exceeded' | 'budget_warning' | 'savings_reached' | 'savings_behind' | 'budget_savings' | 'budget_upcoming' | 'savings_upcoming' | 'balance_discrepancy' | 'recurring_upcoming' | 'week_summary';
+  type: 'budget_exceeded' | 'budget_warning' | 'savings_reached' | 'savings_behind' | 'budget_savings' | 'budget_upcoming' | 'savings_upcoming' | 'balance_discrepancy' | 'recurring_upcoming' | 'week_summary' | 'link_mismatch';
   title: string;
   message: string;
   severity: 'critical' | 'warning' | 'success' | 'info';
@@ -519,6 +519,97 @@ export const useBudgetNotifications = () => {
       }
     }
 
+    // ────── Link consistency: budget ↔ savings goal ──────
+    // Surfaces incoherences when a budget and its linked savings goal disagree
+    // on amount, expected day, or end-date / deadline. Lets the user jump
+    // straight to the budget editor (sync trigger then aligns both sides).
+    {
+      const goalById = new Map<string, any>(savings.map((g: any) => [g.id, g]));
+      const fmtNum = (n: number) => Math.round(n).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US');
+      const fmtDate = (s: string | null | undefined) => {
+        if (!s) return '—';
+        try { return new Date(s).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' }); }
+        catch { return s; }
+      };
+
+      for (const budget of budgets) {
+        const goalId = (budget as any).linked_savings_goal_id;
+        if (!goalId) continue;
+        const goal = goalById.get(goalId);
+        if (!goal) continue;
+        if (goal.deleted_at || goal.paused_at) continue;
+
+        const issues: string[] = [];
+
+        // 1) Amount mismatch (only meaningful for monthly cadence; tolerance 1 unit)
+        const bAmount = Number(budget.amount) || 0;
+        const gAmount = Number(goal.monthly_contribution) || 0;
+        const isMonthly = (budget.period || 'monthly') === 'monthly';
+        if (isMonthly && bAmount > 0 && gAmount > 0 && Math.abs(bAmount - gAmount) > 1) {
+          issues.push(
+            isFr
+              ? `montant : budget ${fmtNum(bAmount)} ≠ objectif ${fmtNum(gAmount)}`
+              : `amount: budget ${fmtNum(bAmount)} ≠ goal ${fmtNum(gAmount)}`
+          );
+        }
+
+        // 2) Day mismatch (expected_day vs contribution_day)
+        const bDay = budget.expected_day ?? null;
+        const gDay = goal.contribution_day ?? null;
+        if (bDay && gDay && bDay !== gDay) {
+          issues.push(
+            isFr
+              ? `jour prévu : J-${bDay} ≠ J-${gDay}`
+              : `expected day: D-${bDay} ≠ D-${gDay}`
+          );
+        }
+
+        // 3) Date incompatibility:
+        //    - budget reference_date AFTER goal start_date (savings starts before budget)
+        //    - goal deadline BEFORE budget reference_date (impossible)
+        //    - goal start_date in the future while budget already active this period
+        const bRef = (budget as any).reference_date as string | null;
+        const gStart = goal.start_date as string | null;
+        const gDeadline = goal.deadline as string | null;
+        if (bRef && gStart && bRef > gStart) {
+          issues.push(
+            isFr
+              ? `démarrage : objectif (${fmtDate(gStart)}) avant budget (${fmtDate(bRef)})`
+              : `start: goal (${fmtDate(gStart)}) before budget (${fmtDate(bRef)})`
+          );
+        }
+        if (gDeadline && bRef && gDeadline < bRef) {
+          issues.push(
+            isFr
+              ? `échéance objectif (${fmtDate(gDeadline)}) antérieure au budget`
+              : `goal deadline (${fmtDate(gDeadline)}) before budget start`
+          );
+        }
+
+        if (issues.length === 0) continue;
+
+        const sigKey = `link-${budget.id}-${goal.id}`;
+        const sig = issues.join('|');
+        if (!shouldEmitForSignature(sigKey, sig)) continue;
+
+        notifs.push({
+          id: `link-mismatch-${budget.id}-${goal.id}`,
+          type: 'link_mismatch',
+          severity: 'warning',
+          title: isFr
+            ? `🔗 Lien incohérent : ${budget.name} ↔ ${goal.name}`
+            : `🔗 Inconsistent link: ${budget.name} ↔ ${goal.name}`,
+          message: issues.join(' · '),
+          action: {
+            label: isFr ? 'Modifier le budget' : 'Edit budget',
+            path: `/dashboard/budgets?edit=${budget.id}`,
+          },
+          daysLeft: 0,
+          dueLabelKey: 'now',
+        });
+      }
+    }
+
     // ────── Sort: critical > today > soon (<3d) > thresholds > bilans > success ──────
     const sevOrder = { critical: 0, warning: 1, info: 2, success: 3 } as const;
     notifs.sort((a, b) => {
@@ -589,6 +680,7 @@ const iconMap: Record<Notification['type'], React.ReactNode> = {
   balance_discrepancy: <Search className="w-4 h-4" />,
   recurring_upcoming: <Calendar className="w-4 h-4" />,
   week_summary: <CheckCircle2 className="w-4 h-4" />,
+  link_mismatch: <AlertTriangle className="w-4 h-4" />,
 };
 
 // Glassmorphism severity styles — gradient bar + tinted surface
@@ -621,6 +713,7 @@ const groupLabels: Record<string, Record<Notification['type'], string>> = {
     balance_discrepancy: 'écarts de solde',
     recurring_upcoming: 'récurrences à venir',
     week_summary: 'bilans',
+    link_mismatch: 'liens incohérents',
   },
   en: {
     budget_exceeded: 'budgets exceeded',
@@ -633,6 +726,7 @@ const groupLabels: Record<string, Record<Notification['type'], string>> = {
     balance_discrepancy: 'balance discrepancies',
     recurring_upcoming: 'upcoming recurring',
     week_summary: 'summaries',
+    link_mismatch: 'inconsistent links',
   },
 };
 
