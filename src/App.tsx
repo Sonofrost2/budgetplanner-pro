@@ -12,14 +12,16 @@ import { Suspense, forwardRef } from "react";
 import { Loader2 } from "lucide-react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 
-// Eager-loaded (landing + auth - small, needed immediately)
+// Eager-loaded (landing only - critical for LCP on first visit)
 import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import NotFound from "./pages/NotFound";
-import DemoLoginPage from "./pages/DemoLoginPage";
+
+// Auth pages (lazy - not on initial landing load)
+const Login = lazyWithRetry(() => import("./pages/Login"), "login-page");
+const Signup = lazyWithRetry(() => import("./pages/Signup"), "signup-page");
+const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"), "forgot-password-page");
+const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"), "reset-password-page");
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"), "not-found-page");
+const DemoLoginPage = lazyWithRetry(() => import("./pages/DemoLoginPage"), "demo-login-page");
 
 // Lazy-loaded pages
 const OnboardingPage = lazyWithRetry(() => import("./pages/OnboardingPage"), "onboarding-page");
