@@ -1041,7 +1041,21 @@ const SavingsPage = () => {
               fmt={fmt}
               t={t}
               locale={locale}
-              onAddSaving={() => { setAddAmountDialog(g.id); setAddAmount(''); setSourceAccountId(''); }}
+              onAddSaving={() => {
+                setAddAmountDialog(g.id);
+                // Pré-remplir avec le montant de cotisation paramétré
+                setAddAmount(
+                  Number(g.monthly_contribution) > 0
+                    ? String(Math.round(Number(g.monthly_contribution)))
+                    : ''
+                );
+                // Pré-sélectionner un compte source : le premier compte non-épargne actif
+                // qui n'est pas le compte cible de l'objectif lui-même.
+                const candidate = accounts.find(
+                  (a) => a.id !== g.account_id && (a as any).type !== 'savings' && (a as any).status !== 'archived'
+                );
+                setSourceAccountId(candidate?.id || '');
+              }}
               onWithdraw={() => {
                 if ((g as any).is_locked) {
                   toast.error(t.savingsLockedWarning);

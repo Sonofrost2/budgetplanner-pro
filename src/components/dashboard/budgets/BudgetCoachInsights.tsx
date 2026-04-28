@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { forwardRef, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, AlertTriangle, Lightbulb, X } from 'lucide-react';
 
@@ -21,7 +21,7 @@ type Insight = {
  * Computes "best respected", "biggest overshoot" and "projected overshoot"
  * directly from budgets + spending. Dismissible per session.
  */
-export const BudgetCoachInsights = ({ budgets, spending, fmt, locale }: Props) => {
+export const BudgetCoachInsights = forwardRef<HTMLDivElement, Props>(({ budgets, spending, fmt, locale }, ref) => {
   const isFr = locale === 'fr';
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
@@ -107,7 +107,7 @@ export const BudgetCoachInsights = ({ budgets, spending, fmt, locale }: Props) =
         : 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/15';
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div ref={ref} className="flex flex-wrap gap-2">
       <AnimatePresence>
         {visible.map((i) => (
           <motion.div
@@ -133,4 +133,5 @@ export const BudgetCoachInsights = ({ budgets, spending, fmt, locale }: Props) =
       </AnimatePresence>
     </div>
   );
-};
+});
+BudgetCoachInsights.displayName = 'BudgetCoachInsights';

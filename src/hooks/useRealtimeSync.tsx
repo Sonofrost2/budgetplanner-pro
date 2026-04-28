@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvalidate } from '@/hooks/useDashboardData';
@@ -29,12 +29,22 @@ export const useRealtimeSync = () => {
   const { user } = useAuth();
   const { invalidate, invalidateAll } = useInvalidate();
 
-  // Throttled invalidation to avoid flooding
+  // Coalesce rapid bursts (bulk imports, multi-row updates) into a single
+  // invalidate call per table within a 2-second window.
+  const pendingRef = useRef<Set<string>>(new Set());
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleChange = useCallback((table: string) => {
-    const keys = TABLE_TO_QUERY_KEYS[table];
-    if (keys) {
-      invalidate(...keys);
-    }
+    pendingRef.current.add(table);
+    if (timerRef.current) return;
+    timerRef.current = setTimeout(() => {
+      const tables = Array.from(pendingRef.current);
+      pendingRef.current.clear();
+      timerRef.current = null;
+      const keys = new Set<string>();
+      for (const t of tables) for (const k of TABLE_TO_QUERY_KEYS[t] || []) keys.add(k);
+      if (keys.size) invalidate(...Array.from(keys));
+    }, 2000);
   }, [invalidate]);
 
   // Subscribe to realtime changes

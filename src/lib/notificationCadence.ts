@@ -24,6 +24,15 @@ export function shouldFireUpcoming(daysUntil: number): boolean {
   return daysUntil === 0 || daysUntil === 2 || daysUntil === 5;
 }
 
+/**
+ * Granular upcoming window: fires every day from J-7 down to J-0.
+ * Used by the in-app bell so the user sees "in 4 days" without waiting for
+ * a bucket day. Spam is prevented by the activity signature dedup below.
+ */
+export function shouldFireUpcomingWide(daysUntil: number): boolean {
+  return daysUntil >= 0 && daysUntil <= 7;
+}
+
 /** Wider deadline cadence for goals/debts (J-30, J-7, J-2, J-0). */
 export function shouldFireDeadline(daysUntil: number): boolean {
   return daysUntil === 0 || daysUntil === 2 || daysUntil === 7 || daysUntil === 30;
@@ -84,6 +93,41 @@ export function hasStepChanged(key: string, currentBucket: number): boolean {
   if (prev === currentBucket) return false;
   map[key] = currentBucket;
   writeSteps(map);
+  return true;
+}
+
+/**
+ * Activity-signature dedup: a notif is suppressed while its `sig` is
+ * unchanged from the last emission for the same key. The first time we
+ * see a key we DO emit (returns true) and store the sig.
+ * Per-key entries auto-expire after `ttlMs` (default 7 days).
+ */
+const SIG_KEY = 'notif_sigs_v1';
+
+function readSigs(): Record<string, { sig: string; ts: number }> {
+  try {
+    const raw = localStorage.getItem(SIG_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) || {};
+    const cutoff = Date.now() - 7 * 86400000;
+    let dirty = false;
+    for (const k of Object.keys(parsed)) {
+      if (!parsed[k] || parsed[k].ts < cutoff) { delete parsed[k]; dirty = true; }
+    }
+    if (dirty) localStorage.setItem(SIG_KEY, JSON.stringify(parsed));
+    return parsed;
+  } catch { return {}; }
+}
+function writeSigs(map: Record<string, { sig: string; ts: number }>) {
+  try { localStorage.setItem(SIG_KEY, JSON.stringify(map)); } catch { /* quota */ }
+}
+
+export function shouldEmitForSignature(key: string, sig: string): boolean {
+  const map = readSigs();
+  const prev = map[key];
+  if (prev?.sig === sig) return false;
+  map[key] = { sig, ts: Date.now() };
+  writeSigs(map);
   return true;
 }
 

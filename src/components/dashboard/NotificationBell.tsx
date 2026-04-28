@@ -7,11 +7,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { getBudgetPeriodBounds, shouldAlertForExpectedDay, computeDaysRemaining } from '@/lib/budgetProjection';
 import {
   shouldFireUpcoming,
+  shouldFireUpcomingWide,
   shouldFireDeadline,
   shouldFireBilan,
   inQuietHours,
   getStepBucket,
   hasStepChanged,
+  shouldEmitForSignature,
   daysBetween,
   daysUntilMonthDay,
   formatDaysLeftLabel,
@@ -105,15 +107,17 @@ export const useBudgetNotifications = () => {
         .eq('user_id', user.id)
         .is('deleted_at', null).is('linked_transfer_id', null)
         .gte('date', monthStart).lte('date', todayStr),
-      supabase.from('payment_accounts').select('id, name, icon, real_balance, opening_balance').eq('user_id', user.id)
+      supabase.from('payment_accounts').select('id, name, icon, real_balance, opening_balance, type').eq('user_id', user.id)
         .is('deleted_at', null).is('archived_at', null),
       supabase.from('recurring_transactions').select('*').eq('user_id', user.id).eq('active', true)
         .is('deleted_at', null)
         .or(`end_date.is.null,end_date.gte.${todayStr}`)
         .lte('next_date', sevenDaysLaterStr),
-      // Exclude transfers from theoretical balance calculation
-      supabase.from('transactions').select('account_id, amount, type, linked_transfer_id').eq('user_id', user.id)
-        .is('deleted_at', null).is('linked_transfer_id', null)
+      // Include ALL transactions (including transfer legs) — both legs already
+      // hit `account_id` with the right sign, so the theoretical balance must
+      // count them. Excluding them was the source of the false discrepancies.
+      supabase.from('transactions').select('account_id, amount, type').eq('user_id', user.id)
+        .is('deleted_at', null)
         .not('account_id', 'is', null).limit(100000),
       supabase.from('notification_preferences').select('*').eq('user_id', user.id).maybeSingle(),
     ]);
@@ -178,10 +182,15 @@ export const useBudgetNotifications = () => {
       const allowProjections = prefs?.budget_projections !== false;
 
       const isIncomeBudget = budgetType === 'income';
+      // Activity signature: tx count + rounded total. While unchanged, we don't
+      // re-emit any of the budget status notifs (warning / exceeded / target).
+      const activitySig = `tx${periodTxs.length}_amt${Math.round(spent)}_pct${getStepBucket(pct)}`;
+      const sigKeyBase = `budget-${budget.id}-${localDateStr(periodStart)}`;
+
       if (isMax) {
         // Edge case: an income budget configured as "max" — exceeding is good
         // news, not a critical alert. Surface it as a success instead.
-        if (spent > amount && allowAlerts && isIncomeBudget) {
+        if (spent > amount && allowAlerts && isIncomeBudget && shouldEmitForSignature(`${sigKeyBase}-incover`, activitySig)) {
           notifs.push({
             id: `budget-income-over-${budget.id}`,
             type: 'budget_savings',
@@ -192,22 +201,21 @@ export const useBudgetNotifications = () => {
             daysLeft: 0,
             dueLabelKey: 'now',
           });
-        } else if (spent > amount && allowAlerts) {
+        } else if (spent > amount && allowAlerts && shouldEmitForSignature(`${sigKeyBase}-exceeded`, activitySig)) {
           notifs.push({
             id: `budget-exceeded-${budget.id}`,
             type: 'budget_exceeded',
             severity: 'critical',
-            title: isFr ? 'Budget dépassé' : 'Budget exceeded',
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — +${Math.round(spent - amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+            title: isFr ? `Budget dépassé (${Math.round(pct)}%)` : `Budget exceeded (${Math.round(pct)}%)`,
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(spent).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} / ${Math.round(amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} — +${Math.round(spent - amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
             action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}&type=${budgetType}&from=${periodStartStr}&to=${periodEndStr}` },
             daysLeft: 0,
             dueLabelKey: 'now',
           });
         } else if (pct >= threshold && allowAlerts) {
-          // Suppress if user wants on-change-only and bucket hasn't shifted
-          const bucket = getStepBucket(pct);
-          const changed = onChangeOnly ? hasStepChanged(`budget-${budget.id}`, bucket) : true;
-          if (changed) {
+          // Always require activity-signature change to avoid daily spam.
+          // Bucket shift is implicit in the signature.
+          if (shouldEmitForSignature(`${sigKeyBase}-warning`, activitySig)) {
             notifs.push({
               id: `budget-warning-${budget.id}`,
               type: 'budget_warning',
@@ -215,16 +223,16 @@ export const useBudgetNotifications = () => {
               title: isIncomeBudget
                 ? (isFr ? `💰 Revenu à ${Math.round(pct)}%` : `💰 Income at ${Math.round(pct)}%`)
                 : (isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`),
-              message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${isFr ? 'seuil atteint' : 'threshold reached'} (${threshold}%)`,
+              message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(spent).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} / ${Math.round(amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} ${isFr ? `(seuil ${threshold}%)` : `(threshold ${threshold}%)`}`,
               action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
               daysLeft: 0,
               dueLabelKey: 'now',
             });
           }
         } else if (pct < 50 && !isIncomeBudget && shouldFireBilan(periodEnd, now)) {
-          // Bilan only on the actual closing day
-          // Skip income budgets: low % at month-end is BAD, not "maîtrisé"
-          notifs.push({
+          // Bilan only on the actual closing day, AND only once per period.
+          if (shouldEmitForSignature(`${sigKeyBase}-bilan`, `closed_${Math.round(spent)}`)) {
+            notifs.push({
             id: `budget-savings-${budget.id}`,
             type: 'budget_savings',
             severity: 'success',
@@ -233,11 +241,12 @@ export const useBudgetNotifications = () => {
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
             dueLabelKey: 'closed',
-          });
+            });
+          }
         }
       } else {
         // Min budget (income target)
-        if (spent >= amount && allowAlerts) {
+        if (spent >= amount && allowAlerts && shouldEmitForSignature(`${sigKeyBase}-target`, activitySig)) {
           notifs.push({
             id: `budget-target-reached-${budget.id}`,
             type: 'budget_savings',
@@ -248,7 +257,7 @@ export const useBudgetNotifications = () => {
             daysLeft: 0,
             dueLabelKey: 'now',
           });
-        } else if (allowAlerts && shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal)) {
+        } else if (allowAlerts && shouldAlertForExpectedDay(budget.expected_day, now, daysElapsed, daysTotal) && shouldEmitForSignature(`${sigKeyBase}-behind`, activitySig)) {
           notifs.push({
             id: `budget-below-${budget.id}`,
             type: 'budget_warning',
@@ -262,11 +271,12 @@ export const useBudgetNotifications = () => {
         }
       }
 
-      // Upcoming budget deadline (J-5 / J-2 / J-0) — only if projections enabled
-      if (allowProjections && shouldFireUpcoming(daysLeft) && daysLeft > 0) {
-        const isIncomeBudget = budgetType === 'income';
-        const kindIcon = isIncomeBudget ? '💰' : '📅';
-        const kindLabel = isIncomeBudget
+      // Upcoming budget deadline (continuous J-7..J-0) — dedup by daysLeft so
+      // the user sees "in 4 days" without waiting for a fixed bucket day.
+      if (allowProjections && shouldFireUpcomingWide(daysLeft) && daysLeft > 0) {
+        const isIncomeBudgetUp = budgetType === 'income';
+        const kindIcon = isIncomeBudgetUp ? '💰' : '📅';
+        const kindLabel = isIncomeBudgetUp
           ? (isFr ? 'Revenu attendu' : 'Expected income')
           : (isFr ? 'Échéance prévue' : 'Upcoming deadline');
         notifs.push({
@@ -311,6 +321,11 @@ export const useBudgetNotifications = () => {
     for (const goal of savings) {
       const allowSavings = prefs?.savings_reminders !== false;
       const allowGoalReached = prefs?.goal_reached !== false;
+
+      // Skip goals that haven't started yet (start_date in the future).
+      // They are NOT late and shouldn't generate any reminder.
+      const goalStart = (goal as any).start_date ? parseLocalDate((goal as any).start_date) : null;
+      if (goalStart && goalStart > now) continue;
 
       if (Number(goal.current_amount) >= Number(goal.target_amount)) {
         if (allowGoalReached) {
@@ -447,32 +462,60 @@ export const useBudgetNotifications = () => {
       }
     }
 
-    // ────── Balance discrepancy alerts ──────
-    for (const account of accounts) {
-      if (prefs?.balance_discrepancy === false) break;
-      // Compute theoretical balance: opening_balance + income - expenses for this account
-      const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
-      const txSum = acctTxs.reduce((sum: number, tx: any) => {
-        return sum + (tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount));
-      }, 0);
-      const theoreticalBalance = Number(account.opening_balance) + txSum;
-      const realBalance = Number(account.real_balance);
-      const diff = Math.abs(realBalance - theoreticalBalance);
-      // Alert if discrepancy > 500 or > 1% of real balance (whichever is smaller)
-      const threshold = Math.min(500, Math.abs(realBalance) * 0.01 || 500);
+    // ────── Balance discrepancy alerts (corrected) ──────
+    // Cash accounts are intentionally excluded: their `real_balance` is set
+    // by manual cash counts (`cash_counts`) so a divergence vs the theoretical
+    // ledger is expected and tracked elsewhere.
+    if (prefs?.balance_discrepancy !== false) {
+      type Discrep = { account: any; diff: number; realBalance: number; theoreticalBalance: number };
+      const discrepancies: Discrep[] = [];
+      for (const account of accounts) {
+        if ((account as any).type === 'cash') continue;
+        const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
+        const txSum = acctTxs.reduce((sum: number, tx: any) => {
+          return sum + (tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount));
+        }, 0);
+        const theoreticalBalance = Number(account.opening_balance) + txSum;
+        const realBalance = Number(account.real_balance);
+        const diff = Math.abs(realBalance - theoreticalBalance);
+        // 1 000 XOF mini, 0,5% pour les gros soldes
+        const threshold = Math.max(1000, Math.abs(realBalance) * 0.005);
+        if (diff > threshold) {
+          discrepancies.push({ account, diff, realBalance, theoreticalBalance });
+        }
+      }
 
-      if (diff > threshold && diff > 0) {
+      if (discrepancies.length === 1) {
+        const { account, diff, realBalance, theoreticalBalance } = discrepancies[0];
         const sign = realBalance > theoreticalBalance ? '+' : '-';
-        notifs.push({
-          id: `balance-discrepancy-${account.id}`,
-          type: 'balance_discrepancy',
-          severity: 'warning',
-          title: isFr ? `🔍 Écart de solde détecté` : `🔍 Balance discrepancy`,
-          message: `${account.icon} ${account.name}: ${isFr ? 'écart de' : 'difference of'} ${sign}${Math.round(diff).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} vs ${isFr ? 'théorique' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')})`,
-          action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
-          daysLeft: 0,
-          dueLabelKey: 'now',
-        });
+        // Dedup by signed diff so we don't re-emit if nothing changed.
+        if (shouldEmitForSignature(`bal-${account.id}`, `${sign}${Math.round(diff)}`)) {
+          notifs.push({
+            id: `balance-discrepancy-${account.id}`,
+            type: 'balance_discrepancy',
+            severity: 'warning',
+            title: isFr ? `🔍 Écart de solde` : `🔍 Balance discrepancy`,
+            message: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} / ${isFr ? 'calculé' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')})`,
+            action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
+            daysLeft: 0,
+            dueLabelKey: 'now',
+          });
+        }
+      } else if (discrepancies.length > 1) {
+        const totalDiff = discrepancies.reduce((s, d) => s + d.diff, 0);
+        const sig = `n${discrepancies.length}_t${Math.round(totalDiff)}`;
+        if (shouldEmitForSignature('bal-aggregate', sig)) {
+          notifs.push({
+            id: 'balance-discrepancy-aggregate',
+            type: 'balance_discrepancy',
+            severity: 'warning',
+            title: isFr ? `🔍 Écart sur ${discrepancies.length} comptes` : `🔍 Discrepancy on ${discrepancies.length} accounts`,
+            message: `${isFr ? 'Total' : 'Total'}: ${Math.round(totalDiff).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+            action: { label: isFr ? 'Voir les comptes' : 'View accounts', path: `/dashboard/accounts` },
+            daysLeft: 0,
+            dueLabelKey: 'now',
+          });
+        }
       }
     }
 
