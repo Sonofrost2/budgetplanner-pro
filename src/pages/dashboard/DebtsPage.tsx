@@ -176,6 +176,10 @@ const DebtsPage = () => {
             remaining: Number(d.total_amount) - Number(d.paid_amount),
             dueDate: d.due_date,
             notes: d.notes,
+            // ⚠️ Indispensable pour la méthode "avalanche" — sans le taux,
+            // l'IA ne peut pas trier les dettes par coût d'intérêt réel.
+            interestRatePct: Number((d as any).interest_rate) || 0,
+            interestType: (d as any).interest_type || 'simple',
           })),
           monthlyIncome,
           monthlyExpenses,
