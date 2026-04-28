@@ -78,8 +78,23 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
 
     if (monthlyNeeded <= 0) return null;
 
-    let status: 'on_track' | 'behind' | 'ahead' = 'on_track';
-    if (monthlyAvg > 0) {
+    let status: 'on_track' | 'behind' | 'ahead' | 'pending' = 'on_track';
+
+    // Goal not started yet → not "behind", just pending.
+    const startDate = (goal as any).start_date ? new Date((goal as any).start_date) : null;
+    const todayLocal = new Date();
+    const isPending = !!(startDate && startDate > todayLocal);
+
+    // Inside the current month, if the contribution day is in the future,
+    // the user is NOT late — treat as on track.
+    const cd = (goal as any).contribution_day;
+    const beforeContribDay = cd && todayLocal.getDate() < Number(cd);
+
+    if (isPending) {
+      status = 'pending';
+    } else if (beforeContribDay && monthlyAvg < monthlyNeeded * 0.9) {
+      status = 'on_track';
+    } else if (monthlyAvg > 0) {
       if (monthlyAvg >= monthlyNeeded * 1.1) status = 'ahead';
       else if (monthlyAvg < monthlyNeeded * 0.9) status = 'behind';
     }
@@ -100,22 +115,26 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
     });
   })();
 
-  const statusColors = {
+  const statusColors: Record<'on_track' | 'behind' | 'ahead' | 'pending', string> = {
     on_track: 'text-secondary',
     behind: 'text-destructive',
     ahead: 'text-primary',
+    pending: 'text-muted-foreground',
   };
-  const statusLabels = {
+  const statusLabels: Record<'on_track' | 'behind' | 'ahead' | 'pending', string> = {
     on_track: t.savingsOnTrack,
     behind: t.savingsBehind,
     ahead: t.savingsAhead,
+    pending: locale === 'fr' ? 'À venir' : 'Upcoming',
   };
 
   // Severity tone for the ring
   const ringTone: 'secondary' | 'destructive' | 'primary' =
     done ? 'secondary'
       : (goal.deadline && new Date(goal.deadline) < new Date() && !done) ? 'destructive'
-      : (scheduleInfo?.status === 'ahead' ? 'secondary' : scheduleInfo?.status === 'behind' ? 'destructive' : 'primary');
+      : (scheduleInfo?.status === 'ahead' ? 'secondary'
+         : scheduleInfo?.status === 'behind' ? 'destructive'
+         : 'primary');
 
   // Humanized countdown
   const humanCountdown = (() => {
