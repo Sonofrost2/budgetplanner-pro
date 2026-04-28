@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Link2, Unlink, Search, PiggyBank, Target, ArrowRight, AlertTriangle, Pencil } from 'lucide-react';
 import { coachToast } from '@/lib/coachToast';
-import { amountLabel } from '@/lib/currency';
+import { formatNumber, currencySymbol } from '@/lib/currency';
 import { useProfile } from '@/hooks/useProfile';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 
@@ -33,11 +33,12 @@ interface LinkRow {
 
 export default function BudgetSavingsLinksPage() {
   const { user } = useAuth();
-  const { profile } = useProfile();
-  const { language } = useLanguage();
-  const invalidate = useInvalidate();
-  const isFr = language === 'fr';
-  const currency = profile?.currency || 'XOF';
+  const { currency } = useProfile();
+  const { locale } = useLanguage();
+  const { invalidate } = useInvalidate();
+  const isFr = locale === 'fr';
+  const sym = currencySymbol(currency);
+  const money = (n: number) => `${formatNumber(n, locale, { maximumFractionDigits: 0 })} ${sym}`;
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<LinkRow[]>([]);
@@ -105,16 +106,14 @@ export default function BudgetSavingsLinksPage() {
       if (error) throw error;
       // Belt & suspenders : also clear from goal in case trigger lags
       await supabase.from('savings_goals').update({ linked_budget_id: null }).eq('id', row.goalId);
-      coachToast.success({
-        title: t('Liaison supprimée', 'Link removed'),
-        description: t(`${row.budgetName} ⇎ ${row.goalName}`, `${row.budgetName} ⇎ ${row.goalName}`),
+      coachToast.saved(t('Liaison supprimée', 'Link removed'), {
+        description: `${row.budgetName} ⇎ ${row.goalName}`,
       });
       setConfirmRow(null);
       setRows(prev => prev.filter(r => r.budgetId !== row.budgetId));
-      invalidate.budgets();
-      invalidate.savings();
+      invalidate('budgets', 'savings_goals');
     } catch (e: any) {
-      coachToast.error({ title: t('Erreur', 'Error'), description: e.message });
+      coachToast.fail(t('Erreur lors du déliage', 'Failed to unlink'), { description: e.message });
     } finally {
       setBusy(false);
     }
@@ -190,7 +189,7 @@ export default function BudgetSavingsLinksPage() {
                     </div>
                     <p className="font-semibold truncate">{row.budgetName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {amountLabel(row.budgetAmount, currency)} · {row.budgetPeriod}
+                      {money(row.budgetAmount)} · {row.budgetPeriod}
                       {row.budgetExpectedDay ? ` · J${row.budgetExpectedDay}` : ''}
                     </p>
                   </div>
@@ -207,8 +206,8 @@ export default function BudgetSavingsLinksPage() {
                       {row.goalName}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {amountLabel(row.goalCurrent, currency)} / {amountLabel(row.goalTarget, currency)}
-                      {row.goalMonthly ? ` · ${amountLabel(row.goalMonthly, currency)}/${t('mois', 'mo')}` : ''}
+                      {money(row.goalCurrent)} / {money(row.goalTarget)}
+                      {row.goalMonthly ? ` · ${money(row.goalMonthly)}/${t('mois', 'mo')}` : ''}
                     </p>
                   </div>
 
@@ -254,8 +253,7 @@ export default function BudgetSavingsLinksPage() {
               )
             : ''
         }
-        confirmLabel={t('Délier', 'Unlink')}
-        loading={busy}
+        confirmLabel={busy ? t('Suppression…', 'Removing…') : t('Délier', 'Unlink')}
         onConfirm={() => confirmRow && handleUnlink(confirmRow)}
       />
     </div>
