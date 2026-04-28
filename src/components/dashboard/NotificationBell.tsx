@@ -22,12 +22,14 @@ import {
   type CadencePrefs,
 } from '@/lib/notificationCadence';
 import { AlertTriangle, CheckCircle2, Bell, PiggyBank, X, TrendingDown, ChevronDown, ChevronUp, Calendar, Search, Trophy, Clock, ExternalLink } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatNumber } from '@/lib/currency';
+import { coachToast } from '@/lib/coachToast';
 
 interface Notification {
   id: string;
@@ -36,6 +38,14 @@ interface Notification {
   message: string;
   severity: 'critical' | 'warning' | 'success' | 'info';
   action?: { label: string; path: string };
+  /** Optional one-click repair payload — used by `link_mismatch` to realign
+   *  a savings goal with its linked budget without opening the editor. */
+  repair?: {
+    kind: 'link';
+    budgetId: string;
+    goalId: string;
+    patch: Record<string, any>;
+  };
   /** Days until the relevant event (0 = today). Used for sorting & "À venir" tab. */
   daysLeft?: number;
   /** True if the event is in the future (≥1 day) — drives the "À venir" tab. */
@@ -592,6 +602,26 @@ export const useBudgetNotifications = () => {
         const sig = issues.join('|');
         if (!shouldEmitForSignature(sigKey, sig)) continue;
 
+        // Build the realignment payload: budget is the source of truth.
+        // Only include fields that are actually divergent so the SQL trigger
+        // sees a meaningful UPDATE and the UPDATE itself is minimal.
+        const repairPatch: Record<string, any> = {};
+        if (isMonthly && bAmount > 0 && Math.abs(bAmount - gAmount) > 1) {
+          repairPatch.monthly_contribution = bAmount;
+        }
+        if (bDay && bDay !== gDay) {
+          repairPatch.contribution_day = bDay;
+        }
+        if (bRef && gStart && bRef > gStart) {
+          repairPatch.start_date = bRef;
+        }
+        if (gDeadline && bRef && gDeadline < bRef) {
+          // Bump deadline 1 year past budget start so the goal stays valid.
+          const d = parseLocalDate(bRef);
+          d.setFullYear(d.getFullYear() + 1);
+          repairPatch.deadline = localDateStr(d);
+        }
+
         notifs.push({
           id: `link-mismatch-${budget.id}-${goal.id}`,
           type: 'link_mismatch',
@@ -604,6 +634,9 @@ export const useBudgetNotifications = () => {
             label: isFr ? 'Modifier le budget' : 'Edit budget',
             path: `/dashboard/budgets?edit=${budget.id}`,
           },
+          repair: Object.keys(repairPatch).length > 0
+            ? { kind: 'link', budgetId: budget.id, goalId: goal.id, patch: repairPatch }
+            : undefined,
           daysLeft: 0,
           dueLabelKey: 'now',
         });
@@ -749,6 +782,28 @@ const ActionLink = ({ action, onNavigate }: { action: Notification['action']; on
   );
 };
 
+const RepairButton = ({ notif, onRepair, busy, locale }: {
+  notif: Notification;
+  onRepair: (n: Notification) => void;
+  busy: boolean;
+  locale: string;
+}) => {
+  if (!notif.repair) return null;
+  const isFr = locale === 'fr';
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onRepair(notif); }}
+      disabled={busy}
+      className="inline-flex items-center gap-1 mt-1.5 ml-2 text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-500 transition-colors group disabled:opacity-50 disabled:cursor-wait"
+    >
+      <Wrench className={`w-3 h-3 transition-transform ${busy ? 'animate-spin' : 'group-hover:rotate-12'}`} />
+      {busy
+        ? (isFr ? 'Réparation…' : 'Repairing…')
+        : (isFr ? 'Réparer la liaison' : 'Repair link')}
+    </button>
+  );
+};
+
 /** Compact pill showing the temporal context of a notification.
  *  Resolves `dueLabelKey` first, then falls back to a numeric "in N days". */
 const DuePill = ({ notif, locale }: { notif: Notification; locale: string }) => {
@@ -796,12 +851,14 @@ const notifItemVariants = {
   exit: { opacity: 0, x: 12, scale: 0.96, transition: { duration: 0.2 } },
 };
 
-const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate, index }: {
+const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate, onRepair, repairingId, index }: {
   group: NotifGroup;
   locale: string;
   onDismiss: (id: string) => void;
   onDismissGroup: (ids: string[]) => void;
   onNavigate: (path: string) => void;
+  onRepair: (n: Notification) => void;
+  repairingId: string | null;
   index: number;
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -872,7 +929,10 @@ const GroupedNotifCard = ({ group, locale, onDismiss, onDismissGroup, onNavigate
                   <p className="text-[12px] font-semibold leading-tight">{n.title}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug break-words">{n.message}</p>
                   <DuePill notif={n} locale={locale} />
-                  <ActionLink action={n.action} onNavigate={onNavigate} />
+                  <div className="flex items-center flex-wrap gap-x-3">
+                    <ActionLink action={n.action} onNavigate={onNavigate} />
+                    <RepairButton notif={n} onRepair={onRepair} busy={repairingId === n.id} locale={locale} />
+                  </div>
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); onDismiss(n.id); }}
@@ -936,6 +996,30 @@ export const NotificationBell = () => {
   const handleNavigate = (path: string) => {
     setIsOpen(false);
     navigate(path);
+  };
+
+  const [repairingId, setRepairingId] = useState<string | null>(null);
+  const handleRepair = async (notif: Notification) => {
+    if (!notif.repair || repairingId) return;
+    setRepairingId(notif.id);
+    try {
+      const { error } = await supabase
+        .from('savings_goals')
+        .update(notif.repair.patch as any)
+        .eq('id', notif.repair.goalId);
+      if (error) throw error;
+      coachToast.saved(isFr ? 'Liaison réparée' : 'Link repaired');
+      // Hide the notif optimistically; refresh re-evaluates real divergences.
+      handleDismiss(notif.id);
+      await refresh();
+    } catch (err: any) {
+      coachToast.fail(
+        (isFr ? 'Réparation impossible' : 'Repair failed') +
+          (err?.message ? ` — ${err.message}` : '')
+      );
+    } finally {
+      setRepairingId(null);
+    }
   };
 
   // Apply severity filter
@@ -1099,6 +1183,8 @@ export const NotificationBell = () => {
                       onDismiss={handleDismiss}
                       onDismissGroup={handleDismissGroup}
                       onNavigate={handleNavigate}
+                      onRepair={handleRepair}
+                      repairingId={repairingId}
                       index={i}
                     />
                   ) : (
@@ -1123,7 +1209,15 @@ export const NotificationBell = () => {
                         <p className="text-[13px] font-semibold leading-tight tracking-tight">{item.notif.title}</p>
                         <p className="text-[11.5px] text-muted-foreground mt-1 leading-snug break-words">{item.notif.message}</p>
                         <DuePill notif={item.notif} locale={locale} />
-                        <ActionLink action={item.notif.action} onNavigate={handleNavigate} />
+                        <div className="flex items-center flex-wrap gap-x-3">
+                          <ActionLink action={item.notif.action} onNavigate={handleNavigate} />
+                          <RepairButton
+                            notif={item.notif}
+                            onRepair={handleRepair}
+                            busy={repairingId === item.notif.id}
+                            locale={locale}
+                          />
+                        </div>
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.15 }}
