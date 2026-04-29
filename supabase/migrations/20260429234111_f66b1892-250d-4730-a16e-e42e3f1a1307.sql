@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.perform_transfer(uuid, uuid, uuid, numeric, text);
