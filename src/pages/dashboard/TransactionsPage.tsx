@@ -894,6 +894,8 @@ const TransactionsPage = () => {
         categories={categories}
         accounts={accounts}
         recentDescriptions={recentDescriptions}
+        savingsGoals={savingsGoals}
+        budgets={budgets}
         canUseAISuggestions={canUseAISuggestions}
         t={t}
         locale={locale}
