@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 export type StatusFrequency = 'weekly' | 'every_3d' | 'on_change_only' | 'monthly';
 export type QuietHoursMode = 'defer' | 'skip';
 export type CoachChannel = 'push' | 'email' | 'sms' | 'whatsapp';
+export type FactualDeliveryMode = 'immediate' | 'morning' | 'evening';
+export type ReminderDeliveryMode = 'immediate' | 'morning' | 'evening' | 'both';
 
 export interface NotificationPreferences {
   budget_alerts: boolean;
@@ -40,6 +42,8 @@ export interface NotificationPreferences {
   deadline_lead_days: number[];
   coach_channels: CoachChannel[];
   smart_grouping_enabled: boolean;
+  factual_delivery_mode: FactualDeliveryMode;
+  reminder_delivery_mode: ReminderDeliveryMode;
   // Channels (Twilio)
   notify_via_sms: boolean;
   notify_via_whatsapp: boolean;
@@ -81,6 +85,8 @@ const defaultPrefs: NotificationPreferences = {
   deadline_lead_days: [5, 2, 0],
   coach_channels: ['push', 'email'],
   smart_grouping_enabled: true,
+  factual_delivery_mode: 'immediate',
+  reminder_delivery_mode: 'morning',
   notify_via_sms: false,
   notify_via_whatsapp: false,
   notify_payment_receipts: true,
@@ -136,6 +142,8 @@ export const useNotificationPreferences = () => {
           deadline_lead_days: (data as any).deadline_lead_days ?? [5, 2, 0],
           coach_channels: ((data as any).coach_channels ?? ['push', 'email']) as CoachChannel[],
           smart_grouping_enabled: (data as any).smart_grouping_enabled ?? true,
+          factual_delivery_mode: ((data as any).factual_delivery_mode ?? 'immediate') as FactualDeliveryMode,
+          reminder_delivery_mode: ((data as any).reminder_delivery_mode ?? 'morning') as ReminderDeliveryMode,
           notify_via_sms: (data as any).notify_via_sms ?? false,
           notify_via_whatsapp: (data as any).notify_via_whatsapp ?? false,
           notify_payment_receipts: (data as any).notify_payment_receipts ?? true,
