@@ -23,6 +23,36 @@ interface DispatchRequest {
   url?: string;
 }
 
+/**
+ * Classify a notification_type as 'factual' (event-driven, must reach user
+ * close to the action) vs 'reminder' (periodic/proactive, can be batched
+ * into a digest without losing value).
+ */
+function classifyType(notificationType: string): 'factual' | 'reminder' {
+  const t = notificationType.toLowerCase();
+  // Factual = reacts to something the user just did or that just happened
+  const factualPrefixes = [
+    'large_transaction', 'balance_discrepancy', 'goal_reached',
+    'low_balance', 'savings_contribution', 'payment_receipt',
+    'payment_failure', 'budget_breach', 'transfer_completed',
+  ];
+  if (factualPrefixes.some(p => t.startsWith(p))) return 'factual';
+  // Everything else (deadlines, projections, reminders, digests, weekly
+  // summary, status alerts) is treated as a reminder.
+  return 'reminder';
+}
+
+/** Compute the next scheduled time for a given digest slot (morning/evening). */
+function nextDigestTime(prefs: any, slot: 'morning' | 'evening', now: Date): Date {
+  const hour = slot === 'morning'
+    ? Number(prefs?.morning_digest_hour ?? 7)
+    : Number(prefs?.evening_digest_hour ?? 19);
+  const next = new Date(now);
+  next.setUTCHours(hour, 0, 0, 0);
+  if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+  return next;
+}
+
 function defer_until(prefs: any, now: Date): Date {
   const end = Number(prefs?.quiet_hours_end ?? 7);
   const next = new Date(now);
@@ -71,6 +101,36 @@ Deno.serve(async (req) => {
 
     const results: Record<string, unknown> = {};
     const now = new Date();
+
+    // === Delivery-mode routing ===
+    // Factual alerts → factual_delivery_mode (default 'immediate')
+    // Reminder alerts → reminder_delivery_mode (default 'morning')
+    // Critical bypasses everything (e.g. payment failure can override).
+    const family = classifyType(notification_type);
+    const mode = family === 'factual'
+      ? (prefs.factual_delivery_mode || 'immediate')
+      : (prefs.reminder_delivery_mode || 'morning');
+
+    if (!critical && mode !== 'immediate') {
+      // Schedule into the next requested digest slot(s), one queue row per channel
+      const slots: Array<'morning' | 'evening'> =
+        mode === 'both' ? ['morning', 'evening'] : [mode as 'morning' | 'evening'];
+      for (const channel of channels) {
+        for (const slot of slots) {
+          await supabase.from("notification_queue").insert({
+            user_id, notification_type, channel, title,
+            body: msgBody, dedup_key, reference_id,
+            payload: { data, url, digest_slot: slot, family },
+            scheduled_for: nextDigestTime(prefs, slot, now).toISOString(),
+            status: "pending",
+          } as any).select().single().then(() => {}, () => {});
+        }
+        results[channel] = `digest:${slots.join('+')}`;
+      }
+      return new Response(JSON.stringify({ ok: true, results, routed: 'digest' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     for (const channel of channels) {
       // Pre-flight check via SQL helper

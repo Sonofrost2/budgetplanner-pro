@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Bell, TrendingUp, Wallet, PiggyBank, RotateCcw, AlertTriangle, Scale, Calendar, Zap, Moon, Target, ChevronDown, ChevronUp, Sunrise, Sunset, Clock, MessageSquare, Phone, Mail, CreditCard } from 'lucide-react';
+import { Bell, TrendingUp, Wallet, PiggyBank, RotateCcw, AlertTriangle, Scale, Calendar, Zap, Moon, Target, ChevronDown, ChevronUp, Sunrise, Sunset, Clock, MessageSquare, Phone, Mail, CreditCard, Inbox, Info } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -207,6 +207,77 @@ const NotificationPreferencesCard = ({ locale }: Props) => {
                 <Clock className="w-4 h-4 text-primary" />
                 {isFr ? 'Cadence & moments' : 'Cadence & timing'}
               </p>
+
+              {/* === Delivery mode (routing per family) === */}
+              <div className="rounded-2xl border border-border/60 bg-muted/30 p-3 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Inbox className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">
+                      {isFr ? 'Mode de livraison' : 'Delivery mode'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {isFr
+                        ? 'Choisis quand recevoir chaque type d\'alerte. Les paiements et échecs critiques restent toujours immédiats.'
+                        : 'Choose when to receive each type of alert. Critical payment failures always stay immediate.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Factual */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-rose-500" />
+                    {isFr ? 'Alertes factuelles' : 'Factual alerts'}
+                    <span className="text-muted-foreground font-normal">
+                      {isFr ? '(grosse transaction, écart, objectif atteint…)' : '(large tx, discrepancy, goal reached…)'}
+                    </span>
+                  </Label>
+                  <Select
+                    value={prefs.factual_delivery_mode}
+                    onValueChange={(v) => updatePref('factual_delivery_mode', v)}
+                  >
+                    <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="immediate">{isFr ? '⚡ Immédiat (recommandé)' : '⚡ Immediate (recommended)'}</SelectItem>
+                      <SelectItem value="morning">{isFr ? '☀️ Regrouper dans le digest matinal' : '☀️ Group in morning digest'}</SelectItem>
+                      <SelectItem value="evening">{isFr ? '🌙 Regrouper dans le digest du soir' : '🌙 Group in evening digest'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Reminder */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                    {isFr ? 'Rappels périodiques' : 'Periodic reminders'}
+                    <span className="text-muted-foreground font-normal">
+                      {isFr ? '(échéances, projections, épargne…)' : '(deadlines, projections, savings…)'}
+                    </span>
+                  </Label>
+                  <Select
+                    value={prefs.reminder_delivery_mode}
+                    onValueChange={(v) => updatePref('reminder_delivery_mode', v)}
+                  >
+                    <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="immediate">{isFr ? '⚡ Immédiat (chaque rappel)' : '⚡ Immediate (each reminder)'}</SelectItem>
+                      <SelectItem value="morning">{isFr ? '☀️ Digest matinal (recommandé)' : '☀️ Morning digest (recommended)'}</SelectItem>
+                      <SelectItem value="evening">{isFr ? '🌙 Digest du soir' : '🌙 Evening digest'}</SelectItem>
+                      <SelectItem value="both">{isFr ? '☀️🌙 Matin + soir' : '☀️🌙 Morning + evening'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground bg-background/40 rounded-lg px-2 py-1.5">
+                  <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                  <span>
+                    {isFr
+                      ? 'Les heures des digests se règlent ci-dessous (matin / soir).'
+                      : 'Digest hours can be configured below (morning / evening).'}
+                  </span>
+                </div>
+              </div>
 
               {/* Morning digest */}
               <div className="space-y-2">

@@ -803,6 +803,7 @@ export type Database = {
           evening_capture_hour: number
           evening_digest_enabled: boolean
           evening_digest_hour: number
+          factual_delivery_mode: string
           goal_reached: boolean
           id: string
           large_transaction: boolean
@@ -825,6 +826,7 @@ export type Database = {
           quiet_hours_mode: string
           quiet_hours_start: number
           recurring_reminders: boolean
+          reminder_delivery_mode: string
           savings_reminders: boolean
           smart_grouping_enabled: boolean
           status_reminder_frequency: string
@@ -845,6 +847,7 @@ export type Database = {
           evening_capture_hour?: number
           evening_digest_enabled?: boolean
           evening_digest_hour?: number
+          factual_delivery_mode?: string
           goal_reached?: boolean
           id?: string
           large_transaction?: boolean
@@ -867,6 +870,7 @@ export type Database = {
           quiet_hours_mode?: string
           quiet_hours_start?: number
           recurring_reminders?: boolean
+          reminder_delivery_mode?: string
           savings_reminders?: boolean
           smart_grouping_enabled?: boolean
           status_reminder_frequency?: string
@@ -887,6 +891,7 @@ export type Database = {
           evening_capture_hour?: number
           evening_digest_enabled?: boolean
           evening_digest_hour?: number
+          factual_delivery_mode?: string
           goal_reached?: boolean
           id?: string
           large_transaction?: boolean
@@ -909,6 +914,7 @@ export type Database = {
           quiet_hours_mode?: string
           quiet_hours_start?: number
           recurring_reminders?: boolean
+          reminder_delivery_mode?: string
           savings_reminders?: boolean
           smart_grouping_enabled?: boolean
           status_reminder_frequency?: string
