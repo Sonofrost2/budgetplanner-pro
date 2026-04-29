@@ -23,8 +23,71 @@ Deno.serve(async (req) => {
       .order("scheduled_for", { ascending: true })
       .limit(200);
 
-    let processed = 0, failed = 0;
+    let processed = 0, failed = 0, digested = 0;
+
+    // === Group digest-routed items per (user, channel, slot) and send ONE
+    // aggregated push/email instead of N separate ones. Items routed via
+    // digest carry payload.digest_slot (set by notify-dispatch).
+    const digestGroups = new Map<string, any[]>();
+    const singles: any[] = [];
     for (const item of due || []) {
+      const slot = (item.payload as any)?.digest_slot;
+      if (slot) {
+        const key = `${item.user_id}::${item.channel}::${slot}`;
+        if (!digestGroups.has(key)) digestGroups.set(key, []);
+        digestGroups.get(key)!.push(item);
+      } else {
+        singles.push(item);
+      }
+    }
+
+    // 1) Send aggregated digests
+    for (const [key, items] of digestGroups) {
+      const [user_id, channel, slot] = key.split("::");
+      const titlePrefix = slot === "morning" ? "☀️ Digest matinal" : "🌙 Digest du soir";
+      const aggregatedTitle = items.length === 1
+        ? items[0].title
+        : `${titlePrefix} (${items.length})`;
+      const aggregatedBody = items.length === 1
+        ? items[0].body
+        : items.map(i => `• ${i.title}${i.body ? " — " + i.body : ""}`).join("\n");
+
+      try {
+        const res = await fetch(`${supabaseUrl}/functions/v1/notify-dispatch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+          body: JSON.stringify({
+            user_id,
+            notification_type: items.length === 1 ? items[0].notification_type : `digest_${slot}`,
+            title: aggregatedTitle,
+            body: aggregatedBody,
+            dedup_key: `digest:${slot}:${new Date().toISOString().slice(0,10)}:${channel}`,
+            channels: [channel],
+            critical: true, // already deferred — bypass routing this time
+          }),
+        });
+        const ok = res.ok;
+        const ids = items.map(i => i.id);
+        await supabase.from("notification_queue").update({
+          status: ok ? "sent" : "failed",
+          processed_at: new Date().toISOString(),
+          attempts: items[0].attempts + 1,
+          last_error: ok ? null : `digest_http_${res.status}`,
+        }).in("id", ids);
+        if (ok) digested += items.length; else failed += items.length;
+      } catch (e) {
+        const ids = items.map(i => i.id);
+        await supabase.from("notification_queue").update({
+          status: "pending",
+          attempts: items[0].attempts + 1,
+          last_error: (e as Error).message,
+        }).in("id", ids);
+        failed += items.length;
+      }
+    }
+
+    // 2) Replay legacy quiet-hours single deferrals (no digest_slot)
+    for (const item of singles) {
       try {
         const res = await fetch(`${supabaseUrl}/functions/v1/notify-dispatch`, {
           method: "POST",
@@ -59,7 +122,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ processed, failed, considered: due?.length || 0 }), {
+    return new Response(JSON.stringify({ processed, digested, failed, considered: due?.length || 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
