@@ -5,7 +5,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { usePaginatedTransactions, useCategories, useAccounts, useInvalidate, type Transaction } from '@/hooks/useDashboardData';
+import { usePaginatedTransactions, useCategories, useAccounts, useInvalidate, useBudgets, useSavingsGoals, type Transaction } from '@/hooks/useDashboardData';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -103,6 +103,8 @@ const TransactionsPage = () => {
 
   const { data: categories = [], isLoading: catLoading } = useCategories();
   const { data: accounts = [], isLoading: accLoading } = useAccounts();
+  const { data: budgets = [] } = useBudgets();
+  const { data: savingsGoals = [] } = useSavingsGoals();
 
   // Lightweight count query for this month's transactions (limit checking)
   const monthStart = useMemo(() => {
