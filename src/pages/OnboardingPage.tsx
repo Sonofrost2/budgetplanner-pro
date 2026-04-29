@@ -274,7 +274,13 @@ const OnboardingPage = () => {
                       className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold capitalize">{plan.name === 'free' ? (isFr ? 'Gratuit' : 'Free') : 'Premium'}</p>
+                          <p className="font-semibold capitalize">
+                            {plan.name === 'free'
+                              ? (isFr ? 'Gratuit' : 'Free')
+                              : plan.name === 'pro'
+                                ? 'Pro'
+                                : 'Premium'}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             {plan.name === 'free' ? (isFr ? 'Fonctionnalités de base' : 'Basic features') : (isFr ? `Essai gratuit ${plan.trial_days}j` : `${plan.trial_days}-day free trial`)}
                           </p>
