@@ -40,7 +40,26 @@ const FEATURE_DICTIONARY: Record<string, string> = {
  */
 export const translateFeature = (feature: string, locale: string): string => {
   if (locale === 'fr') return feature;
-  return FEATURE_DICTIONARY[feature.trim()] || feature;
+  const trimmed = feature.trim();
+  if (FEATURE_DICTIONARY[trimmed]) return FEATURE_DICTIONARY[trimmed];
+
+  // Pattern-based fallbacks so admin-edited numbers keep translating.
+  // Examples handled: "20 transactions/mois", "3 comptes", "10 budgets",
+  // "8 catégories", "5 jours d'essai gratuit".
+  const patterns: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
+    [/^(\d+)\s+transactions?\/mois$/i, (m) => `${m[1]} transactions/month`],
+    [/^(\d+)\s+comptes?$/i, (m) => `${m[1]} account${m[1] === '1' ? '' : 's'}`],
+    [/^(\d+)\s+budgets?$/i, (m) => `${m[1]} budget${m[1] === '1' ? '' : 's'}`],
+    [/^(\d+)\s+catégories?$/i, (m) => `${m[1]} categor${m[1] === '1' ? 'y' : 'ies'}`],
+    [/^(\d+)\s+jours?\s+d['']essai\s+gratuit$/i, (m) => `${m[1]}-day free trial`],
+    [/^(\d+)\s+objectifs?\s+d['']épargne$/i, (m) => `${m[1]} savings goal${m[1] === '1' ? '' : 's'}`],
+  ];
+  for (const [re, fn] of patterns) {
+    const m = trimmed.match(re);
+    if (m) return fn(m);
+  }
+
+  return feature;
 };
 
 /** Convenience: map an array of features. */
