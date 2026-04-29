@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,6 +40,8 @@ interface TransactionFormProps {
   categories: any[];
   accounts: any[];
   recentDescriptions: any[];
+  savingsGoals?: any[];
+  budgets?: any[];
   canUseAISuggestions: boolean;
   t: DashTranslations;
   locale: string;
@@ -48,7 +50,8 @@ interface TransactionFormProps {
 
 export const TransactionForm = ({
   open, onOpenChange, editing, form, setForm, errors, saving, onSave,
-  categories, accounts, recentDescriptions, canUseAISuggestions, t, locale, currency = 'EUR',
+  categories, accounts, recentDescriptions, savingsGoals = [], budgets = [],
+  canUseAISuggestions, t, locale, currency = 'EUR',
 }: TransactionFormProps) => {
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -107,6 +110,34 @@ export const TransactionForm = ({
   });
 
   const filteredCategories = categories.filter(c => c.type === form.type);
+
+  // Auto-pre-fill category when picking a savings account linked to a budget.
+  // Triggers on account_id change, only when category is empty and not editing.
+  const lastAutoFilledForAccount = useRef<string>('');
+  useEffect(() => {
+    if (editing) return;
+    if (!form.account_id) return;
+    if (form.category_id) return;
+    if (lastAutoFilledForAccount.current === form.account_id) return;
+
+    const goal = (savingsGoals || []).find((g: any) => g.account_id === form.account_id);
+    if (!goal) return;
+    const budget = (budgets || []).find((b: any) => b.linked_savings_goal_id === goal.id);
+    if (!budget?.category_id) return;
+
+    // Only apply if category exists and matches current type
+    const cat = categories.find(c => c.id === budget.category_id);
+    if (!cat || cat.type !== form.type) return;
+
+    lastAutoFilledForAccount.current = form.account_id;
+    setForm(f => ({ ...f, category_id: budget.category_id }));
+    toast.success(
+      isFr
+        ? `🏷️ Catégorie pré-remplie depuis le budget "${budget.name}"`
+        : `🏷️ Category pre-filled from budget "${budget.name}"`,
+      { duration: 2200 }
+    );
+  }, [form.account_id, form.category_id, form.type, editing, savingsGoals, budgets, categories, setForm, isFr]);
 
   const descriptionSuggestions = useMemo(() => {
     if (!form.description || form.description.length < 2) return [];
