@@ -58,6 +58,24 @@ const OnboardingPage = () => {
       .then(({ data }) => setPlans(data || []));
   }, []);
 
+  // Handle Paystack callback (?reference=...&paystack=1)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get('reference') || params.get('trxref');
+    if (reference && params.get('paystack')) {
+      setPaymentToken(reference);
+      // Jump to payment step and auto-trigger verification
+      const payIdx = STEPS.indexOf('payment');
+      if (payIdx >= 0) setStep(payIdx);
+      window.history.replaceState({}, '', '/onboarding');
+      setTimeout(() => {
+        // call verify after token is set in state
+        handleVerifyPayment();
+      }, 300);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     supabase.from('profiles').select('currency, locale, onboarding_completed, phone, sms_consent').eq('user_id', user.id).single()
