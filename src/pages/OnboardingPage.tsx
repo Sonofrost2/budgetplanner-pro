@@ -58,6 +58,24 @@ const OnboardingPage = () => {
       .then(({ data }) => setPlans(data || []));
   }, []);
 
+  // Handle Paystack callback (?reference=...&paystack=1)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get('reference') || params.get('trxref');
+    if (reference && params.get('paystack')) {
+      setPaymentToken(reference);
+      // Jump to payment step and auto-trigger verification
+      const payIdx = STEPS.indexOf('payment');
+      if (payIdx >= 0) setStep(payIdx);
+      window.history.replaceState({}, '', '/onboarding');
+      setTimeout(() => {
+        // call verify after token is set in state
+        handleVerifyPayment();
+      }, 300);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     supabase.from('profiles').select('currency, locale, onboarding_completed, phone, sms_consent').eq('user_id', user.id).single()
@@ -82,26 +100,46 @@ const OnboardingPage = () => {
   const selectedPlanData = plans.find(p => p.name === selectedPlan);
 
   const handlePayment = async () => {
-    if (!selectedPlanData) return;
+    if (!selectedPlanData || !user) return;
     const price = formatPrice((selectedPlanData.currency_prices || {}) as Record<string, number>);
     setPaymentLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('paydunya-checkout', {
+      const { data, error } = await supabase.functions.invoke('paystack-checkout', {
         body: {
-          action: 'create',
+          action: 'initialize',
           amount: price.amount,
-          description: `Budget Planner Premium - ${price.formatted}/mois`,
-          return_url: window.location.origin + '/onboarding',
-          cancel_url: window.location.origin + '/onboarding',
+          email: user.email,
+          currency: price.currency || currency,
+          description: `Budget Planner ${selectedPlan === 'premium' ? 'Premium' : 'Pro'} - ${price.formatted}/mois`,
+          callback_url: window.location.origin + '/onboarding?paystack=1',
+          metadata: { plan_id: selectedPlanData.id, plan_name: selectedPlan, user_id: user.id, source: 'onboarding' },
         },
       });
       if (error) throw error;
-      if (data?.response_code === '00' && data?.response_text) {
-        window.open(data.response_text, '_blank');
-        if (data.token) setPaymentToken(data.token);
-        toast.info(isFr ? 'Finalisez le paiement dans l\'onglet ouvert, puis vérifiez ici.' : 'Complete payment in the opened tab, then verify here.');
+      if (data?.status && data?.data?.authorization_url) {
+        const reference = data.data.reference || '';
+        setPaymentToken(reference);
+        await supabase.from('subscriptions').insert({
+          user_id: user.id,
+          plan_id: selectedPlanData.id,
+          status: 'pending',
+          payment_method: 'paystack',
+          last_payment_token: reference || null,
+        });
+        await supabase.from('payment_receipts').insert({
+          user_id: user.id,
+          plan_name: selectedPlan,
+          amount: price.amount || 0,
+          currency: price.currency || currency,
+          payment_token: reference || null,
+          status: 'pending',
+        });
+        window.open(data.data.authorization_url, '_blank');
+        toast.info(isFr
+          ? "Finalisez le paiement dans l'onglet ouvert, puis cliquez sur Vérifier."
+          : 'Complete payment in the opened tab, then click Verify.');
       } else {
-        toast.error(data?.response_text || (isFr ? 'Erreur lors du paiement' : 'Payment error'));
+        toast.error(data?.message || (isFr ? 'Erreur lors du paiement' : 'Payment error'));
       }
     } catch (err: any) {
       toast.error(err.message || 'Error');
@@ -111,43 +149,62 @@ const OnboardingPage = () => {
   };
 
   const handleVerifyPayment = async () => {
-    if (!paymentToken) return;
+    if (!paymentToken || !user) return;
     setVerifying(true);
     try {
-      const { data, error } = await supabase.functions.invoke('paydunya-checkout', {
-        body: { action: 'verify', token: paymentToken },
+      const { data, error } = await supabase.functions.invoke('paystack-checkout', {
+        body: { action: 'verify', reference: paymentToken },
       });
       if (error) throw error;
-      if (data?.status === 'completed') {
+      if (data?.status && data?.data?.status === 'success') {
         setPaymentConfirmed(true);
+        const price = formatPrice((selectedPlanData?.currency_prices || {}) as Record<string, number>);
+
+        // Activate the pending subscription
+        const { data: pendingSubs } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (pendingSubs && pendingSubs.length > 0) {
+          const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          await supabase
+            .from('subscriptions')
+            .update({
+              status: 'active',
+              current_period_start: new Date().toISOString(),
+              current_period_end: periodEnd,
+            })
+            .eq('id', pendingSubs[0].id);
+        }
+        await supabase
+          .from('payment_receipts')
+          .update({ status: 'confirmed' } as any)
+          .eq('payment_token', paymentToken)
+          .eq('user_id', user.id);
+
         toast.success(isFr ? 'Paiement confirmé !' : 'Payment confirmed!');
 
-        // Save receipt in database
-        const price = formatPrice((selectedPlanData?.currency_prices || {}) as Record<string, number>);
-        if (user) {
-          await supabase.from('payment_receipts').insert({
-            user_id: user.id,
-            plan_name: selectedPlan,
-            amount: price.amount || 0,
-            currency: price.currency || currency,
-            payment_token: paymentToken,
-            status: 'confirmed',
-          });
-        }
-
         // Send confirmation email
-        const { data: profile } = await supabase.from('profiles').select('display_name').eq('user_id', user!.id).single();
-        supabase.functions.invoke('send-payment-confirmation', {
+        const { data: profile } = await supabase.from('profiles').select('display_name').eq('user_id', user.id).single();
+        supabase.functions.invoke('send-email', {
           body: {
-            email: user!.email,
-            displayName: profile?.display_name || user!.email,
-            planName: selectedPlan === 'free' ? 'Gratuit' : 'Premium',
-            amount: price.formatted || `${price.amount} ${price.currency}`,
-            currency: price.currency || currency,
+            template: 'payment-confirmation',
+            to: user.email,
+            data: {
+              displayName: profile?.display_name || user.email,
+              planName: selectedPlan,
+              amount: price.amount,
+              currency: price.currency || currency,
+            },
           },
-        }).catch(err => console.error('Email confirmation error:', err));
+        }).catch(err => console.error('Payment email error:', err));
       } else {
-        toast.warning(isFr ? `Statut : ${data?.status || 'en attente'}` : `Status: ${data?.status || 'pending'}`);
+        toast.warning(isFr
+          ? `Statut : ${data?.data?.status || 'en attente'}`
+          : `Status: ${data?.data?.status || 'pending'}`);
       }
     } catch (err: any) {
       toast.error(err.message);
