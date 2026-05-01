@@ -168,6 +168,10 @@ Deno.serve(async (req) => {
       const prefDebt = np.debt_alerts !== false;
       const prefBalance = np.balance_discrepancy !== false;
       const prefGoalReached = np.goal_reached !== false;
+      const prefLowBalance = np.low_balance === true; // opt-in (default false)
+      const lowBalanceThreshold = Math.max(0, Number(np.low_balance_threshold) || 5000);
+      const prefLargeTx = np.large_transaction !== false; // opt-out (default true)
+      const largeTxThreshold = Math.max(0, Number(np.large_transaction_threshold) || 50000);
       const prefQuietHours = np.quiet_hours_enabled === true;
       const quietStart = Number(np.quiet_hours_start) || 22;
       const quietEnd = Number(np.quiet_hours_end) || 7;
