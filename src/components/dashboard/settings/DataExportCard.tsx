@@ -74,11 +74,29 @@ export const DataExportCard = () => {
 
       // One sheet per table
       let sheetCount = 0;
+      const errorTables: string[] = [];
+      // Flatten complex JS values (arrays/objects/null) into Excel-friendly strings
+      const flattenRow = (row: Record<string, any>) => {
+        const out: Record<string, any> = {};
+        for (const [k, v] of Object.entries(row)) {
+          if (v === null || v === undefined) out[k] = '';
+          else if (v instanceof Date) out[k] = v.toISOString();
+          else if (Array.isArray(v) || typeof v === 'object') {
+            try { out[k] = JSON.stringify(v); } catch { out[k] = String(v); }
+          } else out[k] = v;
+        }
+        return out;
+      };
       for (const [key, value] of Object.entries(data)) {
         if (key === '_meta') continue;
+        // Edge function returns { error: "..." } when a table fails RLS — surface it
+        if (value && !Array.isArray(value) && typeof value === 'object' && 'error' in (value as any)) {
+          errorTables.push(`${key}: ${(value as any).error}`);
+          continue;
+        }
         const rows = Array.isArray(value) ? value : [];
         if (rows.length === 0) continue;
-        const ws = XLSX.utils.json_to_sheet(rows);
+        const ws = XLSX.utils.json_to_sheet(rows.map(flattenRow));
         // Excel sheet names: max 31 chars, no special chars
         const safeName = key.replace(/[\\/?*[\]:]/g, '_').slice(0, 31);
         XLSX.utils.book_append_sheet(wb, ws, safeName);
@@ -91,7 +109,16 @@ export const DataExportCard = () => {
       }
 
       XLSX.writeFile(wb, `budgetplanner-export-${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast.success(fr ? 'Export Excel téléchargé' : 'Excel export downloaded');
+      if (errorTables.length > 0) {
+        toast.warning(
+          fr
+            ? `Export téléchargé, mais ${errorTables.length} table(s) ignorée(s)`
+            : `Export downloaded, but ${errorTables.length} table(s) skipped`,
+          { description: errorTables.slice(0, 3).join(' · ') },
+        );
+      } else {
+        toast.success(fr ? 'Export Excel téléchargé' : 'Excel export downloaded');
+      }
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
