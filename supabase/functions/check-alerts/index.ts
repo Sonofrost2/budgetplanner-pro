@@ -554,6 +554,50 @@ Deno.serve(async (req) => {
         }
       }
 
+      // ────── Low balance — daily, opt-in ──────
+      if (prefLowBalance) {
+        const low: { name: string; icon: string; balance: number }[] = [];
+        for (const account of accounts) {
+          const bal = Number(account.real_balance) || 0;
+          // Ignore loan / credit-card accounts (negative balances are normal there)
+          if ((account.type || "") === "credit") continue;
+          if (bal < lowBalanceThreshold) {
+            low.push({ name: account.name, icon: account.icon || "💳", balance: bal });
+          }
+        }
+        for (const a of low) {
+          alerts.push({
+            title: isFr ? "🪫 Solde faible" : "🪫 Low balance",
+            body: `${a.icon} ${a.name}: ${Math.round(a.balance).toLocaleString()} (< ${Math.round(lowBalanceThreshold).toLocaleString()})`,
+            notification_type: "low_balance",
+            dedup_key: `low_balance_${a.name}_${todayStr}`,
+          });
+        }
+      }
+
+      // ────── Large transactions in the last 24h — opt-out, default true ──────
+      if (prefLargeTx) {
+        const since = new Date(now.getTime() - 24 * 3600 * 1000);
+        const sinceStr = fmt(since);
+        const recent = (savingsMonthTxs as any[]).filter(
+          (tx) => tx.date >= sinceStr && Number(tx.amount) >= largeTxThreshold
+            && (tx.type === "expense" || tx.type === "income"),
+        );
+        for (const tx of recent) {
+          const acct = accounts.find((a: any) => a.id === tx.account_id);
+          const amount = Math.round(Number(tx.amount)).toLocaleString();
+          alerts.push({
+            title: tx.type === "income"
+              ? (isFr ? "💰 Gros revenu détecté" : "💰 Large income detected")
+              : (isFr ? "🔔 Grosse dépense détectée" : "🔔 Large expense detected"),
+            body: `${acct?.icon || "💳"} ${tx.description || ""} — ${amount} ${acct ? `· ${acct.name}` : ""}`.trim(),
+            notification_type: "large_transaction",
+            // Stable per-tx dedup so each large tx triggers exactly once
+            dedup_key: `large_tx_${tx.account_id || "noacct"}_${tx.date}_${Math.round(Number(tx.amount))}_${(tx.description || "").slice(0, 24)}`,
+          });
+        }
+      }
+
       // ───────────────────────────────────────────────
       // 1) Send all CRITICAL alerts immediately (bypass cap)
       // 2) Aggregate non-critical into a SINGLE morning digest
