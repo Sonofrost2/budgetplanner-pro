@@ -292,14 +292,17 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
             className
           )}
         >
-          <Lock className="ml-3 w-4 h-4 text-muted-foreground group-focus-within:text-primary flex-shrink-0 transition-colors" />
+          <Lock aria-hidden="true" className="ml-3 w-4 h-4 text-muted-foreground group-focus-within:text-primary flex-shrink-0 transition-colors" />
           <input
             ref={ref}
+            id={inputId}
             type={visible ? "text" : "password"}
             value={value}
             onChange={onChange}
             onKeyDown={handleKey}
             onKeyUp={handleKey}
+            aria-invalid={!!error || undefined}
+            aria-describedby={describedBy}
             className={cn(
               "flex-1 h-11 bg-transparent px-3 py-2 text-base ring-0 outline-none",
               "placeholder:text-muted-foreground/60 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
@@ -308,6 +311,7 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
           />
           {showMatch && matches !== null && (
             <span
+              aria-hidden="true"
               className={cn(
                 "mr-1 flex items-center justify-center w-6 h-6 rounded-full transition-all",
                 matches ? "bg-secondary/15 text-secondary" : "bg-destructive/15 text-destructive"
@@ -320,23 +324,27 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            className="mr-2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            aria-label={visible ? l.hide : l.show}
-            tabIndex={-1}
+            className="mr-2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+            aria-label={visible ? l.hideA11y : l.showA11y}
+            aria-pressed={visible}
+            aria-controls={inputId}
           >
-            {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {visible ? <EyeOff aria-hidden="true" className="w-4 h-4" /> : <Eye aria-hidden="true" className="w-4 h-4" />}
           </button>
         </div>
 
         <AnimatePresence>
           {capsOn && (
             <motion.div
+              id={capsId}
+              role="status"
+              aria-live="polite"
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium"
             >
-              <AlertTriangle className="w-3 h-3" />
+              <AlertTriangle aria-hidden="true" className="w-3 h-3" />
               {l.capsLock}
             </motion.div>
           )}
