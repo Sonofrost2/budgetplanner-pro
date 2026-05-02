@@ -10,7 +10,7 @@ import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useFamilyCategories } from '@/hooks/useFamilyCategories';
-import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote, Users, Lock } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote, Users, Lock, ArrowLeftRight, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
@@ -28,15 +28,21 @@ interface TransactionFormProps {
     description: string; amount: string; type: string;
     category_id: string; account_id: string; date: string; notes: string;
     family_category_id?: string;
+    from_account_id?: string; to_account_id?: string;
   };
   setForm: React.Dispatch<React.SetStateAction<{
     description: string; amount: string; type: string;
     category_id: string; account_id: string; date: string; notes: string;
     family_category_id?: string;
+    from_account_id?: string; to_account_id?: string;
   }>>;
   errors: Record<string, string>;
   saving: boolean;
   onSave: () => void;
+  /** Called when user switches to transfer tab and submits — runs perform_transfer RPC. */
+  onTransfer?: () => Promise<void> | void;
+  /** Hide the transfer tab (e.g., when editing an existing transaction). */
+  allowTransfer?: boolean;
   categories: any[];
   accounts: any[];
   recentDescriptions: any[];
@@ -50,6 +56,7 @@ interface TransactionFormProps {
 
 export const TransactionForm = ({
   open, onOpenChange, editing, form, setForm, errors, saving, onSave,
+  onTransfer, allowTransfer = true,
   categories, accounts, recentDescriptions, savingsGoals = [], budgets = [],
   canUseAISuggestions, t, locale, currency = 'EUR',
 }: TransactionFormProps) => {
@@ -110,6 +117,8 @@ export const TransactionForm = ({
   });
 
   const filteredCategories = categories.filter(c => c.type === form.type);
+  const isTransfer = form.type === 'transfer';
+  const showTransferTab = allowTransfer && !editing;
 
   // Auto-pre-fill category when picking a savings account linked to a budget.
   // Triggers on account_id change, only when category is empty and not editing.
@@ -176,12 +185,17 @@ export const TransactionForm = ({
       open={open}
       onOpenChange={onOpenChange}
       title={editing ? t.edit : t.addTransaction}
-      description={t.fillTransactionDetails}
+      description={isTransfer ? t.transferDesc : t.fillTransactionDetails}
       footer={
         <>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl">{t.cancel}</Button>
-          <Button className="text-primary-foreground rounded-xl min-w-[120px] shadow-md" style={{ background: 'var(--gradient-primary)' }} onClick={onSave} disabled={saving}>
-            {saving ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') : t.save}
+          <Button
+            className="text-primary-foreground rounded-xl min-w-[120px] shadow-md"
+            style={{ background: 'var(--gradient-primary)' }}
+            onClick={() => { if (isTransfer && onTransfer) onTransfer(); else onSave(); }}
+            disabled={saving || (isTransfer && accounts.length < 2)}
+          >
+            {saving ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') : (isTransfer ? t.transfer : t.save)}
           </Button>
         </>
       }
@@ -190,17 +204,24 @@ export const TransactionForm = ({
         {/* Type selector */}
         <div className="space-y-2">
           <Label className="form-label">{t.type}</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className={`grid ${showTransferTab ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
             <motion.button type="button" onClick={() => setForm(f => ({ ...f, type: 'expense', category_id: '' }))}
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'expense' ? 'border-destructive bg-destructive/10 text-destructive shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'expense' ? 'border-destructive bg-destructive/10 text-destructive shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
               <TrendingDown className="w-4 h-4" />{t.expenseType}
             </motion.button>
             <motion.button type="button" onClick={() => setForm(f => ({ ...f, type: 'income', category_id: '' }))}
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'income' ? 'border-secondary bg-secondary/10 text-secondary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'income' ? 'border-secondary bg-secondary/10 text-secondary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
               <TrendingUp className="w-4 h-4" />{t.incomeType}
             </motion.button>
+            {showTransferTab && (
+              <motion.button type="button" onClick={() => setForm(f => ({ ...f, type: 'transfer', category_id: '' }))}
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${isTransfer ? 'border-primary bg-primary/10 text-primary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
+                <ArrowLeftRight className="w-4 h-4" />{t.transfer}
+              </motion.button>
+            )}
           </div>
         </div>
 
@@ -229,9 +250,12 @@ export const TransactionForm = ({
         {/* Description with AI */}
         <div className="space-y-2 relative z-30">
           <div className="flex items-center justify-between">
-            <Label className="form-label flex items-center gap-1.5"><FileText className="w-3 h-3" />{t.description}</Label>
+            <Label className="form-label flex items-center gap-1.5">
+              <FileText className="w-3 h-3" />{t.description}
+              {isTransfer && <span className="text-muted-foreground/50 font-normal normal-case">({locale === 'fr' ? 'optionnel' : 'optional'})</span>}
+            </Label>
             <div className="flex items-center gap-1">
-              {voiceSupported && (
+              {voiceSupported && !isTransfer && (
                 <VoiceMicButton
                   listening={quickVoice.listening}
                   loading={voiceParsing}
@@ -239,7 +263,7 @@ export const TransactionForm = ({
                   title={isFr ? 'Saisie vocale (IA)' : 'Voice input (AI)'}
                 />
               )}
-              {canUseAISuggestions && (
+              {canUseAISuggestions && !isTransfer && (
                 <Button type="button" variant="ghost" size="sm" className="h-7 text-xs rounded-lg text-primary" onClick={handleAISuggest} disabled={aiSuggesting}>
                   <Sparkles className="w-3 h-3 mr-1" />{aiSuggesting ? t.aiSuggesting : t.aiSuggest}
                 </Button>
@@ -330,30 +354,68 @@ export const TransactionForm = ({
           </AnimatePresence>
         </div>
 
-        {/* Category */}
-        <div className="space-y-2">
-          <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
-          <CategoryCombobox
-            categories={filteredCategories}
-            value={form.category_id}
-            onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
-            placeholder={locale === 'fr' ? 'Rechercher une catégorie...' : 'Search category...'}
-          />
-        </div>
+        {!isTransfer && (
+          <>
+            {/* Category */}
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
+              <CategoryCombobox
+                categories={filteredCategories}
+                value={form.category_id}
+                onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
+                placeholder={locale === 'fr' ? 'Rechercher une catégorie...' : 'Search category...'}
+              />
+            </div>
 
-        {/* Account */}
-        <div className="space-y-2">
-          <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
-          <AccountCombobox
-            accounts={accounts}
-            value={form.account_id}
-            onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
-            placeholder={locale === 'fr' ? 'Rechercher un compte...' : 'Search account...'}
-          />
-        </div>
+            {/* Account */}
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={form.account_id}
+                onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
+                placeholder={locale === 'fr' ? 'Rechercher un compte...' : 'Search account...'}
+              />
+            </div>
+          </>
+        )}
 
-        {/* Family Category — Privacy by Design */}
-        {familyCategories.length > 0 && (
+        {isTransfer && (
+          <>
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.fromAccount}</Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={form.from_account_id || ''}
+                onValueChange={v => setForm(f => ({ ...f, from_account_id: v }))}
+                placeholder={t.selectAccount}
+                error={!!errors.from_account_id}
+              />
+              {errors.from_account_id && <p className="text-xs text-destructive">{errors.from_account_id}</p>}
+            </div>
+            <div className="flex justify-center -my-1 text-muted-foreground">
+              <ArrowRight className="w-4 h-4" />
+            </div>
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.toAccount}</Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={form.to_account_id || ''}
+                onValueChange={v => setForm(f => ({ ...f, to_account_id: v }))}
+                placeholder={t.selectAccount}
+                excludeId={form.from_account_id}
+                error={!!errors.to_account_id}
+              />
+              {errors.to_account_id && <p className="text-xs text-destructive">{errors.to_account_id}</p>}
+            </div>
+            {accounts.length < 2 && (
+              <p className="text-xs text-destructive">{locale === 'fr' ? 'Crée au moins 2 comptes pour transférer' : 'Create at least 2 accounts to transfer'}</p>
+            )}
+          </>
+        )}
+
+        {/* Family Category — Privacy by Design (not for transfers) */}
+        {!isTransfer && familyCategories.length > 0 && (
           <div className="space-y-2">
             <Label className="form-label flex items-center gap-1.5">
               <Users className="w-3 h-3" />

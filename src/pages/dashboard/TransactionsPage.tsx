@@ -23,7 +23,6 @@ import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useSearchParams } from 'react-router-dom';
 import { exportToCSV, exportToExcel } from '@/lib/export';
-import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TransactionForm } from '@/components/dashboard/transactions/TransactionForm';
 import { TransactionList } from '@/components/dashboard/transactions/TransactionList';
@@ -63,14 +62,12 @@ const TransactionsPage = () => {
   const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
   const [bulkModifyForm, setBulkModifyForm] = useState({ category_id: '', account_id: '' });
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '' });
+  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '', from_account_id: '', to_account_id: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [transferDefaults, setTransferDefaults] = useState<{ from?: string; to?: string; amount?: string; description?: string }>({});
   const [budgetOverspendOpen, setBudgetOverspendOpen] = useState(false);
   const [overspendBudgetName, setOverspendBudgetName] = useState('');
   const [hideTransfers, setHideTransfers] = useState(false);
@@ -175,13 +172,21 @@ const TransactionsPage = () => {
       } else {
         const fromId = searchParams.get('from_account_id') || accounts[0]?.id;
         const toId = searchParams.get('to_account_id') || accounts.find(a => a.id !== fromId)?.id;
-        setTransferDefaults({
-          from: fromId,
-          to: toId,
-          amount: Number.isFinite(amountNum) ? String(amountNum) : '',
+        setEditing(null);
+        setErrors({});
+        setForm({
           description,
+          amount: Number.isFinite(amountNum) ? String(amountNum) : '',
+          type: 'transfer',
+          category_id: '',
+          account_id: '',
+          date: new Date().toISOString().split('T')[0],
+          notes: '',
+          family_category_id: '',
+          from_account_id: fromId || '',
+          to_account_id: toId || '',
         });
-        setTransferOpen(true);
+        setDialogOpen(true);
       }
     } else {
       const catParam = searchParams.get('category_id') || '';
@@ -198,6 +203,8 @@ const TransactionsPage = () => {
         date: new Date().toISOString().split('T')[0],
         notes: '',
         family_category_id: '',
+        from_account_id: '',
+        to_account_id: '',
       });
       setDialogOpen(true);
     }
@@ -344,13 +351,13 @@ const TransactionsPage = () => {
   const openNew = () => {
     if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
     setEditing(null); setErrors({});
-    setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', account_id: accounts[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '' });
+    setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', account_id: accounts[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '', from_account_id: '', to_account_id: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (tx: any) => {
     setEditing(tx); setErrors({});
-    setForm({ description: tx.description, amount: String(tx.amount), type: tx.type, category_id: tx.category_id || '', account_id: tx.account_id || '', date: tx.date, notes: tx.notes || '', family_category_id: tx.family_category_id || '' });
+    setForm({ description: tx.description, amount: String(tx.amount), type: tx.type, category_id: tx.category_id || '', account_id: tx.account_id || '', date: tx.date, notes: tx.notes || '', family_category_id: tx.family_category_id || '', from_account_id: '', to_account_id: '' });
     setDialogOpen(true);
   };
 
@@ -400,7 +407,9 @@ const TransactionsPage = () => {
   };
 
   const handleSave = async () => {
-    if (!user || !validate()) return;
+    if (!user) return;
+    if (form.type === 'transfer') { await handleTransferSubmit(); return; }
+    if (!validate()) return;
     setSaving(true);
     const payload = {
       user_id: user.id, description: form.description.trim(), amount: Number(form.amount),
@@ -443,6 +452,42 @@ const TransactionsPage = () => {
     setDialogOpen(false);
     refreshData();
     coachToast.warn(locale === 'fr' ? 'Dépassement enregistré' : 'Overspend recorded');
+  };
+
+  const handleTransferSubmit = async () => {
+    if (!user) return;
+    const errs: Record<string, string> = {};
+    if (!form.from_account_id) errs.from_account_id = t.nameRequired;
+    if (!form.to_account_id) errs.to_account_id = t.nameRequired;
+    if (form.from_account_id && form.from_account_id === form.to_account_id) errs.to_account_id = t.transferSameAccount;
+    const amt = Number(form.amount);
+    if (!form.amount || amt <= 0) errs.amount = t.invalidAmount;
+    if (amt > 999999999) errs.amount = t.amountTooHigh;
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.rpc('perform_transfer', {
+        p_user_id: user.id,
+        p_from_account_id: form.from_account_id,
+        p_to_account_id: form.to_account_id,
+        p_amount: amt,
+        p_description: form.description.trim(),
+      });
+      if (error) throw error;
+      setDialogOpen(false);
+      refreshData();
+      coachToast.money(t.transferSuccess);
+    } catch (err: any) {
+      const msg = String(err?.message || '');
+      if (msg.includes('PLAN_LIMIT_REACHED')) {
+        toast.error(t.limitTransactionsToast(limits.transactionsPerMonth));
+      } else {
+        toast.error(msg || 'Erreur');
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -525,7 +570,17 @@ const TransactionsPage = () => {
         onAddNew={openNew}
         onTransfer={() => {
           if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
-          setTransferOpen(true);
+          if (accounts.length < 2) { toast.error(locale === 'fr' ? 'Crée au moins 2 comptes pour transférer' : 'Create at least 2 accounts to transfer'); return; }
+          setEditing(null);
+          setErrors({});
+          setForm({
+            description: '', amount: '', type: 'transfer',
+            category_id: '', account_id: '',
+            date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '',
+            from_account_id: accounts[0]?.id || '',
+            to_account_id: accounts.find(a => a.id !== accounts[0]?.id)?.id || '',
+          });
+          setDialogOpen(true);
         }}
         canTransfer={accounts.length >= 2}
         limitReached={limitReached}
@@ -535,20 +590,23 @@ const TransactionsPage = () => {
         canUseAI={canUseAISuggestions}
         onQuickAdd={(parsed) => {
           if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
-          // Transfer flow → open TransferDialog pre-filled
-          if (parsed.type === 'transfer') {
-            if (accounts.length < 2) { toast.error(locale === 'fr' ? 'Crée au moins 2 comptes pour transférer' : 'Create at least 2 accounts to transfer'); return; }
-            setTransferDefaults({
-              from: parsed.from_account_id || accounts[0]?.id,
-              to: parsed.to_account_id || accounts.find(a => a.id !== (parsed.from_account_id || accounts[0]?.id))?.id,
-              amount: parsed.amount != null ? String(parsed.amount) : '',
-              description: parsed.description || '',
-            });
-            setTransferOpen(true);
-            return;
-          }
           setEditing(null);
           setErrors({});
+          if (parsed.type === 'transfer') {
+            if (accounts.length < 2) { toast.error(locale === 'fr' ? 'Crée au moins 2 comptes pour transférer' : 'Create at least 2 accounts to transfer'); return; }
+            const fromId = parsed.from_account_id || accounts[0]?.id || '';
+            const toId = parsed.to_account_id || accounts.find(a => a.id !== fromId)?.id || '';
+            setForm({
+              description: parsed.description || '',
+              amount: parsed.amount != null ? String(parsed.amount) : '',
+              type: 'transfer',
+              category_id: '', account_id: '',
+              date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '',
+              from_account_id: fromId, to_account_id: toId,
+            });
+            setDialogOpen(true);
+            return;
+          }
           const fallbackCatId = (categories.find((c: any) => c.type === parsed.type)?.id) || categories[0]?.id || '';
           setForm({
             description: parsed.description || '',
@@ -559,6 +617,7 @@ const TransactionsPage = () => {
             date: new Date().toISOString().split('T')[0],
             notes: '',
             family_category_id: '',
+            from_account_id: '', to_account_id: '',
           });
           setDialogOpen(true);
         }}
@@ -951,6 +1010,8 @@ const TransactionsPage = () => {
         errors={errors}
         saving={saving}
         onSave={handleSave}
+        onTransfer={handleTransferSubmit}
+        allowTransfer={accounts.length >= 2}
         categories={categories}
         accounts={accounts}
         recentDescriptions={recentDescriptions}
@@ -964,21 +1025,6 @@ const TransactionsPage = () => {
 
       <ConfirmDeleteDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} onConfirm={handleDelete} title={t.confirmDelete} description={t.confirmDeleteMessage} cancelLabel={t.cancel} confirmLabel={t.delete} />
       <ConfirmDeleteDialog open={bulkDeleteOpen} onOpenChange={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title={t.deleteSelection} description={t.bulkDeleteConfirm(selectedIds.size)} cancelLabel={t.cancel} confirmLabel={t.delete} />
-
-      {user && <TransferDialog
-        open={transferOpen}
-        onOpenChange={(v) => { setTransferOpen(v); if (!v) setTransferDefaults({}); }}
-        accounts={accounts}
-        userId={user.id}
-        t={t}
-        onSuccess={refreshData}
-        defaultFromAccountId={transferDefaults.from}
-        defaultToAccountId={transferDefaults.to}
-        defaultAmount={transferDefaults.amount}
-        defaultDescription={transferDefaults.description}
-        currency={currency}
-        locale={locale}
-      />}
 
       <BulkModifyDialog
         open={bulkModifyOpen}
