@@ -23,7 +23,6 @@ import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useSearchParams } from 'react-router-dom';
 import { exportToCSV, exportToExcel } from '@/lib/export';
-import { TransferDialog } from '@/components/dashboard/TransferDialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TransactionForm } from '@/components/dashboard/transactions/TransactionForm';
 import { TransactionList } from '@/components/dashboard/transactions/TransactionList';
@@ -69,8 +68,6 @@ const TransactionsPage = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [transferDefaults, setTransferDefaults] = useState<{ from?: string; to?: string; amount?: string; description?: string }>({});
   const [budgetOverspendOpen, setBudgetOverspendOpen] = useState(false);
   const [overspendBudgetName, setOverspendBudgetName] = useState('');
   const [hideTransfers, setHideTransfers] = useState(false);
