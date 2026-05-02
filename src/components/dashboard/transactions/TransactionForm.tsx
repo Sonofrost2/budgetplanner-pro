@@ -185,12 +185,17 @@ export const TransactionForm = ({
       open={open}
       onOpenChange={onOpenChange}
       title={editing ? t.edit : t.addTransaction}
-      description={t.fillTransactionDetails}
+      description={isTransfer ? t.transferDesc : t.fillTransactionDetails}
       footer={
         <>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl">{t.cancel}</Button>
-          <Button className="text-primary-foreground rounded-xl min-w-[120px] shadow-md" style={{ background: 'var(--gradient-primary)' }} onClick={onSave} disabled={saving}>
-            {saving ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') : t.save}
+          <Button
+            className="text-primary-foreground rounded-xl min-w-[120px] shadow-md"
+            style={{ background: 'var(--gradient-primary)' }}
+            onClick={() => { if (isTransfer && onTransfer) onTransfer(); else onSave(); }}
+            disabled={saving || (isTransfer && accounts.length < 2)}
+          >
+            {saving ? (locale === 'fr' ? 'Enregistrement...' : 'Saving...') : (isTransfer ? t.transfer : t.save)}
           </Button>
         </>
       }
@@ -199,17 +204,24 @@ export const TransactionForm = ({
         {/* Type selector */}
         <div className="space-y-2">
           <Label className="form-label">{t.type}</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className={`grid ${showTransferTab ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
             <motion.button type="button" onClick={() => setForm(f => ({ ...f, type: 'expense', category_id: '' }))}
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'expense' ? 'border-destructive bg-destructive/10 text-destructive shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'expense' ? 'border-destructive bg-destructive/10 text-destructive shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
               <TrendingDown className="w-4 h-4" />{t.expenseType}
             </motion.button>
             <motion.button type="button" onClick={() => setForm(f => ({ ...f, type: 'income', category_id: '' }))}
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'income' ? 'border-secondary bg-secondary/10 text-secondary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.type === 'income' ? 'border-secondary bg-secondary/10 text-secondary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
               <TrendingUp className="w-4 h-4" />{t.incomeType}
             </motion.button>
+            {showTransferTab && (
+              <motion.button type="button" onClick={() => setForm(f => ({ ...f, type: 'transfer', category_id: '' }))}
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${isTransfer ? 'border-primary bg-primary/10 text-primary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
+                <ArrowLeftRight className="w-4 h-4" />{t.transfer}
+              </motion.button>
+            )}
           </div>
         </div>
 
