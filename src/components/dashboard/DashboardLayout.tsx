@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TopLoadingBar } from '@/components/ui/top-loading-bar';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
 import { OfflineBanner } from '@/components/dashboard/OfflineBanner';
+import SyncStatusIndicator from '@/components/dashboard/SyncStatusIndicator';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import AIChatWidget from '@/components/dashboard/AIChatWidget';
 import GlobalSearchCommand from '@/components/dashboard/GlobalSearchCommand';
@@ -194,6 +195,7 @@ const DashboardLayout = () => {
               <Search className="w-4 h-4" />
             </Button>
 
+            <SyncStatusIndicator />
             <NotificationBell />
           </header>
 
