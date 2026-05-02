@@ -75,6 +75,13 @@ const i18n = {
     matchOk: "Les mots de passe correspondent",
     matchKo: "Les mots de passe ne correspondent pas",
     copy: "Copier",
+    showA11y: "Afficher le mot de passe",
+    hideA11y: "Masquer le mot de passe",
+    strengthLabel: "Force du mot de passe",
+    strengthAnnounce: (s: string) => `Force du mot de passe : ${s}`,
+    checklistLabel: "Critères du mot de passe",
+    criterionMet: "rempli",
+    criterionNotMet: "non rempli",
   },
   en: {
     show: "Show",
@@ -95,6 +102,13 @@ const i18n = {
     matchOk: "Passwords match",
     matchKo: "Passwords don't match",
     copy: "Copy",
+    showA11y: "Show password",
+    hideA11y: "Hide password",
+    strengthLabel: "Password strength",
+    strengthAnnounce: (s: string) => `Password strength: ${s}`,
+    checklistLabel: "Password requirements",
+    criterionMet: "met",
+    criterionNotMet: "not met",
   },
 };
 
