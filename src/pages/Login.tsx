@@ -33,7 +33,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      toast.error(locale === 'fr' ? 'Email requis' : 'Email required');
+      toast.error((t.auth as any).emailRequired || (locale === 'fr' ? 'Email requis' : 'Email required'));
       return;
     }
     const pwdCheck = validateLoginPassword(password, locale === 'en' ? 'en' : 'fr');
