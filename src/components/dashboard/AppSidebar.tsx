@@ -97,8 +97,8 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       icon: ArrowUpDown,
       items: [
         { key: 'transactions', icon: ArrowUpDown, path: '/dashboard/transactions', badge: 'transactionsToday' },
-        { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },
-        { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
+        { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring', requiredPlan: 'pro' },
+        { key: 'receipts', icon: Receipt, path: '/dashboard/receipts', requiredPlan: 'premium' },
       ],
     },
     {
@@ -107,8 +107,8 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       icon: Building2,
       items: [
         { key: 'accounts', icon: CreditCard, path: '/dashboard/accounts' },
-        { key: 'wealth', icon: Gem, path: '/dashboard/wealth' },
-        { key: 'debts', icon: Landmark, path: '/dashboard/debts', badge: 'debtsOverdue' },
+        { key: 'wealth', icon: Gem, path: '/dashboard/wealth', requiredPlan: 'premium' },
+        { key: 'debts', icon: Landmark, path: '/dashboard/debts', badge: 'debtsOverdue', requiredPlan: 'pro' },
       ],
     },
     {
@@ -118,8 +118,8 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       items: [
         { key: 'budgets', icon: PieChart, path: '/dashboard/budgets', badge: 'budgetsExceeded' },
         { key: 'savings', icon: Target, path: '/dashboard/savings' },
-        { key: 'budgetSavingsLinks', icon: Link2, path: '/dashboard/links' },
-        { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
+        { key: 'budgetSavingsLinks', icon: Link2, path: '/dashboard/links', requiredPlan: 'pro' },
+        { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts', requiredPlan: 'premium' },
       ],
     },
     {
@@ -127,7 +127,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       labelKey: 'analysis',
       icon: LineChart,
       items: [
-        { key: 'reports', icon: FileText, path: '/dashboard/reports' },
+        { key: 'reports', icon: FileText, path: '/dashboard/reports', requiredPlan: 'pro' },
         { key: 'categories', icon: Tag, path: '/dashboard/categories' },
       ],
     },
@@ -136,7 +136,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       labelKey: 'organization',
       icon: Users,
       items: [
-        { key: 'family', icon: Users, path: '/dashboard/family' },
+        { key: 'family', icon: Users, path: '/dashboard/family', requiredPlan: 'premium' },
         { key: 'payment', icon: Crown, path: '/dashboard/payment' },
         { key: 'settings', icon: Settings, path: '/dashboard/settings' },
         { key: 'notifications', icon: Bell, path: '/dashboard/notifications' },
