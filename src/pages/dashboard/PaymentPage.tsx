@@ -151,12 +151,17 @@ const PaymentPage = () => {
     try {
       const price = getPrice(plan);
       const desc = t.subscriptionDesc(plan.name);
+      // Paystack Africa: convert non-supported currencies to XOF
+      const { resolvePaystackPrice, formatXofConversionMessage } = await import('@/lib/paystackCurrency');
+      const resolved = resolvePaystackPrice(price, currency || 'XOF');
+      const conversionMsg = formatXofConversionMessage(resolved, isFr);
+      if (conversionMsg) toast.info(conversionMsg, { duration: 6000 });
       const { data, error } = await supabase.functions.invoke('paystack-checkout', {
         body: {
           action: 'initialize',
-          amount: price,
+          amount: resolved.amount,
           email: user.email,
-          currency: currency || 'XOF',
+          currency: resolved.currency,
           description: desc,
           callback_url: window.location.origin + '/dashboard/payment?success=true&plan=' + plan.id,
           metadata: { plan_id: plan.id, plan_name: plan.name, user_id: user.id },
@@ -165,11 +170,11 @@ const PaymentPage = () => {
       if (error) throw error;
       if (data?.status && data?.data?.authorization_url) {
         await supabase.from('subscriptions').insert({ user_id: user.id, plan_id: plan.id, status: 'pending', payment_method: 'paystack', last_payment_token: data.data.reference || null });
-        await supabase.from('payment_receipts').insert({ user_id: user.id, plan_name: plan.name, amount: price, currency, status: 'pending', payment_token: data.data.reference || null });
+        await supabase.from('payment_receipts').insert({ user_id: user.id, plan_name: plan.name, amount: resolved.amount, currency: resolved.currency, status: 'pending', payment_token: data.data.reference || null });
         window.open(data.data.authorization_url, '_blank');
         toast.success(t.redirectingPayment);
       } else {
-        toast.error(data?.message || t.paymentError);
+        toast.error(data?.data?.message || data?.message || t.paymentError);
       }
     } catch (err: any) {
       toast.error(err.message || 'Error');
