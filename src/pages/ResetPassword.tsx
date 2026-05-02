@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Wallet, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { PasswordField, evaluatePassword } from '@/components/ui/password-field';
 import { supabase } from '@/integrations/supabase/client';
