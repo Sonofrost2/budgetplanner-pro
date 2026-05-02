@@ -79,6 +79,11 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
   const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
   const { pinned, isPinned, togglePin } = usePinnedNav();
   const { data: badges } = useNavBadges();
+  const [lockedItem, setLockedItem] = useState<{ key: string; label: string; required: 'pro' | 'premium' } | null>(null);
+
+  const planRank = (p: string | null | undefined) => p === 'premium' ? 2 : p === 'pro' ? 1 : 0;
+  const userRank = isAdmin ? 2 : planRank(userPlan);
+  const isLocked = (item: NavItem) => !!item.requiredPlan && userRank < planRank(item.requiredPlan);
 
   const displayName = profile?.display_name || 'User';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
