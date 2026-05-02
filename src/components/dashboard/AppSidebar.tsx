@@ -11,13 +11,17 @@ import {
   Sparkles, User, ChevronUp, Landmark, RefreshCw, Gem,
   Wallet2, Compass, LineChart, Building2, BookOpen, MessageCircle,
   Star, ChevronDown, Pin,
-  Bell, Activity, Link2,
+  Bell, Activity, Link2, Lock,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Sidebar,
   SidebarContent,
