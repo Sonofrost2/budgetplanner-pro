@@ -410,7 +410,9 @@ const TransactionsPage = () => {
   };
 
   const handleSave = async () => {
-    if (!user || !validate()) return;
+    if (!user) return;
+    if (form.type === 'transfer') { await handleTransferSubmit(); return; }
+    if (!validate()) return;
     setSaving(true);
     const payload = {
       user_id: user.id, description: form.description.trim(), amount: Number(form.amount),
@@ -453,6 +455,42 @@ const TransactionsPage = () => {
     setDialogOpen(false);
     refreshData();
     coachToast.warn(locale === 'fr' ? 'Dépassement enregistré' : 'Overspend recorded');
+  };
+
+  const handleTransferSubmit = async () => {
+    if (!user) return;
+    const errs: Record<string, string> = {};
+    if (!form.from_account_id) errs.from_account_id = t.nameRequired;
+    if (!form.to_account_id) errs.to_account_id = t.nameRequired;
+    if (form.from_account_id && form.from_account_id === form.to_account_id) errs.to_account_id = t.transferSameAccount;
+    const amt = Number(form.amount);
+    if (!form.amount || amt <= 0) errs.amount = t.invalidAmount;
+    if (amt > 999999999) errs.amount = t.amountTooHigh;
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.rpc('perform_transfer', {
+        p_user_id: user.id,
+        p_from_account_id: form.from_account_id,
+        p_to_account_id: form.to_account_id,
+        p_amount: amt,
+        p_description: form.description.trim(),
+      });
+      if (error) throw error;
+      setDialogOpen(false);
+      refreshData();
+      coachToast.money(t.transferSuccess);
+    } catch (err: any) {
+      const msg = String(err?.message || '');
+      if (msg.includes('PLAN_LIMIT_REACHED')) {
+        toast.error(t.limitTransactionsToast(limits.transactionsPerMonth));
+      } else {
+        toast.error(msg || 'Erreur');
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
