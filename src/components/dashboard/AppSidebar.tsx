@@ -177,65 +177,95 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
     const label = (t[item.key as keyof typeof t] as string) || item.key;
     const badgeVal = getBadgeValue(item);
     const pinnedNow = isPinned(item.path);
+    const locked = isLocked(item);
+    const planBadge = item.requiredPlan === 'premium' ? 'Premium' : item.requiredPlan === 'pro' ? 'Pro' : null;
+
+    const itemInner = (
+      <>
+        {/* Active left bar */}
+        {active && !locked && (
+          <motion.div
+            layoutId="sidebar-active-bar"
+            className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full"
+            style={{ background: 'var(--gradient-primary)' }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          />
+        )}
+        <span className={cn(
+          'flex items-center justify-center w-7 h-7 rounded-lg shrink-0 transition-colors',
+          locked ? 'text-muted-foreground/50' :
+          active ? 'bg-primary/15 text-primary' : 'text-muted-foreground group-hover/item:text-sidebar-foreground'
+        )}>
+          <item.icon className="w-4 h-4" />
+        </span>
+        <span className={cn('truncate', locked && 'text-muted-foreground/60')}>{label}</span>
+        <div className="ml-auto flex items-center gap-1">
+          {locked && planBadge && !collapsed && (
+            <Badge
+              variant="outline"
+              className={cn(
+                'h-4 px-1.5 text-[8px] font-bold uppercase tracking-wider border',
+                item.requiredPlan === 'premium'
+                  ? 'border-accent/40 bg-accent/10 text-accent'
+                  : 'border-primary/40 bg-primary/10 text-primary'
+              )}
+            >
+              <Lock className="w-2 h-2 mr-0.5" />
+              {planBadge}
+            </Badge>
+          )}
+          {!locked && badgeVal > 0 && (
+            <Badge
+              variant="outline"
+              className={cn(
+                'h-4 min-w-[16px] px-1 text-[9px] font-bold border-0',
+                item.badge === 'budgetsExceeded' || item.badge === 'debtsOverdue'
+                  ? 'bg-destructive/15 text-destructive'
+                  : 'bg-primary/15 text-primary'
+              )}
+            >
+              {badgeVal > 99 ? '99+' : badgeVal}
+            </Badge>
+          )}
+          {!locked && options.showPin !== false && !collapsed && (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(item.path); }}
+              className={cn(
+                'opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5 rounded hover:bg-background/50',
+                pinnedNow && 'opacity-100 text-primary'
+              )}
+              aria-label="pin"
+            >
+              <Star className={cn('w-3 h-3', pinnedNow && 'fill-current')} />
+            </button>
+          )}
+        </div>
+      </>
+    );
+
+    const tooltipLabel = locked
+      ? (locale === 'fr'
+          ? `${label} — réservé au plan ${planBadge}`
+          : `${label} — ${planBadge} plan only`)
+      : label;
 
     return (
       <SidebarMenuItem key={item.path}>
         <SidebarMenuButton
-          asChild
-          isActive={active}
-          tooltip={label}
+          asChild={!locked}
+          isActive={active && !locked}
+          tooltip={tooltipLabel}
           className={cn(
             'group/item relative rounded-xl h-10 text-[13px] font-medium transition-all duration-200 overflow-hidden',
-            active
+            locked
+              ? 'opacity-60 hover:opacity-90 cursor-pointer text-muted-foreground hover:bg-sidebar-accent/30'
+              : active
               ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-[0_2px_12px_-2px_hsl(var(--primary)/0.25)]'
               : 'text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/40 hover:translate-x-[2px]'
           )}
+          onClick={locked ? () => setLockedItem({ key: item.key, label, required: item.requiredPlan! }) : undefined}
         >
-          <Link to={item.path}>
-            {/* Active left bar */}
-            {active && (
-              <motion.div
-                layoutId="sidebar-active-bar"
-                className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full"
-                style={{ background: 'var(--gradient-primary)' }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
-            )}
-            <span className={cn(
-              'flex items-center justify-center w-7 h-7 rounded-lg shrink-0 transition-colors',
-              active ? 'bg-primary/15 text-primary' : 'text-muted-foreground group-hover/item:text-sidebar-foreground'
-            )}>
-              <item.icon className="w-4 h-4" />
-            </span>
-            <span className="truncate">{label}</span>
-            <div className="ml-auto flex items-center gap-1">
-              {badgeVal > 0 && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'h-4 min-w-[16px] px-1 text-[9px] font-bold border-0',
-                    item.badge === 'budgetsExceeded' || item.badge === 'debtsOverdue'
-                      ? 'bg-destructive/15 text-destructive'
-                      : 'bg-primary/15 text-primary'
-                  )}
-                >
-                  {badgeVal > 99 ? '99+' : badgeVal}
-                </Badge>
-              )}
-              {options.showPin !== false && !collapsed && (
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(item.path); }}
-                  className={cn(
-                    'opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5 rounded hover:bg-background/50',
-                    pinnedNow && 'opacity-100 text-primary'
-                  )}
-                  aria-label="pin"
-                >
-                  <Star className={cn('w-3 h-3', pinnedNow && 'fill-current')} />
-                </button>
-              )}
-            </div>
-          </Link>
+          {locked ? itemInner : <Link to={item.path}>{itemInner}</Link>}
         </SidebarMenuButton>
       </SidebarMenuItem>
     );
