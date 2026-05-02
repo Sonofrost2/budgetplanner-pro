@@ -323,21 +323,23 @@ const OnboardingPage = () => {
             <div className="space-y-4">
               <h2 className="text-xl font-bold font-display">{isFr ? 'Choisissez votre plan' : 'Choose your plan'}</h2>
               <div className="space-y-3">
-                {plans.map(plan => {
+                {[...plans].sort((a, b) => {
+                  const order: Record<string, number> = { free: 0, pro: 1, premium: 2 };
+                  return (order[a.name] ?? 99) - (order[b.name] ?? 99);
+                }).map(plan => {
                   const price = formatPrice((plan.currency_prices || {}) as Record<string, number>);
                   const isSelected = selectedPlan === plan.name;
+                  const planLabel =
+                    plan.name === 'free' ? (isFr ? 'Gratuit' : 'Free')
+                    : plan.name === 'pro' ? 'Pro'
+                    : plan.name === 'premium' ? 'Premium'
+                    : plan.name.charAt(0).toUpperCase() + plan.name.slice(1);
                   return (
                     <button key={plan.id} onClick={() => setSelectedPlan(plan.name)}
                       className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold capitalize">
-                            {plan.name === 'free'
-                              ? (isFr ? 'Gratuit' : 'Free')
-                              : plan.name === 'pro'
-                                ? 'Pro'
-                                : 'Premium'}
-                          </p>
+                          <p className="font-semibold">{planLabel}</p>
                           <p className="text-sm text-muted-foreground">
                             {plan.name === 'free' ? (isFr ? 'Fonctionnalités de base' : 'Basic features') : (isFr ? `Essai gratuit ${plan.trial_days}j` : `${plan.trial_days}-day free trial`)}
                           </p>
