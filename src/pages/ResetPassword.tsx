@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Wallet, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { PasswordField, evaluatePassword } from '@/components/ui/password-field';
+import { PasswordField, validateNewPassword, PASSWORD_POLICY } from '@/components/ui/password-field';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -38,17 +38,9 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      toast.error(t.auth.confirmPassword + ' ❌');
-      return;
-    }
-    const { score, criteria } = evaluatePassword(password);
-    if (!criteria.minLength) {
-      toast.error(locale === 'fr' ? 'Mot de passe trop court (8 caractères min.)' : 'Password too short (8 chars min.)');
-      return;
-    }
-    if (score < 3) {
-      toast.error(locale === 'fr' ? 'Mot de passe trop faible' : 'Password too weak');
+    const pwdCheck = validateNewPassword(password, confirmPassword, locale === 'en' ? 'en' : 'fr');
+    if (!pwdCheck.ok) {
+      toast.error(pwdCheck.message);
       return;
     }
     setLoading(true);
@@ -122,7 +114,7 @@ const ResetPassword = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                minLength={8}
+                minLength={PASSWORD_POLICY.minLength}
                 autoComplete="new-password"
                 showStrength
                 showChecklist
@@ -137,7 +129,7 @@ const ResetPassword = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                minLength={8}
+                minLength={PASSWORD_POLICY.minLength}
                 autoComplete="new-password"
                 showMatch
                 matchValue={password}
