@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wallet, Mail, Lock, Loader2, Sparkles } from 'lucide-react';
+import { Wallet, Mail, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordField } from '@/components/ui/password-field';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable/index';
@@ -100,10 +101,15 @@ const Login = () => {
                 <Label htmlFor="password" className="form-label">{t.auth.password}</Label>
                 <Link to="/forgot-password" className="text-xs text-primary hover:underline font-semibold">{t.auth.forgotPassword}</Link>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required />
-              </div>
+              <PasswordField
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+                locale={locale === 'en' ? 'en' : 'fr'}
+              />
             </motion.div>
 
             <motion.div {...fadeUp(0.25)}>
