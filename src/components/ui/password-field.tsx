@@ -104,9 +104,13 @@ export const PASSWORD_POLICY = {
   minScore: 3, // out of 5
 } as const;
 
-export type PasswordValidationResult =
-  | { ok: true }
-  | { ok: false; code: "empty" | "tooShort" | "tooWeak" | "mismatch"; message: string };
+export type PasswordValidationOk = { ok: true; message?: undefined; code?: undefined };
+export type PasswordValidationError = {
+  ok: false;
+  code: "empty" | "tooShort" | "tooWeak" | "mismatch";
+  message: string;
+};
+export type PasswordValidationResult = PasswordValidationOk | PasswordValidationError;
 
 const validationMessages = {
   fr: {
