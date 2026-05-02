@@ -250,9 +250,12 @@ export const TransactionForm = ({
         {/* Description with AI */}
         <div className="space-y-2 relative z-30">
           <div className="flex items-center justify-between">
-            <Label className="form-label flex items-center gap-1.5"><FileText className="w-3 h-3" />{t.description}</Label>
+            <Label className="form-label flex items-center gap-1.5">
+              <FileText className="w-3 h-3" />{t.description}
+              {isTransfer && <span className="text-muted-foreground/50 font-normal normal-case">({locale === 'fr' ? 'optionnel' : 'optional'})</span>}
+            </Label>
             <div className="flex items-center gap-1">
-              {voiceSupported && (
+              {voiceSupported && !isTransfer && (
                 <VoiceMicButton
                   listening={quickVoice.listening}
                   loading={voiceParsing}
@@ -260,7 +263,7 @@ export const TransactionForm = ({
                   title={isFr ? 'Saisie vocale (IA)' : 'Voice input (AI)'}
                 />
               )}
-              {canUseAISuggestions && (
+              {canUseAISuggestions && !isTransfer && (
                 <Button type="button" variant="ghost" size="sm" className="h-7 text-xs rounded-lg text-primary" onClick={handleAISuggest} disabled={aiSuggesting}>
                   <Sparkles className="w-3 h-3 mr-1" />{aiSuggesting ? t.aiSuggesting : t.aiSuggest}
                 </Button>
