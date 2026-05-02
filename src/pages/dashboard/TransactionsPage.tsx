@@ -44,7 +44,7 @@ const TransactionsPage = () => {
   const { fmt: fmtCurrency, currency } = useProfile();
   const { limits, isPremium, isPaid, canExportAdvanced, canUseAISuggestions } = useSubscription();
   const t = dashT[locale];
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { invalidate } = useInvalidate();
 
   // Local UI state
@@ -153,6 +153,61 @@ const TransactionsPage = () => {
   const loading = txLoading || catLoading || accLoading;
 
   const fmt = (n: number) => fmtCurrency(n, locale);
+
+  // Quick-Add hand-off from Dashboard: ?quickAdd=1&description=…&amount=…&type=…&category_id=…&account_id=…
+  // (or &from_account_id / &to_account_id for transfers).
+  // We wait until categories + accounts are loaded so the form has valid fallbacks.
+  const quickAddHandledRef = useRef(false);
+  useEffect(() => {
+    if (quickAddHandledRef.current) return;
+    if (searchParams.get('quickAdd') !== '1') return;
+    if (catLoading || accLoading) return;
+
+    quickAddHandledRef.current = true;
+    const description = searchParams.get('description') || '';
+    const amountStr = searchParams.get('amount') || '';
+    const type = (searchParams.get('type') as 'expense' | 'income' | 'transfer') || 'expense';
+    const amountNum = Number(amountStr);
+
+    if (type === 'transfer') {
+      if (accounts.length < 2) {
+        toast.error(locale === 'fr' ? 'Crée au moins 2 comptes pour transférer' : 'Create at least 2 accounts to transfer');
+      } else {
+        const fromId = searchParams.get('from_account_id') || accounts[0]?.id;
+        const toId = searchParams.get('to_account_id') || accounts.find(a => a.id !== fromId)?.id;
+        setTransferDefaults({
+          from: fromId,
+          to: toId,
+          amount: Number.isFinite(amountNum) ? String(amountNum) : '',
+          description,
+        });
+        setTransferOpen(true);
+      }
+    } else {
+      const catParam = searchParams.get('category_id') || '';
+      const accParam = searchParams.get('account_id') || '';
+      const fallbackCatId = (categories.find((c: any) => c.type === type)?.id) || categories[0]?.id || '';
+      setEditing(null);
+      setErrors({});
+      setForm({
+        description,
+        amount: Number.isFinite(amountNum) ? String(amountNum) : '',
+        type,
+        category_id: catParam || fallbackCatId,
+        account_id: accParam || accounts[0]?.id || '',
+        date: new Date().toISOString().split('T')[0],
+        notes: '',
+        family_category_id: '',
+      });
+      setDialogOpen(true);
+    }
+
+    // Strip the quickAdd params from the URL so a refresh doesn't reopen the dialog.
+    const next = new URLSearchParams(searchParams);
+    ['quickAdd', 'description', 'amount', 'type', 'category_id', 'account_id', 'from_account_id', 'to_account_id']
+      .forEach(k => next.delete(k));
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, catLoading, accLoading, categories, accounts, locale]);
 
   const refreshData = () => {
     invalidate('paginated-transactions', 'accounts', 'chart-data', 'transactions', 'all-transactions', 'budget-spending', 'category-tx-counts');
