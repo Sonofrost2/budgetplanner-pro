@@ -98,6 +98,65 @@ const i18n = {
   },
 };
 
+// ─── Centralized password policy ───
+export const PASSWORD_POLICY = {
+  minLength: 8,
+  minScore: 3, // out of 5
+} as const;
+
+export type PasswordValidationResult =
+  | { ok: true }
+  | { ok: false; code: "empty" | "tooShort" | "tooWeak" | "mismatch"; message: string };
+
+const validationMessages = {
+  fr: {
+    empty: "Mot de passe requis",
+    tooShort: `Mot de passe trop court (${PASSWORD_POLICY.minLength} caractères min.)`,
+    tooWeak: "Mot de passe trop faible — ajoutez majuscule, chiffre ou symbole",
+    mismatch: "Les mots de passe ne correspondent pas",
+  },
+  en: {
+    empty: "Password required",
+    tooShort: `Password too short (${PASSWORD_POLICY.minLength} chars min.)`,
+    tooWeak: "Password too weak — add uppercase, digit or symbol",
+    mismatch: "Passwords don't match",
+  },
+};
+
+/**
+ * Centralized signup/reset password validation.
+ * Use the same rules across Signup, ResetPassword (and any other "set password" flow).
+ */
+export const validateNewPassword = (
+  password: string,
+  confirmation?: string,
+  locale: "fr" | "en" = "fr"
+): PasswordValidationResult => {
+  const m = validationMessages[locale];
+  if (!password) return { ok: false, code: "empty", message: m.empty };
+  const { score, criteria } = evaluatePassword(password);
+  if (!criteria.minLength) return { ok: false, code: "tooShort", message: m.tooShort };
+  if (score < PASSWORD_POLICY.minScore) return { ok: false, code: "tooWeak", message: m.tooWeak };
+  if (confirmation !== undefined && password !== confirmation) {
+    return { ok: false, code: "mismatch", message: m.mismatch };
+  }
+  return { ok: true };
+};
+
+/**
+ * Lightweight validation for the Login screen — we only check that the field
+ * is not empty (we never want to lock out users whose existing password is
+ * shorter than the current policy).
+ */
+export const validateLoginPassword = (
+  password: string,
+  locale: "fr" | "en" = "fr"
+): PasswordValidationResult => {
+  const m = validationMessages[locale];
+  if (!password) return { ok: false, code: "empty", message: m.empty };
+  return { ok: true };
+};
+
 const strengthMeta = (score: number, l: typeof i18n.fr) => {
   if (score <= 1) return { label: l.weak, color: "bg-destructive", text: "text-destructive", width: "20%" };
   if (score === 2) return { label: l.fair, color: "bg-orange-500", text: "text-orange-500", width: "40%" };
