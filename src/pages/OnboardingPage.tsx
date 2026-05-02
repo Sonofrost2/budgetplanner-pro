@@ -104,12 +104,16 @@ const OnboardingPage = () => {
     const price = formatPrice((selectedPlanData.currency_prices || {}) as Record<string, number>);
     setPaymentLoading(true);
     try {
+      const { resolvePaystackPrice, formatXofConversionMessage } = await import('@/lib/paystackCurrency');
+      const resolved = resolvePaystackPrice(price.amount, price.currency || currency || 'XOF');
+      const conversionMsg = formatXofConversionMessage(resolved, isFr);
+      if (conversionMsg) toast.info(conversionMsg, { duration: 6000 });
       const { data, error } = await supabase.functions.invoke('paystack-checkout', {
         body: {
           action: 'initialize',
-          amount: price.amount,
+          amount: resolved.amount,
           email: user.email,
-          currency: price.currency || currency,
+          currency: resolved.currency,
           description: `Budget Planner ${selectedPlan === 'premium' ? 'Premium' : 'Pro'} - ${price.formatted}/mois`,
           callback_url: window.location.origin + '/onboarding?paystack=1',
           metadata: { plan_id: selectedPlanData.id, plan_name: selectedPlan, user_id: user.id, source: 'onboarding' },
@@ -129,8 +133,8 @@ const OnboardingPage = () => {
         await supabase.from('payment_receipts').insert({
           user_id: user.id,
           plan_name: selectedPlan,
-          amount: price.amount || 0,
-          currency: price.currency || currency,
+          amount: resolved.amount || 0,
+          currency: resolved.currency,
           payment_token: reference || null,
           status: 'pending',
         });
@@ -139,7 +143,7 @@ const OnboardingPage = () => {
           ? "Finalisez le paiement dans l'onglet ouvert, puis cliquez sur Vérifier."
           : 'Complete payment in the opened tab, then click Verify.');
       } else {
-        toast.error(data?.message || (isFr ? 'Erreur lors du paiement' : 'Payment error'));
+        toast.error(data?.data?.message || data?.message || (isFr ? 'Erreur lors du paiement' : 'Payment error'));
       }
     } catch (err: any) {
       toast.error(err.message || 'Error');
