@@ -11,13 +11,17 @@ import {
   Sparkles, User, ChevronUp, Landmark, RefreshCw, Gem,
   Wallet2, Compass, LineChart, Building2, BookOpen, MessageCircle,
   Star, ChevronDown, Pin,
-  Bell, Activity, Link2,
+  Bell, Activity, Link2, Lock,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Sidebar,
   SidebarContent,
@@ -52,6 +56,8 @@ interface NavItem {
   icon: any;
   path: string;
   badge?: 'transactionsToday' | 'budgetsExceeded' | 'debtsOverdue';
+  /** Minimum plan required to access this module. Omit for free-tier modules. */
+  requiredPlan?: 'pro' | 'premium';
 }
 
 interface NavGroup {
@@ -73,6 +79,11 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
   const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
   const { pinned, isPinned, togglePin } = usePinnedNav();
   const { data: badges } = useNavBadges();
+  const [lockedItem, setLockedItem] = useState<{ key: string; label: string; required: 'pro' | 'premium' } | null>(null);
+
+  const planRank = (p: string | null | undefined) => p === 'premium' ? 2 : p === 'pro' ? 1 : 0;
+  const userRank = isAdmin ? 2 : planRank(userPlan);
+  const isLocked = (item: NavItem) => !!item.requiredPlan && userRank < planRank(item.requiredPlan);
 
   const displayName = profile?.display_name || 'User';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -86,8 +97,8 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       icon: ArrowUpDown,
       items: [
         { key: 'transactions', icon: ArrowUpDown, path: '/dashboard/transactions', badge: 'transactionsToday' },
-        { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring' },
-        { key: 'receipts', icon: Receipt, path: '/dashboard/receipts' },
+        { key: 'recurring', icon: RefreshCw, path: '/dashboard/recurring', requiredPlan: 'pro' },
+        { key: 'receipts', icon: Receipt, path: '/dashboard/receipts', requiredPlan: 'premium' },
       ],
     },
     {
@@ -96,8 +107,8 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       icon: Building2,
       items: [
         { key: 'accounts', icon: CreditCard, path: '/dashboard/accounts' },
-        { key: 'wealth', icon: Gem, path: '/dashboard/wealth' },
-        { key: 'debts', icon: Landmark, path: '/dashboard/debts', badge: 'debtsOverdue' },
+        { key: 'wealth', icon: Gem, path: '/dashboard/wealth', requiredPlan: 'premium' },
+        { key: 'debts', icon: Landmark, path: '/dashboard/debts', badge: 'debtsOverdue', requiredPlan: 'pro' },
       ],
     },
     {
@@ -107,8 +118,8 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       items: [
         { key: 'budgets', icon: PieChart, path: '/dashboard/budgets', badge: 'budgetsExceeded' },
         { key: 'savings', icon: Target, path: '/dashboard/savings' },
-        { key: 'budgetSavingsLinks', icon: Link2, path: '/dashboard/links' },
-        { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts' },
+        { key: 'budgetSavingsLinks', icon: Link2, path: '/dashboard/links', requiredPlan: 'pro' },
+        { key: 'forecasts', icon: BarChart3, path: '/dashboard/forecasts', requiredPlan: 'premium' },
       ],
     },
     {
@@ -116,7 +127,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       labelKey: 'analysis',
       icon: LineChart,
       items: [
-        { key: 'reports', icon: FileText, path: '/dashboard/reports' },
+        { key: 'reports', icon: FileText, path: '/dashboard/reports', requiredPlan: 'pro' },
         { key: 'categories', icon: Tag, path: '/dashboard/categories' },
       ],
     },
@@ -125,7 +136,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
       labelKey: 'organization',
       icon: Users,
       items: [
-        { key: 'family', icon: Users, path: '/dashboard/family' },
+        { key: 'family', icon: Users, path: '/dashboard/family', requiredPlan: 'premium' },
         { key: 'payment', icon: Crown, path: '/dashboard/payment' },
         { key: 'settings', icon: Settings, path: '/dashboard/settings' },
         { key: 'notifications', icon: Bell, path: '/dashboard/notifications' },
@@ -166,71 +177,102 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
     const label = (t[item.key as keyof typeof t] as string) || item.key;
     const badgeVal = getBadgeValue(item);
     const pinnedNow = isPinned(item.path);
+    const locked = isLocked(item);
+    const planBadge = item.requiredPlan === 'premium' ? 'Premium' : item.requiredPlan === 'pro' ? 'Pro' : null;
+
+    const itemInner = (
+      <>
+        {/* Active left bar */}
+        {active && !locked && (
+          <motion.div
+            layoutId="sidebar-active-bar"
+            className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full"
+            style={{ background: 'var(--gradient-primary)' }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          />
+        )}
+        <span className={cn(
+          'flex items-center justify-center w-7 h-7 rounded-lg shrink-0 transition-colors',
+          locked ? 'text-muted-foreground/50' :
+          active ? 'bg-primary/15 text-primary' : 'text-muted-foreground group-hover/item:text-sidebar-foreground'
+        )}>
+          <item.icon className="w-4 h-4" />
+        </span>
+        <span className={cn('truncate', locked && 'text-muted-foreground/60')}>{label}</span>
+        <div className="ml-auto flex items-center gap-1">
+          {locked && planBadge && !collapsed && (
+            <Badge
+              variant="outline"
+              className={cn(
+                'h-4 px-1.5 text-[8px] font-bold uppercase tracking-wider border',
+                item.requiredPlan === 'premium'
+                  ? 'border-accent/40 bg-accent/10 text-accent'
+                  : 'border-primary/40 bg-primary/10 text-primary'
+              )}
+            >
+              <Lock className="w-2 h-2 mr-0.5" />
+              {planBadge}
+            </Badge>
+          )}
+          {!locked && badgeVal > 0 && (
+            <Badge
+              variant="outline"
+              className={cn(
+                'h-4 min-w-[16px] px-1 text-[9px] font-bold border-0',
+                item.badge === 'budgetsExceeded' || item.badge === 'debtsOverdue'
+                  ? 'bg-destructive/15 text-destructive'
+                  : 'bg-primary/15 text-primary'
+              )}
+            >
+              {badgeVal > 99 ? '99+' : badgeVal}
+            </Badge>
+          )}
+          {!locked && options.showPin !== false && !collapsed && (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(item.path); }}
+              className={cn(
+                'opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5 rounded hover:bg-background/50',
+                pinnedNow && 'opacity-100 text-primary'
+              )}
+              aria-label="pin"
+            >
+              <Star className={cn('w-3 h-3', pinnedNow && 'fill-current')} />
+            </button>
+          )}
+        </div>
+      </>
+    );
+
+    const tooltipLabel = locked
+      ? (locale === 'fr'
+          ? `${label} — réservé au plan ${planBadge}`
+          : `${label} — ${planBadge} plan only`)
+      : label;
 
     return (
       <SidebarMenuItem key={item.path}>
         <SidebarMenuButton
-          asChild
-          isActive={active}
-          tooltip={label}
+          asChild={!locked}
+          isActive={active && !locked}
+          tooltip={tooltipLabel}
           className={cn(
             'group/item relative rounded-xl h-10 text-[13px] font-medium transition-all duration-200 overflow-hidden',
-            active
+            locked
+              ? 'opacity-60 hover:opacity-90 cursor-pointer text-muted-foreground hover:bg-sidebar-accent/30'
+              : active
               ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-[0_2px_12px_-2px_hsl(var(--primary)/0.25)]'
               : 'text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/40 hover:translate-x-[2px]'
           )}
+          onClick={locked ? () => setLockedItem({ key: item.key, label, required: item.requiredPlan! }) : undefined}
         >
-          <Link to={item.path}>
-            {/* Active left bar */}
-            {active && (
-              <motion.div
-                layoutId="sidebar-active-bar"
-                className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full"
-                style={{ background: 'var(--gradient-primary)' }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
-            )}
-            <span className={cn(
-              'flex items-center justify-center w-7 h-7 rounded-lg shrink-0 transition-colors',
-              active ? 'bg-primary/15 text-primary' : 'text-muted-foreground group-hover/item:text-sidebar-foreground'
-            )}>
-              <item.icon className="w-4 h-4" />
-            </span>
-            <span className="truncate">{label}</span>
-            <div className="ml-auto flex items-center gap-1">
-              {badgeVal > 0 && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'h-4 min-w-[16px] px-1 text-[9px] font-bold border-0',
-                    item.badge === 'budgetsExceeded' || item.badge === 'debtsOverdue'
-                      ? 'bg-destructive/15 text-destructive'
-                      : 'bg-primary/15 text-primary'
-                  )}
-                >
-                  {badgeVal > 99 ? '99+' : badgeVal}
-                </Badge>
-              )}
-              {options.showPin !== false && !collapsed && (
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(item.path); }}
-                  className={cn(
-                    'opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5 rounded hover:bg-background/50',
-                    pinnedNow && 'opacity-100 text-primary'
-                  )}
-                  aria-label="pin"
-                >
-                  <Star className={cn('w-3 h-3', pinnedNow && 'fill-current')} />
-                </button>
-              )}
-            </div>
-          </Link>
+          {locked ? itemInner : <Link to={item.path}>{itemInner}</Link>}
         </SidebarMenuButton>
       </SidebarMenuItem>
     );
   };
 
   return (
+    <>
     <Sidebar
       collapsible="icon"
       className="border-r border-sidebar-border/50 bg-sidebar/70 backdrop-blur-2xl"
@@ -522,6 +564,51 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
         </Popover>
       </SidebarFooter>
     </Sidebar>
+    {lockedItem && (
+      <AlertDialog open={!!lockedItem} onOpenChange={(o) => !o && setLockedItem(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: 'var(--gradient-primary)' }}
+              >
+                <Crown className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <Badge variant="outline" className={cn(
+                'text-[10px] font-bold uppercase',
+                lockedItem.required === 'premium'
+                  ? 'border-accent/40 bg-accent/10 text-accent'
+                  : 'border-primary/40 bg-primary/10 text-primary'
+              )}>
+                {lockedItem.required === 'premium' ? 'Premium' : 'Pro'}
+              </Badge>
+            </div>
+            <AlertDialogTitle className="font-display">
+              {locale === 'fr'
+                ? `« ${lockedItem.label} » est réservé au plan ${lockedItem.required === 'premium' ? 'Premium' : 'Pro'}`
+                : `"${lockedItem.label}" is part of the ${lockedItem.required === 'premium' ? 'Premium' : 'Pro'} plan`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {locale === 'fr'
+                ? `Souhaitez-vous découvrir nos plans payants pour débloquer cette fonctionnalité ?`
+                : `Would you like to see our paid plans to unlock this feature?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{locale === 'fr' ? 'Plus tard' : 'Maybe later'}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { const k = lockedItem; setLockedItem(null); if (k) navigate('/dashboard/payment'); }}
+              style={{ background: 'var(--gradient-primary)' }}
+              className="text-primary-foreground"
+            >
+              {locale === 'fr' ? 'Voir les plans' : 'See plans'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )}
+    </>
   );
 };
 
