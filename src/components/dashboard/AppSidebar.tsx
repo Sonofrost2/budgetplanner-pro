@@ -563,6 +563,51 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
         </Popover>
       </SidebarFooter>
     </Sidebar>
+    {lockedItem && (
+      <AlertDialog open={!!lockedItem} onOpenChange={(o) => !o && setLockedItem(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: 'var(--gradient-primary)' }}
+              >
+                <Crown className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <Badge variant="outline" className={cn(
+                'text-[10px] font-bold uppercase',
+                lockedItem.required === 'premium'
+                  ? 'border-accent/40 bg-accent/10 text-accent'
+                  : 'border-primary/40 bg-primary/10 text-primary'
+              )}>
+                {lockedItem.required === 'premium' ? 'Premium' : 'Pro'}
+              </Badge>
+            </div>
+            <AlertDialogTitle className="font-display">
+              {locale === 'fr'
+                ? `« ${lockedItem.label} » est réservé au plan ${lockedItem.required === 'premium' ? 'Premium' : 'Pro'}`
+                : `"${lockedItem.label}" is part of the ${lockedItem.required === 'premium' ? 'Premium' : 'Pro'} plan`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {locale === 'fr'
+                ? `Souhaitez-vous découvrir nos plans payants pour débloquer cette fonctionnalité ?`
+                : `Would you like to see our paid plans to unlock this feature?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{locale === 'fr' ? 'Plus tard' : 'Maybe later'}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { const k = lockedItem; setLockedItem(null); if (k) navigate('/dashboard/payment'); }}
+              style={{ background: 'var(--gradient-primary)' }}
+              className="text-primary-foreground"
+            >
+              {locale === 'fr' ? 'Voir les plans' : 'See plans'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )}
+    </>
   );
 };
 
