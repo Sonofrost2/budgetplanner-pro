@@ -56,6 +56,8 @@ interface NavItem {
   icon: any;
   path: string;
   badge?: 'transactionsToday' | 'budgetsExceeded' | 'debtsOverdue';
+  /** Minimum plan required to access this module. Omit for free-tier modules. */
+  requiredPlan?: 'pro' | 'premium';
 }
 
 interface NavGroup {
