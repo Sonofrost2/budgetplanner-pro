@@ -4,7 +4,7 @@ import { Wallet, Mail, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PasswordField } from '@/components/ui/password-field';
+import { PasswordField, validateLoginPassword } from '@/components/ui/password-field';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable/index';
@@ -32,7 +32,15 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password) return;
+    if (!email.trim()) {
+      toast.error(locale === 'fr' ? 'Email requis' : 'Email required');
+      return;
+    }
+    const pwdCheck = validateLoginPassword(password, locale === 'en' ? 'en' : 'fr');
+    if (!pwdCheck.ok) {
+      toast.error(pwdCheck.message);
+      return;
+    }
     setLoading(true);
     const { error } = await signIn(email.trim(), password);
     setLoading(false);

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PasswordField, evaluatePassword } from '@/components/ui/password-field';
+import { PasswordField, validateNewPassword, PASSWORD_POLICY } from '@/components/ui/password-field';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable/index';
@@ -77,17 +77,9 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      toast.error(t.auth.confirmPassword + ' ❌');
-      return;
-    }
-    const { score, criteria } = evaluatePassword(password);
-    if (!criteria.minLength) {
-      toast.error(locale === 'fr' ? 'Mot de passe trop court (8 caractères min.)' : 'Password too short (8 chars min.)');
-      return;
-    }
-    if (score < 3) {
-      toast.error(locale === 'fr' ? 'Mot de passe trop faible — ajoutez majuscule, chiffre ou symbole' : 'Password too weak — add uppercase, digit or symbol');
+    const pwdCheck = validateNewPassword(password, confirmPassword, locale === 'en' ? 'en' : 'fr');
+    if (!pwdCheck.ok) {
+      toast.error(pwdCheck.message);
       return;
     }
     if (!acceptTerms) {
@@ -212,7 +204,7 @@ const Signup = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    minLength={8}
+                    minLength={PASSWORD_POLICY.minLength}
                     autoComplete="new-password"
                     showStrength
                     showChecklist
@@ -230,7 +222,7 @@ const Signup = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    minLength={8}
+                    minLength={PASSWORD_POLICY.minLength}
                     autoComplete="new-password"
                     showMatch
                     matchValue={password}
