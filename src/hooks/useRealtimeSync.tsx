@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useSyncExternalStore } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvalidate } from '@/hooks/useDashboardData';
@@ -25,6 +25,38 @@ const TABLE_TO_QUERY_KEYS: Record<string, string[]> = {
   cash_counts: ['accounts'],
 };
 
+// ─── Sync status store (lightweight external store) ──────────────────────────
+export type SyncChannelStatus = 'idle' | 'connecting' | 'live' | 'error' | 'closed';
+export type SyncState = {
+  online: boolean;
+  channel: SyncChannelStatus;
+  lastRefetchAt: number | null;
+  lastChangeAt: number | null;
+};
+
+let syncState: SyncState = {
+  online: typeof navigator !== 'undefined' ? navigator.onLine : true,
+  channel: 'idle',
+  lastRefetchAt: null,
+  lastChangeAt: null,
+};
+const listeners = new Set<() => void>();
+const emit = () => listeners.forEach((l) => l());
+const setSyncState = (patch: Partial<SyncState>) => {
+  syncState = { ...syncState, ...patch };
+  emit();
+};
+
+export const useSyncStatus = (): SyncState =>
+  useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    () => syncState,
+    () => syncState,
+  );
+
 export const useRealtimeSync = () => {
   const { user } = useAuth();
   const { invalidate, invalidateAll } = useInvalidate();
@@ -36,6 +68,7 @@ export const useRealtimeSync = () => {
 
   const handleChange = useCallback((table: string) => {
     pendingRef.current.add(table);
+    setSyncState({ lastChangeAt: Date.now() });
     if (timerRef.current) return;
     timerRef.current = setTimeout(() => {
       const tables = Array.from(pendingRef.current);
@@ -43,13 +76,17 @@ export const useRealtimeSync = () => {
       timerRef.current = null;
       const keys = new Set<string>();
       for (const t of tables) for (const k of TABLE_TO_QUERY_KEYS[t] || []) keys.add(k);
-      if (keys.size) invalidate(...Array.from(keys));
+      if (keys.size) {
+        invalidate(...Array.from(keys));
+        setSyncState({ lastRefetchAt: Date.now() });
+      }
     }, 2000);
   }, [invalidate]);
 
   // Subscribe to realtime changes
   useEffect(() => {
     if (!user) return;
+    setSyncState({ channel: 'connecting' });
 
     const channel = supabase
       .channel('dashboard-sync')
@@ -61,10 +98,16 @@ export const useRealtimeSync = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'debts', filter: `user_id=eq.${user.id}` }, () => handleChange('debts'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_transactions', filter: `user_id=eq.${user.id}` }, () => handleChange('recurring_transactions'))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_counts', filter: `user_id=eq.${user.id}` }, () => handleChange('cash_counts'))
-      .subscribe();
+      .subscribe((status) => {
+        // Supabase status: SUBSCRIBED | TIMED_OUT | CLOSED | CHANNEL_ERROR
+        if (status === 'SUBSCRIBED') setSyncState({ channel: 'live' });
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSyncState({ channel: 'error' });
+        else if (status === 'CLOSED') setSyncState({ channel: 'closed' });
+      });
 
     return () => {
       supabase.removeChannel(channel);
+      setSyncState({ channel: 'idle' });
     };
   }, [user, handleChange]);
 
@@ -80,19 +123,25 @@ export const useRealtimeSync = () => {
       if (now - lastRefetch < THROTTLE_MS) return;
       lastRefetch = now;
       invalidateAll();
+      setSyncState({ lastRefetchAt: Date.now() });
     };
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') refetchIfStale();
     };
 
+    const handleOnline = () => { setSyncState({ online: true }); refetchIfStale(); };
+    const handleOffline = () => setSyncState({ online: false });
+
     window.addEventListener('focus', refetchIfStale);
-    window.addEventListener('online', refetchIfStale);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       window.removeEventListener('focus', refetchIfStale);
-      window.removeEventListener('online', refetchIfStale);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [user, invalidateAll]);
