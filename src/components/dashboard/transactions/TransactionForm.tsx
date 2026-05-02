@@ -117,6 +117,8 @@ export const TransactionForm = ({
   });
 
   const filteredCategories = categories.filter(c => c.type === form.type);
+  const isTransfer = form.type === 'transfer';
+  const showTransferTab = allowTransfer && !editing;
 
   // Auto-pre-fill category when picking a savings account linked to a budget.
   // Triggers on account_id change, only when category is empty and not editing.
