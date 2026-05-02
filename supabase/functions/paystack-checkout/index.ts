@@ -21,7 +21,9 @@ Deno.serve(async (req) => {
       // Paystack amount is in kobo/pesewas (smallest currency unit)
       // For XOF/XAF, amount is already in the smallest unit
       const isCfa = currency === 'XOF' || currency === 'XAF';
-      const paystackAmount = isCfa ? amount : Math.round(amount * 100);
+      // XOF/XAF have NO decimal places — Paystack rejects fractional amounts.
+      // For other currencies, convert to the smallest unit (kobo/pesewa/cent).
+      const paystackAmount = isCfa ? Math.round(amount) : Math.round(amount * 100);
 
       const res = await fetch('https://api.paystack.co/transaction/initialize', {
         method: 'POST',
