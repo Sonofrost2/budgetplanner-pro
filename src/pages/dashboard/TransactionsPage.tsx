@@ -175,13 +175,21 @@ const TransactionsPage = () => {
       } else {
         const fromId = searchParams.get('from_account_id') || accounts[0]?.id;
         const toId = searchParams.get('to_account_id') || accounts.find(a => a.id !== fromId)?.id;
-        setTransferDefaults({
-          from: fromId,
-          to: toId,
-          amount: Number.isFinite(amountNum) ? String(amountNum) : '',
+        setEditing(null);
+        setErrors({});
+        setForm({
           description,
+          amount: Number.isFinite(amountNum) ? String(amountNum) : '',
+          type: 'transfer',
+          category_id: '',
+          account_id: '',
+          date: new Date().toISOString().split('T')[0],
+          notes: '',
+          family_category_id: '',
+          from_account_id: fromId || '',
+          to_account_id: toId || '',
         });
-        setTransferOpen(true);
+        setDialogOpen(true);
       }
     } else {
       const catParam = searchParams.get('category_id') || '';
@@ -198,6 +206,8 @@ const TransactionsPage = () => {
         date: new Date().toISOString().split('T')[0],
         notes: '',
         family_category_id: '',
+        from_account_id: '',
+        to_account_id: '',
       });
       setDialogOpen(true);
     }
