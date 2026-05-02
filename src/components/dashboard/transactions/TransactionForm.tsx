@@ -354,30 +354,68 @@ export const TransactionForm = ({
           </AnimatePresence>
         </div>
 
-        {/* Category */}
-        <div className="space-y-2">
-          <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
-          <CategoryCombobox
-            categories={filteredCategories}
-            value={form.category_id}
-            onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
-            placeholder={locale === 'fr' ? 'Rechercher une catégorie...' : 'Search category...'}
-          />
-        </div>
+        {!isTransfer && (
+          <>
+            {/* Category */}
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><Tag className="w-3 h-3" />{t.category}</Label>
+              <CategoryCombobox
+                categories={filteredCategories}
+                value={form.category_id}
+                onValueChange={v => setForm(f => ({ ...f, category_id: v }))}
+                placeholder={locale === 'fr' ? 'Rechercher une catégorie...' : 'Search category...'}
+              />
+            </div>
 
-        {/* Account */}
-        <div className="space-y-2">
-          <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
-          <AccountCombobox
-            accounts={accounts}
-            value={form.account_id}
-            onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
-            placeholder={locale === 'fr' ? 'Rechercher un compte...' : 'Search account...'}
-          />
-        </div>
+            {/* Account */}
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.account}</Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={form.account_id}
+                onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
+                placeholder={locale === 'fr' ? 'Rechercher un compte...' : 'Search account...'}
+              />
+            </div>
+          </>
+        )}
 
-        {/* Family Category — Privacy by Design */}
-        {familyCategories.length > 0 && (
+        {isTransfer && (
+          <>
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.fromAccount}</Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={form.from_account_id || ''}
+                onValueChange={v => setForm(f => ({ ...f, from_account_id: v }))}
+                placeholder={t.selectAccount}
+                error={!!errors.from_account_id}
+              />
+              {errors.from_account_id && <p className="text-xs text-destructive">{errors.from_account_id}</p>}
+            </div>
+            <div className="flex justify-center -my-1 text-muted-foreground">
+              <ArrowRight className="w-4 h-4" />
+            </div>
+            <div className="space-y-2">
+              <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3 h-3" />{t.toAccount}</Label>
+              <AccountCombobox
+                accounts={accounts}
+                value={form.to_account_id || ''}
+                onValueChange={v => setForm(f => ({ ...f, to_account_id: v }))}
+                placeholder={t.selectAccount}
+                excludeId={form.from_account_id}
+                error={!!errors.to_account_id}
+              />
+              {errors.to_account_id && <p className="text-xs text-destructive">{errors.to_account_id}</p>}
+            </div>
+            {accounts.length < 2 && (
+              <p className="text-xs text-destructive">{locale === 'fr' ? 'Crée au moins 2 comptes pour transférer' : 'Create at least 2 accounts to transfer'}</p>
+            )}
+          </>
+        )}
+
+        {/* Family Category — Privacy by Design (not for transfers) */}
+        {!isTransfer && familyCategories.length > 0 && (
           <div className="space-y-2">
             <Label className="form-label flex items-center gap-1.5">
               <Users className="w-3 h-3" />
