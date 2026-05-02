@@ -10,7 +10,7 @@ import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useFamilyCategories } from '@/hooks/useFamilyCategories';
-import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote, Users, Lock } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, FileText, CreditCard, Tag, Sparkles, Loader2, StickyNote, Users, Lock, ArrowLeftRight, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
@@ -28,15 +28,21 @@ interface TransactionFormProps {
     description: string; amount: string; type: string;
     category_id: string; account_id: string; date: string; notes: string;
     family_category_id?: string;
+    from_account_id?: string; to_account_id?: string;
   };
   setForm: React.Dispatch<React.SetStateAction<{
     description: string; amount: string; type: string;
     category_id: string; account_id: string; date: string; notes: string;
     family_category_id?: string;
+    from_account_id?: string; to_account_id?: string;
   }>>;
   errors: Record<string, string>;
   saving: boolean;
   onSave: () => void;
+  /** Called when user switches to transfer tab and submits — runs perform_transfer RPC. */
+  onTransfer?: () => Promise<void> | void;
+  /** Hide the transfer tab (e.g., when editing an existing transaction). */
+  allowTransfer?: boolean;
   categories: any[];
   accounts: any[];
   recentDescriptions: any[];
@@ -50,6 +56,7 @@ interface TransactionFormProps {
 
 export const TransactionForm = ({
   open, onOpenChange, editing, form, setForm, errors, saving, onSave,
+  onTransfer, allowTransfer = true,
   categories, accounts, recentDescriptions, savingsGoals = [], budgets = [],
   canUseAISuggestions, t, locale, currency = 'EUR',
 }: TransactionFormProps) => {
