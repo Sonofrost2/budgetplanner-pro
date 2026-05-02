@@ -352,15 +352,24 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
 
         {showStrength && pwd.length > 0 && (
           <motion.div
+            id={strengthId}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="space-y-1 pt-0.5"
           >
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-muted-foreground">Force</span>
+              <span className="text-muted-foreground">{l.strengthLabel}</span>
               <span className={cn("font-semibold tabular-nums", meta.text)}>{meta.label}</span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+            <div
+              role="progressbar"
+              aria-label={l.strengthLabel}
+              aria-valuemin={0}
+              aria-valuemax={5}
+              aria-valuenow={score}
+              aria-valuetext={meta.label}
+              className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden"
+            >
               <motion.div
                 className={cn("h-full rounded-full transition-colors", meta.color)}
                 initial={{ width: 0 }}
@@ -368,11 +377,16 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
                 transition={{ duration: 0.35, ease: "easeOut" }}
               />
             </div>
+            <span className="sr-only" aria-live="polite">
+              {l.strengthAnnounce(meta.label)}
+            </span>
           </motion.div>
         )}
 
         {showChecklist && pwd.length > 0 && (
           <motion.ul
+            id={checklistId}
+            aria-label={l.checklistLabel}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 pt-1"
@@ -386,12 +400,14 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
             ].map((c, i) => (
               <li
                 key={i}
+                aria-label={`${c.label} — ${c.ok ? l.criterionMet : l.criterionNotMet}`}
                 className={cn(
                   "flex items-center gap-1.5 text-[11px] transition-colors",
                   c.ok ? "text-secondary" : "text-muted-foreground/70"
                 )}
               >
                 <span
+                  aria-hidden="true"
                   className={cn(
                     "flex items-center justify-center w-3.5 h-3.5 rounded-full transition-all flex-shrink-0",
                     c.ok ? "bg-secondary/20" : "bg-muted/60"
@@ -405,26 +421,29 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
           </motion.ul>
         )}
 
-        {showMatch && matchLabel && matches !== null && (
+        {showMatch && matches !== null && (
           <p
+            id={matchId}
+            role="status"
+            aria-live="polite"
             className={cn(
               "text-[11px] font-medium flex items-center gap-1",
               matches ? "text-secondary" : "text-destructive"
             )}
           >
-            <span className={cn("inline-block w-1 h-1 rounded-full", matches ? "bg-secondary" : "bg-destructive")} />
+            <span aria-hidden="true" className={cn("inline-block w-1 h-1 rounded-full", matches ? "bg-secondary" : "bg-destructive")} />
             {matches ? l.matchOk : l.matchKo}
           </p>
         )}
 
         {error && (
-          <p className="text-[11px] text-destructive font-medium flex items-center gap-1">
-            <span className="inline-block w-1 h-1 rounded-full bg-destructive" />
+          <p id={errorId} role="alert" aria-live="assertive" className="text-[11px] text-destructive font-medium flex items-center gap-1">
+            <span aria-hidden="true" className="inline-block w-1 h-1 rounded-full bg-destructive" />
             {error}
           </p>
         )}
         {hint && !error && (
-          <p className="text-[10px] text-muted-foreground/70">{hint}</p>
+          <p id={hintId} className="text-[10px] text-muted-foreground/70">{hint}</p>
         )}
       </div>
     );
