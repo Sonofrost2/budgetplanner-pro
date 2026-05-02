@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wallet, Mail, Lock, User, CheckCircle, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
+import { Wallet, Mail, User, CheckCircle, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { PasswordField, evaluatePassword } from '@/components/ui/password-field';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { lovable } from '@/integrations/lovable/index';
@@ -80,8 +81,13 @@ const Signup = () => {
       toast.error(t.auth.confirmPassword + ' ❌');
       return;
     }
-    if (password.length < 8) {
-      toast.error('Password must be at least 8 characters');
+    const { score, criteria } = evaluatePassword(password);
+    if (!criteria.minLength) {
+      toast.error(locale === 'fr' ? 'Mot de passe trop court (8 caractères min.)' : 'Password too short (8 chars min.)');
+      return;
+    }
+    if (score < 3) {
+      toast.error(locale === 'fr' ? 'Mot de passe trop faible — ajoutez majuscule, chiffre ou symbole' : 'Password too weak — add uppercase, digit or symbol');
       return;
     }
     if (!acceptTerms) {
@@ -198,20 +204,38 @@ const Signup = () => {
                   </div>
                 </motion.div>
 
-                <motion.div {...fadeUp(0.25)} className="space-y-2">
-                  <Label htmlFor="password" className="form-label">{t.auth.password}</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required minLength={8} />
-                  </div>
+                <motion.div {...fadeUp(0.25)}>
+                  <PasswordField
+                    id="password"
+                    label={t.auth.password}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    showStrength
+                    showChecklist
+                    showGenerate
+                    locale={locale === 'en' ? 'en' : 'fr'}
+                    onGenerated={(pwd) => setConfirmPassword(pwd)}
+                  />
                 </motion.div>
 
-                <motion.div {...fadeUp(0.3)} className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="form-label">{t.auth.confirmPassword}</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required minLength={8} />
-                  </div>
+                <motion.div {...fadeUp(0.3)}>
+                  <PasswordField
+                    id="confirmPassword"
+                    label={t.auth.confirmPassword}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    showMatch
+                    matchValue={password}
+                    locale={locale === 'en' ? 'en' : 'fr'}
+                  />
                 </motion.div>
 
                 <motion.div {...fadeUp(0.32)} className="space-y-2">

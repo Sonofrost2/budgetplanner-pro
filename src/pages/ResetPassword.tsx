@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wallet, Lock, CheckCircle } from 'lucide-react';
+import { Wallet, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { PasswordField, evaluatePassword } from '@/components/ui/password-field';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 const ResetPassword = () => {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -43,8 +42,13 @@ const ResetPassword = () => {
       toast.error(t.auth.confirmPassword + ' ❌');
       return;
     }
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    const { score, criteria } = evaluatePassword(password);
+    if (!criteria.minLength) {
+      toast.error(locale === 'fr' ? 'Mot de passe trop court (8 caractères min.)' : 'Password too short (8 chars min.)');
+      return;
+    }
+    if (score < 3) {
+      toast.error(locale === 'fr' ? 'Mot de passe trop faible' : 'Password too weak');
       return;
     }
     setLoading(true);
@@ -111,21 +115,34 @@ const ResetPassword = () => {
             <p className="mt-2 text-sm text-muted-foreground">{t.auth.newPasswordDesc || 'Choisissez un nouveau mot de passe pour votre compte.'}</p>
 
             <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="form-label">{t.auth.password}</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required minLength={6} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="form-label">{t.auth.confirmPassword}</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/60 focus-visible:border-primary/60" required minLength={6} />
-                </div>
-              </div>
+              <PasswordField
+                id="password"
+                label={t.auth.password}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={8}
+                autoComplete="new-password"
+                showStrength
+                showChecklist
+                showGenerate
+                locale={locale === 'en' ? 'en' : 'fr'}
+                onGenerated={(pwd) => setConfirmPassword(pwd)}
+              />
+              <PasswordField
+                id="confirmPassword"
+                label={t.auth.confirmPassword}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={8}
+                autoComplete="new-password"
+                showMatch
+                matchValue={password}
+                locale={locale === 'en' ? 'en' : 'fr'}
+              />
 
               <Button type="submit" className="w-full h-11 rounded-xl text-primary-foreground font-semibold shadow-lg shadow-primary/20" style={{ background: 'var(--gradient-primary)' }} disabled={loading}>
                 {loading ? '...' : (t.auth.updatePassword || 'Mettre à jour')}
