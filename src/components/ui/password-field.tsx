@@ -211,6 +211,16 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
     const { score, criteria } = React.useMemo(() => evaluatePassword(pwd), [pwd]);
     const meta = strengthMeta(score, l);
 
+    // Stable IDs for ARIA relationships
+    const reactId = React.useId();
+    const inputId = (props.id as string | undefined) ?? `pwd-${reactId}`;
+    const strengthId = `${inputId}-strength`;
+    const checklistId = `${inputId}-checklist`;
+    const matchId = `${inputId}-match`;
+    const capsId = `${inputId}-caps`;
+    const errorId = `${inputId}-error`;
+    const hintId = `${inputId}-hint`;
+
     const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (typeof e.getModifierState === "function") {
         setCapsOn(e.getModifierState("CapsLock"));
@@ -238,11 +248,22 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
       ? pwd === matchValue
       : null;
 
+    const describedBy = [
+      showStrength && pwd.length > 0 ? strengthId : null,
+      showChecklist && pwd.length > 0 ? checklistId : null,
+      showMatch && matches !== null ? matchId : null,
+      capsOn ? capsId : null,
+      error ? errorId : null,
+      hint && !error ? hintId : null,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
     return (
       <div className="space-y-1.5">
         {label && (
           <div className="flex items-center justify-between">
-            <label className="form-label flex items-center gap-1.5">
+            <label htmlFor={inputId} className="form-label flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-primary/70" />
               {label}
             </label>
@@ -250,7 +271,8 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
               <button
                 type="button"
                 onClick={handleGenerate}
-                className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1 transition-colors"
+                aria-label={l.generate}
+                className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1 transition-colors rounded outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               >
                 <Wand2 className="w-3 h-3" />
                 {l.generate}
