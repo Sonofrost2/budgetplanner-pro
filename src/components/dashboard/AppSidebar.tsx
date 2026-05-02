@@ -272,6 +272,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
   };
 
   return (
+    <>
     <Sidebar
       collapsible="icon"
       className="border-r border-sidebar-border/50 bg-sidebar/70 backdrop-blur-2xl"
