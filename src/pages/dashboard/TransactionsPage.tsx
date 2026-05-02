@@ -354,13 +354,13 @@ const TransactionsPage = () => {
   const openNew = () => {
     if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
     setEditing(null); setErrors({});
-    setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', account_id: accounts[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '' });
+    setForm({ description: '', amount: '', type: 'expense', category_id: categories[0]?.id || '', account_id: accounts[0]?.id || '', date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '', from_account_id: '', to_account_id: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (tx: any) => {
     setEditing(tx); setErrors({});
-    setForm({ description: tx.description, amount: String(tx.amount), type: tx.type, category_id: tx.category_id || '', account_id: tx.account_id || '', date: tx.date, notes: tx.notes || '', family_category_id: tx.family_category_id || '' });
+    setForm({ description: tx.description, amount: String(tx.amount), type: tx.type, category_id: tx.category_id || '', account_id: tx.account_id || '', date: tx.date, notes: tx.notes || '', family_category_id: tx.family_category_id || '', from_account_id: '', to_account_id: '' });
     setDialogOpen(true);
   };
 
