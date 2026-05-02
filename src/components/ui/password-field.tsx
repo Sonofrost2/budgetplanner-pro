@@ -75,6 +75,13 @@ const i18n = {
     matchOk: "Les mots de passe correspondent",
     matchKo: "Les mots de passe ne correspondent pas",
     copy: "Copier",
+    showA11y: "Afficher le mot de passe",
+    hideA11y: "Masquer le mot de passe",
+    strengthLabel: "Force du mot de passe",
+    strengthAnnounce: (s: string) => `Force du mot de passe : ${s}`,
+    checklistLabel: "Critères du mot de passe",
+    criterionMet: "rempli",
+    criterionNotMet: "non rempli",
   },
   en: {
     show: "Show",
@@ -95,6 +102,13 @@ const i18n = {
     matchOk: "Passwords match",
     matchKo: "Passwords don't match",
     copy: "Copy",
+    showA11y: "Show password",
+    hideA11y: "Hide password",
+    strengthLabel: "Password strength",
+    strengthAnnounce: (s: string) => `Password strength: ${s}`,
+    checklistLabel: "Password requirements",
+    criterionMet: "met",
+    criterionNotMet: "not met",
   },
 };
 
@@ -197,6 +211,16 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
     const { score, criteria } = React.useMemo(() => evaluatePassword(pwd), [pwd]);
     const meta = strengthMeta(score, l);
 
+    // Stable IDs for ARIA relationships
+    const reactId = React.useId();
+    const inputId = (props.id as string | undefined) ?? `pwd-${reactId}`;
+    const strengthId = `${inputId}-strength`;
+    const checklistId = `${inputId}-checklist`;
+    const matchId = `${inputId}-match`;
+    const capsId = `${inputId}-caps`;
+    const errorId = `${inputId}-error`;
+    const hintId = `${inputId}-hint`;
+
     const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (typeof e.getModifierState === "function") {
         setCapsOn(e.getModifierState("CapsLock"));
@@ -224,11 +248,22 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
       ? pwd === matchValue
       : null;
 
+    const describedBy = [
+      showStrength && pwd.length > 0 ? strengthId : null,
+      showChecklist && pwd.length > 0 ? checklistId : null,
+      showMatch && matches !== null ? matchId : null,
+      capsOn ? capsId : null,
+      error ? errorId : null,
+      hint && !error ? hintId : null,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
     return (
       <div className="space-y-1.5">
         {label && (
           <div className="flex items-center justify-between">
-            <label className="form-label flex items-center gap-1.5">
+            <label htmlFor={inputId} className="form-label flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-primary/70" />
               {label}
             </label>
@@ -236,7 +271,8 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
               <button
                 type="button"
                 onClick={handleGenerate}
-                className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1 transition-colors"
+                aria-label={l.generate}
+                className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1 transition-colors rounded outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               >
                 <Wand2 className="w-3 h-3" />
                 {l.generate}
@@ -256,14 +292,17 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
             className
           )}
         >
-          <Lock className="ml-3 w-4 h-4 text-muted-foreground group-focus-within:text-primary flex-shrink-0 transition-colors" />
+          <Lock aria-hidden="true" className="ml-3 w-4 h-4 text-muted-foreground group-focus-within:text-primary flex-shrink-0 transition-colors" />
           <input
             ref={ref}
+            id={inputId}
             type={visible ? "text" : "password"}
             value={value}
             onChange={onChange}
             onKeyDown={handleKey}
             onKeyUp={handleKey}
+            aria-invalid={!!error || undefined}
+            aria-describedby={describedBy}
             className={cn(
               "flex-1 h-11 bg-transparent px-3 py-2 text-base ring-0 outline-none",
               "placeholder:text-muted-foreground/60 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
@@ -272,6 +311,7 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
           />
           {showMatch && matches !== null && (
             <span
+              aria-hidden="true"
               className={cn(
                 "mr-1 flex items-center justify-center w-6 h-6 rounded-full transition-all",
                 matches ? "bg-secondary/15 text-secondary" : "bg-destructive/15 text-destructive"
@@ -284,23 +324,27 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            className="mr-2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-            aria-label={visible ? l.hide : l.show}
-            tabIndex={-1}
+            className="mr-2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+            aria-label={visible ? l.hideA11y : l.showA11y}
+            aria-pressed={visible}
+            aria-controls={inputId}
           >
-            {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {visible ? <EyeOff aria-hidden="true" className="w-4 h-4" /> : <Eye aria-hidden="true" className="w-4 h-4" />}
           </button>
         </div>
 
         <AnimatePresence>
           {capsOn && (
             <motion.div
+              id={capsId}
+              role="status"
+              aria-live="polite"
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium"
             >
-              <AlertTriangle className="w-3 h-3" />
+              <AlertTriangle aria-hidden="true" className="w-3 h-3" />
               {l.capsLock}
             </motion.div>
           )}
@@ -308,15 +352,24 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
 
         {showStrength && pwd.length > 0 && (
           <motion.div
+            id={strengthId}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="space-y-1 pt-0.5"
           >
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-muted-foreground">Force</span>
+              <span className="text-muted-foreground">{l.strengthLabel}</span>
               <span className={cn("font-semibold tabular-nums", meta.text)}>{meta.label}</span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+            <div
+              role="progressbar"
+              aria-label={l.strengthLabel}
+              aria-valuemin={0}
+              aria-valuemax={5}
+              aria-valuenow={score}
+              aria-valuetext={meta.label}
+              className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden"
+            >
               <motion.div
                 className={cn("h-full rounded-full transition-colors", meta.color)}
                 initial={{ width: 0 }}
@@ -324,11 +377,16 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
                 transition={{ duration: 0.35, ease: "easeOut" }}
               />
             </div>
+            <span className="sr-only" aria-live="polite">
+              {l.strengthAnnounce(meta.label)}
+            </span>
           </motion.div>
         )}
 
         {showChecklist && pwd.length > 0 && (
           <motion.ul
+            id={checklistId}
+            aria-label={l.checklistLabel}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 pt-1"
@@ -342,12 +400,14 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
             ].map((c, i) => (
               <li
                 key={i}
+                aria-label={`${c.label} — ${c.ok ? l.criterionMet : l.criterionNotMet}`}
                 className={cn(
                   "flex items-center gap-1.5 text-[11px] transition-colors",
                   c.ok ? "text-secondary" : "text-muted-foreground/70"
                 )}
               >
                 <span
+                  aria-hidden="true"
                   className={cn(
                     "flex items-center justify-center w-3.5 h-3.5 rounded-full transition-all flex-shrink-0",
                     c.ok ? "bg-secondary/20" : "bg-muted/60"
@@ -361,26 +421,29 @@ const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
           </motion.ul>
         )}
 
-        {showMatch && matchLabel && matches !== null && (
+        {showMatch && matches !== null && (
           <p
+            id={matchId}
+            role="status"
+            aria-live="polite"
             className={cn(
               "text-[11px] font-medium flex items-center gap-1",
               matches ? "text-secondary" : "text-destructive"
             )}
           >
-            <span className={cn("inline-block w-1 h-1 rounded-full", matches ? "bg-secondary" : "bg-destructive")} />
+            <span aria-hidden="true" className={cn("inline-block w-1 h-1 rounded-full", matches ? "bg-secondary" : "bg-destructive")} />
             {matches ? l.matchOk : l.matchKo}
           </p>
         )}
 
         {error && (
-          <p className="text-[11px] text-destructive font-medium flex items-center gap-1">
-            <span className="inline-block w-1 h-1 rounded-full bg-destructive" />
+          <p id={errorId} role="alert" aria-live="assertive" className="text-[11px] text-destructive font-medium flex items-center gap-1">
+            <span aria-hidden="true" className="inline-block w-1 h-1 rounded-full bg-destructive" />
             {error}
           </p>
         )}
         {hint && !error && (
-          <p className="text-[10px] text-muted-foreground/70">{hint}</p>
+          <p id={hintId} className="text-[10px] text-muted-foreground/70">{hint}</p>
         )}
       </div>
     );
