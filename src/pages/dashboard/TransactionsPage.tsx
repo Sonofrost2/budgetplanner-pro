@@ -523,7 +523,10 @@ const TransactionsPage = () => {
         locale={locale as 'fr' | 'en'}
         t={t}
         onAddNew={openNew}
-        onTransfer={() => setTransferOpen(true)}
+        onTransfer={() => {
+          if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
+          setTransferOpen(true);
+        }}
         canTransfer={accounts.length >= 2}
         limitReached={limitReached}
         thisMonthCount={thisMonthCount}
