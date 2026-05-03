@@ -43,6 +43,8 @@ interface TransactionFormProps {
   onTransfer?: () => Promise<void> | void;
   /** Hide the transfer tab (e.g., when editing an existing transaction). */
   allowTransfer?: boolean;
+  /** When set, transfer tab is shown but disabled with this tooltip reason. */
+  transferDisabledReason?: string;
   categories: any[];
   accounts: any[];
   recentDescriptions: any[];
@@ -56,7 +58,7 @@ interface TransactionFormProps {
 
 export const TransactionForm = ({
   open, onOpenChange, editing, form, setForm, errors, saving, onSave,
-  onTransfer, allowTransfer = true,
+  onTransfer, allowTransfer = true, transferDisabledReason,
   categories, accounts, recentDescriptions, savingsGoals = [], budgets = [],
   canUseAISuggestions, t, locale, currency = 'EUR',
 }: TransactionFormProps) => {
