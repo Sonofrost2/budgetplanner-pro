@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createHmac } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,7 +31,16 @@ Deno.serve(async (req) => {
       .update(body)
       .digest('hex');
 
-    if (hash !== signature) {
+    // Constant-time comparison (anti timing-attack)
+    let signatureValid = false;
+    try {
+      const a = Buffer.from(hash, 'hex');
+      const b = Buffer.from(signature, 'hex');
+      signatureValid = a.length === b.length && timingSafeEqual(a, b);
+    } catch (_) {
+      signatureValid = false;
+    }
+    if (!signatureValid) {
       console.error('Signature mismatch');
       return new Response('Invalid signature', { status: 401 });
     }
@@ -61,6 +70,34 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Defense-in-depth: re-verify the transaction directly with Paystack
+    // before trusting the payload (mitigates risk if signing key ever leaks).
+    try {
+      const verifyRes = await fetch(
+        `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+        { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } },
+      );
+      const verifyJson = await verifyRes.json();
+      const status = verifyJson?.data?.status;
+      const verifiedAmount = verifyJson?.data?.amount;
+      const verifiedCurrency = verifyJson?.data?.currency;
+      if (!verifyJson?.status || status !== 'success') {
+        console.error('Re-verify failed', status, verifyJson?.message);
+        return new Response('Verification failed', { status: 400 });
+      }
+      // Cross-check amount/currency with the webhook payload
+      if (
+        Number(verifiedAmount) !== Number(txData.amount) ||
+        String(verifiedCurrency) !== String(txData.currency)
+      ) {
+        console.error('Amount/currency mismatch between webhook and verify');
+        return new Response('Amount mismatch', { status: 400 });
+      }
+    } catch (e) {
+      console.error('Re-verify exception:', e);
+      return new Response('Verification error', { status: 500 });
     }
 
     // 4. Use service role to update DB
