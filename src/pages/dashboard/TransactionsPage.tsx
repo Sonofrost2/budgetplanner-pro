@@ -593,6 +593,7 @@ const TransactionsPage = () => {
         }}
         canTransfer={accounts.length >= 2}
         limitReached={limitReached}
+        transferDisabledReason={transferLimitMessage}
         thisMonthCount={thisMonthCount}
         monthlyLimit={limits.transactionsPerMonth}
         isPremium={isPremium}
