@@ -14,16 +14,17 @@ Deno.serve(async (req) => {
       throw new Error('PAYSTACK_SECRET_KEY is not configured');
     }
 
-    const { action, amount, email, currency, description, callback_url, metadata, reference } = await req.json();
+      const { action, amount, email, currency, description, callback_url, metadata, reference } = await req.json();
 
     if (action === 'initialize') {
-      // Initialize a transaction
-      // Paystack amount is in kobo/pesewas (smallest currency unit)
-      // For XOF/XAF, amount is already in the smallest unit
-      const isCfa = currency === 'XOF' || currency === 'XAF';
-      // XOF/XAF have NO decimal places — Paystack rejects fractional amounts.
-      // For other currencies, convert to the smallest unit (kobo/pesewa/cent).
-      const paystackAmount = isCfa ? Math.round(amount) : Math.round(amount * 100);
+      // Paystack expects amounts in the lowest denomination (kobo/pesewa/cent).
+      // For ALL currencies including XOF/XAF, multiply by 100.
+      // XOF/XAF have no decimals, so we must round the input first to avoid
+      // Paystack rejecting fractional amounts ("No decimal places allowed").
+      const cur = (currency || 'XOF').toUpperCase();
+      const isCfa = cur === 'XOF' || cur === 'XAF';
+      const baseAmount = isCfa ? Math.round(amount) : amount;
+      const paystackAmount = Math.round(baseAmount * 100);
 
       const res = await fetch('https://api.paystack.co/transaction/initialize', {
         method: 'POST',
