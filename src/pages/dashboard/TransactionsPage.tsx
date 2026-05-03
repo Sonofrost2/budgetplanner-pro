@@ -1027,6 +1027,11 @@ const TransactionsPage = () => {
         onSave={handleSave}
         onTransfer={handleTransferSubmit}
         allowTransfer={accounts.length >= 2}
+        transferDisabledReason={
+          accounts.length < 2
+            ? (locale === 'fr' ? 'Crée au moins 2 comptes pour transférer' : 'Create at least 2 accounts to transfer')
+            : (!transferQuota.canCreateTransfer ? transferLimitMessage : undefined)
+        }
         categories={categories}
         accounts={accounts}
         recentDescriptions={recentDescriptions}
