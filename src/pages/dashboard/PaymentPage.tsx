@@ -22,50 +22,272 @@ import jsPDF from 'jspdf';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
 import { translateFeature } from '@/lib/planFeatures';
 
-const downloadReceiptPDF = (receipt: any, locale: string, fmtFn: (v: number, l: string) => string) => {
-  const doc = new jsPDF({ unit: 'mm', format: 'a5' });
-  const w = doc.internal.pageSize.getWidth();
+/**
+ * Sanitize a string for jsPDF's WinAnsi (Latin-1) encoding.
+ * Replaces narrow no-break spaces (NNBSP / NBSP) and other Unicode chars
+ * that render as "/" in built-in fonts.
+ */
+const sanitizePdfText = (s: string | number | null | undefined): string => {
+  if (s == null) return '';
+  return String(s)
+    .replace(/[\u00A0\u202F\u2009\u2007]/g, ' ')   // NBSP, NNBSP, thin spaces → regular space
+    .replace(/[\u2013\u2014]/g, '-')                // en/em dash
+    .replace(/[\u2018\u2019]/g, "'")                // curly single quotes
+    .replace(/[\u201C\u201D]/g, '"')                // curly double quotes
+    .replace(/[\u2022\u00B7]/g, '-')                // bullet, middle dot
+    .replace(/\u2026/g, '...')                      // ellipsis
+    .replace(/\u20AC/g, 'EUR')                      // € fallback (kept simple)
+    .replace(/[^\x00-\xFF]/g, '?');                 // anything else outside Latin-1
+};
+
+/** Format an amount with grouped thousands, ASCII-safe (no NNBSP). */
+const formatAmountAscii = (n: number, currency: string, locale: string): string => {
   const isFr = locale === 'fr';
-  const dateStr = format(new Date(receipt.created_at), 'dd MMMM yyyy · HH:mm', { locale: isFr ? fr : enUS });
-  const amountStr = `${fmtFn(receipt.amount, locale)} ${receipt.currency}`;
-  const statusLabel = receipt.status === 'confirmed' ? (isFr ? 'Confirmé' : 'Confirmed') : receipt.status;
+  const hasCents = !['XOF', 'XAF'].includes(currency);
+  const formatted = n.toLocaleString(isFr ? 'fr-FR' : 'en-US', {
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: hasCents ? 2 : 0,
+  }).replace(/[\u00A0\u202F\u2009]/g, ' ');
+  return `${formatted} ${currency}`;
+};
 
-  doc.setFillColor(99, 102, 241);
-  doc.rect(0, 0, w, 28, 'F');
+interface ReceiptPdfContext {
+  locale: string;
+  userEmail?: string | null;
+  displayName?: string | null;
+  plan?: { name?: string; features?: string[] } | null;
+  subscriptionPeriodStart?: string | null;
+  subscriptionPeriodEnd?: string | null;
+  paymentMethod?: string | null;
+}
+
+const downloadReceiptPDF = (receipt: any, ctx: ReceiptPdfContext) => {
+  const { locale, userEmail, displayName, plan, subscriptionPeriodStart, subscriptionPeriodEnd, paymentMethod } = ctx;
+  const isFr = locale === 'fr';
+  const tt = (frTxt: string, enTxt: string) => (isFr ? frTxt : enTxt);
+
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+
+  // ---------- HEADER (gradient-style band) ----------
+  doc.setFillColor(76, 81, 191);                                  // indigo-600
+  doc.rect(0, 0, pageW, 42, 'F');
+  doc.setFillColor(99, 102, 241);                                 // indigo-500 overlay
+  doc.rect(0, 30, pageW, 12, 'F');
+
+  // Brand block
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('Budget Planner', w / 2, 12, { align: 'center' });
-  doc.setFontSize(9);
+  doc.setFontSize(20);
+  doc.text(sanitizePdfText('Budget Planner Pro'), 20, 20);
   doc.setFont('helvetica', 'normal');
-  doc.text(isFr ? 'Reçu de paiement' : 'Payment Receipt', w / 2, 20, { align: 'center' });
+  doc.setFontSize(9);
+  doc.text(sanitizePdfText(tt('Gestion budgetaire intelligente', 'Smart budget management')), 20, 27);
 
-  doc.setTextColor(60, 60, 60);
-  let y = 40;
-  const labelX = 16;
-  const valueX = w - 16;
-  const addRow = (label: string, value: string) => {
+  // Receipt label (right)
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.text(sanitizePdfText(tt('RECU DE PAIEMENT', 'PAYMENT RECEIPT')), pageW - 20, 20, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  const refShort = receipt.payment_token ? String(receipt.payment_token).slice(0, 16) : receipt.id?.slice(0, 8) ?? '-';
+  doc.text(sanitizePdfText(`N° ${refShort}`), pageW - 20, 27, { align: 'right' });
+
+  // ---------- META BAR (issued / status) ----------
+  let y = 56;
+  const dateStr = format(new Date(receipt.created_at), 'dd MMMM yyyy - HH:mm', { locale: isFr ? fr : enUS });
+  doc.setTextColor(110, 110, 120);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text(sanitizePdfText(tt('Emis le', 'Issued on').toUpperCase()), 20, y);
+  doc.setTextColor(30, 30, 40);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(sanitizePdfText(dateStr), 20, y + 5);
+
+  // Status pill
+  const isConfirmed = receipt.status === 'confirmed';
+  const isPending = receipt.status === 'pending';
+  const pillColor: [number, number, number] = isConfirmed ? [16, 185, 129] : isPending ? [245, 158, 11] : [239, 68, 68];
+  const statusLabel = isConfirmed ? tt('CONFIRME', 'CONFIRMED') : isPending ? tt('EN ATTENTE', 'PENDING') : String(receipt.status).toUpperCase();
+  const pillTextW = doc.getTextWidth(statusLabel);
+  const pillW = pillTextW + 12;
+  const pillX = pageW - 20 - pillW;
+  doc.setFillColor(...pillColor);
+  doc.roundedRect(pillX, y - 2, pillW, 8, 2, 2, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text(sanitizePdfText(statusLabel), pillX + pillW / 2, y + 3.6, { align: 'center' });
+
+  // ---------- BILLED TO ----------
+  y = 78;
+  doc.setDrawColor(230, 230, 235);
+  doc.line(20, y - 4, pageW - 20, y - 4);
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(110, 110, 120);
+  doc.text(sanitizePdfText(tt('FACTURE A', 'BILLED TO')), 20, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(30, 30, 40);
+  doc.setFontSize(10);
+  doc.text(sanitizePdfText(displayName || userEmail || tt('Client', 'Customer')), 20, y + 6);
+  if (userEmail && displayName) {
+    doc.setFontSize(9);
+    doc.setTextColor(110, 110, 120);
+    doc.text(sanitizePdfText(userEmail), 20, y + 11);
+  }
+
+  // Vendor block (right)
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(110, 110, 120);
+  doc.text(sanitizePdfText(tt('FOURNISSEUR', 'VENDOR')), pageW - 20, y, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(30, 30, 40);
+  doc.setFontSize(10);
+  doc.text(sanitizePdfText('Budget Planner Pro'), pageW - 20, y + 6, { align: 'right' });
+  doc.setFontSize(9);
+  doc.setTextColor(110, 110, 120);
+  doc.text(sanitizePdfText('support@budget-planner-pro.eurekaci.dev'), pageW - 20, y + 11, { align: 'right' });
+
+  // ---------- LINE ITEM TABLE ----------
+  y = 110;
+  // Header row
+  doc.setFillColor(244, 245, 250);
+  doc.rect(20, y, pageW - 40, 9, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(80, 80, 95);
+  doc.text(sanitizePdfText(tt('DESCRIPTION', 'DESCRIPTION')), 24, y + 6);
+  doc.text(sanitizePdfText(tt('PERIODE', 'PERIOD')), pageW / 2, y + 6);
+  doc.text(sanitizePdfText(tt('MONTANT', 'AMOUNT')), pageW - 24, y + 6, { align: 'right' });
+  y += 12;
+
+  // Item line
+  const planName = (plan?.name || receipt.plan_name || '').toString();
+  const planLabel = `${tt('Abonnement', 'Subscription')} ${planName.charAt(0).toUpperCase() + planName.slice(1)}`;
+  let periodLabel = tt('Mensuel', 'Monthly');
+  if (subscriptionPeriodStart && subscriptionPeriodEnd) {
+    const ps = format(new Date(subscriptionPeriodStart), 'dd/MM/yyyy');
+    const pe = format(new Date(subscriptionPeriodEnd), 'dd/MM/yyyy');
+    periodLabel = `${ps} -> ${pe}`;
+  }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(30, 30, 40);
+  doc.text(sanitizePdfText(planLabel), 24, y + 4);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(110, 110, 120);
+  doc.text(sanitizePdfText(periodLabel), pageW / 2, y + 4);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(30, 30, 40);
+  doc.text(sanitizePdfText(formatAmountAscii(Number(receipt.amount) || 0, receipt.currency || 'XOF', locale)), pageW - 24, y + 4, { align: 'right' });
+  y += 12;
+
+  // Plan features (up to 5)
+  const features: string[] = Array.isArray(plan?.features) ? plan!.features as string[] : [];
+  if (features.length > 0) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(110, 110, 120);
+    features.slice(0, 5).forEach(f => {
+      doc.text(sanitizePdfText(`- ${f}`), 28, y);
+      y += 4.5;
+    });
+    y += 3;
+  }
+
+  // Divider
+  doc.setDrawColor(230, 230, 235);
+  doc.line(20, y, pageW - 20, y);
+  y += 8;
+
+  // ---------- TOTALS BOX ----------
+  const amount = Number(receipt.amount) || 0;
+  const currency = receipt.currency || 'XOF';
+  const totalsX = pageW - 90;
+  const writeTotal = (label: string, value: string, bold = false) => {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setTextColor(bold ? 30 : 110, bold ? 30 : 110, bold ? 40 : 120);
+    doc.text(sanitizePdfText(label), totalsX, y);
+    doc.setTextColor(30, 30, 40);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.text(sanitizePdfText(value), pageW - 20, y, { align: 'right' });
+    y += 6;
+  };
+  writeTotal(tt('Sous-total', 'Subtotal'), formatAmountAscii(amount, currency, locale));
+  writeTotal(tt('Taxes', 'Taxes'), formatAmountAscii(0, currency, locale));
+  y += 1;
+  doc.setDrawColor(230, 230, 235);
+  doc.line(totalsX, y - 3, pageW - 20, y - 3);
+  y += 2;
+  // Total highlighted
+  doc.setFillColor(244, 245, 250);
+  doc.rect(totalsX - 4, y - 5, pageW - 20 - totalsX + 4, 10, 'F');
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(76, 81, 191);
+  doc.text(sanitizePdfText(tt('TOTAL PAYE', 'TOTAL PAID')), totalsX, y + 1);
+  doc.text(sanitizePdfText(formatAmountAscii(amount, currency, locale)), pageW - 20, y + 1, { align: 'right' });
+  y += 14;
+
+  // ---------- PAYMENT DETAILS ----------
+  y += 4;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(110, 110, 120);
+  doc.text(sanitizePdfText(tt('DETAILS DU PAIEMENT', 'PAYMENT DETAILS')), 20, y);
+  y += 6;
+  const detailRow = (label: string, value: string) => {
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(120, 120, 120);
-    doc.text(label, labelX, y);
-    doc.setTextColor(40, 40, 40);
+    doc.setTextColor(110, 110, 120);
+    doc.text(sanitizePdfText(label), 20, y);
+    doc.setTextColor(30, 30, 40);
     doc.setFont('helvetica', 'bold');
-    doc.text(value, valueX, y, { align: 'right' });
-    y += 10;
-    doc.setDrawColor(230, 230, 230);
-    doc.line(labelX, y - 4, valueX, y - 4);
+    doc.text(sanitizePdfText(value), 80, y);
+    y += 5.5;
   };
-  addRow('Plan', receipt.plan_name);
-  addRow(isFr ? 'Montant' : 'Amount', amountStr);
-  addRow('Date', dateStr);
-  addRow(isFr ? 'Statut' : 'Status', statusLabel);
-  if (receipt.payment_token) addRow('Ref', receipt.payment_token);
+  detailRow(tt('Methode', 'Method'), paymentMethod ? paymentMethod.toUpperCase() : 'PAYSTACK');
+  detailRow(tt('Devise', 'Currency'), currency);
+  detailRow(tt('Reference', 'Reference'), receipt.payment_token || receipt.id || '-');
+  if (receipt.id) detailRow(tt('ID transaction', 'Transaction ID'), receipt.id);
 
-  doc.setFontSize(7);
+  // ---------- THANK YOU + LEGAL ----------
+  y = pageH - 50;
+  doc.setDrawColor(230, 230, 235);
+  doc.line(20, y, pageW - 20, y);
+  y += 8;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(76, 81, 191);
+  doc.text(sanitizePdfText(tt('Merci pour votre confiance !', 'Thank you for your trust!')), pageW / 2, y, { align: 'center' });
+  y += 5;
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(160, 160, 160);
-  doc.text(`© ${new Date().getFullYear()} Budget Planner`, w / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+  doc.setTextColor(110, 110, 120);
+  doc.text(
+    sanitizePdfText(tt(
+      'Ce document tient lieu de recu officiel. Conservez-le pour vos archives.',
+      'This document serves as an official receipt. Please keep it for your records.',
+    )),
+    pageW / 2, y, { align: 'center' },
+  );
+
+  // Footer
+  doc.setFontSize(7);
+  doc.setTextColor(160, 160, 170);
+  doc.text(
+    sanitizePdfText(`© ${new Date().getFullYear()} Budget Planner Pro - support@budget-planner-pro.eurekaci.dev`),
+    pageW / 2, pageH - 10, { align: 'center' },
+  );
+
   doc.save(`receipt-${receipt.plan_name}-${format(new Date(receipt.created_at), 'yyyy-MM-dd')}.pdf`);
 };
 
@@ -444,6 +666,9 @@ const PaymentPage = () => {
             locale={locale}
             fmt={fmt}
             t={t}
+            user={user}
+            plans={plans}
+            subscription={subscription}
           />
         </TabsContent>
       </Tabs>
@@ -700,7 +925,20 @@ const FeatureComparisonTable = ({ plans, isFr }: { plans: Plan[]; isFr: boolean 
 };
 
 /* ============ BILLING TAB ============ */
-const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch, setReceiptSearch, receiptStatus, setReceiptStatus, isFr, locale, fmt, t }: any) => {
+const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch, setReceiptSearch, receiptStatus, setReceiptStatus, isFr, locale, fmt, t, user, plans, subscription }: any) => {
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('profiles').select('display_name').eq('user_id', user.id).single()
+      .then(({ data }) => setDisplayName(data?.display_name ?? null));
+  }, [user?.id]);
+  const plansLookup: Record<string, any> = useMemo(() => {
+    const m: Record<string, any> = {};
+    (plans || []).forEach((p: any) => { m[p.name] = p; });
+    return m;
+  }, [plans]);
+  const userEmail = user?.email ?? null;
+  const subscriptionForReceipt = subscription;
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -792,7 +1030,15 @@ const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 rounded-lg shrink-0"
-                    onClick={() => downloadReceiptPDF(r, locale, fmt)}
+                    onClick={() => downloadReceiptPDF(r, {
+                      locale,
+                      userEmail: userEmail,
+                      displayName: displayName,
+                      plan: plansLookup?.[r.plan_name] || null,
+                      subscriptionPeriodStart: subscriptionForReceipt?.current_period_start || null,
+                      subscriptionPeriodEnd: subscriptionForReceipt?.current_period_end || null,
+                      paymentMethod: subscriptionForReceipt?.payment_method || 'paystack',
+                    })}
                     title={isFr ? 'Télécharger PDF' : 'Download PDF'}
                   >
                     <Download className="w-3.5 h-3.5" />
