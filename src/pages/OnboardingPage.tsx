@@ -101,49 +101,31 @@ const OnboardingPage = () => {
 
   const handlePayment = async () => {
     if (!selectedPlanData || !user) return;
-    const price = formatPrice((selectedPlanData.currency_prices || {}) as Record<string, number>);
     setPaymentLoading(true);
     try {
-      const { resolvePaystackPrice, formatXofConversionMessage } = await import('@/lib/paystackCurrency');
-      const resolved = resolvePaystackPrice(price.amount, price.currency || currency || 'XOF');
-      const conversionMsg = formatXofConversionMessage(resolved, isFr);
-      if (conversionMsg) toast.info(conversionMsg, { duration: 6000 });
       const { data, error } = await supabase.functions.invoke('paystack-checkout', {
         body: {
           action: 'initialize',
-          amount: resolved.amount,
-          email: user.email,
-          currency: resolved.currency,
-          description: `Budget Planner ${selectedPlan === 'premium' ? 'Premium' : 'Pro'} - ${price.formatted}/mois`,
+          plan_id: selectedPlanData.id,
+          annual: false,
           callback_url: window.location.origin + '/onboarding?paystack=1',
-          metadata: { plan_id: selectedPlanData.id, plan_name: selectedPlan, user_id: user.id, source: 'onboarding' },
         },
       });
       if (error) throw error;
+      if (data?.code === 'ALREADY_SUBSCRIBED') {
+        toast.info(isFr ? 'Vous etes deja abonne a ce plan.' : 'You are already subscribed to this plan.');
+        setPaymentLoading(false);
+        return;
+      }
       if (data?.status && data?.data?.authorization_url) {
         const reference = data.data.reference || '';
         setPaymentToken(reference);
-        await supabase.from('subscriptions').insert({
-          user_id: user.id,
-          plan_id: selectedPlanData.id,
-          status: 'pending',
-          payment_method: 'paystack',
-          last_payment_token: reference || null,
-        });
-        await supabase.from('payment_receipts').insert({
-          user_id: user.id,
-          plan_name: selectedPlan,
-          amount: resolved.amount || 0,
-          currency: resolved.currency,
-          payment_token: reference || null,
-          status: 'pending',
-        });
         window.open(data.data.authorization_url, '_blank');
         toast.info(isFr
           ? "Finalisez le paiement dans l'onglet ouvert, puis cliquez sur Vérifier."
           : 'Complete payment in the opened tab, then click Verify.');
       } else {
-        toast.error(data?.data?.message || data?.message || (isFr ? 'Erreur lors du paiement' : 'Payment error'));
+        toast.error(data?.message || (isFr ? 'Erreur lors du paiement' : 'Payment error'));
       }
     } catch (err: any) {
       toast.error(err.message || 'Error');

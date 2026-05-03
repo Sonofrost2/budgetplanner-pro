@@ -369,34 +369,39 @@ const PaymentPage = () => {
 
   const handleSubscribe = async (plan: Plan) => {
     if (!user) return;
+    // Block re-subscribing to the same active plan from the client side
+    if (subscription && subscription.status === 'active' && subscription.plan_id === plan.id
+        && new Date(subscription.current_period_end) > new Date()) {
+      toast.info(isFr
+        ? `Vous etes deja abonne au plan ${plan.name} jusqu'au ${format(new Date(subscription.current_period_end), 'dd/MM/yyyy')}.`
+        : `You are already subscribed to ${plan.name} until ${format(new Date(subscription.current_period_end), 'dd/MM/yyyy')}.`);
+      return;
+    }
     setSubscribing(plan.id);
     try {
-      const price = getPrice(plan);
-      const desc = t.subscriptionDesc(plan.name);
-      // Paystack Africa: convert non-supported currencies to XOF
-      const { resolvePaystackPrice, formatXofConversionMessage } = await import('@/lib/paystackCurrency');
-      const resolved = resolvePaystackPrice(price, currency || 'XOF');
-      const conversionMsg = formatXofConversionMessage(resolved, isFr);
-      if (conversionMsg) toast.info(conversionMsg, { duration: 6000 });
+      // Server is the source of truth for the price.
+      // Edge function will: validate user/plan, look up DB price, persist
+      // pending subscription + receipt, then call Paystack.
       const { data, error } = await supabase.functions.invoke('paystack-checkout', {
         body: {
           action: 'initialize',
-          amount: resolved.amount,
-          email: user.email,
-          currency: resolved.currency,
-          description: desc,
+          plan_id: plan.id,
+          annual,
           callback_url: window.location.origin + '/dashboard/payment?success=true&plan=' + plan.id,
-          metadata: { plan_id: plan.id, plan_name: plan.name, user_id: user.id },
         },
       });
       if (error) throw error;
+      if (data?.code === 'ALREADY_SUBSCRIBED') {
+        toast.info(isFr
+          ? `Vous etes deja abonne a ce plan jusqu'au ${data.current_period_end ? format(new Date(data.current_period_end), 'dd/MM/yyyy') : ''}.`
+          : `You are already subscribed to this plan until ${data.current_period_end ? format(new Date(data.current_period_end), 'dd/MM/yyyy') : ''}.`);
+        return;
+      }
       if (data?.status && data?.data?.authorization_url) {
-        await supabase.from('subscriptions').insert({ user_id: user.id, plan_id: plan.id, status: 'pending', payment_method: 'paystack', last_payment_token: data.data.reference || null });
-        await supabase.from('payment_receipts').insert({ user_id: user.id, plan_name: plan.name, amount: resolved.amount, currency: resolved.currency, status: 'pending', payment_token: data.data.reference || null });
         window.open(data.data.authorization_url, '_blank');
         toast.success(t.redirectingPayment);
       } else {
-        toast.error(data?.data?.message || data?.message || t.paymentError);
+        toast.error(data?.message || t.paymentError);
       }
     } catch (err: any) {
       toast.error(err.message || 'Error');
