@@ -32,6 +32,7 @@ interface Props {
   onTransfer: () => void;
   canTransfer: boolean;
   limitReached: boolean;
+  transferDisabledReason?: string;
   thisMonthCount: number;
   monthlyLimit: number;
   isPremium: boolean;
@@ -41,7 +42,7 @@ interface Props {
 
 export const TransactionsHeroHeader = ({
   userId, fmt, locale, t, onAddNew, onTransfer, canTransfer,
-  limitReached, thisMonthCount, monthlyLimit, isPremium,
+  limitReached, transferDisabledReason, thisMonthCount, monthlyLimit, isPremium,
   onQuickAdd, canUseAI = true,
 }: Props) => {
   const [quickOpen, setQuickOpen] = useState(false);
@@ -62,7 +63,7 @@ export const TransactionsHeroHeader = ({
     const text = quickInput.trim();
     if (!text || quickLoading || !onQuickAdd) return;
     if (limitReached) {
-      toast.error(isFr ? 'Limite mensuelle atteinte' : 'Monthly limit reached');
+      toast.error(transferDisabledReason || (isFr ? 'Limite mensuelle atteinte' : 'Monthly limit reached'));
       return;
     }
     setQuickLoading(true);

@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { useSubscription } from '@/hooks/useSubscription';
+import { getTransferQuotaState, useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { usePaginatedTransactions, useCategories, useAccounts, useInvalidate, useBudgets, useSavingsGoals, type Transaction } from '@/hooks/useDashboardData';
@@ -240,6 +240,15 @@ const TransactionsPage = () => {
   useEffect(() => { setSelectedIds(new Set()); }, [filterType, filterCategory, filterAccount, debouncedSearch, startDate, endDate, page]);
 
   const limitReached = !isPremium && thisMonthCount >= limits.transactionsPerMonth;
+  const transferQuota = useMemo(
+    () => getTransferQuotaState(thisMonthCount, limits.transactionsPerMonth),
+    [thisMonthCount, limits.transactionsPerMonth]
+  );
+  const transferLimitMessage = t.transferNeedsTwoSlotsToast(
+    transferQuota.remainingBeforeLimit,
+    transferQuota.transferCost,
+    limits.transactionsPerMonth,
+  );
 
   // Régularisation / Adjustment categories (auto-created by ReconciliationDialog)
   const regularizationCategoryIds = useMemo(
@@ -481,7 +490,7 @@ const TransactionsPage = () => {
     } catch (err: any) {
       const msg = String(err?.message || '');
       if (msg.includes('PLAN_LIMIT_REACHED')) {
-        toast.error(t.limitTransactionsToast(limits.transactionsPerMonth));
+        toast.error(transferLimitMessage);
       } else {
         toast.error(msg || 'Erreur');
       }
@@ -569,7 +578,7 @@ const TransactionsPage = () => {
         t={t}
         onAddNew={openNew}
         onTransfer={() => {
-          if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
+          if (!transferQuota.canCreateTransfer) { toast.error(transferLimitMessage); return; }
           if (accounts.length < 2) { toast.error(locale === 'fr' ? 'Crée au moins 2 comptes pour transférer' : 'Create at least 2 accounts to transfer'); return; }
           setEditing(null);
           setErrors({});
@@ -584,11 +593,13 @@ const TransactionsPage = () => {
         }}
         canTransfer={accounts.length >= 2}
         limitReached={limitReached}
+        transferDisabledReason={transferLimitMessage}
         thisMonthCount={thisMonthCount}
         monthlyLimit={limits.transactionsPerMonth}
         isPremium={isPremium}
         canUseAI={canUseAISuggestions}
         onQuickAdd={(parsed) => {
+          if (parsed.type === 'transfer' && !transferQuota.canCreateTransfer) { toast.error(transferLimitMessage); return; }
           if (limitReached) { toast.error(t.limitTransactionsToast(limits.transactionsPerMonth)); return; }
           setEditing(null);
           setErrors({});
