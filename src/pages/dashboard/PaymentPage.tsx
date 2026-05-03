@@ -666,6 +666,9 @@ const PaymentPage = () => {
             locale={locale}
             fmt={fmt}
             t={t}
+            user={user}
+            plans={plans}
+            subscription={subscription}
           />
         </TabsContent>
       </Tabs>
@@ -922,7 +925,20 @@ const FeatureComparisonTable = ({ plans, isFr }: { plans: Plan[]; isFr: boolean 
 };
 
 /* ============ BILLING TAB ============ */
-const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch, setReceiptSearch, receiptStatus, setReceiptStatus, isFr, locale, fmt, t }: any) => {
+const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch, setReceiptSearch, receiptStatus, setReceiptStatus, isFr, locale, fmt, t, user, plans, subscription }: any) => {
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('profiles').select('display_name').eq('user_id', user.id).single()
+      .then(({ data }) => setDisplayName(data?.display_name ?? null));
+  }, [user?.id]);
+  const plansLookup: Record<string, any> = useMemo(() => {
+    const m: Record<string, any> = {};
+    (plans || []).forEach((p: any) => { m[p.name] = p; });
+    return m;
+  }, [plans]);
+  const userEmail = user?.email ?? null;
+  const subscriptionForReceipt = subscription;
   return (
     <div className="space-y-4">
       {/* Filters */}
