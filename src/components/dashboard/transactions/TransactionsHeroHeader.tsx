@@ -286,7 +286,15 @@ export const TransactionsHeroHeader = ({
             </motion.div>
           )}
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button size="sm" variant="outline" className="w-full rounded-xl border-border/60 bg-background/40 backdrop-blur-sm" onClick={onTransfer} disabled={!canTransfer}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full rounded-xl border-border/60 bg-background/40 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={onTransfer}
+              disabled={!canTransfer}
+              title={!canTransfer ? transferDisabledReason : undefined}
+              aria-disabled={!canTransfer}
+            >
               <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
             </Button>
           </motion.div>
