@@ -167,6 +167,9 @@ export const dashT = {
     invalidBalance: 'Solde invalide',
     limitReachedTransactions: (count: number, max: number) => `Limite atteinte : ${count}/${max} transactions ce mois. Passez à Premium pour un accès illimité.`,
     limitTransactionsToast: (max: number) => `Limite de ${max} transactions/mois atteinte. Passez à Premium !`,
+    transferNeedsTwoSlotsToast: (remaining: number, required: number, max: number) => remaining > 0
+      ? `Un transfert compte pour ${required} opérations. Il ne vous reste que ${remaining}/${max} ce mois.`
+      : `Un transfert compte pour ${required} opérations. Votre quota mensuel de ${max} est déjà atteint.`,
     limitAccountsReached: (max: number) => `Limite atteinte : ${max} compte(s) maximum en plan gratuit.`,
     limitAccountsToast: (max: number) => `Limite de ${max} compte(s) atteinte. Passez à Premium !`,
     limitBudgetsReached: (max: number) => `Limite atteinte : ${max} budget(s) maximum en plan gratuit.`,
@@ -831,6 +834,9 @@ export const dashT = {
     invalidBalance: 'Invalid balance',
     limitReachedTransactions: (count: number, max: number) => `Limit reached: ${count}/${max} transactions this month. Upgrade to Premium for unlimited access.`,
     limitTransactionsToast: (max: number) => `Limit of ${max} transactions/month reached. Upgrade to Premium!`,
+    transferNeedsTwoSlotsToast: (remaining: number, required: number, max: number) => remaining > 0
+      ? `A transfer counts as ${required} operations. Only ${remaining}/${max} remain this month.`
+      : `A transfer counts as ${required} operations. Your monthly quota of ${max} is already reached.`,
     limitAccountsReached: (max: number) => `Limit reached: ${max} account(s) max on free plan.`,
     limitAccountsToast: (max: number) => `Limit of ${max} account(s) reached. Upgrade to Premium!`,
     limitBudgetsReached: (max: number) => `Limit reached: ${max} budget(s) max on free plan.`,
