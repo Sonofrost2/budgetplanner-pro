@@ -218,9 +218,18 @@ export const TransactionForm = ({
               <TrendingUp className="w-4 h-4" />{t.incomeType}
             </motion.button>
             {showTransferTab && (
-              <motion.button type="button" onClick={() => setForm(f => ({ ...f, type: 'transfer', category_id: '' }))}
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${isTransfer ? 'border-primary bg-primary/10 text-primary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'}`}>
+              <motion.button
+                type="button"
+                onClick={() => {
+                  if (transferDisabledReason) { toast.error(transferDisabledReason); return; }
+                  setForm(f => ({ ...f, type: 'transfer', category_id: '' }));
+                }}
+                whileHover={transferDisabledReason ? undefined : { scale: 1.02 }}
+                whileTap={transferDisabledReason ? undefined : { scale: 0.98 }}
+                disabled={!!transferDisabledReason && !isTransfer}
+                aria-disabled={!!transferDisabledReason && !isTransfer}
+                title={transferDisabledReason || undefined}
+                className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${isTransfer ? 'border-primary bg-primary/10 text-primary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'} ${transferDisabledReason && !isTransfer ? 'opacity-50 cursor-not-allowed hover:bg-card' : ''}`}>
                 <ArrowLeftRight className="w-4 h-4" />{t.transfer}
               </motion.button>
             )}
