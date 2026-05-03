@@ -25,6 +25,28 @@ const PREMIUM_LIMITS = {
 
 export type PlanTier = 'free' | 'pro' | 'premium';
 
+export const getTransferQuotaState = (transactionCount: number, transactionLimit: number) => {
+  const transferCost = 2;
+
+  if (!Number.isFinite(transactionLimit)) {
+    return {
+      transferCost,
+      canCreateTransfer: true,
+      nextTransferCount: transactionCount + transferCost,
+      remainingBeforeLimit: Infinity,
+    };
+  }
+
+  const remainingBeforeLimit = Math.max(0, transactionLimit - transactionCount);
+
+  return {
+    transferCost,
+    remainingBeforeLimit,
+    nextTransferCount: transactionCount + transferCost,
+    canCreateTransfer: remainingBeforeLimit >= transferCost,
+  };
+};
+
 export const useSubscription = () => {
   const { user } = useAuth();
   const [planTier, setPlanTier] = useState<PlanTier>('free');
