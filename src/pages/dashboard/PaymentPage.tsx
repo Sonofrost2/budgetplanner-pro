@@ -1014,7 +1014,15 @@ const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 rounded-lg shrink-0"
-                    onClick={() => downloadReceiptPDF(r, locale, fmt)}
+                    onClick={() => downloadReceiptPDF(r, {
+                      locale,
+                      userEmail: userEmail,
+                      displayName: displayName,
+                      plan: plansLookup?.[r.plan_name] || null,
+                      subscriptionPeriodStart: subscriptionForReceipt?.current_period_start || null,
+                      subscriptionPeriodEnd: subscriptionForReceipt?.current_period_end || null,
+                      paymentMethod: subscriptionForReceipt?.payment_method || 'paystack',
+                    })}
                     title={isFr ? 'Télécharger PDF' : 'Download PDF'}
                   >
                     <Download className="w-3.5 h-3.5" />
