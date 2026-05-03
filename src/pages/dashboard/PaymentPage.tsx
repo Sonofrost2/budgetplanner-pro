@@ -416,7 +416,7 @@ const PaymentPage = () => {
             <Shield className="w-4 h-4 text-muted-foreground" />
             <p className="text-xs text-muted-foreground font-medium">{t.paymentMethods}</p>
             <div className="flex flex-wrap gap-2">
-              {['💳 Carte', '📱 Mobile Money', '🏦 Virement'].map(m => (
+              {['💳 Carte', '📱 Mobile Money'].map(m => (
                 <Badge key={m} variant="secondary" className="text-[10px] font-medium rounded-full px-2.5 py-0.5 bg-muted/50 border-0">
                   {m}
                 </Badge>
@@ -673,7 +673,9 @@ const FeatureComparisonTable = ({ plans, isFr }: { plans: Plan[]; isFr: boolean 
             <tr className="border-b border-border/40">
               <th className="text-left px-5 py-3 font-semibold text-muted-foreground">{isFr ? 'Fonctionnalité' : 'Feature'}</th>
               {plans.map(p => (
-                <th key={p.id} className="text-center px-3 py-3 font-bold capitalize min-w-[100px]">{p.name}</th>
+                <th key={p.id} className="text-center px-3 py-3 font-bold capitalize min-w-[100px]">
+                  {p.name === 'free' ? (isFr ? 'Gratuit' : 'Free') : p.name}
+                </th>
               ))}
             </tr>
           </thead>
