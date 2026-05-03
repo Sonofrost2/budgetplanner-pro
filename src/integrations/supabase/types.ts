@@ -1956,6 +1956,7 @@ export type Database = {
       }
       cleanup_old_deleted: { Args: never; Returns: Json }
       cleanup_old_notifications: { Args: never; Returns: number }
+      cleanup_stale_pending_payments: { Args: never; Returns: undefined }
       compute_health_score: { Args: { p_user_id: string }; Returns: Json }
       delete_family_group_cascade: {
         Args: { p_group_id: string }
@@ -2050,6 +2051,14 @@ export type Database = {
           queued_pending: number
           queued_sent: number
           sent_count: number
+        }[]
+      }
+      has_active_subscription: {
+        Args: { _user_id: string }
+        Returns: {
+          current_period_end: string
+          plan_id: string
+          plan_name: string
         }[]
       }
       has_role: {
