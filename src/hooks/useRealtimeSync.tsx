@@ -3,11 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvalidate } from '@/hooks/useDashboardData';
 
-const TABLES_TO_WATCH = [
-  'transactions',
-  'payment_accounts',
-] as const;
-
 const TABLE_TO_QUERY_KEYS: Record<string, string[]> = {
   transactions: ['transactions', 'all-transactions', 'paginated-transactions', 'chart-data', 'reports-data', 'forecast-raw-tx', 'budget-spending', 'tx-month-count'],
   payment_accounts: ['accounts'],
