@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          expires_at: string
+          feature: string
+          hits: number
+          id: string
+          response: Json
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          expires_at?: string
+          feature: string
+          hits?: number
+          id?: string
+          response: Json
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          expires_at?: string
+          feature?: string
+          hits?: number
+          id?: string
+          response?: Json
+        }
+        Relationships: []
+      }
       ai_conversations: {
         Row: {
           archived: boolean
@@ -1954,6 +1984,7 @@ export type Database = {
         Args: { _feature: string; _limit: number; _user_id: string }
         Returns: Json
       }
+      cleanup_expired_ai_cache: { Args: never; Returns: undefined }
       cleanup_old_deleted: { Args: never; Returns: Json }
       cleanup_old_notifications: { Args: never; Returns: number }
       cleanup_stale_pending_payments: { Args: never; Returns: undefined }
