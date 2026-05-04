@@ -23,6 +23,13 @@ Deno.serve(async (req) => {
       .order("scheduled_for", { ascending: true })
       .limit(200);
 
+    // Early exit when nothing to do — saves cold-start CPU and downstream calls.
+    if (!due || due.length === 0) {
+      return new Response(JSON.stringify({ processed: 0, skipped: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     let processed = 0, failed = 0, digested = 0;
 
     // === Group digest-routed items per (user, channel, slot) and send ONE

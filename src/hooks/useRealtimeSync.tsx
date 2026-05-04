@@ -3,17 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvalidate } from '@/hooks/useDashboardData';
 
-const TABLES_TO_WATCH = [
-  'transactions',
-  'payment_accounts',
-  'budgets',
-  'categories',
-  'savings_goals',
-  'debts',
-  'recurring_transactions',
-  'cash_counts',
-] as const;
-
 const TABLE_TO_QUERY_KEYS: Record<string, string[]> = {
   transactions: ['transactions', 'all-transactions', 'paginated-transactions', 'chart-data', 'reports-data', 'forecast-raw-tx', 'budget-spending', 'tx-month-count'],
   payment_accounts: ['accounts'],
@@ -83,31 +72,55 @@ export const useRealtimeSync = () => {
     }, 2000);
   }, [invalidate]);
 
-  // Subscribe to realtime changes
+  // Subscribe to realtime changes — only core tables (INSERT/UPDATE/DELETE),
+  // and auto-disconnect when the tab stays hidden > 60s to save Realtime quota.
   useEffect(() => {
     if (!user) return;
-    setSyncState({ channel: 'connecting' });
 
-    const channel = supabase
-      .channel('dashboard-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => handleChange('transactions'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_accounts', filter: `user_id=eq.${user.id}` }, () => handleChange('payment_accounts'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${user.id}` }, () => handleChange('budgets'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${user.id}` }, () => handleChange('categories'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'savings_goals', filter: `user_id=eq.${user.id}` }, () => handleChange('savings_goals'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'debts', filter: `user_id=eq.${user.id}` }, () => handleChange('debts'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_transactions', filter: `user_id=eq.${user.id}` }, () => handleChange('recurring_transactions'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_counts', filter: `user_id=eq.${user.id}` }, () => handleChange('cash_counts'))
-      .subscribe((status) => {
-        // Supabase status: SUBSCRIBED | TIMED_OUT | CLOSED | CHANNEL_ERROR
-        if (status === 'SUBSCRIBED') setSyncState({ channel: 'live' });
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSyncState({ channel: 'error' });
-        else if (status === 'CLOSED') setSyncState({ channel: 'closed' });
-      });
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const connect = () => {
+      if (channel) return;
+      setSyncState({ channel: 'connecting' });
+      channel = supabase
+        .channel('dashboard-sync')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => handleChange('transactions'))
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => handleChange('transactions'))
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => handleChange('transactions'))
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'payment_accounts', filter: `user_id=eq.${user.id}` }, () => handleChange('payment_accounts'))
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') setSyncState({ channel: 'live' });
+          else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSyncState({ channel: 'error' });
+          else if (status === 'CLOSED') setSyncState({ channel: 'closed' });
+        });
+    };
+
+    const disconnect = () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+        setSyncState({ channel: 'idle' });
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(disconnect, 60_000);
+      } else {
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        connect();
+      }
+    };
+
+    connect();
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
-      supabase.removeChannel(channel);
-      setSyncState({ channel: 'idle' });
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (hideTimer) clearTimeout(hideTimer);
+      disconnect();
     };
   }, [user, handleChange]);
 
