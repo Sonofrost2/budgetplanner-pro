@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requirePlan } from "../_shared/requirePlan.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,7 +13,7 @@ serve(async (req) => {
   try {
     const gate = await requirePlan(req, ["free", "pro", "premium"], {
       feature: "ai_categorize",
-      freeQuota: 10,
+      freeQuota: 5,
       auditSubtype: "ai-categorize",
     });
     if (!gate.ok) return gate.response!;
@@ -20,6 +21,33 @@ serve(async (req) => {
     const { description, type, categories, recentTransactions, locale } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // ---- Cache lookup (shared, by description+type+locale, 30d TTL) ----
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const normDesc = String(description || "").toLowerCase().trim().replace(/\s+/g, " ");
+    const cacheKey = `categorize::${type}::${locale || "fr"}::${normDesc}`;
+    if (normDesc.length > 1) {
+      const { data: cached } = await admin
+        .from("ai_cache")
+        .select("response, id")
+        .eq("cache_key", cacheKey)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+      if (cached?.response) {
+        admin.from("ai_cache").update({ hits: (cached as any).hits ? undefined : 1 }).eq("id", (cached as any).id).then(() => {}, () => {});
+        const resp = cached.response as any;
+        // Validate cached category still exists in user's category list
+        const stillValid = !resp?.category_id || (categories || []).some((c: any) => c.id === resp.category_id);
+        if (stillValid) {
+          return new Response(JSON.stringify({ ...resp, cached: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
 
     const categoryList = (categories || []).map((c: any) => `"${c.name}" (id: ${c.id})`).join(", ");
     
@@ -90,6 +118,14 @@ RULES:
     const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
       const args = typeof toolCall.function.arguments === 'string' ? JSON.parse(toolCall.function.arguments) : toolCall.function.arguments;
+      // Store in cache (best-effort, ignore conflicts)
+      if (normDesc.length > 1) {
+        admin.from("ai_cache").upsert({
+          cache_key: cacheKey,
+          feature: "ai_categorize",
+          response: args,
+        }, { onConflict: "cache_key" }).then(() => {}, () => {});
+      }
       return new Response(JSON.stringify(args), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
