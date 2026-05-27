@@ -413,7 +413,7 @@ const PaymentPage = () => {
   const handleCancel = async () => {
     if (!subscription) return;
     setCanceling(true);
-    const { error } = await supabase.from('subscriptions').update({ status: 'canceled', canceled_at: new Date().toISOString() }).eq('id', subscription.id);
+    const { error } = await supabase.rpc('cancel_my_subscription', { p_subscription_id: subscription.id });
     setCanceling(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t.subscriptionCanceledMsg);
@@ -440,13 +440,11 @@ const PaymentPage = () => {
             console.error('Verification error:', e);
           }
         }
-        const { data: pendingSubs } = await supabase.from('subscriptions').select('*').eq('user_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }).limit(1);
-        if (pendingSubs && pendingSubs.length > 0) {
-          await supabase.from('subscriptions').update({ status: 'active', current_period_start: new Date().toISOString(), current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() }).eq('id', pendingSubs[0].id);
-          if (pendingSubs[0].last_payment_token) {
-            await supabase.from('payment_receipts').update({ status: 'confirmed' } as any).eq('payment_token', pendingSubs[0].last_payment_token).eq('user_id', user.id);
-          }
-          setSubscription({ ...pendingSubs[0], status: 'active' } as Subscription);
+        // Activation is performed server-side by the verify action above.
+        // Re-read the now-active subscription for display purposes.
+        const { data: activeSubs } = await supabase.from('subscriptions').select('*').eq('user_id', user.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1);
+        if (activeSubs && activeSubs.length > 0) {
+          setSubscription(activeSubs[0] as Subscription);
           toast.success(t.subscriptionActivated);
           const planId = params.get('plan');
           const confirmedPlan = plans.find(p => p.id === planId);

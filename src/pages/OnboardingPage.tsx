@@ -146,30 +146,8 @@ const OnboardingPage = () => {
         setPaymentConfirmed(true);
         const price = formatPrice((selectedPlanData?.currency_prices || {}) as Record<string, number>);
 
-        // Activate the pending subscription
-        const { data: pendingSubs } = await supabase
-          .from('subscriptions')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1);
-        if (pendingSubs && pendingSubs.length > 0) {
-          const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-          await supabase
-            .from('subscriptions')
-            .update({
-              status: 'active',
-              current_period_start: new Date().toISOString(),
-              current_period_end: periodEnd,
-            })
-            .eq('id', pendingSubs[0].id);
-        }
-        await supabase
-          .from('payment_receipts')
-          .update({ status: 'confirmed' } as any)
-          .eq('payment_token', paymentToken)
-          .eq('user_id', user.id);
+        // Subscription + receipt are activated server-side by paystack-checkout
+        // (verify action), gated by Paystack signature + matching user_id.
 
         toast.success(isFr ? 'Paiement confirmé !' : 'Payment confirmed!');
 

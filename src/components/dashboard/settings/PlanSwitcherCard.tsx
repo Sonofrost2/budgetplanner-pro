@@ -37,26 +37,10 @@ export const PlanSwitcherCard = () => {
 
   const switchTo = async (target: PlanTier) => {
     if (!user) return;
-    const plan = plans.find(p => p.name === target);
-    if (!plan) { toast.error(isFr ? 'Plan introuvable' : 'Plan not found'); return; }
     setBusy(target);
     try {
-      // Cancel any current active subs
-      await supabase.from('subscriptions').update({ status: 'canceled', canceled_at: new Date().toISOString() })
-        .eq('user_id', user.id).eq('status', 'active');
-
-      // Insert a fresh active sub for target plan
-      const now = new Date();
-      const end = new Date(); end.setMonth(end.getMonth() + 1);
-      const { error } = await supabase.from('subscriptions').insert({
-        user_id: user.id,
-        plan_id: plan.id,
-        status: 'active',
-        started_at: now.toISOString(),
-        current_period_start: now.toISOString(),
-        current_period_end: end.toISOString(),
-        payment_method: 'admin-test',
-      });
+      // Admin-only RPC; server enforces role + cancels current active sub.
+      const { error } = await supabase.rpc('admin_switch_my_plan', { p_plan_name: target });
       if (error) throw error;
       await qc.invalidateQueries();
       refresh();

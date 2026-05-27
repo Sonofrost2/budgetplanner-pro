@@ -191,6 +191,24 @@ Deno.serve(async (req) => {
         { headers: { 'Authorization': `Bearer ${PAYSTACK_SECRET_KEY}` } },
       );
       const data = await psRes.json();
+
+      // Only activate the subscription/receipt server-side when Paystack confirms
+      // success AND the transaction belongs to the authenticated caller.
+      if (data?.status && data?.data?.status === 'success') {
+        const metaUserId = data?.data?.metadata?.user_id;
+        if (metaUserId && metaUserId !== user.id) {
+          return json({ status: false, message: 'Reference does not belong to caller' }, 403);
+        }
+        try {
+          await supabase.rpc('activate_paid_subscription', {
+            p_user_id: user.id,
+            p_reference: reference,
+            p_period_days: 30,
+          });
+        } catch (e) {
+          console.error('activate_paid_subscription failed:', e);
+        }
+      }
       return json(data);
     }
 
