@@ -1902,6 +1902,10 @@ export type Database = {
     }
     Functions: {
       accept_family_invitation: { Args: { p_token: string }; Returns: Json }
+      activate_paid_subscription: {
+        Args: { p_period_days?: number; p_reference: string; p_user_id: string }
+        Returns: string
+      }
       admin_get_user_snapshot: {
         Args: { _actor_id: string; _target_user_id: string }
         Returns: Json
@@ -1968,6 +1972,10 @@ export type Database = {
           user_ids: string[]
         }[]
       }
+      admin_switch_my_plan: {
+        Args: { p_plan_name: string }
+        Returns: undefined
+      }
       bulk_reparent_categories: {
         Args: {
           p_category_ids: string[]
@@ -1975,6 +1983,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      cancel_my_subscription: {
+        Args: { p_subscription_id: string }
+        Returns: undefined
       }
       cancel_transfer: {
         Args: { p_transaction_id: string; p_user_id: string }
