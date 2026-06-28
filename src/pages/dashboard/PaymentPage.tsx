@@ -850,7 +850,7 @@ const PlanCards = ({ plans, subscription, currency, fmt, locale, isFr, t, annual
                     {price === 0 ? '0' : fmt(price, locale).replace(/\s/g, '\u00A0')}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {currency}/{plan.name !== 'free' && annual ? (isFr ? 'an' : 'yr') : t.perMonth}
+                    {price === 0 ? '' : `/${plan.name !== 'free' && annual ? (isFr ? 'an' : 'yr') : (isFr ? 'mois' : 'mo')}`}
                   </span>
                 </div>
                 {annual && price > 0 && (
