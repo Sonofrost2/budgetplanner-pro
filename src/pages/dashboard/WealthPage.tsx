@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
+import { wealthT, WEALTH_ASSET_TYPES as ASSET_TYPES, WEALTH_CATEGORIES as CATEGORIES, WEALTH_ICONS as ICONS } from '@/i18n/pages/wealth';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -39,54 +40,6 @@ import { useSubscription } from '@/hooks/useSubscription';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import { Lock } from 'lucide-react';
 
-const ASSET_TYPES = [
-  { value: 'real_estate', label_fr: 'Immobilier', label_en: 'Real Estate', icon: '🏠', lucide: Building2, color: 'hsl(var(--primary))' },
-  { value: 'vehicle', label_fr: 'Véhicule', label_en: 'Vehicle', icon: '🚗', lucide: Car, color: 'hsl(var(--secondary))' },
-  { value: 'financial', label_fr: 'Investissement financier', label_en: 'Financial Investment', icon: '📈', lucide: TrendingUp, color: 'hsl(var(--accent))' },
-  { value: 'savings', label_fr: 'Épargne & Comptes', label_en: 'Savings & Accounts', icon: '💰', lucide: Wallet, color: 'hsl(var(--chart-4, 280 65% 60%))' },
-  { value: 'jewelry', label_fr: 'Bijoux & Objets de valeur', label_en: 'Jewelry & Valuables', icon: '💎', lucide: Gem, color: 'hsl(var(--chart-5, 340 75% 55%))' },
-  { value: 'other', label_fr: 'Autre', label_en: 'Other', icon: '📦', lucide: Package, color: 'hsl(var(--muted-foreground))' },
-];
-
-const CATEGORIES: Record<string, { label_fr: string; label_en: string }[]> = {
-  real_estate: [
-    { label_fr: 'Terrain', label_en: 'Land' },
-    { label_fr: 'Maison', label_en: 'House' },
-    { label_fr: 'Appartement', label_en: 'Apartment' },
-    { label_fr: 'Immeuble', label_en: 'Building' },
-    { label_fr: 'Local commercial', label_en: 'Commercial Space' },
-  ],
-  vehicle: [
-    { label_fr: 'Voiture', label_en: 'Car' },
-    { label_fr: 'Moto', label_en: 'Motorcycle' },
-    { label_fr: 'Camion', label_en: 'Truck' },
-  ],
-  financial: [
-    { label_fr: 'Actions', label_en: 'Stocks' },
-    { label_fr: 'Obligations', label_en: 'Bonds' },
-    { label_fr: 'Parts sociales', label_en: 'Shares' },
-    { label_fr: 'Crypto', label_en: 'Crypto' },
-    { label_fr: 'Assurance vie', label_en: 'Life Insurance' },
-    { label_fr: 'Fonds commun', label_en: 'Mutual Fund' },
-  ],
-  savings: [
-    { label_fr: 'Compte épargne', label_en: 'Savings Account' },
-    { label_fr: 'CAG', label_en: 'CAG' },
-    { label_fr: 'Dépôt à terme', label_en: 'Term Deposit' },
-  ],
-  jewelry: [
-    { label_fr: 'Or', label_en: 'Gold' },
-    { label_fr: 'Bijoux', label_en: 'Jewelry' },
-    { label_fr: 'Œuvre d\'art', label_en: 'Artwork' },
-  ],
-  other: [
-    { label_fr: 'Équipement', label_en: 'Equipment' },
-    { label_fr: 'Autre', label_en: 'Other' },
-  ],
-};
-
-const ICONS = ['🏠', '🏢', '🏗️', '🏘️', '🚗', '🏍️', '🚛', '📈', '💹', '🏦', '💰', '💎', '🪙', '📦', '🎨', '⚡', '🌍'];
-
 interface Asset {
   id: string;
   name: string;
@@ -119,6 +72,7 @@ const WealthPage = () => {
   const { canUseWealth, canUseAIPremium } = useSubscription();
   const t = dashT[locale];
   const isFr = locale === 'fr';
+  const wt = wealthT(isFr);
   const queryClient = useQueryClient();
   const fmt = (n: number) => fmtCurrency(n, locale);
 
@@ -289,10 +243,10 @@ const WealthPage = () => {
 
   const validateAssetForm = () => {
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = isFr ? 'Le nom est requis' : 'Name is required';
-    if (!form.current_value || Number(form.current_value) <= 0) errs.current_value = isFr ? 'La valeur doit être supérieure à 0' : 'Value must be greater than 0';
-    if (form.acquisition_cost && Number(form.acquisition_cost) < 0) errs.acquisition_cost = isFr ? 'Le coût ne peut pas être négatif' : 'Cost cannot be negative';
-    if (form.acquisition_date && new Date(form.acquisition_date) > new Date()) errs.acquisition_date = isFr ? 'La date ne peut pas être dans le futur' : 'Date cannot be in the future';
+    if (!form.name.trim()) errs.name = wt.nameRequired;
+    if (!form.current_value || Number(form.current_value) <= 0) errs.current_value = wt.valueMustBePositive;
+    if (form.acquisition_cost && Number(form.acquisition_cost) < 0) errs.acquisition_cost = wt.costNotNegative;
+    if (form.acquisition_date && new Date(form.acquisition_date) > new Date()) errs.acquisition_date = wt.dateNotInFuture;
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -327,7 +281,7 @@ const WealthPage = () => {
           await supabase.from('asset_valuations').insert({
             asset_id: newAsset.id, user_id: user.id,
             value: payload.current_value, valued_at: payload.acquisition_date || new Date().toISOString().split('T')[0],
-            source: 'manual', notes: isFr ? 'Valeur initiale' : 'Initial value',
+            source: 'manual', notes: wt.initialValue,
           });
         }
       }
@@ -355,7 +309,7 @@ const WealthPage = () => {
   const handleAddValuation = async () => {
     if (!valuationDialog || !user || Number(valuationValue) <= 0) return;
     if (new Date(valuationDate) > new Date()) {
-      toast.error(isFr ? 'La date ne peut pas être dans le futur' : 'Date cannot be in the future');
+      toast.errorwt.dateNotInFuture;
       return;
     }
     setSaving(true);
@@ -370,7 +324,7 @@ const WealthPage = () => {
       setValuationValue('');
       setValuationNotes('');
       invalidate();
-      toast.success(isFr ? 'Valorisation enregistrée' : 'Valuation recorded');
+      toast.successwt.valuationRecorded;
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -399,8 +353,8 @@ const WealthPage = () => {
       if (data?.suggested_value) {
         setValuationDialog(assetId);
         setValuationValue(String(data.suggested_value));
-        setValuationNotes(data.reasoning || (isFr ? 'Suggestion IA' : 'AI suggestion'));
-        toast.success(isFr ? `IA suggère : ${fmt(data.suggested_value)}` : `AI suggests: ${fmt(data.suggested_value)}`);
+        setValuationNotes(data.reasoning || wt.aiSuggestion);
+        toast.success(wt.aiSuggests(fmt(data.suggested_value)));
       }
     } catch (e: any) {
       toast.error(e.message || 'AI error');
@@ -419,7 +373,7 @@ const WealthPage = () => {
   if (!canUseWealth) {
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold font-display">{isFr ? 'Patrimoine' : 'Wealth'}</h2>
+        <h2 className="text-2xl font-bold font-display">{wt.title}</h2>
         <UpgradeBanner message={(t as any).upgradeWealth} />
         <Card className="border-none shadow-[var(--shadow-card)]">
           <CardContent className="py-16 text-center">
@@ -455,9 +409,9 @@ const WealthPage = () => {
         {/* Sub-cards */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: isFr ? 'Actifs enregistrés' : 'Registered Assets', value: assets.length, icon: Package, suffix: '' },
-            { label: isFr ? 'Épargne totale' : 'Total Savings', value: totalSavings, icon: Wallet, isCurrency: true },
-            { label: isFr ? 'Valorisations' : 'Valuations', value: allValuations.length, icon: History, suffix: '' },
+            { label: wt.registeredAssets, value: assets.length, icon: Package, suffix: '' },
+            { label: wt.totalSavings, value: totalSavings, icon: Wallet, isCurrency: true },
+            { label: wt.valuations, value: allValuations.length, icon: History, suffix: '' },
           ].map((card, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.05 }} className="glass rounded-2xl p-3 sm:p-4">
@@ -477,9 +431,9 @@ const WealthPage = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex overflow-x-auto rounded-2xl bg-muted/50 p-1">
           <TabsTrigger value="overview" className="flex-1 rounded-xl text-xs">{isFr ? 'Vue d\'ensemble' : 'Overview'}</TabsTrigger>
-          <TabsTrigger value="assets" className="flex-1 rounded-xl text-xs">{isFr ? 'Mes actifs' : 'My Assets'}</TabsTrigger>
-          <TabsTrigger value="evolution" className="flex-1 rounded-xl text-xs">{isFr ? 'Évolution' : 'Evolution'}</TabsTrigger>
-          <TabsTrigger value="analysis" className="flex-1 rounded-xl text-xs">{isFr ? 'Analyse' : 'Analysis'}</TabsTrigger>
+          <TabsTrigger value="assets" className="flex-1 rounded-xl text-xs">{wt.myAssets}</TabsTrigger>
+          <TabsTrigger value="evolution" className="flex-1 rounded-xl text-xs">{wt.evolution}</TabsTrigger>
+          <TabsTrigger value="analysis" className="flex-1 rounded-xl text-xs">{wt.analysis}</TabsTrigger>
         </TabsList>
 
         {/* ─── Overview ─── */}
@@ -488,7 +442,7 @@ const WealthPage = () => {
             {/* Pie chart */}
             <Card className="rounded-2xl border-border/50">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold">{isFr ? 'Répartition du patrimoine' : 'Wealth Distribution'}</CardTitle>
+                <CardTitle className="text-sm font-bold">{wt.wealthDistribution}</CardTitle>
               </CardHeader>
               <CardContent>
                 {pieData.length > 0 ? (
@@ -513,7 +467,7 @@ const WealthPage = () => {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">{isFr ? 'Ajoutez des actifs pour voir la répartition' : 'Add assets to see distribution'}</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">{wt.addAssetsToSeeDistribution}</p>
                 )}
               </CardContent>
             </Card>
@@ -521,7 +475,7 @@ const WealthPage = () => {
             {/* Top assets */}
             <Card className="rounded-2xl border-border/50">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold">{isFr ? 'Top actifs' : 'Top Assets'}</CardTitle>
+                <CardTitle className="text-sm font-bold">{wt.topAssets}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {assets.slice(0, 5).map((asset, i) => (
@@ -537,12 +491,12 @@ const WealthPage = () => {
                   </motion.div>
                 ))}
                 {assets.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">{isFr ? 'Aucun actif enregistré' : 'No assets yet'}</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">{wt.noAssetsYet}</p>
                 )}
                 {savingsGoals.length > 0 && (
                   <>
                     <div className="border-t border-border/50 pt-2 mt-2">
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">{isFr ? 'Épargne (auto-agrégée)' : 'Savings (auto-aggregated)'}</p>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">{wt.savingsAutoAggregated}</p>
                     </div>
                     {savingsGoals.slice(0, 3).map((g, i) => (
                       <div key={i} className="flex items-center gap-3 p-2 rounded-xl">
@@ -565,13 +519,13 @@ const WealthPage = () => {
           <FilterToolbar
             searchValue={searchQuery}
             onSearchChange={setSearchQuery}
-            searchPlaceholder={isFr ? 'Rechercher un actif...' : 'Search asset...'}
+            searchPlaceholder={wt.searchAsset}
             filterChips={[
               ...ASSET_TYPES.map(t => ({ label: t[isFr ? 'label_fr' : 'label_en'], value: t.value })),
             ]}
             activeFilter={filterType}
             onFilterChange={setFilterType}
-            allLabel={isFr ? 'Tous' : 'All'}
+            allLabel={wt.all}
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -621,14 +575,14 @@ const WealthPage = () => {
                         )}
                         {asset.acquisition_date && (
                           <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />{isFr ? 'Acquis le' : 'Acquired'} {format(new Date(asset.acquisition_date), 'dd MMM yyyy', { locale: isFr ? fr : enUS })}
+                            <Calendar className="w-3 h-3" />{wt.acquired} {format(new Date(asset.acquisition_date), 'dd MMM yyyy', { locale: isFr ? fr : enUS })}
                           </p>
                         )}
 
                         <div className="flex gap-1.5 pt-1">
                           <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg flex-1"
                             onClick={() => { setValuationDialog(asset.id); setValuationValue(String(asset.current_value)); setValuationDate(new Date().toISOString().split('T')[0]); }}>
-                            <TrendingUp className="w-3 h-3 mr-1" />{isFr ? 'Valoriser' : 'Revalue'}
+                            <TrendingUp className="w-3 h-3 mr-1" />{wt.revalue}
                           </Button>
                           <Button variant="outline" size="sm" className="h-7 text-[10px] rounded-lg"
                             onClick={() => handleAIValuation(asset.id)} disabled={aiValuing}>
@@ -652,7 +606,7 @@ const WealthPage = () => {
           {filteredAssets.length === 0 && !isLoading && (
             <div className="text-center py-12 space-y-3">
               <Building2 className="w-12 h-12 mx-auto text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">{isFr ? 'Aucun actif trouvé' : 'No assets found'}</p>
+              <p className="text-sm text-muted-foreground">{wt.noAssetsFound}</p>
             </div>
           )}
         </TabsContent>
@@ -662,7 +616,7 @@ const WealthPage = () => {
           {/* Global evolution */}
           <Card className="rounded-2xl border-border/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold">{isFr ? 'Évolution de la valeur nette' : 'Net Worth Evolution'}</CardTitle>
+              <CardTitle className="text-sm font-bold">{wt.netWorthEvolution}</CardTitle>
             </CardHeader>
             <CardContent>
               {netWorthEvolution.length >= 2 ? (
@@ -693,7 +647,7 @@ const WealthPage = () => {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
                   <History className="w-4 h-4" />
-                  {isFr ? 'Historique' : 'History'}: {assets.find(a => a.id === historyAssetId)?.name}
+                  {wt.history}: {assets.find(a => a.id === historyAssetId)?.name}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -716,7 +670,7 @@ const WealthPage = () => {
                         <span className="text-[10px] text-muted-foreground">{v.source}</span>
                       </div>
                     ))}
-                    {assetValuations.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">{isFr ? 'Aucune valorisation' : 'No valuations'}</p>}
+                    {assetValuations.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">{wt.noValuations}</p>}
                   </div>
                 )}
               </CardContent>
@@ -737,7 +691,7 @@ const WealthPage = () => {
           {!historyAssetId && assets.length > 0 && (
             <Card className="rounded-2xl border-border/50">
               <CardContent className="p-4">
-                <p className="text-sm font-semibold mb-3">{isFr ? 'Sélectionnez un actif pour voir son historique' : 'Select an asset to view its history'}</p>
+                <p className="text-sm font-semibold mb-3">{wt.selectAssetForHistory}</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {assets.map(a => (
                     <button key={a.id} onClick={() => setHistoryAssetId(a.id)}
@@ -762,8 +716,8 @@ const WealthPage = () => {
       <ResponsiveFormDialog
         open={dialogOpen}
         onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditId(null); }}
-        title={editId ? (isFr ? 'Modifier l\'actif' : 'Edit Asset') : (isFr ? 'Ajouter un actif' : 'Add Asset')}
-        description={isFr ? 'Renseignez les informations de votre bien' : 'Enter your asset details'}
+        title={editId ? (isFr ? 'Modifier l\'actif' : 'Edit Asset') : wt.addAsset}
+        description={wt.fillAssetInfo}
         footer={
           <>
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">{t.cancel}</Button>
@@ -773,7 +727,7 @@ const WealthPage = () => {
         }
       >
         <div className="space-y-5 py-2 form-animate">
-          <FormSection title={isFr ? 'Identification' : 'Identification'} icon={<Package className="w-3.5 h-3.5" />}>
+          <FormSection title={wt.identification} icon={<Package className="w-3.5 h-3.5" />}>
             <div className="flex gap-3">
               <div className="flex-1">
                 <InputField
@@ -781,7 +735,7 @@ const WealthPage = () => {
                   value={form.name}
                   onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFormErrors(e => ({ ...e, name: '' })); }}
                   error={formErrors.name}
-                  placeholder={isFr ? 'Ex: Terrain Bingerville' : 'E.g: Downtown Apartment'}
+                  placeholder={wt.assetNamePlaceholder}
                 />
               </div>
               <div className="space-y-1.5 pt-[1.375rem]">
@@ -806,9 +760,9 @@ const WealthPage = () => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="form-label">{isFr ? 'Catégorie' : 'Category'}</Label>
+                <Label className="form-label">{wt.category}</Label>
                 <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={isFr ? 'Choisir...' : 'Choose...'} /></SelectTrigger>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue placeholder={wt.choose} /></SelectTrigger>
                   <SelectContent>
                     {(CATEGORIES[form.asset_type] || CATEGORIES.other).map(c => (
                       <SelectItem key={c[isFr ? 'label_fr' : 'label_en']} value={c[isFr ? 'label_fr' : 'label_en']}>
@@ -821,10 +775,10 @@ const WealthPage = () => {
             </div>
           </FormSection>
 
-          <FormSection title={isFr ? 'Valorisation' : 'Valuation'} icon={<TrendingUp className="w-3.5 h-3.5" />}>
+          <FormSection title={wt.valuation} icon={<TrendingUp className="w-3.5 h-3.5" />}>
             <div className="grid grid-cols-2 gap-3">
               <InputField
-                label={amountLabel(isFr ? 'Valeur actuelle' : 'Current Value', currency) + ' *'}
+                label={amountLabel(wt.currentValue, currency) + ' *'}
                 prefix={currencySymbol(currency)}
                 type="number"
                 min="0"
@@ -836,7 +790,7 @@ const WealthPage = () => {
                 className="text-lg font-bold"
               />
               <InputField
-                label={`${amountLabel(isFr ? 'Coût d\'acquisition' : 'Acquisition Cost', currency)} · ${isFr ? 'optionnel' : 'optional'}`}
+                label={`${amountLabel(isFr ? 'Coût d\'acquisition' : 'Acquisition Cost', currency)} · ${wt.optional}`}
                 prefix={currencySymbol(currency)}
                 type="number"
                 min="0"
@@ -849,10 +803,10 @@ const WealthPage = () => {
             </div>
           </FormSection>
 
-          <FormSection title={isFr ? 'Détails complémentaires' : 'Additional Details'} icon={<MapPin className="w-3.5 h-3.5" />} collapsible defaultOpen={!!form.acquisition_date || !!form.location || !!form.notes}>
+          <FormSection title={wt.additionalDetails} icon={<MapPin className="w-3.5 h-3.5" />} collapsible defaultOpen={!!form.acquisition_date || !!form.location || !!form.notes}>
             <div className="grid grid-cols-2 gap-3">
               <InputField
-                label={`${isFr ? 'Date d\'acquisition' : 'Acquisition Date'} (${isFr ? 'optionnel' : 'optional'})`}
+                label={`${isFr ? 'Date d\'acquisition' : 'Acquisition Date'} (${wt.optional})`}
                 type="date"
                 value={form.acquisition_date}
                 max={new Date().toISOString().split('T')[0]}
@@ -860,20 +814,20 @@ const WealthPage = () => {
                 error={formErrors.acquisition_date}
               />
               <InputField
-                label={`${isFr ? 'Localisation' : 'Location'} (${isFr ? 'optionnel' : 'optional'})`}
+                label={`${wt.location} (${wt.optional})`}
                 icon={<MapPin className="w-3.5 h-3.5" />}
                 value={form.location}
                 onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                placeholder={isFr ? 'Ex: Abidjan, Cocody' : 'E.g: Paris, 16th'}
+                placeholder={wt.locationPlaceholder}
               />
             </div>
             <InputField
-              label={`${t.notes} (${isFr ? 'optionnel' : 'optional'})`}
+              label={`${t.notes} (${wt.optional})`}
               value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               maxLength={200}
               charCount
-              placeholder={isFr ? 'Détails supplémentaires...' : 'Additional details...'}
+              placeholder={wt.additionalDetailsPlaceholder}
             />
           </FormSection>
         </div>
@@ -883,7 +837,7 @@ const WealthPage = () => {
       <ResponsiveFormDialog
         open={!!valuationDialog}
         onOpenChange={(o) => { if (!o) setValuationDialog(null); }}
-        title={isFr ? 'Nouvelle valorisation' : 'New Valuation'}
+        title={wt.newValuation}
         description={isFr ? 'Mettez à jour la valeur de cet actif' : 'Update this asset\'s value'}
         footer={
           <>
@@ -895,7 +849,7 @@ const WealthPage = () => {
       >
         <div className="space-y-4 py-2">
           <InputField
-            label={isFr ? 'Nouvelle valeur' : 'New Value'}
+            label={wt.newValue}
             prefix={currencySymbol(currency)}
             type="number"
             min="0"
@@ -913,7 +867,7 @@ const WealthPage = () => {
             label={t.notes}
             value={valuationNotes}
             onChange={e => setValuationNotes(e.target.value)}
-            placeholder={isFr ? 'Raison de la réévaluation...' : 'Reason for revaluation...'}
+            placeholder={wt.reasonForRevaluation}
           />
         </div>
       </ResponsiveFormDialog>
@@ -921,8 +875,8 @@ const WealthPage = () => {
       <ConfirmDeleteDialog
         open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }}
         onConfirm={handleDelete}
-        title={isFr ? 'Supprimer cet actif' : 'Delete Asset'}
-        description={isFr ? 'Cette action est irréversible.' : 'This action cannot be undone.'}
+        title={wt.deleteAsset}
+        description={wt.irreversible}
         cancelLabel={t.cancel} confirmLabel={t.delete}
       />
     </div>
