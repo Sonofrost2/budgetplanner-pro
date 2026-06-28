@@ -30,6 +30,7 @@ import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 const FamilyPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
+  const isFr = locale === 'fr';
   const { canUseFamily } = useSubscription();
   const { currency } = useProfile();
 
@@ -88,7 +89,7 @@ const FamilyPage = () => {
     setGroupName('');
     if (data?.id) setSelectedGroup(data.id);
     refetch();
-    toast.success('Groupe créé 🎉');
+    toast.success(isFr ? 'Groupe créé 🎉' : 'Group created 🎉');
   };
 
   const handleInvite = async () => {
@@ -98,17 +99,17 @@ const FamilyPage = () => {
       body: { groupId: selectedGroup, email: inviteEmail.trim().toLowerCase() },
     });
     setInviting(false);
-    if (error) { toast.error(error.message || 'Erreur lors de l\'envoi'); return; }
+    if (error) { toast.error(error.message || (isFr ? "Erreur lors de l'envoi" : 'Sending failed')); return; }
     setInviteOpen(false);
     setInviteEmail('');
     refetch();
-    toast.success('Invitation envoyée par email 📧');
+    toast.success(isFr ? 'Invitation envoyée par email 📧' : 'Invitation sent by email 📧');
   };
 
   const handleAcceptInvite = async (token: string) => {
     const { error } = await supabase.rpc('accept_family_invitation', { p_token: token });
     if (error) { toast.error(error.message); return; }
-    toast.success('Invitation acceptée !');
+    toast.success(isFr ? 'Invitation acceptée !' : 'Invitation accepted!');
     refetch();
   };
 
@@ -124,7 +125,7 @@ const FamilyPage = () => {
     if (selectedGroup === deleteGroupId) setSelectedGroup(null);
     setDeleteGroupId(null);
     refetch();
-    toast.success('Groupe supprimé');
+    toast.success(isFr ? 'Groupe supprimé' : 'Group deleted');
   };
 
   if (loading) {
