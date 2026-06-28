@@ -49,7 +49,9 @@ Deno.serve(async (req) => {
       }
 
       const prices = (plan.currency_prices || {}) as Record<string, number>;
-      const amount = prices['XOF'] || plan.base_price;
+      const monthly = prices['XOF'] || plan.base_price;
+      const isAnnual = sub.billing_cycle === 'annual';
+      const amount = isAnnual ? Math.round(monthly * 12 * 0.8) : monthly;
 
       // Initialize Paystack transaction for renewal
       const res = await fetch('https://api.paystack.co/transaction/initialize', {
@@ -68,6 +70,7 @@ Deno.serve(async (req) => {
             plan_name: plan.name,
             user_id: sub.user_id,
             renewal: true,
+            annual: isAnnual,
           },
         }),
       });
