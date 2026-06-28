@@ -22,6 +22,9 @@ const FEATURE_DICTIONARY: Record<string, string> = {
   'Rapports mensuels': 'Monthly reports',
   'Tableau de bord complet': 'Full dashboard',
   'Notifications intelligentes': 'Smart notifications',
+  'Récurrents automatiques': 'Automatic recurring transactions',
+  'IA basique (catégorisation, suggestions)': 'Basic AI (categorization, suggestions)',
+  'Coach IA par chat': 'AI coach chat',
 
   // Premium plan
   'Tout du plan Pro': 'Everything in Pro',
