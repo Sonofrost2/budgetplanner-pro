@@ -360,12 +360,12 @@ const PaymentPage = () => {
   const getPrice = (plan: Plan) => {
     const price = plan.currency_prices[currency] ?? plan.base_price;
     if (!annual) return price;
-    return Math.round(price * 12 * 0.8);
+    return getAnnualTotal(price, currency);
   };
 
   const getMonthlyEquivalent = (plan: Plan) => {
     const price = plan.currency_prices[currency] ?? plan.base_price;
-    return Math.round(price * 0.8 * 100) / 100;
+    return getDiscountedMonthly(price, currency);
   };
 
   const handleSubscribe = async (plan: Plan) => {
