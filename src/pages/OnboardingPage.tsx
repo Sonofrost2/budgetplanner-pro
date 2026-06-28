@@ -5,6 +5,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { useGeolocatedCurrency } from '@/hooks/useGeolocatedCurrency';
 import { translateFeature } from '@/lib/planFeatures';
 import { supabase } from '@/integrations/supabase/client';
+import { DEFAULT_CURRENCY } from '@/lib/currency';
 import type { Tables } from '@/integrations/supabase/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ const OnboardingPage = () => {
   const [step, setStep] = useState(0);
   const [plans, setPlans] = useState<Tables<'subscription_plans'>[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
-  const [currency, setCurrency] = useState('EUR');
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [lang, setLang] = useState(locale);
   const [phone, setPhone] = useState('');
   const [notifPush, setNotifPush] = useState(true);
