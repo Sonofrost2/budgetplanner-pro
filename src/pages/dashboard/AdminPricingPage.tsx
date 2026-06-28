@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Pencil, Shield, Loader2, Users, TrendingUp, DollarSign, CreditCard, Search, Crown, Star, Zap, Activity } from 'lucide-react';
+import { Pencil, Shield, Loader2, Users, TrendingUp, DollarSign, CreditCard, Search, Crown, Star, Zap, Activity, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
@@ -21,6 +21,14 @@ import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 
 const CURRENCIES = ['EUR', 'USD', 'XOF', 'XAF', 'GBP', 'CAD', 'CHF'];
+
+// Rounding rules per currency for harmonized pricing.
+const roundForCurrency = (amount: number, currency: string): number => {
+  if (currency === 'XOF' || currency === 'XAF') return Math.round(amount / 10) * 10;
+  if (amount >= 100) return Math.round(amount);
+  // psychological rounding to .99 for "western" currencies
+  return Math.max(0.99, Math.floor(amount) + 0.99);
+};
 
 type Sub = {
   id: string;
@@ -46,6 +54,7 @@ const AdminPricingPage = () => {
   const [subSearch, setSubSearch] = useState('');
   const [subStatusFilter, setSubStatusFilter] = useState<'all' | 'active' | 'canceled' | 'pending'>('all');
   const [subPlanFilter, setSubPlanFilter] = useState<string>('all');
+  const [syncingRates, setSyncingRates] = useState(false);
 
   const fetchAll = useCallback(async () => {
     const [plansRes, subsRes] = await Promise.all([
@@ -122,6 +131,37 @@ const AdminPricingPage = () => {
     setEditingPlan(null);
     fetchAll();
     toast.success(isFr ? 'Plan mis à jour' : 'Plan updated');
+  };
+
+  // Fetch live FX rates from XOF and recompute all other currency prices.
+  const handleSyncFromXof = async () => {
+    const xofStr = form.currency_prices['XOF'];
+    const xof = Number(xofStr);
+    if (!xof || xof <= 0) {
+      toast.error(isFr ? 'Saisis d’abord un montant XOF.' : 'Enter an XOF amount first.');
+      return;
+    }
+    setSyncingRates(true);
+    try {
+      const res = await fetch('https://open.er-api.com/v6/latest/XOF');
+      const data = await res.json();
+      if (data?.result !== 'success' || !data.rates) {
+        throw new Error('FX API unavailable');
+      }
+      const next: Record<string, string> = { ...form.currency_prices, XOF: String(xof), XAF: String(xof) };
+      CURRENCIES.filter(c => c !== 'XOF' && c !== 'XAF').forEach(c => {
+        const rate = data.rates[c];
+        if (rate && Number.isFinite(rate)) {
+          next[c] = String(roundForCurrency(xof * rate, c));
+        }
+      });
+      setForm(f => ({ ...f, currency_prices: next, base_price: next['EUR'] || f.base_price }));
+      toast.success(isFr ? 'Devises mises à jour selon les taux du jour.' : 'Currencies updated with live rates.');
+    } catch (e: any) {
+      toast.error(isFr ? 'Échec de la récupération des taux de change.' : 'Failed to fetch FX rates.');
+    } finally {
+      setSyncingRates(false);
+    }
   };
 
   if (roleLoading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -382,7 +422,21 @@ const AdminPricingPage = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>{isFr ? 'Prix par devise' : 'Price per currency'}</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>{isFr ? 'Prix par devise' : 'Price per currency'}</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px] rounded-lg"
+                  onClick={handleSyncFromXof}
+                  disabled={syncingRates}
+                  title={isFr ? 'Recalcule toutes les devises depuis le XOF avec les taux du jour' : 'Recompute all currencies from XOF using live FX rates'}
+                >
+                  {syncingRates ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                  {isFr ? 'Sync depuis XOF' : 'Sync from XOF'}
+                </Button>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {CURRENCIES.map(c => (
                   <div key={c} className="flex items-center gap-2">
@@ -391,6 +445,11 @@ const AdminPricingPage = () => {
                   </div>
                 ))}
               </div>
+              <p className="text-[10px] text-muted-foreground">
+                {isFr
+                  ? 'Astuce : modifie le XOF puis clique sur « Sync depuis XOF » pour aligner automatiquement les autres devises.'
+                  : 'Tip: edit XOF then click "Sync from XOF" to align the other currencies automatically.'}
+              </p>
             </div>
             <div className="space-y-2">
               <Label>{isFr ? 'Fonctionnalités (une par ligne)' : 'Features (one per line)'}</Label>
