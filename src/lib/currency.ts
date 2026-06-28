@@ -4,6 +4,12 @@
  * always reflects the user's selected currency (never hardcoded "FCFA"/"$").
  */
 
+/**
+ * Single default currency used as fallback across the app.
+ * Change this once to switch the global default.
+ */
+export const DEFAULT_CURRENCY = 'XOF';
+
 const SYMBOLS: Record<string, string> = {
   EUR: '€',
   USD: '$',
@@ -20,13 +26,13 @@ const SYMBOLS: Record<string, string> = {
 
 /** Short label suitable for input prefixes (e.g. "FCFA", "€", "$"). */
 export const currencySymbol = (currency?: string | null): string => {
-  if (!currency) return '€';
+  if (!currency) return SYMBOLS[DEFAULT_CURRENCY] || DEFAULT_CURRENCY;
   return SYMBOLS[currency.toUpperCase()] || currency.toUpperCase();
 };
 
 /** Example amount string for placeholders, localized. */
 export const exampleAmount = (currency?: string | null, locale: string = 'fr'): string => {
-  const code = (currency || 'EUR').toUpperCase();
+  const code = (currency || DEFAULT_CURRENCY).toUpperCase();
   const isCfa = code === 'XOF' || code === 'XAF' || code === 'GNF';
   const value = isCfa ? 50000 : 50;
   return value.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US');
@@ -103,7 +109,7 @@ export const formatPercent = (
 
 /** Numeric example for a given semantic key, scaled to the active currency. */
 export const exampleValue = (key: ExampleKey, currency?: string | null): number => {
-  const code = (currency || 'EUR').toUpperCase();
+  const code = (currency || DEFAULT_CURRENCY).toUpperCase();
   return (isCfaCode(code) ? CFA_EXAMPLES : FIAT_EXAMPLES)[key];
 };
 
@@ -113,7 +119,7 @@ export const formatExample = (
   currency?: string | null,
   locale: string = 'fr',
 ): string => {
-  const code = (currency || 'EUR').toUpperCase();
+  const code = (currency || DEFAULT_CURRENCY).toUpperCase();
   const value = exampleValue(key, code);
   const formatted = value.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', {
     minimumFractionDigits: isCfaCode(code) ? 0 : (value % 1 ? 2 : 0),
@@ -121,6 +127,34 @@ export const formatExample = (
   });
   const sym = currencySymbol(code);
   // Symbols before for €/$/£/₦, after for codes (FCFA, GNF, CHF…)
+  const symbolFirst = ['€', '$', '£', '₦', 'GH₵', 'DH'].includes(sym);
+  return symbolFirst ? `${sym}${formatted}` : `${formatted} ${sym}`;
+};
+
+/**
+ * Format a monetary amount with the active currency symbol and locale.
+ * Use this everywhere instead of inline `.toLocaleString()` + manual symbol concat.
+ *
+ * - CFA-zone currencies (XOF/XAF/GNF) → "50 000 FCFA" (no decimals, symbol after).
+ * - Symbol-first currencies (€/$/£/₦…) → "€1,234.56".
+ * - Other codes (CHF, etc.) → "1 234,56 CHF".
+ */
+export const formatAmount = (
+  value: number,
+  currency?: string | null,
+  locale?: string | null,
+  options?: { minimumFractionDigits?: number; maximumFractionDigits?: number },
+): string => {
+  const code = (currency || DEFAULT_CURRENCY).toUpperCase();
+  const lang = bcp47(locale);
+  const sym = currencySymbol(code);
+  const cfa = isCfaCode(code);
+  const min = options?.minimumFractionDigits ?? (cfa ? 0 : (value % 1 ? 2 : 0));
+  const max = options?.maximumFractionDigits ?? (cfa ? 0 : 2);
+  const formatted = (Number.isFinite(value) ? value : 0).toLocaleString(lang, {
+    minimumFractionDigits: min,
+    maximumFractionDigits: max,
+  });
   const symbolFirst = ['€', '$', '£', '₦', 'GH₵', 'DH'].includes(sym);
   return symbolFirst ? `${sym}${formatted}` : `${formatted} ${sym}`;
 };
