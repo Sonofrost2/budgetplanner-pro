@@ -1,7 +1,8 @@
 /**
  * Centralized pricing rules. Single source of truth for the annual discount
- * and any derived price calculations. Both the landing page and the in-app
- * billing page consume these helpers — if the discount changes, update here.
+ * on the client. The server mirrors this value in
+ * `supabase/functions/_shared/pricing.ts` — they MUST stay in sync so the
+ * amount displayed and the amount debited can never diverge.
  */
 
 /** Annual rebate vs. monthly billing (0.8 = 20% off). */

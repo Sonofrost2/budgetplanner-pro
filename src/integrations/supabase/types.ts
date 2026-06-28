@@ -1061,6 +1061,8 @@ export type Database = {
           amount: number
           created_at: string
           currency: string
+          display_amount: number | null
+          display_currency: string | null
           id: string
           payment_token: string | null
           plan_name: string
@@ -1074,6 +1076,8 @@ export type Database = {
           amount: number
           created_at?: string
           currency?: string
+          display_amount?: number | null
+          display_currency?: string | null
           id?: string
           payment_token?: string | null
           plan_name: string
@@ -1087,6 +1091,8 @@ export type Database = {
           amount?: number
           created_at?: string
           currency?: string
+          display_amount?: number | null
+          display_currency?: string | null
           id?: string
           payment_token?: string | null
           plan_name?: string
@@ -1977,6 +1983,8 @@ export type Database = {
           billing_cycle: string
           created_at: string
           currency: string
+          display_amount: number
+          display_currency: string
           display_name: string
           id: string
           payment_method: string
