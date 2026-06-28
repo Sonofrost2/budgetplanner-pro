@@ -4,14 +4,21 @@ import { useAuth } from '@/hooks/useAuth';
 import { useInvalidate } from '@/hooks/useDashboardData';
 
 const TABLE_TO_QUERY_KEYS: Record<string, string[]> = {
-  transactions: ['transactions', 'all-transactions', 'paginated-transactions', 'chart-data', 'reports-data', 'forecast-raw-tx', 'budget-spending', 'tx-month-count'],
-  payment_accounts: ['accounts'],
+  // Une transaction touche soldes, comptes, épargnes, rapports, dashboard, …
+  transactions: [
+    'transactions', 'all-transactions', 'paginated-transactions',
+    'chart-data', 'reports-data', 'forecast-raw-tx',
+    'budget-spending', 'tx-month-count',
+    'account-theoretical-balances', 'account-transactions',
+    'savings-page-data', 'savings-goals',
+  ],
+  payment_accounts: ['accounts', 'account-theoretical-balances'],
   budgets: ['budgets', 'budget-spending'],
   categories: ['categories', 'category-tx-counts'],
-  savings_goals: ['savings-goals'],
+  savings_goals: ['savings-goals', 'savings-page-data'],
   debts: ['debts'],
   recurring_transactions: ['recurring'],
-  cash_counts: ['accounts'],
+  cash_counts: ['accounts', 'account-cash-counts', 'account-theoretical-balances'],
 };
 
 // ─── Sync status store (lightweight external store) ──────────────────────────
@@ -83,12 +90,20 @@ export const useRealtimeSync = () => {
     const connect = () => {
       if (channel) return;
       setSyncState({ channel: 'connecting' });
+      const f = `user_id=eq.${user.id}`;
       channel = supabase
         .channel('dashboard-sync')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => handleChange('transactions'))
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => handleChange('transactions'))
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => handleChange('transactions'))
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'payment_accounts', filter: `user_id=eq.${user.id}` }, () => handleChange('payment_accounts'))
+        // Transactions — INSERT/UPDATE/DELETE (déclenchent tableau de bord, soldes, rapports)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: f }, () => handleChange('transactions'))
+        // Comptes — UPDATE (solde théorique / réel)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_accounts', filter: f }, () => handleChange('payment_accounts'))
+        // Budgets / épargnes / dettes / catégories / récurrentes — synchro cross-tabs
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets', filter: f }, () => handleChange('budgets'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'savings_goals', filter: f }, () => handleChange('savings_goals'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'debts', filter: f }, () => handleChange('debts'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'categories', filter: f }, () => handleChange('categories'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_transactions', filter: f }, () => handleChange('recurring_transactions'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_counts', filter: f }, () => handleChange('cash_counts'))
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') setSyncState({ channel: 'live' });
           else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSyncState({ channel: 'error' });
