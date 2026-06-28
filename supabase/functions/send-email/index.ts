@@ -289,6 +289,52 @@ const templates: Record<string, (data: Record<string, unknown>) => { subject: st
   },
 };
 
+// Append activation reminder template
+templates['activation-reminder'] = (data) => {
+  const isFr = (data.locale as string) !== 'en';
+  const stage = String(data.stage || 'd1');
+  const done = Number(data.doneCount || 0);
+  const total = Number(data.totalCount || 3);
+  const remaining = Math.max(0, total - done);
+  const accent: AccentVariant = stage === 'd7' ? 'warning' : 'primary';
+  const subject = isFr
+    ? `${data.emoji || '🚀'} ${data.title} — Budget Planner`
+    : `${data.emoji || '🚀'} ${data.title} — Budget Planner`;
+  const stepsFr = [
+    'Explorer tes <strong>catégories</strong>',
+    'Créer ton premier <strong>compte</strong> (Wave, Orange Money, banque…)',
+    'Saisir <strong>3 transactions</strong> pour démarrer le coach',
+  ];
+  const stepsEn = [
+    'Explore your <strong>categories</strong>',
+    'Create your first <strong>account</strong> (Mobile Money, bank…)',
+    'Log <strong>3 transactions</strong> to kick-start your coach',
+  ];
+  return {
+    subject,
+    html: wrapHtml({
+      title: String(data.title),
+      preheader: String(data.lede || ''),
+      heroEmoji: String(data.emoji || '🚀'),
+      heroLabel: String(data.title),
+      accent,
+      body: `
+        ${greeting(data.displayName as string)}
+        ${paragraph(String(data.lede || ''))}
+        ${statCard([
+          { label: isFr ? 'Étapes terminées' : 'Steps done', value: `${done} / ${total}`, valueColor: ACCENT },
+          { label: isFr ? 'Reste à faire' : 'Left to do', value: String(remaining), valueColor: remaining ? WARN : ACCENT },
+        ])}
+        ${checklist(isFr ? stepsFr : stepsEn)}
+        ${makeButton(String(data.ctaLabel || (isFr ? 'Continuer' : 'Continue')), String(data.ctaUrl || `${APP_URL}/dashboard`), accent)}
+        ${muted(isFr
+          ? 'Tu peux masquer cette checklist à tout moment depuis ton tableau de bord.'
+          : 'You can dismiss this checklist anytime from your dashboard.')}
+      `,
+    }),
+  };
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
