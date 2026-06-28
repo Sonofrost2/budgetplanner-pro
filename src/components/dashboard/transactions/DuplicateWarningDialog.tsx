@@ -13,7 +13,7 @@ interface Props {
   locale?: string;
 }
 
-import { currencySymbol, formatNumber} from '@/lib/currency';
+import { currencySymbol, formatNumber, bcp47 } from '@/lib/currency';
 
 export const DuplicateWarningDialog = ({ open, onOpenChange, duplicates, onConfirm, currency = 'EUR', locale = 'fr' }: Props) => {
   const sym = currencySymbol(currency);
@@ -41,7 +41,7 @@ export const DuplicateWarningDialog = ({ open, onOpenChange, duplicates, onConfi
                 <span className="text-sm font-semibold whitespace-nowrap">{formatNumber(Number(d.amount), locale)} {sym}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {formatNumber(new Date(d.created_at), locale)}
+                {new Date(d.created_at).toLocaleString(bcp47(locale))}
               </p>
             </div>
           ))}
