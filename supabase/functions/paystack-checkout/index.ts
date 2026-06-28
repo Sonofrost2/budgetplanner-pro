@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { ANNUAL_DISCOUNT_RATE, getAnnualTotal } from '../_shared/pricing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
       const userCurrency = (profile?.currency || 'XOF').toUpperCase();
       const prices = (plan.currency_prices || {}) as Record<string, number>;
       const monthly = prices[userCurrency] ?? Number(plan.base_price);
-      const displayAmount = annual ? Math.round(monthly * 12 * 0.8) : monthly;
+      const displayAmount = annual ? getAnnualTotal(monthly) : monthly;
 
       // 4) Convert to a Paystack-supported currency if needed
       const resolved = resolveServerPrice(displayAmount, userCurrency);
@@ -172,6 +173,8 @@ Deno.serve(async (req) => {
         plan_name: plan.name,
         amount: resolved.amount,
         currency: resolved.currency,
+        display_amount: displayAmount,
+        display_currency: userCurrency,
         payment_token: reference,
         status: 'pending',
       });
