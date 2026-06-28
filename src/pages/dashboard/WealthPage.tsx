@@ -309,7 +309,7 @@ const WealthPage = () => {
   const handleAddValuation = async () => {
     if (!valuationDialog || !user || Number(valuationValue) <= 0) return;
     if (new Date(valuationDate) > new Date()) {
-      toast.errorwt.dateNotInFuture;
+      toast.error(wt.dateNotInFuture);
       return;
     }
     setSaving(true);
@@ -324,7 +324,7 @@ const WealthPage = () => {
       setValuationValue('');
       setValuationNotes('');
       invalidate();
-      toast.successwt.valuationRecorded;
+      toast.success(wt.valuationRecorded);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
