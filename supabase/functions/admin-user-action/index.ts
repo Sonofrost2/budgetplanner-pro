@@ -1,5 +1,5 @@
 // Admin-only Edge Function for managing users.
-// Actions: list_users | suspicious_ips | set_plan | ban | unban | reset_password | impersonate | delete_user | get_audit_logs
+// Actions: list_users | suspicious_ips | set_plan | ban | unban | reset_password | impersonate | delete_user | get_audit_logs | refund_subscription
 //
 // Security:
 //  - Requires authenticated session
