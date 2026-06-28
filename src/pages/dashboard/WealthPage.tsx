@@ -430,7 +430,7 @@ const WealthPage = () => {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex overflow-x-auto rounded-2xl bg-muted/50 p-1">
-          <TabsTrigger value="overview" className="flex-1 rounded-xl text-xs">{isFr ? 'Vue d\'ensemble' : 'Overview'}</TabsTrigger>
+          <TabsTrigger value="overview" className="flex-1 rounded-xl text-xs">{wt.overview}</TabsTrigger>
           <TabsTrigger value="assets" className="flex-1 rounded-xl text-xs">{wt.myAssets}</TabsTrigger>
           <TabsTrigger value="evolution" className="flex-1 rounded-xl text-xs">{wt.evolution}</TabsTrigger>
           <TabsTrigger value="analysis" className="flex-1 rounded-xl text-xs">{wt.analysis}</TabsTrigger>
@@ -636,7 +636,7 @@ const WealthPage = () => {
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">{isFr ? 'Ajoutez des valorisations pour voir l\'évolution' : 'Add valuations to see evolution'}</p>
+                <p className="text-sm text-muted-foreground text-center py-8">{wt.addValuationsToSeeEvolution}</p>
               )}
             </CardContent>
           </Card>
@@ -716,7 +716,7 @@ const WealthPage = () => {
       <ResponsiveFormDialog
         open={dialogOpen}
         onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditId(null); }}
-        title={editId ? (isFr ? 'Modifier l\'actif' : 'Edit Asset') : wt.addAsset}
+        title={editId ? wt.editAsset : wt.addAsset}
         description={wt.fillAssetInfo}
         footer={
           <>
@@ -731,7 +731,7 @@ const WealthPage = () => {
             <div className="flex gap-3">
               <div className="flex-1">
                 <InputField
-                  label={isFr ? 'Nom de l\'actif' : 'Asset Name'}
+                  label={wt.assetName}
                   value={form.name}
                   onChange={e => { setForm(f => ({ ...f, name: e.target.value })); setFormErrors(e => ({ ...e, name: '' })); }}
                   error={formErrors.name}
@@ -749,7 +749,7 @@ const WealthPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="form-label">{isFr ? 'Type d\'actif' : 'Asset Type'}</Label>
+                <Label className="form-label">{wt.assetType}</Label>
                 <Select value={form.asset_type} onValueChange={v => setForm(f => ({ ...f, asset_type: v, category: '', icon: ASSET_TYPES.find(t => t.value === v)?.icon || f.icon }))}>
                   <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -790,7 +790,7 @@ const WealthPage = () => {
                 className="text-lg font-bold"
               />
               <InputField
-                label={`${amountLabel(isFr ? 'Coût d\'acquisition' : 'Acquisition Cost', currency)} · ${wt.optional}`}
+                label={`${amountLabel(wt.acquisitionCost, currency)} · ${wt.optional}`}
                 prefix={currencySymbol(currency)}
                 type="number"
                 min="0"
@@ -806,7 +806,7 @@ const WealthPage = () => {
           <FormSection title={wt.additionalDetails} icon={<MapPin className="w-3.5 h-3.5" />} collapsible defaultOpen={!!form.acquisition_date || !!form.location || !!form.notes}>
             <div className="grid grid-cols-2 gap-3">
               <InputField
-                label={`${isFr ? 'Date d\'acquisition' : 'Acquisition Date'} (${wt.optional})`}
+                label={`${wt.acquisitionDate} (${wt.optional})`}
                 type="date"
                 value={form.acquisition_date}
                 max={new Date().toISOString().split('T')[0]}
@@ -838,7 +838,7 @@ const WealthPage = () => {
         open={!!valuationDialog}
         onOpenChange={(o) => { if (!o) setValuationDialog(null); }}
         title={wt.newValuation}
-        description={isFr ? 'Mettez à jour la valeur de cet actif' : 'Update this asset\'s value'}
+        description={wt.updateAssetValue}
         footer={
           <>
             <Button variant="outline" onClick={() => setValuationDialog(null)} className="rounded-xl">{t.cancel}</Button>
