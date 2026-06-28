@@ -748,7 +748,7 @@ const MyPlanTab = ({ plan, subscription, isFr, t, currency, fmt, locale, onCance
             </div>
           </div>
           <div className="border-t border-border/40 pt-4 space-y-3">
-            <Row label={isFr ? 'Tarif mensuel' : 'Monthly price'} value={`${fmt(price, locale)} ${currency}`} />
+            <Row label={isFr ? 'Tarif mensuel' : 'Monthly price'} value={fmt(price, locale)} />
             <Row label={isFr ? 'Période en cours depuis' : 'Current period since'} value={startDate} />
             <Row label={isFr ? 'Renouvellement' : 'Renewal'} value={endDate} />
             <Row label={isFr ? 'Mode de paiement' : 'Payment method'} value={subscription.payment_method ?? 'Paystack'} />
