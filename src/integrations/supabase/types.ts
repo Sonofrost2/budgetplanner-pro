@@ -1064,6 +1064,9 @@ export type Database = {
           id: string
           payment_token: string | null
           plan_name: string
+          refund_reason: string | null
+          refunded_at: string | null
+          refunded_by: string | null
           status: string
           user_id: string
         }
@@ -1074,6 +1077,9 @@ export type Database = {
           id?: string
           payment_token?: string | null
           plan_name: string
+          refund_reason?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
           status?: string
           user_id: string
         }
@@ -1084,10 +1090,21 @@ export type Database = {
           id?: string
           payment_token?: string | null
           plan_name?: string
+          refund_reason?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
           status?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payment_receipts_refunded_by_fkey"
+            columns: ["refunded_by"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       period_closures: {
         Row: {
@@ -1631,6 +1648,8 @@ export type Database = {
           last_payment_token: string | null
           payment_method: string | null
           plan_id: string | null
+          refund_reason: string | null
+          refunded_at: string | null
           started_at: string
           status: string
           updated_at: string
@@ -1646,6 +1665,8 @@ export type Database = {
           last_payment_token?: string | null
           payment_method?: string | null
           plan_id?: string | null
+          refund_reason?: string | null
+          refunded_at?: string | null
           started_at?: string
           status?: string
           updated_at?: string
@@ -1661,6 +1682,8 @@ export type Database = {
           last_payment_token?: string | null
           payment_method?: string | null
           plan_id?: string | null
+          refund_reason?: string | null
+          refunded_at?: string | null
           started_at?: string
           status?: string
           updated_at?: string
@@ -1981,6 +2004,10 @@ export type Database = {
         }
         Returns: string
       }
+      admin_refund_subscription: {
+        Args: { p_reason?: string; p_subscription_id: string }
+        Returns: Json
+      }
       admin_set_user_plan: {
         Args: {
           _actor_id: string
@@ -2183,6 +2210,10 @@ export type Database = {
           p_to_account_id: string
           p_user_id: string
         }
+        Returns: Json
+      }
+      process_paystack_refund: {
+        Args: { p_payment_token: string; p_reason?: string }
         Returns: Json
       }
       recalculate_account_balance: {
