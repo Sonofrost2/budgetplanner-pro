@@ -31,6 +31,8 @@ type Receipt = {
   plan_name: string;
   amount: number;
   currency: string;
+  display_amount: number | null;
+  display_currency: string | null;
   payment_token: string | null;
   payment_method: string | null;
   status: string;
@@ -115,7 +117,8 @@ const AdminBillingPage = () => {
       return;
     }
     const headers = [
-      'date', 'user_email', 'display_name', 'plan', 'amount', 'currency',
+      'date', 'user_email', 'display_name', 'plan',
+      'display_amount', 'display_currency', 'debited_amount', 'debited_currency',
       'payment_method', 'billing_cycle', 'status', 'payment_token', 'refunded_at', 'refund_reason',
     ];
     const escape = (v: any) => {
@@ -128,6 +131,8 @@ const AdminBillingPage = () => {
       r.user_email,
       r.display_name,
       r.plan_name,
+      r.display_amount ?? r.amount,
+      r.display_currency ?? r.currency,
       r.amount,
       r.currency,
       r.payment_method,
@@ -284,8 +289,8 @@ const AdminBillingPage = () => {
                   <TableHead>{isFr ? 'Date' : 'Date'}</TableHead>
                   <TableHead>{isFr ? 'Utilisateur' : 'User'}</TableHead>
                   <TableHead>{isFr ? 'Plan' : 'Plan'}</TableHead>
-                  <TableHead className="text-right">{isFr ? 'Montant' : 'Amount'}</TableHead>
-                  <TableHead>{isFr ? 'Devise' : 'Currency'}</TableHead>
+                  <TableHead className="text-right">{isFr ? 'Affiché' : 'Displayed'}</TableHead>
+                  <TableHead className="text-right">{isFr ? 'Débité' : 'Debited'}</TableHead>
                   <TableHead>{isFr ? 'Moyen' : 'Method'}</TableHead>
                   <TableHead>{isFr ? 'Cycle' : 'Cycle'}</TableHead>
                   <TableHead>{isFr ? 'Statut' : 'Status'}</TableHead>
@@ -304,10 +309,14 @@ const AdminBillingPage = () => {
                         <div className="text-xs text-muted-foreground">{r.user_email || '—'}</div>
                       </TableCell>
                       <TableCell><Badge variant="outline">{r.plan_name}</Badge></TableCell>
-                      <TableCell className="text-right font-mono">
+                      <TableCell className="text-right font-mono text-xs">
+                        {r.display_amount != null && r.display_currency
+                          ? formatAmount(Number(r.display_amount), r.display_currency, locale)
+                          : formatAmount(Number(r.amount), r.currency, locale)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-xs">
                         {formatAmount(Number(r.amount), r.currency, locale)}
                       </TableCell>
-                      <TableCell className="text-xs">{r.currency}</TableCell>
                       <TableCell className="text-xs">{r.payment_method || '—'}</TableCell>
                       <TableCell className="text-xs">{r.billing_cycle || '—'}</TableCell>
                       <TableCell>
