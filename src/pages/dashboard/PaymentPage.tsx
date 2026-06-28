@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -652,6 +653,35 @@ const PaymentPage = () => {
           <p className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5">
             <AlertCircle className="w-3 h-3" />
             {t.cancelAnytime}
+          </p>
+
+          {/* Legal acceptance notice — required by CGV/Refund policy */}
+          <p className="text-center text-[11px] text-muted-foreground leading-relaxed max-w-2xl mx-auto px-4">
+            {isFr ? (
+              <>
+                En souscrivant, vous acceptez nos{' '}
+                <Link to="/legal/sales" className="underline hover:text-foreground transition-colors">
+                  Conditions Générales de Vente
+                </Link>{' '}
+                et notre{' '}
+                <Link to="/legal/refund" className="underline hover:text-foreground transition-colors">
+                  Politique de remboursement (7 jours)
+                </Link>
+                . Paiement sécurisé via Paystack — Carte bancaire et Mobile Money (MTN, Orange, Moov, Wave).
+              </>
+            ) : (
+              <>
+                By subscribing, you accept our{' '}
+                <Link to="/legal/sales" className="underline hover:text-foreground transition-colors">
+                  Terms of Sale
+                </Link>{' '}
+                and our{' '}
+                <Link to="/legal/refund" className="underline hover:text-foreground transition-colors">
+                  Refund Policy (7 days)
+                </Link>
+                . Secure payment via Paystack — Card and Mobile Money (MTN, Orange, Moov, Wave).
+              </>
+            )}
           </p>
         </TabsContent>
 
