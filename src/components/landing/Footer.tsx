@@ -38,6 +38,8 @@ const Footer = () => {
             <ul className="space-y-2.5 text-sm text-muted-foreground">
               <li><Link to="/legal/privacy" className="hover:text-foreground transition-colors">{t.footer.privacy}</Link></li>
               <li><Link to="/legal/terms" className="hover:text-foreground transition-colors">{t.footer.terms}</Link></li>
+              <li><Link to="/legal/sales" className="hover:text-foreground transition-colors">CGV</Link></li>
+              <li><Link to="/legal/refund" className="hover:text-foreground transition-colors">Remboursement</Link></li>
               <li><Link to="/legal/cookies" className="hover:text-foreground transition-colors">{t.footer.cookies}</Link></li>
             </ul>
           </div>
