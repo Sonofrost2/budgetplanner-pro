@@ -1,5 +1,5 @@
 // Admin-only Edge Function for managing users.
-// Actions: list_users | suspicious_ips | set_plan | ban | unban | reset_password | impersonate | delete_user | get_audit_logs
+// Actions: list_users | suspicious_ips | set_plan | ban | unban | reset_password | impersonate | delete_user | get_audit_logs | refund_subscription
 //
 // Security:
 //  - Requires authenticated session
@@ -234,6 +234,36 @@ Deno.serve(async (req) => {
         if (de) throw de;
         await audit("delete_user", target, "success", body.reason || "Hard delete by admin", {});
         return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "refund_subscription": {
+        const subscriptionId: string | undefined = body.subscription_id;
+        const reason: string | null = body.reason ?? null;
+        if (!subscriptionId) {
+          return new Response(JSON.stringify({ error: "subscription_id required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // We must call the RPC with the admin's JWT so auth.uid() resolves
+        // inside admin_refund_subscription (which checks has_role(...,'admin')).
+        const { data, error } = await userClient.rpc("admin_refund_subscription", {
+          p_subscription_id: subscriptionId,
+          p_reason: reason,
+        });
+        if (error) {
+          await audit("refund_subscription", body.user_id ?? null, "error", error.message, { subscription_id: subscriptionId });
+          throw error;
+        }
+        await audit(
+          "refund_subscription",
+          (data as any)?.user_id ?? body.user_id ?? null,
+          "success",
+          reason,
+          { subscription_id: subscriptionId, reference: (data as any)?.reference },
+        );
+        return new Response(JSON.stringify({ success: true, result: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

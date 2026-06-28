@@ -49,7 +49,45 @@ Deno.serve(async (req) => {
     const event = JSON.parse(body);
     console.log('Paystack webhook event:', event.event, event.data?.reference);
 
-    // 3. Only handle charge.success
+    // Service-role client used by every branch below
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // 3a. Refunds & disputes — revoke access
+    if (event.event === 'refund.processed' || event.event === 'charge.dispute.create') {
+      const reference =
+        event.data?.transaction_reference ||
+        event.data?.transaction?.reference ||
+        event.data?.reference;
+      if (!reference) {
+        console.error('Refund/dispute event missing transaction reference');
+        return new Response(JSON.stringify({ received: true, skipped: 'no_reference' }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const reason =
+        event.event === 'charge.dispute.create'
+          ? `dispute:${event.data?.category || event.data?.reason || 'unknown'}`
+          : `refund:${event.data?.reason || event.data?.merchant_note || 'processed'}`;
+      const { data: refundResult, error: refundErr } = await supabase.rpc(
+        'process_paystack_refund',
+        { p_payment_token: reference, p_reason: reason }
+      );
+      if (refundErr) {
+        console.error('process_paystack_refund error:', refundErr);
+        throw refundErr;
+      }
+      console.log('Refund/dispute applied:', event.event, reference, refundResult);
+      return new Response(JSON.stringify({ received: true, refund: refundResult }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 3b. Only handle charge.success past this point
     if (event.event !== 'charge.success') {
       return new Response(JSON.stringify({ received: true, skipped: event.event }), {
         status: 200,
@@ -99,12 +137,6 @@ Deno.serve(async (req) => {
       console.error('Re-verify exception:', e);
       return new Response('Verification error', { status: 500 });
     }
-
-    // 4. Use service role to update DB
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
 
     // 5. Find and activate the pending subscription
     const { data: pendingSubs, error: subError } = await supabase
