@@ -1958,9 +1958,36 @@ export type Database = {
             }
             Returns: string
           }
+      admin_billing_kpis: { Args: never; Returns: Json }
       admin_get_user_snapshot: {
         Args: { _actor_id: string; _target_user_id: string }
         Returns: Json
+      }
+      admin_list_payment_receipts: {
+        Args: {
+          p_end_date?: string
+          p_limit?: number
+          p_payment_method?: string
+          p_plan?: string
+          p_start_date?: string
+          p_status?: string
+        }
+        Returns: {
+          amount: number
+          billing_cycle: string
+          created_at: string
+          currency: string
+          display_name: string
+          id: string
+          payment_method: string
+          payment_token: string
+          plan_name: string
+          refund_reason: string
+          refunded_at: string
+          status: string
+          user_email: string
+          user_id: string
+        }[]
       }
       admin_list_users: {
         Args: {
