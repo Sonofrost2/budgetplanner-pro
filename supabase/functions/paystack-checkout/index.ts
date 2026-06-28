@@ -1,12 +1,39 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { ANNUAL_DISCOUNT_RATE, getAnnualTotal } from '../_shared/pricing.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+// Restrict cross-origin access on this payment endpoint. Requests from
+// unknown origins are rejected (browser CORS) while server-to-server callers
+// (no Origin header) keep working. Add new front-ends via PAYMENT_ALLOWED_ORIGINS.
+const STATIC_ALLOWED_ORIGINS = [
+  'https://budgetplanner-pro.lovable.app',
+  'https://budget-planner-pro.eurekaci.dev',
+];
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https:\/\/[a-z0-9-]+\.lovable\.app$/i, // preview + custom Lovable subdomains
+  /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/i,
+  /^http:\/\/localhost(:\d+)?$/i,
+];
+const EXTRA_ORIGINS = (Deno.env.get('PAYMENT_ALLOWED_ORIGINS') || '')
+  .split(',').map((s) => s.trim()).filter(Boolean);
 
-const json = (body: unknown, status = 200) =>
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (STATIC_ALLOWED_ORIGINS.includes(origin)) return true;
+  if (EXTRA_ORIGINS.includes(origin)) return true;
+  return ALLOWED_ORIGIN_PATTERNS.some((re) => re.test(origin));
+}
+
+function buildCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin');
+  return {
+    'Access-Control-Allow-Origin': isAllowedOrigin(origin) ? origin! : 'null',
+    'Vary': 'Origin',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+}
+
+const json = (body: unknown, status = 200, corsHeaders: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -29,6 +56,7 @@ function resolveServerPrice(displayAmount: number, displayCurrency: string) {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -37,13 +65,13 @@ Deno.serve(async (req) => {
     const PAYSTACK_SECRET_KEY = Deno.env.get('PAYSTACK_SECRET_KEY');
     if (!PAYSTACK_SECRET_KEY) {
       console.error('PAYSTACK_SECRET_KEY missing');
-      return json({ status: false, message: 'Server misconfigured' }, 500);
+      return json({ status: false, message: 'Server misconfigured' }, 500, corsHeaders);
     }
 
     // ---- AUTH ----
     const authHeader = req.headers.get('Authorization') || '';
     const token = authHeader.replace('Bearer ', '').trim();
-    if (!token) return json({ status: false, message: 'Unauthorized' }, 401);
+    if (!token) return json({ status: false, message: 'Unauthorized' }, 401, corsHeaders);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -51,7 +79,7 @@ Deno.serve(async (req) => {
     );
     const { data: userData, error: userErr } = await supabase.auth.getUser(token);
     if (userErr || !userData?.user) {
-      return json({ status: false, message: 'Unauthorized' }, 401);
+      return json({ status: false, message: 'Unauthorized' }, 401, corsHeaders);
     }
     const user = userData.user;
 
@@ -65,7 +93,7 @@ Deno.serve(async (req) => {
       const planId: string | undefined = body.plan_id;
       const annual: boolean = !!body.annual;
       const callbackUrl: string | undefined = body.callback_url;
-      if (!planId) return json({ status: false, message: 'plan_id required' }, 400);
+      if (!planId) return json({ status: false, message: 'plan_id required' }, 400, corsHeaders);
 
       // 1) Block duplicate active plan
       const { data: activeSub } = await supabase
@@ -82,7 +110,7 @@ Deno.serve(async (req) => {
           code: 'ALREADY_SUBSCRIBED',
           message: 'Vous etes deja abonne a ce plan.',
           current_period_end: activeSub.current_period_end,
-        }, 409);
+        }, 409, corsHeaders);
       }
 
       // 2) Load plan from DB (source of truth for price)
@@ -92,8 +120,8 @@ Deno.serve(async (req) => {
         .eq('id', planId)
         .eq('active', true)
         .maybeSingle();
-      if (planErr || !plan) return json({ status: false, message: 'Plan not found' }, 404);
-      if (plan.name === 'free') return json({ status: false, message: 'Free plan does not require payment' }, 400);
+      if (planErr || !plan) return json({ status: false, message: 'Plan not found' }, 404, corsHeaders);
+      if (plan.name === 'free') return json({ status: false, message: 'Free plan does not require payment' }, 400, corsHeaders);
 
       // 3) Determine user currency from profile
       const { data: profile } = await supabase
@@ -150,7 +178,7 @@ Deno.serve(async (req) => {
       });
       const data = await psRes.json();
       if (!data?.status || !data?.data?.authorization_url) {
-        return json({ status: false, message: data?.message || 'Paystack init failed' }, 502);
+        return json({ status: false, message: data?.message || 'Paystack init failed' }, 502, corsHeaders);
       }
       const reference = data.data.reference;
 
@@ -179,7 +207,7 @@ Deno.serve(async (req) => {
         status: 'pending',
       });
 
-      return json(data);
+      return json(data, 200, corsHeaders);
     }
 
     // =========================================================
@@ -187,7 +215,7 @@ Deno.serve(async (req) => {
     // =========================================================
     if (action === 'verify') {
       const reference: string | undefined = body.reference;
-      if (!reference) return json({ status: false, message: 'Reference is required' }, 400);
+      if (!reference) return json({ status: false, message: 'Reference is required' }, 400, corsHeaders);
 
       const psRes = await fetch(
         `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
@@ -200,7 +228,7 @@ Deno.serve(async (req) => {
       if (data?.status && data?.data?.status === 'success') {
         const metaUserId = data?.data?.metadata?.user_id;
         if (metaUserId && metaUserId !== user.id) {
-          return json({ status: false, message: 'Reference does not belong to caller' }, 403);
+          return json({ status: false, message: 'Reference does not belong to caller' }, 403, corsHeaders);
         }
         const isAnnual = !!data?.data?.metadata?.annual;
         const periodDays = isAnnual ? 365 : 30;
@@ -216,12 +244,12 @@ Deno.serve(async (req) => {
           console.error('activate_paid_subscription failed:', e);
         }
       }
-      return json(data);
+      return json(data, 200, corsHeaders);
     }
 
-    return json({ status: false, message: 'Invalid action. Use "initialize" or "verify".' }, 400);
+    return json({ status: false, message: 'Invalid action. Use "initialize" or "verify".' }, 400, corsHeaders);
   } catch (err: any) {
     console.error('paystack-checkout error:', err);
-    return json({ status: false, message: err?.message || 'Server error' }, 500);
+    return json({ status: false, message: err?.message || 'Server error' }, 500, corsHeaders);
   }
 });
