@@ -22,6 +22,7 @@ import { fr, enUS } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
 import { translateFeature } from '@/lib/planFeatures';
+import { getAnnualTotal, getDiscountedMonthly } from '@/lib/pricing';
 
 /**
  * Sanitize a string for jsPDF's WinAnsi (Latin-1) encoding.
