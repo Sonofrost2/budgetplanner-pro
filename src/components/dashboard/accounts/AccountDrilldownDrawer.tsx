@@ -77,8 +77,8 @@ export const AccountDrilldownDrawer = ({ account, onClose, fmt, isFr, locale }: 
                     <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => abbreviateNumber(v, locale)} />
                     <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ borderRadius: 12, border: 'none', background: 'hsl(var(--card))', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontSize: 11 }} />
                     <Legend wrapperStyle={{ fontSize: 10 }} />
-                    <Bar dataKey="income" fill="hsl(165, 70%, 46%)" radius={[4, 4, 0, 0]} name={isFr ? 'Entrées' : 'Income'} />
-                    <Bar dataKey="expense" fill="hsl(340, 80%, 55%)" radius={[4, 4, 0, 0]} name={isFr ? 'Sorties' : 'Expenses'} />
+                    <Bar dataKey="income" fill={CHART_INCOME} radius={[4, 4, 0, 0]} name={isFr ? 'Entrées' : 'Income'} />
+                    <Bar dataKey="expense" fill={CHART_ALERT} radius={[4, 4, 0, 0]} name={isFr ? 'Sorties' : 'Expenses'} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

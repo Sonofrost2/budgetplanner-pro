@@ -348,12 +348,12 @@ const AccountsRecapTab = () => {
               <AreaChart data={monthlyData}>
                 <defs>
                   <linearGradient id="recapIncG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(165, 70%, 46%)" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="hsl(165, 70%, 46%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor={CHART_INCOME} stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={CHART_INCOME} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="recapExpG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="hsl(340, 80%, 55%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor={CHART_ALERT} stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={CHART_ALERT} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
@@ -361,8 +361,8 @@ const AccountsRecapTab = () => {
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => abbreviateNumber(v, locale)} />
                 <Tooltip formatter={(v: number, name: string) => [fmt(v), name]} contentStyle={TOOLTIP_STYLE} />
                 <Legend wrapperStyle={{ fontSize: '11px' }} />
-                <Area type="monotone" dataKey="income" stroke="hsl(165, 70%, 46%)" fill="url(#recapIncG)" strokeWidth={2} name={t.income} />
-                <Area type="monotone" dataKey="expenses" stroke="hsl(340, 80%, 55%)" fill="url(#recapExpG)" strokeWidth={2} name={t.expenses} />
+                <Area type="monotone" dataKey="income" stroke={CHART_INCOME} fill="url(#recapIncG)" strokeWidth={2} name={t.income} />
+                <Area type="monotone" dataKey="expenses" stroke={CHART_ALERT} fill="url(#recapExpG)" strokeWidth={2} name={t.expenses} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -411,7 +411,7 @@ const AccountsRecapTab = () => {
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={120} />
                   <Tooltip formatter={(v: number, name: string) => [fmt(v), name]} contentStyle={TOOLTIP_STYLE} />
                   <Legend wrapperStyle={{ fontSize: '11px' }} />
-                  <Bar dataKey="current" fill="hsl(165, 70%, 46%)" radius={[0, 6, 6, 0]} name={isFr ? 'Actuel' : 'Current'} />
+                  <Bar dataKey="current" fill={CHART_INCOME} radius={[0, 6, 6, 0]} name={isFr ? 'Actuel' : 'Current'} />
                   <Bar dataKey="target" fill="hsl(var(--muted-foreground))" radius={[0, 6, 6, 0]} name={isFr ? 'Objectif' : 'Target'} opacity={0.3} />
                 </BarChart>
               </ResponsiveContainer>
