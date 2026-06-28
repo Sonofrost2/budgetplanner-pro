@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { currencySymbol } from '@/lib/currency';
 import { translateFeatures } from '@/lib/planFeatures';
+import { getAnnualTotal, getDiscountedMonthly } from '@/lib/pricing';
 import { useAuth } from '@/hooks/useAuth';
 import { useGeolocatedCurrency } from '@/hooks/useGeolocatedCurrency';
 import { supabase } from '@/integrations/supabase/client';
