@@ -5,6 +5,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
+import { accountsT, ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_ICONS } from '@/i18n/pages/accounts';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,8 @@ const AccountsPage = () => {
   const { fmt: fmtCurrency, currency } = useProfile();
   const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
+  const isFr = isFr;
+  const at = accountsT(isFr);
   const [searchParams, setSearchParams] = useSearchParams();
   const typeFilter = searchParams.get('type') || '';
   const initialSearch = searchParams.get('q') || '';
@@ -100,7 +103,7 @@ const AccountsPage = () => {
     const { error } = await fn('payment_accounts', acc.id);
     if (error) { toast.error(error.message); return; }
     refreshAll();
-    toast.success(acc.archived_at ? (locale === 'fr' ? 'Désarchivé' : 'Unarchived') : (locale === 'fr' ? 'Archivé' : 'Archived'));
+    toast.success(acc.archived_at ? (at.unarchived) : (at.archivedToast));
   };
 
   const filteredAccounts = useMemo(() => {
@@ -169,7 +172,7 @@ const AccountsPage = () => {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = t.nameRequired;
     if (form.name.trim().length > 100) errs.name = t.maxChars(100);
-    if (Number(form.opening_balance) < 0) errs.opening_balance = locale === 'fr' ? 'Le solde ne peut pas être négatif' : 'Balance cannot be negative';
+    if (Number(form.opening_balance) < 0) errs.opening_balance = at.balanceCannotBeNegative;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -227,9 +230,7 @@ const AccountsPage = () => {
       .in('status', ['active']);
     if (linkedGoals && linkedGoals.length > 0) {
       const names = linkedGoals.map(g => g.name).join(', ');
-      toast.error(locale === 'fr'
-        ? `Impossible : compte lié à ${linkedGoals.length} objectif(s) d'épargne actif(s) (${names})`
-        : `Cannot delete: linked to ${linkedGoals.length} active savings goal(s) (${names})`);
+      toast.error(at.cannotDeleteLinked(linkedGoals.length, names));
       setDeleteId(null);
       return;
     }
@@ -267,7 +268,7 @@ const AccountsPage = () => {
       <Tabs defaultValue="manage">
         <TabsList className="rounded-xl mb-4">
           <TabsTrigger value="manage" className="rounded-lg gap-1.5"><Wallet className="w-4 h-4" />{t.management}</TabsTrigger>
-          <TabsTrigger value="stats" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{locale === 'fr' ? 'Stats période' : 'Period stats'}</TabsTrigger>
+          <TabsTrigger value="stats" className="rounded-lg gap-1.5"><BarChart3 className="w-4 h-4" />{at.periodStats}</TabsTrigger>
           <TabsTrigger value="recap" className="rounded-lg gap-1.5"><Eye className="w-4 h-4" />{t.accountsRecap}</TabsTrigger>
         </TabsList>
 
@@ -288,27 +289,27 @@ const AccountsPage = () => {
         accounts={filteredAccounts}
         transactions={allTransactions}
         fmt={fmt}
-        isFr={locale === 'fr'}
+        isFr={isFr}
         onNewAccount={openNew}
         onTransfer={() => setTransferOpen(true)}
         canTransfer={accounts.length >= 2}
       />
 
-      <DormantAccountsBanner isFr={locale === 'fr'} />
+      <DormantAccountsBanner isFr={isFr} />
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           {typeFilter && (
             <button onClick={() => setSearchParams({})} className="text-xs text-muted-foreground hover:text-foreground mb-1 flex items-center gap-1 transition-colors">
-              ← {locale === 'fr' ? 'Retour à tous les comptes' : 'Back to all accounts'}
+              ← {at.backToAllAccounts}
             </button>
           )}
           <h2 className="text-2xl font-bold font-display">{t.accounts}</h2>
         </div>
         <div className="flex gap-2 items-center flex-wrap">
-          <ViewModeToggle value={viewMode} onChange={setViewMode} isFr={locale === 'fr'} />
+          <ViewModeToggle value={viewMode} onChange={setViewMode} isFr={isFr} />
           <Button size="sm" variant={showArchived ? 'default' : 'outline'} className="rounded-xl text-xs gap-1.5" onClick={() => setShowArchived(s => !s)}>
-            <Archive className="w-3.5 h-3.5" />{locale === 'fr' ? 'Archivés' : 'Archived'}
+            <Archive className="w-3.5 h-3.5" />{at.archived}
           </Button>
         </div>
       </div>
@@ -319,29 +320,24 @@ const AccountsPage = () => {
         <FilterToolbar
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
-          searchPlaceholder={locale === 'fr' ? 'Rechercher un compte...' : 'Search accounts...'}
+          searchPlaceholder={at.searchAccounts}
           sortOptions={[
-            { value: 'name', label: locale === 'fr' ? 'Nom' : 'Name' },
-            { value: 'real_balance', label: locale === 'fr' ? 'Solde' : 'Balance' },
+            { value: 'name', label: at.sortName },
+            { value: 'real_balance', label: at.sortBalance },
             { value: 'type', label: t.type },
-            { value: 'discrepancy', label: locale === 'fr' ? 'Écart' : 'Discrepancy' },
+            { value: 'discrepancy', label: at.sortDiscrepancy },
           ]}
           sortValue={sortField}
           onSortChange={v => setSortField(v as any)}
           sortOrder={sortOrder}
           onSortOrderToggle={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
           filterChips={[...new Set(accounts.map(a => a.type))].map(type => {
-            const typeLabels: Record<string, Record<string, string>> = {
-              fr: { bank: 'Banque', mobile_money: 'Mobile Money', cash: 'Espèces', card: 'Carte', savings: 'Épargne' },
-              en: { bank: 'Bank', mobile_money: 'Mobile Money', cash: 'Cash', card: 'Card', savings: 'Savings' },
-            };
-            const icons: Record<string, string> = { bank: '🏦', mobile_money: '📱', cash: '💵', card: '💳', savings: '🐖' };
-            const labels = typeLabels[locale] || typeLabels.en;
-            return { value: type, label: labels[type] || type, icon: icons[type] || '💳', count: accounts.filter(a => a.type === type).length };
+            const labels = ACCOUNT_TYPE_LABELS[locale] || ACCOUNT_TYPE_LABELS.en;
+            return { value: type, label: labels[type] || type, icon: ACCOUNT_TYPE_ICONS[type] || '💳', count: accounts.filter(a => a.type === type).length };
           })}
           activeFilter={typeFilter}
           onFilterChange={v => setSearchParams(v ? { type: v } : {})}
-          allLabel={locale === 'fr' ? 'Tous' : 'All'}
+          allLabel={at.all}
           totalCount={accounts.length}
         />
         <div className="flex items-center gap-2">
@@ -353,7 +349,7 @@ const AccountsPage = () => {
             onClick={() => setShowDiscrepancyOnly(!showDiscrepancyOnly)}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            {locale === 'fr' ? 'Avec écart' : 'With discrepancy'}
+            {at.withDiscrepancy}
             {(() => {
               const count = accounts.filter(a => {
                 const theoretical = theoreticalBalances[a.id] ?? Number(a.opening_balance || 0);
@@ -380,7 +376,7 @@ const AccountsPage = () => {
       {filteredAccounts.length === 0 && accounts.length > 0 ? (
         <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
           <CardContent className="py-12 text-center">
-            <p className="text-sm text-muted-foreground">{locale === 'fr' ? 'Aucun compte de ce type' : 'No accounts of this type'}</p>
+            <p className="text-sm text-muted-foreground">{at.noAccountsOfType}</p>
           </CardContent>
         </Card>
       ) : accounts.length === 0 ? (
@@ -401,7 +397,7 @@ const AccountsPage = () => {
           accounts={filteredAccounts}
           theoreticalBalances={theoreticalBalances}
           fmt={fmt}
-          isFr={locale === 'fr'}
+          isFr={isFr}
           selectedIds={bulk.selectedIds}
           onToggle={bulk.toggle}
           onToggleAll={() => filteredAccounts.forEach(a => bulk.toggle(a.id))}
@@ -416,7 +412,7 @@ const AccountsPage = () => {
           transactions={allTransactions}
           theoreticalBalances={theoreticalBalances}
           fmt={fmt}
-          isFr={locale === 'fr'}
+          isFr={isFr}
           selectedIds={bulk.selectedIds}
           onToggle={bulk.toggle}
           onUpdateBalance={(a) => { setUpdateBalanceDialog(a); setNewRealBalance(String(a.real_balance)); }}
@@ -440,7 +436,7 @@ const AccountsPage = () => {
               transactions={allTransactions}
               theoreticalBalance={getTheoreticalBalance(acc.id)}
               fmt={fmt}
-              isFr={locale === 'fr'}
+              isFr={isFr}
               selected={bulk.selectedIds.has(acc.id)}
               onSelect={() => bulk.toggle(acc.id)}
               onUpdateBalance={() => { setUpdateBalanceDialog(acc); setNewRealBalance(String(acc.real_balance)); }}
@@ -463,7 +459,7 @@ const AccountsPage = () => {
         account={drilldownAccount}
         onClose={() => setDrilldownAccount(null)}
         fmt={fmt}
-        isFr={locale === 'fr'}
+        isFr={isFr}
         locale={locale}
       />
 
@@ -614,7 +610,7 @@ const AccountsPage = () => {
                 <TableBody>
                   {historyData.map(c => (
                     <TableRow key={c.id}>
-                      <TableCell className="text-sm">{new Date(c.counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</TableCell>
+                      <TableCell className="text-sm">{new Date(c.counted_at).toLocaleDateString(isFr ? 'fr-FR' : 'en-US')}</TableCell>
                       <TableCell className="text-right text-sm font-medium">{fmt(Number(c.total_counted))}</TableCell>
                       <TableCell className={`text-right text-sm font-bold ${Number(c.discrepancy) === 0 ? 'text-secondary' : 'text-destructive'}`}>
                         {Number(c.discrepancy) >= 0 ? '+' : ''}{fmt(Number(c.discrepancy))}
@@ -639,12 +635,12 @@ const AccountsPage = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Coins className="w-5 h-5 text-accent" />
-              {locale === 'fr' ? 'Procès-Verbal d\'Espèces' : 'Cash Count Report'}
+              {at.cashCountReport}
             </DialogTitle>
             <DialogDescription>
               {accounts.find(a => a.id === historyAccountId)?.icon} {accounts.find(a => a.id === historyAccountId)?.name}
               {' — '}
-              {previewCashCount && new Date(previewCashCount.counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              {previewCashCount && new Date(previewCashCount.counted_at).toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </DialogDescription>
           </DialogHeader>
 
@@ -666,9 +662,9 @@ const AccountsPage = () => {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/30">
-                          <TableHead className="text-xs">{locale === 'fr' ? 'Coupure' : 'Denomination'}</TableHead>
-                          <TableHead className="text-xs text-center">{locale === 'fr' ? 'Quantité' : 'Quantity'}</TableHead>
-                          <TableHead className="text-xs text-right">{locale === 'fr' ? 'Sous-total' : 'Subtotal'}</TableHead>
+                          <TableHead className="text-xs">{at.denomination}</TableHead>
+                          <TableHead className="text-xs text-center">{at.quantity}</TableHead>
+                          <TableHead className="text-xs text-right">{at.subtotal}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -722,7 +718,7 @@ const AccountsPage = () => {
                 const el = document.getElementById('cash-count-preview');
                 if (!el) return;
                 const acc = accounts.find(a => a.id === historyAccountId);
-                const date = previewCashCount ? new Date(previewCashCount.counted_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US') : '';
+                const date = previewCashCount ? new Date(previewCashCount.counted_at).toLocaleDateString(isFr ? 'fr-FR' : 'en-US') : '';
                 const printWin = window.open('', '_blank', 'width=600,height=800');
                 if (!printWin) return;
                 printWin.document.write(`<!DOCTYPE html><html><head><title>PV Espèces - ${acc?.name || ''} - ${date}</title>
@@ -746,7 +742,7 @@ const AccountsPage = () => {
                     .notes-label { font-size: 10px; text-transform: uppercase; color: #666; font-weight: 700; }
                     @media print { body { padding: 16px; } }
                   </style></head><body>
-                  <h1>📝 ${locale === 'fr' ? 'Procès-Verbal d\'Espèces' : 'Cash Count Report'}</h1>
+                  <h1>📝 ${at.cashCountReport}</h1>
                   <h2>${acc?.icon || ''} ${acc?.name || ''} — ${date}</h2>
                   ${el.innerHTML}
                   </body></html>`);
@@ -755,7 +751,7 @@ const AccountsPage = () => {
               }}
             >
               <Printer className="w-3.5 h-3.5" />
-              {locale === 'fr' ? 'Imprimer' : 'Print'}
+              {at.print}
             </Button>
           </DialogFooter>
         </DialogContent>
