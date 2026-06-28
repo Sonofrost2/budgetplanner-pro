@@ -148,6 +148,7 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
           { key: 'adminSmsTemplates', icon: Bell, path: '/dashboard/admin/sms-templates' },
           { key: 'adminSmsLogs', icon: Bell, path: '/dashboard/admin/sms-logs' },
           { key: 'adminNotificationMetrics', icon: Activity, path: '/dashboard/admin/notification-metrics' },
+          { key: 'adminBilling', icon: CreditCard, path: '/dashboard/admin/billing' },
         ] : []),
       ],
     },
