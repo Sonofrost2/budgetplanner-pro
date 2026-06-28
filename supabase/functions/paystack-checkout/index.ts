@@ -199,11 +199,15 @@ Deno.serve(async (req) => {
         if (metaUserId && metaUserId !== user.id) {
           return json({ status: false, message: 'Reference does not belong to caller' }, 403);
         }
+        const isAnnual = !!data?.data?.metadata?.annual;
+        const periodDays = isAnnual ? 365 : 30;
+        const billingCycle = isAnnual ? 'annual' : 'monthly';
         try {
           await supabase.rpc('activate_paid_subscription', {
             p_user_id: user.id,
             p_reference: reference,
-            p_period_days: 30,
+            p_period_days: periodDays,
+            p_billing_cycle: billingCycle,
           });
         } catch (e) {
           console.error('activate_paid_subscription failed:', e);

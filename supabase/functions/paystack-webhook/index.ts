@@ -121,7 +121,10 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date().toISOString();
-    const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const isAnnual = !!metadata.annual;
+    const periodDays = isAnnual ? 365 : 30;
+    const billingCycle = isAnnual ? 'annual' : 'monthly';
+    const periodEnd = new Date(Date.now() + periodDays * 24 * 60 * 60 * 1000).toISOString();
 
     if (pendingSubs && pendingSubs.length > 0) {
       const sub = pendingSubs[0];
@@ -135,6 +138,7 @@ Deno.serve(async (req) => {
           current_period_end: periodEnd,
           last_payment_token: reference,
           plan_id: planId || sub.plan_id,
+          billing_cycle: billingCycle,
         })
         .eq('id', sub.id);
 
@@ -149,6 +153,7 @@ Deno.serve(async (req) => {
         current_period_start: now,
         current_period_end: periodEnd,
         last_payment_token: reference,
+        billing_cycle: billingCycle,
       });
       console.log('New subscription created for user', userId);
     }

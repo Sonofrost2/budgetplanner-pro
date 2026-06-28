@@ -1622,6 +1622,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          billing_cycle: string | null
           canceled_at: string | null
           created_at: string
           current_period_end: string
@@ -1636,6 +1637,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          billing_cycle?: string | null
           canceled_at?: string | null
           created_at?: string
           current_period_end?: string
@@ -1650,6 +1652,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          billing_cycle?: string | null
           canceled_at?: string | null
           created_at?: string
           current_period_end?: string
@@ -1914,10 +1917,24 @@ export type Database = {
     }
     Functions: {
       accept_family_invitation: { Args: { p_token: string }; Returns: Json }
-      activate_paid_subscription: {
-        Args: { p_period_days?: number; p_reference: string; p_user_id: string }
-        Returns: string
-      }
+      activate_paid_subscription:
+        | {
+            Args: {
+              p_period_days?: number
+              p_reference: string
+              p_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_billing_cycle?: string
+              p_period_days?: number
+              p_reference: string
+              p_user_id: string
+            }
+            Returns: string
+          }
       admin_get_user_snapshot: {
         Args: { _actor_id: string; _target_user_id: string }
         Returns: Json
