@@ -567,11 +567,11 @@ const WealthPage = () => {
             onSearchChange={setSearchQuery}
             searchPlaceholder={isFr ? 'Rechercher un actif...' : 'Search asset...'}
             filterChips={[
-              { label: isFr ? 'Tous' : 'All', value: 'all' },
               ...ASSET_TYPES.map(t => ({ label: t[isFr ? 'label_fr' : 'label_en'], value: t.value })),
             ]}
             activeFilter={filterType}
             onFilterChange={setFilterType}
+            allLabel={isFr ? 'Tous' : 'All'}
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
