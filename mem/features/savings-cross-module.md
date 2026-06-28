@@ -19,11 +19,9 @@ type: feature
 **Logique frontend (savingsLogic.ts)** : isLiveGoal/isReachedGoal/isTerminalGoal/isLiveAccount + liveSavingsTotal/liveSavingsTarget/justReachedCount/partitionGoals. Totaux excluent completed/paused/archived/deleted partout (Dashboard, Wealth, Health, AI Coach, Forecast).
 
 **Réconciliation** : si on suspecte une dérive, relancer le UPDATE de réconciliation (voir migration 20260429).
----
-name: Savings cross-module harmonization
-description: savingsLogic helper + SQL trigger auto-archiving linked accounts + filters in Wealth/Health/AIChat/Dashboard widgets
-type: feature
----
+
+## Harmonisation cross-module (totaux & filtres)
+
 **Règle unique** : seuls les objectifs `status='active' AND paused_at IS NULL AND deleted_at IS NULL` comptent dans les totaux d'épargne **partout** (Dashboard, Patrimoine, AI Coach, Health Score, KPI hero épargne). Les comptes archivés (`archived_at IS NOT NULL`) sont exclus partout aussi.
 
 **Source de vérité** : `src/lib/savingsLogic.ts` expose `isLiveGoal`, `isLiveAccount`, `isReachedGoal`, `isTerminalGoal`, `liveSavingsTotal`, `liveSavingsTarget`, `partitionGoals`. Toute nouvelle feature qui somme/affiche des objectifs DOIT passer par ces helpers.
