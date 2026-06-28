@@ -19,11 +19,12 @@ import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { CHART_INCOME, CHART_ALERT, CHART_PALETTE, CHART_TOOLTIP_BG } from '@/lib/chartColors';
 
 const TOOLTIP_STYLE = {
   borderRadius: '12px',
   border: 'none',
-  background: 'hsl(var(--card))',
+  background: CHART_TOOLTIP_BG,
   boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
   fontSize: '12px',
   padding: '8px 12px',
@@ -39,11 +40,7 @@ const PERIOD_OPTIONS: { value: PeriodKey; months: number }[] = [
   { value: 'custom', months: 0 },
 ];
 
-const COLORS = [
-  'hsl(250, 85%, 60%)', 'hsl(165, 70%, 46%)', 'hsl(35, 92%, 55%)',
-  'hsl(340, 80%, 55%)', 'hsl(200, 80%, 50%)', 'hsl(280, 65%, 55%)',
-  'hsl(15, 85%, 55%)', 'hsl(130, 55%, 45%)', 'hsl(45, 90%, 50%)',
-];
+const COLORS = CHART_PALETTE;
 
 const AccountsRecapTab = () => {
   const { locale } = useLanguage();
