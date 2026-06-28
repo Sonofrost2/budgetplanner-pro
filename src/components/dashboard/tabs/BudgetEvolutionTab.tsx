@@ -16,16 +16,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { CHART_PALETTE, CHART_TOOLTIP_BG, CHART_GRID } from '@/lib/chartColors';
 
 type PeriodKey = '3m' | '6m' | '1y' | 'all' | 'custom';
 type TypeFilter = 'expense' | 'income' | 'all';
 
 const TOOLTIP_STYLE = {
-  borderRadius: '12px', border: 'none', background: 'hsl(var(--card))',
+  borderRadius: '12px', border: 'none', background: CHART_TOOLTIP_BG,
   boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontSize: '12px', padding: '8px 12px',
 };
 
-const COLORS = ['hsl(250, 85%, 60%)', 'hsl(165, 70%, 46%)', 'hsl(35, 92%, 55%)', 'hsl(340, 80%, 55%)', 'hsl(200, 80%, 50%)', 'hsl(280, 65%, 55%)', 'hsl(15, 85%, 55%)'];
+const COLORS = CHART_PALETTE;
 
 const BudgetEvolutionTab = () => {
   const { locale } = useLanguage();
@@ -241,7 +242,7 @@ const BudgetEvolutionTab = () => {
               <div className="h-[420px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 15%, 88%)" vertical={false} opacity={0.4} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} opacity={0.4} />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => abbreviateNumber(v, locale)} />
                     <Tooltip

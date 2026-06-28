@@ -6,14 +6,8 @@ import { TrendingUp, TrendingDown, Wallet, ArrowLeftRight, Plus, Coins } from 'l
 import { ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import type { Account, Transaction } from '@/hooks/useDashboardData';
+import { ACCOUNT_TYPE_COLORS as TYPE_COLORS, CHART_INCOME, CHART_NEGATIVE } from '@/lib/chartColors';
 
-const TYPE_COLORS: Record<string, string> = {
-  bank: 'hsl(217, 91%, 60%)',
-  mobile_money: 'hsl(35, 92%, 55%)',
-  cash: 'hsl(165, 70%, 46%)',
-  card: 'hsl(280, 65%, 55%)',
-  savings: 'hsl(340, 80%, 55%)',
-};
 
 interface Props {
   accounts: Account[];
@@ -113,14 +107,14 @@ export const AccountsHeroHeader = ({ accounts, transactions, fmt, isFr, onNewAcc
                 <AreaChart data={sparkline}>
                   <defs>
                     <linearGradient id="wealthSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={isPositive ? 'hsl(165, 70%, 46%)' : 'hsl(0, 84%, 60%)'} stopOpacity={0.4} />
-                      <stop offset="100%" stopColor={isPositive ? 'hsl(165, 70%, 46%)' : 'hsl(0, 84%, 60%)'} stopOpacity={0} />
+                      <stop offset="0%" stopColor={isPositive ? CHART_INCOME : CHART_NEGATIVE} stopOpacity={0.4} />
+                      <stop offset="100%" stopColor={isPositive ? CHART_INCOME : CHART_NEGATIVE} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <Area
                     type="monotone"
                     dataKey="v"
-                    stroke={isPositive ? 'hsl(165, 70%, 46%)' : 'hsl(0, 84%, 60%)'}
+                    stroke={isPositive ? CHART_INCOME : CHART_NEGATIVE}
                     strokeWidth={2}
                     fill="url(#wealthSpark)"
                     isAnimationActive

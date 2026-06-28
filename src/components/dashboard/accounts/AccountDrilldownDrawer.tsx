@@ -7,6 +7,7 @@ import { Activity, TrendingUp, BarChart3, Receipt } from 'lucide-react';
 import { useAccountDrilldown } from '@/hooks/useAccountInsights';
 import { abbreviateNumber } from '@/lib/utils';
 import type { Account } from '@/hooks/useDashboardData';
+import { CHART_INCOME, CHART_ALERT, CHART_TOOLTIP_BG } from '@/lib/chartColors';
 
 interface Props {
   account: Account | null;
@@ -75,10 +76,10 @@ export const AccountDrilldownDrawer = ({ account, onClose, fmt, isFr, locale }: 
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
                     <XAxis dataKey="month" tick={{ fontSize: 9 }} />
                     <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => abbreviateNumber(v, locale)} />
-                    <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ borderRadius: 12, border: 'none', background: 'hsl(var(--card))', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontSize: 11 }} />
+                    <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ borderRadius: 12, border: 'none', background: CHART_TOOLTIP_BG, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontSize: 11 }} />
                     <Legend wrapperStyle={{ fontSize: 10 }} />
-                    <Bar dataKey="income" fill="hsl(165, 70%, 46%)" radius={[4, 4, 0, 0]} name={isFr ? 'Entrées' : 'Income'} />
-                    <Bar dataKey="expense" fill="hsl(340, 80%, 55%)" radius={[4, 4, 0, 0]} name={isFr ? 'Sorties' : 'Expenses'} />
+                    <Bar dataKey="income" fill={CHART_INCOME} radius={[4, 4, 0, 0]} name={isFr ? 'Entrées' : 'Income'} />
+                    <Bar dataKey="expense" fill={CHART_ALERT} radius={[4, 4, 0, 0]} name={isFr ? 'Sorties' : 'Expenses'} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
