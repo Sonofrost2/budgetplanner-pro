@@ -61,7 +61,7 @@ const AccountsPage = () => {
   const { fmt: fmtCurrency, currency } = useProfile();
   const { limits, isPremium } = useSubscription();
   const t = dashT[locale];
-  const isFr = isFr;
+  const isFr = locale === 'fr';
   const at = accountsT(isFr);
   const [searchParams, setSearchParams] = useSearchParams();
   const typeFilter = searchParams.get('type') || '';
