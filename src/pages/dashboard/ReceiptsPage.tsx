@@ -9,11 +9,12 @@ import { Receipt, Inbox, Printer, Download, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { exportToCSV, exportToExcel } from '@/lib/export';
+import { formatAmount, bcp47 } from '@/lib/currency';
 import { toast } from 'sonner';
 
 const printReceipt = (receipt: any, locale: string) => {
-  const dateStr = new Date(receipt.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const amountStr = Number(receipt.amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: receipt.currency });
+  const dateStr = new Date(receipt.created_at).toLocaleDateString(bcp47(locale), { year: 'numeric', month: 'long', day: 'numeric' });
+  const amountStr = formatAmount(Number(receipt.amount), receipt.currency, locale);
   const w = window.open('', '_blank', 'width=400,height=500');
   if (!w) return;
   w.document.write(`<!DOCTYPE html><html><head><title>Receipt</title><style>body{font-family:system-ui;padding:2rem;max-width:350px;margin:auto}h1{font-size:1.2rem;text-align:center}table{width:100%;border-collapse:collapse;margin:1rem 0}td{padding:.4rem 0;border-bottom:1px solid #eee}td:last-child{text-align:right;font-weight:600}.footer{text-align:center;font-size:.75rem;color:#888;margin-top:2rem}</style></head><body>
@@ -158,10 +159,10 @@ const ReceiptsPage = () => {
                 <div key={r.id} className="flex items-center justify-between px-6 py-4 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-3">
                     <Receipt className="w-5 h-5 text-primary" />
-                    <div><p className="text-sm font-medium">{r.plan_name}</p><p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p></div>
+                    <div><p className="text-sm font-medium">{r.plan_name}</p><p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString(bcp47(locale), { year: 'numeric', month: 'long', day: 'numeric' })}</p></div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold">{Number(r.amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency: r.currency })}</span>
+                    <span className="text-sm font-semibold">{formatAmount(Number(r.amount), r.currency, locale)}</span>
                     <Badge variant={r.status === 'confirmed' ? 'default' : 'secondary'} className="text-xs">{r.status}</Badge>
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => printReceipt(r, locale)}>
                       <Printer className="w-3.5 h-3.5" />
