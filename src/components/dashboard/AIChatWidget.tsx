@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/currency';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send, Sparkles, Loader2, Trash2, RotateCcw, History, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -478,7 +479,7 @@ const AIChatWidget = () => {
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="bg-card/60 backdrop-blur border border-border/40 rounded-xl p-2">
                           <span className="text-muted-foreground">{locale === 'fr' ? 'Solde total' : 'Total balance'}</span>
-                          <p className="font-bold text-foreground">{Math.round(context.summary.totalBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}</p>
+                          <p className="font-bold text-foreground">{formatNumber(Math.round(context.summary.totalBalance), locale)}</p>
                         </div>
                         <div className="bg-card/60 backdrop-blur border border-border/40 rounded-xl p-2">
                           <span className="text-muted-foreground">{locale === 'fr' ? 'Taux épargne' : 'Savings rate'}</span>

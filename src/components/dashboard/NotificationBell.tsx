@@ -206,7 +206,7 @@ export const useBudgetNotifications = () => {
             type: 'budget_savings',
             severity: 'success',
             title: isFr ? '💰 Revenu au-dessus du plafond' : '💰 Income above ceiling',
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${formatNumber(Math.round(spent - amount), locale)}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
             dueLabelKey: 'now',
@@ -217,7 +217,7 @@ export const useBudgetNotifications = () => {
             type: 'budget_exceeded',
             severity: 'critical',
             title: isFr ? `Budget dépassé (${Math.round(pct)}%)` : `Budget exceeded (${Math.round(pct)}%)`,
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(spent).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} / ${Math.round(amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} — +${Math.round(spent - amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${formatNumber(Math.round(spent), locale)} / ${formatNumber(Math.round(amount), locale)} — +${formatNumber(Math.round(spent - amount), locale)}`,
             action: { label: isFr ? 'Voir transactions' : 'View transactions', path: `/dashboard/transactions?category=${budget.category_id}&type=${budgetType}&from=${periodStartStr}&to=${periodEndStr}` },
             daysLeft: 0,
             dueLabelKey: 'now',
@@ -233,7 +233,7 @@ export const useBudgetNotifications = () => {
               title: isIncomeBudget
                 ? (isFr ? `💰 Revenu à ${Math.round(pct)}%` : `💰 Income at ${Math.round(pct)}%`)
                 : (isFr ? `Budget à ${Math.round(pct)}%` : `Budget at ${Math.round(pct)}%`),
-              message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(spent).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} / ${Math.round(amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} ${isFr ? `(seuil ${threshold}%)` : `(threshold ${threshold}%)`}`,
+              message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${formatNumber(Math.round(spent), locale)} / ${formatNumber(Math.round(amount), locale)} ${isFr ? `(seuil ${threshold}%)` : `(threshold ${threshold}%)`}`,
               action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
               daysLeft: 0,
               dueLabelKey: 'now',
@@ -247,7 +247,7 @@ export const useBudgetNotifications = () => {
             type: 'budget_savings',
             severity: 'success',
             title: isFr ? '🏁 Bilan : budget maîtrisé' : '🏁 Bilan: budget under control',
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(amount - spent).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} ${isFr ? 'économisés' : 'saved'}`,
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${formatNumber(Math.round(amount - spent), locale)} ${isFr ? 'économisés' : 'saved'}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
             dueLabelKey: 'closed',
@@ -262,7 +262,7 @@ export const useBudgetNotifications = () => {
             type: 'budget_savings',
             severity: 'success',
             title: isFr ? '🎉 Objectif atteint' : '🎉 Target reached',
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${Math.round(spent - amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} ${isFr ? 'au-dessus' : 'above'}`,
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: +${formatNumber(Math.round(spent - amount), locale)} ${isFr ? 'au-dessus' : 'above'}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
             dueLabelKey: 'now',
@@ -273,7 +273,7 @@ export const useBudgetNotifications = () => {
             type: 'budget_warning',
             severity: 'info',
             title: isFr ? 'Objectif non atteint' : 'Target not reached',
-            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${Math.round(amount - spent).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+            message: `${(budget.categories as any)?.icon || '📁'} ${budget.name}: ${Math.round(pct)}% — ${isFr ? 'manque' : 'missing'} ${formatNumber(Math.round(amount - spent), locale)}`,
             action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
             daysLeft: 0,
             dueLabelKey: 'now',
@@ -296,7 +296,7 @@ export const useBudgetNotifications = () => {
           title: isFr
             ? `${kindIcon} ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`
             : `${kindIcon} ${budget.name} — ${formatDaysLeftLabel(daysLeft, locale, dueLabel)}`,
-          message: `${(budget.categories as any)?.icon || '📁'} ${kindLabel}: ${Math.round(amount).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+          message: `${(budget.categories as any)?.icon || '📁'} ${kindLabel}: ${formatNumber(Math.round(amount), locale)}`,
           action: { label: isFr ? 'Voir budget' : 'View budget', path: `/dashboard/budgets?q=${encodeURIComponent(budget.name)}` },
           daysLeft,
           upcoming: true,
@@ -318,7 +318,7 @@ export const useBudgetNotifications = () => {
           title: daysUntil === 0
             ? (isFr ? "📋 Échéance aujourd'hui" : '📋 Due today')
             : (isFr ? `📋 Échéance dans ${daysUntil}j` : `📋 Due in ${daysUntil}d`),
-          message: `${rec.description}: ${Math.round(Number(rec.amount)).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} (${rec.type === 'income' ? (isFr ? 'revenu' : 'income') : (isFr ? 'dépense' : 'expense')})`,
+          message: `${rec.description}: ${formatNumber(Math.round(Number(rec.amount)), locale)} (${rec.type === 'income' ? (isFr ? 'revenu' : 'income') : (isFr ? 'dépense' : 'expense')})`,
           action: { label: isFr ? 'Voir récurrences' : 'View recurring', path: `/dashboard/recurring?q=${encodeURIComponent(rec.description)}` },
           daysLeft: daysUntil,
           upcoming: daysUntil > 0,
@@ -381,7 +381,7 @@ export const useBudgetNotifications = () => {
             title: daysUntil === 0
               ? (isFr ? "🐷 Cotisation aujourd'hui" : '🐷 Contribution today')
               : (isFr ? `🐷 Cotisation dans ${daysUntil}j` : `🐷 Contribution in ${daysUntil}d`),
-            message: `${goal.icon} ${goal.name}: ${Math.round(Number(goal.monthly_contribution || 0)).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+            message: `${goal.icon} ${goal.name}: ${formatNumber(Math.round(Number(goal.monthly_contribution || 0)), locale)}`,
             action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
             daysLeft: daysUntil,
             upcoming: daysUntil > 0,
@@ -403,7 +403,7 @@ export const useBudgetNotifications = () => {
             title: isFr
               ? `🎯 Échéance ${formatDaysLeftLabel(daysToDeadline, locale)}`
               : `🎯 Deadline ${formatDaysLeftLabel(daysToDeadline, locale)}`,
-            message: `${goal.icon} ${goal.name}: ${isFr ? 'reste' : 'remaining'} ${Math.round(remaining).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+            message: `${goal.icon} ${goal.name}: ${isFr ? 'reste' : 'remaining'} ${formatNumber(Math.round(remaining), locale)}`,
             action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
             daysLeft: daysToDeadline,
             upcoming: daysToDeadline > 0,
@@ -464,7 +464,7 @@ export const useBudgetNotifications = () => {
           type: 'savings_behind',
           severity: 'info',
           title: isFr ? 'Versement insuffisant' : 'Insufficient contribution',
-          message: `${goal.icon} ${goal.name}: ${Math.round(monthlyActual).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} / ${Math.round(monthlyNeeded).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+          message: `${goal.icon} ${goal.name}: ${formatNumber(Math.round(monthlyActual), locale)} / ${formatNumber(Math.round(monthlyNeeded), locale)}`,
           action: { label: isFr ? 'Voir épargne' : 'View savings', path: `/dashboard/savings?q=${encodeURIComponent(goal.name)}` },
           daysLeft: 0,
           dueLabelKey: 'now',
@@ -505,7 +505,7 @@ export const useBudgetNotifications = () => {
             type: 'balance_discrepancy',
             severity: 'warning',
             title: isFr ? `🔍 Écart de solde` : `🔍 Balance discrepancy`,
-            message: `${account.icon} ${account.name}: ${sign}${Math.round(diff).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} (${isFr ? 'réel' : 'actual'}: ${Math.round(realBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')} / ${isFr ? 'calculé' : 'calculated'}: ${Math.round(theoreticalBalance).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')})`,
+            message: `${account.icon} ${account.name}: ${sign}${formatNumber(Math.round(diff), locale)} (${isFr ? 'réel' : 'actual'}: ${formatNumber(Math.round(realBalance), locale)} / ${isFr ? 'calculé' : 'calculated'}: ${formatNumber(Math.round(theoreticalBalance), locale)})`,
             action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
             daysLeft: 0,
             dueLabelKey: 'now',
@@ -520,7 +520,7 @@ export const useBudgetNotifications = () => {
             type: 'balance_discrepancy',
             severity: 'warning',
             title: isFr ? `🔍 Écart sur ${discrepancies.length} comptes` : `🔍 Discrepancy on ${discrepancies.length} accounts`,
-            message: `${isFr ? 'Total' : 'Total'}: ${Math.round(totalDiff).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US')}`,
+            message: `${isFr ? 'Total' : 'Total'}: ${formatNumber(Math.round(totalDiff), locale)}`,
             action: { label: isFr ? 'Voir les comptes' : 'View accounts', path: `/dashboard/accounts` },
             daysLeft: 0,
             dueLabelKey: 'now',
@@ -535,7 +535,7 @@ export const useBudgetNotifications = () => {
     // straight to the budget editor (sync trigger then aligns both sides).
     {
       const goalById = new Map<string, any>(savings.map((g: any) => [g.id, g]));
-      const fmtNum = (n: number) => Math.round(n).toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US');
+      const fmtNum = (n: number) => formatNumber(Math.round(n), locale);
       const fmtDate = (s: string | null | undefined) => {
         if (!s) return '—';
         try { return new Date(s).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' }); }
