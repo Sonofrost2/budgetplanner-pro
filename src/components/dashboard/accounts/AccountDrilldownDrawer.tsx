@@ -7,6 +7,7 @@ import { Activity, TrendingUp, BarChart3, Receipt } from 'lucide-react';
 import { useAccountDrilldown } from '@/hooks/useAccountInsights';
 import { abbreviateNumber } from '@/lib/utils';
 import type { Account } from '@/hooks/useDashboardData';
+import { CHART_INCOME, CHART_ALERT, CHART_TOOLTIP_BG } from '@/lib/chartColors';
 
 interface Props {
   account: Account | null;
