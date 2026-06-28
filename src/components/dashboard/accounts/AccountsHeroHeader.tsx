@@ -6,14 +6,8 @@ import { TrendingUp, TrendingDown, Wallet, ArrowLeftRight, Plus, Coins } from 'l
 import { ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import type { Account, Transaction } from '@/hooks/useDashboardData';
+import { ACCOUNT_TYPE_COLORS as TYPE_COLORS, CHART_INCOME, CHART_NEGATIVE } from '@/lib/chartColors';
 
-const TYPE_COLORS: Record<string, string> = {
-  bank: 'hsl(217, 91%, 60%)',
-  mobile_money: 'hsl(35, 92%, 55%)',
-  cash: 'hsl(165, 70%, 46%)',
-  card: 'hsl(280, 65%, 55%)',
-  savings: 'hsl(340, 80%, 55%)',
-};
 
 interface Props {
   accounts: Account[];
