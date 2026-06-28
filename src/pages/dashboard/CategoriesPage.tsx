@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
+import { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { useCategories, useInvalidate, type Category } from '@/hooks/useDashboardData';
+import { useActivationChecklist } from '@/hooks/useActivationChecklist';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +49,10 @@ const CategoriesPage = () => {
   const isFr = locale === 'fr';
   const { invalidate } = useInvalidate();
   const { limits, isPaid } = useSubscription();
+  const { markCategoriesVisited } = useActivationChecklist();
+
+  // Track first visit for the activation checklist (no-op if already marked).
+  useEffect(() => { void markCategoriesVisited(); }, [markCategoriesVisited]);
 
   const { data: categories = [], isLoading: catLoading } = useCategories();
 

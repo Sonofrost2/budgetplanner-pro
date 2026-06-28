@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardHeroHeader } from '@/components/dashboard/home/DashboardHeroHeader';
 import { DashboardCoachInsights } from '@/components/dashboard/home/DashboardCoachInsights';
+import { ActivationChecklistCard } from '@/components/dashboard/ActivationChecklistCard';
 import type { QuickParsedTransaction } from '@/components/dashboard/transactions/TransactionsHeroHeader';
 import {
   DndContext,
@@ -340,6 +341,11 @@ const DashboardHome = () => {
       {/* ── Coach Insights Bar ── */}
       <motion.div variants={fadeUp}>
         <DashboardCoachInsights locale={locale} />
+      </motion.div>
+
+      {/* ── Activation Checklist (J0-J7, anti-churn) ── */}
+      <motion.div variants={fadeUp}>
+        <ActivationChecklistCard />
       </motion.div>
 
       {/* Edit mode hint banner */}
