@@ -748,7 +748,7 @@ const MyPlanTab = ({ plan, subscription, isFr, t, currency, fmt, locale, onCance
             </div>
           </div>
           <div className="border-t border-border/40 pt-4 space-y-3">
-            <Row label={isFr ? 'Tarif mensuel' : 'Monthly price'} value={`${fmt(price, locale)} ${currency}`} />
+            <Row label={isFr ? 'Tarif mensuel' : 'Monthly price'} value={fmt(price, locale)} />
             <Row label={isFr ? 'Période en cours depuis' : 'Current period since'} value={startDate} />
             <Row label={isFr ? 'Renouvellement' : 'Renewal'} value={endDate} />
             <Row label={isFr ? 'Mode de paiement' : 'Payment method'} value={subscription.payment_method ?? 'Paystack'} />
@@ -850,7 +850,7 @@ const PlanCards = ({ plans, subscription, currency, fmt, locale, isFr, t, annual
                     {price === 0 ? '0' : fmt(price, locale).replace(/\s/g, '\u00A0')}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {currency}/{plan.name !== 'free' && annual ? (isFr ? 'an' : 'yr') : t.perMonth}
+                    {price === 0 ? '' : `/${plan.name !== 'free' && annual ? (isFr ? 'an' : 'yr') : (isFr ? 'mois' : 'mo')}`}
                   </span>
                 </div>
                 {annual && price > 0 && (
