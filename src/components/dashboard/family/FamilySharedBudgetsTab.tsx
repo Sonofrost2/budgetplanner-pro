@@ -12,6 +12,7 @@ import { useCategories } from '@/hooks/useDashboardData';
 import type { Tables } from '@/integrations/supabase/types';
 import type { FamilyDashboard } from '@/hooks/useFamilyData';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { formatAmount } from '@/lib/currency';
 
 interface Props {
   dashboard: FamilyDashboard | null;
@@ -24,7 +25,8 @@ interface Props {
   onChange: () => void;
 }
 
-const fmt = (n: number, c: string, loc = 'fr-FR') => `${Math.round(n).toLocaleString(loc)} ${c}`;
+const fmt = (n: number, c: string, loc: string = 'fr') =>
+  formatAmount(Math.round(n), c, loc);
 
 export const FamilySharedBudgetsTab = ({ dashboard, groupId, isOwner, myBudgets, sharedBudgets, currency, currentUserId, onChange }: Props) => {
   const { locale } = useLanguage();

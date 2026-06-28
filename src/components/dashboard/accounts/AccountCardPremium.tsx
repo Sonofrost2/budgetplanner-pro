@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
 import { AlertTriangle, MoreHorizontal, Pencil, Trash2, Archive, Eye, Coins, History, Wallet, CheckCircle2, Moon } from 'lucide-react';
 import type { Account, Transaction } from '@/hooks/useDashboardData';
+import { CHART_POSITIVE, CHART_NEGATIVE } from '@/lib/chartColors';
 
 interface Props {
   account: Account;
@@ -162,7 +163,7 @@ export const AccountCardPremium = ({
                 <Line
                   type="monotone"
                   dataKey="v"
-                  stroke={isUp ? 'hsl(165, 70%, 46%)' : 'hsl(0, 84%, 60%)'}
+                  stroke={isUp ? CHART_POSITIVE : CHART_NEGATIVE}
                   strokeWidth={1.8}
                   dot={false}
                   isAnimationActive={false}

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { currencySymbol } from '@/lib/currency';
 import { translateFeatures } from '@/lib/planFeatures';
+import { getAnnualTotal, getDiscountedMonthly } from '@/lib/pricing';
 import { useAuth } from '@/hooks/useAuth';
 import { useGeolocatedCurrency } from '@/hooks/useGeolocatedCurrency';
 import { supabase } from '@/integrations/supabase/client';
@@ -71,10 +72,10 @@ const PricingSection = () => {
     if (!base || base.amount === 0) return { ...base, monthlyEquivalent: '' };
     if (!annual) return { ...base, monthlyEquivalent: '' };
 
-    // Annual: show TOTAL annual amount (monthly * 12 * 0.8)
-    const monthlyDiscounted = Math.round(base.amount * 0.8 * 100) / 100;
-    const totalAnnual = Math.round(monthlyDiscounted * 12);
     const { currency } = base;
+    // Annual: shared pricing helpers ensure parity with PaymentPage.
+    const monthlyDiscounted = getDiscountedMonthly(base.amount, currency);
+    const totalAnnual = getAnnualTotal(base.amount, currency);
     const isCfa = currency === 'XOF' || currency === 'XAF' || currency === 'GNF';
     const symbol = currencySymbol(currency);
     const formatted = isCfa

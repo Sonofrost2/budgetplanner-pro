@@ -1,6 +1,7 @@
 import { TrendingUp, TrendingDown, Wallet, Percent, Calculator, BarChart3, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { CHART_POSITIVE, CHART_NEGATIVE } from '@/lib/chartColors';
 
 interface StatsCardsProps {
   balance: number;
@@ -163,7 +164,7 @@ export const StatsCards = ({
           <p className="text-sm sm:text-base font-extrabold text-secondary tabular-nums truncate leading-tight">+{fmt(totalIncome)}</p>
           {dailyIncomeData && dailyIncomeData.length >= 2 && (
             <div className="mt-2 -mx-1 opacity-60 group-hover:opacity-100 transition-opacity">
-              <Sparkline data={dailyIncomeData} color="hsl(165, 70%, 46%)" className="w-full h-6" />
+              <Sparkline data={dailyIncomeData} color={CHART_POSITIVE} className="w-full h-6" />
             </div>
           )}
         </motion.div>
@@ -188,7 +189,7 @@ export const StatsCards = ({
           <p className="text-sm sm:text-base font-extrabold text-destructive tabular-nums truncate leading-tight">-{fmt(totalExpenses)}</p>
           {dailyExpenseData && dailyExpenseData.length >= 2 && (
             <div className="mt-2 -mx-1 opacity-60 group-hover:opacity-100 transition-opacity">
-              <Sparkline data={dailyExpenseData} color="hsl(0, 84%, 60%)" className="w-full h-6" />
+              <Sparkline data={dailyExpenseData} color={CHART_NEGATIVE} className="w-full h-6" />
             </div>
           )}
         </motion.div>

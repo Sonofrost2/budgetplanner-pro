@@ -4,6 +4,7 @@ import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
+import { CHART_POSITIVE, CHART_NEGATIVE } from '@/lib/chartColors';
 
 interface SeriesPoint { v: number }
 
@@ -54,7 +55,7 @@ export const ReportsHeroHeader = ({
     return { surplus, savingsRate, isPositive, coachMsg };
   }, [totalIncome, totalExpense, txCount, periodLabel, isFr, fmt]);
 
-  const sparkColor = isPositive ? 'hsl(165, 70%, 46%)' : 'hsl(0, 84%, 60%)';
+  const sparkColor = isPositive ? CHART_POSITIVE : CHART_NEGATIVE;
 
   return (
     <HeroHeaderShell>

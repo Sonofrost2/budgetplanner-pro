@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { abbreviateNumber, groupTopN } from '@/lib/utils';
 import { useMemo } from 'react';
+import { CHART_INCOME, CHART_EXPENSE, CHART_GRID, CHART_AXIS } from '@/lib/chartColors';
 
 interface ChartsSectionProps {
   monthlyData: { name: string; income: number; expenses: number }[];
@@ -83,30 +84,30 @@ export const ChartsSection = ({ monthlyData, categoryData, fmt, t, locale = 'fr'
               <AreaChart data={monthlyData}>
                 <defs>
                   <linearGradient id="incG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(165, 70%, 46%)" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="hsl(165, 70%, 46%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor={CHART_INCOME} stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={CHART_INCOME} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="expG" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(250, 85%, 60%)" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="hsl(250, 85%, 60%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor={CHART_EXPENSE} stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={CHART_EXPENSE} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(225, 15%, 88%)" vertical={false} opacity={0.4} />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(225, 10%, 45%)" axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10 }} stroke="hsl(225, 10%, 45%)" axisLine={false} tickLine={false} tickFormatter={(v) => abbreviateNumber(v, locale)} />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} opacity={0.4} />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke={CHART_AXIS} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10 }} stroke={CHART_AXIS} axisLine={false} tickLine={false} tickFormatter={(v) => abbreviateNumber(v, locale)} />
                 <Tooltip content={<CustomTooltip fmt={fmt} />} />
-                <Area type="monotone" dataKey="income" stroke="hsl(165, 70%, 46%)" fill="url(#incG)" strokeWidth={2} name={t.income} animationDuration={1200} />
-                <Area type="monotone" dataKey="expenses" stroke="hsl(250, 85%, 60%)" fill="url(#expG)" strokeWidth={2} name={t.expenses} animationDuration={1200} animationBegin={200} />
+                <Area type="monotone" dataKey="income" stroke={CHART_INCOME} fill="url(#incG)" strokeWidth={2} name={t.income} animationDuration={1200} />
+                <Area type="monotone" dataKey="expenses" stroke={CHART_EXPENSE} fill="url(#expG)" strokeWidth={2} name={t.expenses} animationDuration={1200} animationBegin={200} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
           <div className="flex items-center justify-center gap-6 mt-2">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="w-3 h-1 rounded-full" style={{ background: 'hsl(165, 70%, 46%)' }} />
+              <span className="w-3 h-1 rounded-full" style={{ background: CHART_INCOME }} />
               {t.income}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="w-3 h-1 rounded-full" style={{ background: 'hsl(250, 85%, 60%)' }} />
+              <span className="w-3 h-1 rounded-full" style={{ background: CHART_EXPENSE }} />
               {t.expenses}
             </div>
           </div>

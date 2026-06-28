@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { DEFAULT_CURRENCY } from '@/lib/currency';
 
 export const useProfile = () => {
   const { user } = useAuth();
@@ -10,13 +11,13 @@ export const useProfile = () => {
     queryKey: ['profile-currency', user?.id],
     queryFn: async () => {
       const { data } = await supabase.from('profiles').select('currency').eq('user_id', user!.id).single();
-      return data?.currency || 'EUR';
+      return data?.currency || DEFAULT_CURRENCY;
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
 
-  const currency = data || 'EUR';
+  const currency = data || DEFAULT_CURRENCY;
 
   const fmt = (n: number, locale: string) =>
     n.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-US', { style: 'currency', currency });

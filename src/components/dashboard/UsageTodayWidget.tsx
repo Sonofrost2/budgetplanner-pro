@@ -16,8 +16,10 @@ interface Props {
   userPlan: string | null;
 }
 
-// Mirror the limits set in requirePlan() calls
-const FREE_LIMITS: Record<string, { label_fr: string; label_en: string; max: number }> = {
+// Mirror the limits set in requirePlan() calls.
+// Renamed from FREE_LIMITS to avoid collision with the per-resource quotas
+// declared in src/hooks/useSubscription.tsx (transactions/accounts/budgets).
+const AI_USAGE_CAPS: Record<string, { label_fr: string; label_en: string; max: number }> = {
   ai_chat: { label_fr: 'Coach IA', label_en: 'AI Coach', max: 5 },
   ai_quick_parse: { label_fr: 'Saisie rapide IA', label_en: 'AI quick parse', max: 10 },
   ai_categorize: { label_fr: 'Catégorisation IA', label_en: 'AI categorize', max: 20 },
@@ -72,7 +74,7 @@ export const UsageTodayWidget = ({ userPlan }: Props) => {
           </div>
 
           <div className="space-y-2.5">
-            {Object.entries(FREE_LIMITS).map(([feature, info]) => {
+            {Object.entries(AI_USAGE_CAPS).map(([feature, info]) => {
               const used = counts[feature] || 0;
               const pct = Math.min((used / info.max) * 100, 100);
               const exhausted = used >= info.max;

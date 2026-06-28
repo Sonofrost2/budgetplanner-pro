@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { DEFAULT_CURRENCY } from '@/lib/currency';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +35,7 @@ const SettingsPage = () => {
   const isFr = locale === 'fr';
 
   const [displayName, setDisplayName] = useState('');
-  const [currency, setCurrency] = useState('EUR');
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [lang, setLang] = useState(locale);
   const [loading, setLoading] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>('profile');
