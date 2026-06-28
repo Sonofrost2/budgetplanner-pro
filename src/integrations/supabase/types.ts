@@ -1124,7 +1124,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          activation_completed_at: string | null
+          activation_dismissed_at: string | null
+          activation_reminders_sent: Json
           avatar_url: string | null
+          categories_visited_at: string | null
           consent_updated_at: string | null
           country_code: string | null
           created_at: string
@@ -1143,7 +1147,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          activation_completed_at?: string | null
+          activation_dismissed_at?: string | null
+          activation_reminders_sent?: Json
           avatar_url?: string | null
+          categories_visited_at?: string | null
           consent_updated_at?: string | null
           country_code?: string | null
           created_at?: string
@@ -1162,7 +1170,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          activation_completed_at?: string | null
+          activation_dismissed_at?: string | null
+          activation_reminders_sent?: Json
           avatar_url?: string | null
+          categories_visited_at?: string | null
           consent_updated_at?: string | null
           country_code?: string | null
           created_at?: string
