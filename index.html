@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <!-- Security: meta fallbacks. Header-only directives (X-Frame-Options,
+         HSTS, frame-ancestors) are also set in public/_headers for the host. -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>Budget Planner Pro – Gérez vos finances intelligemment</title>
     <meta name="description" content="Application de gestion budgétaire complète : suivi des dépenses, budgets par catégorie, objectifs d&#39;épargne, prévisions IA et gestion familiale.">
     <meta name="author" content="Budget Planner Pro" />

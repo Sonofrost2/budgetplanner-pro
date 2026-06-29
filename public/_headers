@@ -1,0 +1,7 @@
+# Security headers — honored by Cloudflare Pages / Netlify / static hosts that
+# support the `_headers` convention. HSTS, X-Content-Type-Options and
+# Referrer-Policy already shipped at the platform level; we add the missing ones.
+/*
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(self "https://checkout.paystack.com"), interest-cohort=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://checkout.paystack.com https://cdn.mxpnl.com https://*.lovable.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: ; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co https://api.mixpanel.com https://api-js.mixpanel.com https://ipapi.co https://open.er-api.com; frame-src https://checkout.paystack.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.paystack.com; object-src 'none'; upgrade-insecure-requests
