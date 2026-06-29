@@ -27,6 +27,9 @@ const ROOT = join(__dirname, '..'); // → src/
 const FILE_WHITELIST = new Set<string>([
   // Centralized currency helpers — by definition contain raw symbols
   'lib/currency.ts',
+  // Geolocated currency symbol table — same role as lib/currency.ts but
+  // landing-page focused (kept separate to avoid auth pulls in marketing).
+  'hooks/useGeolocatedCurrency.tsx',
   // Country dial-codes / locale tables
   'lib/countries.ts',
   // Demo seed (CFA-only by design)
