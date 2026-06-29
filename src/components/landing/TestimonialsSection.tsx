@@ -5,6 +5,9 @@ import { motion } from 'framer-motion';
 const TestimonialsSection = () => {
   const { t } = useLanguage();
   const colors = ['bg-primary', 'bg-secondary', 'bg-accent'];
+  const items = (t.testimonials as any).items as Array<{ name: string; role: string; text: string }>;
+  const badge = (t.testimonials as any).badge ?? 'Testimonials';
+  const empty = (t.testimonials as any).empty as string | undefined;
 
   return (
     <section id="testimonials" aria-label="Témoignages clients" className="py-24 relative overflow-hidden">
@@ -18,14 +21,19 @@ const TestimonialsSection = () => {
           className="text-center mb-14"
         >
           <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider glass text-secondary mb-4">
-            Testimonials
+            {badge}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold">{t.testimonials.sectionTitle}</h2>
           <p className="mt-4 text-base text-muted-foreground max-w-xl mx-auto">{t.testimonials.sectionSubtitle}</p>
         </motion.div>
 
+        {items.length === 0 && empty && (
+          <div className="text-center text-sm text-muted-foreground glass rounded-2xl p-8 max-w-2xl mx-auto">
+            {empty}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {t.testimonials.items.map((item, i) => (
+          {items.map((item, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}

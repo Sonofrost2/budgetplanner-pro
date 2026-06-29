@@ -15,6 +15,14 @@ interface SEOHeadProps {
 const SITE_NAME = 'Budget Planner Pro';
 const DEFAULT_OG_IMAGE = 'https://budgetplanner-pro.lovable.app/og-image.png';
 
+/** Resolve the public origin: VITE_PUBLIC_SITE_URL wins, else current location. */
+const resolveOrigin = (): string => {
+  const envUrl = (import.meta as any).env?.VITE_PUBLIC_SITE_URL as string | undefined;
+  if (envUrl) return envUrl.replace(/\/$/, '');
+  if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin;
+  return '';
+};
+
 export const SEOHead = ({
   title = 'Budget Planner Pro – Gérez vos finances intelligemment',
   description = 'Application de gestion budgétaire complète : suivi des dépenses, budgets, épargne, prévisions IA et gestion familiale. Disponible en français et anglais.',
@@ -28,6 +36,14 @@ export const SEOHead = ({
 }: SEOHeadProps) => {
   useEffect(() => {
     document.title = title;
+
+    // Resolve a usable canonical & og:url. Priority:
+    //  1. explicit `canonical` prop
+    //  2. VITE_PUBLIC_SITE_URL + current pathname
+    //  3. window.location.href (origin + pathname, no query/hash)
+    const origin = resolveOrigin();
+    const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+    const resolvedCanonical = canonical || (origin ? `${origin}${path}` : (typeof window !== 'undefined' ? window.location.origin + path : ''));
 
     const setMeta = (name: string, content: string, property?: boolean) => {
       const attr = property ? 'property' : 'name';
@@ -63,15 +79,15 @@ export const SEOHead = ({
     setMeta('twitter:image:alt', ogImageAlt);
 
     // Canonical & og:url
-    if (canonical) {
-      setMeta('og:url', canonical, true);
+    if (resolvedCanonical) {
+      setMeta('og:url', resolvedCanonical, true);
       let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
       if (!link) {
         link = document.createElement('link');
         link.rel = 'canonical';
         document.head.appendChild(link);
       }
-      link.href = canonical;
+      link.href = resolvedCanonical;
     }
 
     // JSON-LD
