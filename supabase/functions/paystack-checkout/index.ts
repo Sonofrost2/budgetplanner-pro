@@ -131,7 +131,16 @@ Deno.serve(async (req) => {
         .maybeSingle();
       const userCurrency = (profile?.currency || 'XOF').toUpperCase();
       const prices = (plan.currency_prices || {}) as Record<string, number>;
-      const monthly = prices[userCurrency] ?? Number(plan.base_price);
+      // Reject unknown currencies instead of silently falling back to base_price
+      // (which would otherwise let users get charged a near-zero amount).
+      const monthly = prices[userCurrency];
+      if (monthly === undefined || monthly === null) {
+        return json({
+          status: false,
+          code: 'CURRENCY_NOT_PRICED',
+          message: `Plan not priced for currency ${userCurrency}. Please contact support.`,
+        }, 400, corsHeaders);
+      }
       const displayAmount = annual ? getAnnualTotal(monthly) : monthly;
 
       // 4) Convert to a Paystack-supported currency if needed

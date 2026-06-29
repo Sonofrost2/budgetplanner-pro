@@ -27,6 +27,15 @@ const ROOT = join(__dirname, '..'); // → src/
 const FILE_WHITELIST = new Set<string>([
   // Centralized currency helpers — by definition contain raw symbols
   'lib/currency.ts',
+  // Geolocated currency symbol table — same role as lib/currency.ts but
+  // landing-page focused (kept separate to avoid auth pulls in marketing).
+  'hooks/useGeolocatedCurrency.tsx',
+  // Admin-only screens — ISO codes are referenced in instructions to other
+  // admins, not customer-facing prices.
+  'pages/dashboard/AdminPricingPage.tsx',
+  // FX helper: the toast preview mentions the converted XOF amount alongside
+  // its ISO code so admins can sanity-check the result.
+  'lib/paystackCurrency.ts',
   // Country dial-codes / locale tables
   'lib/countries.ts',
   // Demo seed (CFA-only by design)

@@ -11,15 +11,15 @@ export const translations = {
       getStarted: 'Commencer gratuitement',
     },
     hero: {
-      badge: '🎉 Essai gratuit de 14 jours',
+      badge: "🎉 Jusqu'à 14 jours d'essai gratuit",
       title: 'Prenez le contrôle de vos',
       titleHighlight: 'finances',
       subtitle: "Suivez vos dépenses, planifiez vos budgets et atteignez vos objectifs financiers en famille ou en solo. Simple, intelligent et accessible.",
       cta: 'Commencer gratuitement',
       ctaSecondary: 'En savoir plus',
-      users: '+ de 10 000 utilisateurs',
-      rating: '4.9/5 satisfaction',
-      secure: 'Données sécurisées',
+      users: 'Rejoignez les premiers utilisateurs',
+      rating: 'Gratuit pour commencer',
+      secure: 'Données chiffrées & sécurisées',
     },
     features: {
       sectionTitle: 'Tout ce dont vous avez besoin',
@@ -52,12 +52,10 @@ export const translations = {
     },
     testimonials: {
       sectionTitle: 'Ils nous font confiance',
-      sectionSubtitle: 'Découvrez ce que nos utilisateurs pensent de Budget Planner',
-      items: [
-        { name: 'Marie L.', role: 'Mère de famille', text: "Budget Planner a transformé notre gestion financière familiale. On voit enfin clairement où va notre argent !" },
-        { name: 'Thomas D.', role: 'Freelance', text: "Les prévisions financières m'aident à anticiper mes revenus irréguliers. Indispensable pour les indépendants." },
-        { name: 'Sophie M.', role: 'Étudiante', text: "Même avec la version gratuite, j'arrive à bien gérer mon budget. L'interface est super intuitive !" },
-      ],
+      sectionSubtitle: 'Cette section accueillera bientôt les retours de nos utilisateurs.',
+      badge: 'Témoignages',
+      empty: 'Les premiers témoignages arrivent bientôt. Vous voulez partager le vôtre ? Contactez-nous.',
+      items: [] as Array<{ name: string; role: string; text: string }>,
     },
     footer: {
       description: 'Votre compagnon financier intelligent pour une gestion sereine de votre argent.',
@@ -120,11 +118,13 @@ export const translations = {
       login: 'Log in', signup: 'Sign up', getStarted: 'Get started free',
     },
     hero: {
-      badge: '🎉 14-day free trial',
+      badge: '🎉 Up to 14-day free trial',
       title: 'Take control of your', titleHighlight: 'finances',
       subtitle: 'Track your expenses, plan your budgets, and reach your financial goals with family or solo. Simple, smart, and accessible.',
       cta: 'Get started free', ctaSecondary: 'Learn more',
-      users: '10,000+ users', rating: '4.9/5 satisfaction', secure: 'Secure data',
+      users: 'Join our first users',
+      rating: 'Free to get started',
+      secure: 'Encrypted & secure data',
     },
     features: {
       sectionTitle: 'Everything you need',
@@ -152,12 +152,10 @@ export const translations = {
     },
     testimonials: {
       sectionTitle: 'Trusted by thousands',
-      sectionSubtitle: 'See what our users think about Budget Planner',
-      items: [
-        { name: 'Marie L.', role: 'Mother', text: 'Budget Planner transformed our family\'s financial management. We can finally see where our money goes!' },
-        { name: 'Thomas D.', role: 'Freelancer', text: 'The financial forecasts help me anticipate my irregular income. Essential for freelancers.' },
-        { name: 'Sophie M.', role: 'Student', text: 'Even with the free version, I can manage my budget well. The interface is super intuitive!' },
-      ],
+      sectionSubtitle: 'This section will soon feature reviews from real users.',
+      badge: 'Testimonials',
+      empty: 'The first testimonials are coming soon. Want to share yours? Get in touch.',
+      items: [] as Array<{ name: string; role: string; text: string }>,
     },
     footer: {
       description: 'Your smart financial companion for stress-free money management.',

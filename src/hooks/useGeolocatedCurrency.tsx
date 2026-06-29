@@ -3,7 +3,8 @@ import { DEFAULT_CURRENCY } from '@/lib/currency';
 import { useLanguage } from '@/i18n/LanguageContext';
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  EUR: '€', USD: '$', GBP: '£', CAD: '$', CHF: 'CHF', XOF: 'CFA', XAF: 'CFA',
+  EUR: '€', USD: '$', GBP: '£', CAD: '$', CHF: 'CHF', XOF: 'FCFA', XAF: 'FCFA',
+  NGN: '₦', GHS: 'GH₵', KES: 'KSh', ZAR: 'R',
 };
 
 export const useGeolocatedCurrency = () => {
@@ -34,9 +35,10 @@ export const useGeolocatedCurrency = () => {
     const currency = prices[detectedCurrency] !== undefined ? detectedCurrency : fallbackCurrency;
     const amount = prices[currency] ?? 0;
     const symbol = CURRENCY_SYMBOLS[currency] || currency;
-    if (amount === 0) return { amount: 0, formatted: currency === 'XOF' || currency === 'XAF' ? '0 CFA' : `0 ${symbol}`, currency };
-    const formatted = currency === 'XOF' || currency === 'XAF'
-      ? `${amount.toLocaleString(lang)} CFA`
+    const isCfa = currency === 'XOF' || currency === 'XAF';
+    if (amount === 0) return { amount: 0, formatted: `0 ${symbol}`, currency };
+    const formatted = isCfa
+      ? `${amount.toLocaleString(lang)} ${symbol}`
       : `${amount.toLocaleString(lang, { minimumFractionDigits: 2 })} ${symbol}`;
     return { amount, formatted, currency };
   };

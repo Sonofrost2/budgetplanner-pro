@@ -6,6 +6,9 @@ import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import Footer from '@/components/landing/Footer';
 import { SEOHead } from '@/components/SEOHead';
 
+// Canonical/og:url are now resolved at runtime by <SEOHead /> from
+// VITE_PUBLIC_SITE_URL or window.location.origin so they always match
+// the actual domain serving the page (lovable.app, custom domain, etc.).
 const CANONICAL = 'https://budgetplanner-pro.lovable.app';
 
 const jsonLd = [
@@ -51,7 +54,6 @@ const Index = () => {
       <SEOHead
         title="Budget Planner Pro – Gérez vos finances intelligemment"
         description="Application de gestion budgétaire complète : suivi des dépenses, budgets par catégorie, objectifs d'épargne, prévisions IA et gestion familiale. Gratuit."
-        canonical={CANONICAL}
         ogImage={`${CANONICAL}/og-image.png`}
         ogImageAlt="Budget Planner Pro – Tableau de bord avec graphiques de budget, suivi des dépenses et objectifs d'épargne"
         locale="fr_FR"
