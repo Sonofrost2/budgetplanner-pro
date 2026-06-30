@@ -81,6 +81,8 @@ const CRITICAL_TYPES = new Set([
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const unauth = requireCronAuth(req, corsHeaders);
+  if (unauth) return unauth;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

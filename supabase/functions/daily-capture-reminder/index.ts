@@ -1,6 +1,7 @@
 // Daily capture reminder — runs hourly, sends a reminder at the user's chosen evening hour
 // if no transaction was logged today. Sends a positive streak notif weekly when active.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireCronAuth } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,8 @@ function fmt(d: Date) { return d.toISOString().split("T")[0]; }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const unauth = requireCronAuth(req, corsHeaders);
+  if (unauth) return unauth;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

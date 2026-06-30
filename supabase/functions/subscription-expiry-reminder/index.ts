@@ -10,6 +10,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireCronAuth } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

@@ -3,6 +3,7 @@
 // Each stage is sent at most once (tracked in profiles.activation_reminders_sent).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireCronAuth } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
