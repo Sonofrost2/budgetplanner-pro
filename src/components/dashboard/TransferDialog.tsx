@@ -8,7 +8,7 @@ import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
+import { DEFAULT_CURRENCY, currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 import { useLanguage } from '@/i18n/LanguageContext';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 

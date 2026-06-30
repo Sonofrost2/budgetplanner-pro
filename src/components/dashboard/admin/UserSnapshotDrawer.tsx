@@ -49,7 +49,7 @@ export const UserSnapshotDrawer = ({ userId, open, onOpenChange }: Props) => {
   }, [open, userId]);
 
   const fmtMoney = (n: number, ccy?: string | null) => {
-    const code = (ccy || 'EUR').toUpperCase();
+    const code = (ccy || DEFAULT_CURRENCY).toUpperCase();
     try {
       return new Intl.NumberFormat(isFr ? 'fr-FR' : 'en-US', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(n || 0);
     } catch {

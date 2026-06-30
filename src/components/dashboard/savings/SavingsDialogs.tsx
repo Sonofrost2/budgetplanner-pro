@@ -7,7 +7,7 @@ import { Sparkles, TrendingUp, Lock, Lightbulb, BarChart3, Download, Link2 } fro
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
+import { DEFAULT_CURRENCY, currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 import type { Account, SavingsGoal } from '@/hooks/useDashboardData';
 
 interface ScenarioData {

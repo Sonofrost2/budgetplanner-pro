@@ -13,7 +13,7 @@ interface Props {
   locale?: string;
 }
 
-import { currencySymbol, formatNumber, bcp47 } from '@/lib/currency';
+import { DEFAULT_CURRENCY, currencySymbol, formatNumber, bcp47 } from '@/lib/currency';
 
 export const DuplicateWarningDialog = ({ open, onOpenChange, duplicates, onConfirm, currency = DEFAULT_CURRENCY, locale = 'fr' }: Props) => {
   const sym = currencySymbol(currency);
