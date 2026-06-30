@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { getConsent, onConsentChange } from '@/lib/cookieConsent';
 
 /**
  * Meta Pixel + TikTok Pixel injection.
@@ -56,12 +57,15 @@ const loadTikTok = (id: string) => {
 };
 
 const MarketingPixels = () => {
+  const [marketingOk, setMarketingOk] = useState<boolean>(() => getConsent()?.marketing === true);
+  useEffect(() => onConsentChange((c) => setMarketingOk(c.marketing === true)), []);
   useEffect(() => {
     if (import.meta.env.DEV) return;
     if (isDNT()) return;
+    if (!marketingOk) return;
     if (META_ID) loadMeta(META_ID);
     if (TIKTOK_ID) loadTikTok(TIKTOK_ID);
-  }, []);
+  }, [marketingOk]);
   return null;
 };
 
