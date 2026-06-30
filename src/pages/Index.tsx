@@ -36,7 +36,7 @@ const jsonLd = [
     offers: {
       '@type': 'Offer',
       price: '0',
-      priceCurrency: 'EUR',
+      priceCurrency: 'XOF',
     },
     description: 'Application de gestion budgétaire : suivi des dépenses, budgets, épargne, prévisions IA. Gratuit.',
     aggregateRating: {
