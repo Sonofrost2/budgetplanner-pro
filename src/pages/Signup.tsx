@@ -108,6 +108,11 @@ const Signup = () => {
     if (error) {
       toast.error(error.message);
     } else {
+      // Capture referral code from URL (?ref=XXXX) and persist for post-confirm linkage
+      try {
+        const ref = new URLSearchParams(window.location.search).get('ref');
+        if (ref) localStorage.setItem('bp_referral_code', ref.toUpperCase());
+      } catch {}
       setSuccess(true);
     }
   };
