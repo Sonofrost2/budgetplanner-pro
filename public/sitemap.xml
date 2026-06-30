@@ -3,8 +3,15 @@
   <url><loc>https://budget-planner-pro.eurekaci.dev/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/about</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/legal</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/account-deletion</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/login</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/signup</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/demo</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>

@@ -30,6 +30,8 @@ const OnboardingPage = lazyWithRetry(() => import("./pages/OnboardingPage"), "on
 const LegalPage = lazyWithRetry(() => import("./pages/LegalPage"), "legal-page");
 const AboutPage = lazyWithRetry(() => import("./pages/AboutPage"), "about-page");
 const BlogPage = lazyWithRetry(() => import("./pages/BlogPage"), "blog-page");
+const BlogPostPage = lazyWithRetry(() => import("./pages/BlogPostPage"), "blog-post-page");
+const AccountDeletionPage = lazyWithRetry(() => import("./pages/AccountDeletionPage"), "account-deletion-page");
 const ContactPage = lazyWithRetry(() => import("./pages/ContactPage"), "contact-page");
 
 // Dashboard (lazy)
@@ -89,6 +91,8 @@ const AnimatedRoutes = () => {
           <Route path="/legal/:slug" element={<PageTransition><LegalPage /></PageTransition>} />
           <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
           <Route path="/blog" element={<PageTransition><BlogPage /></PageTransition>} />
+          <Route path="/blog/:slug" element={<PageTransition><BlogPostPage /></PageTransition>} />
+          <Route path="/account-deletion" element={<PageTransition><AccountDeletionPage /></PageTransition>} />
           <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
           <Route path="/family/accept/:token" element={<PageTransition><FamilyAcceptPage /></PageTransition>} />
           <Route path="/dashboard" element={<DashboardLayout />}>
