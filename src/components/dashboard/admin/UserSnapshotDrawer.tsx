@@ -13,6 +13,7 @@ import { Loader2, EyeOff, Wallet, Activity, Brain, Users2, ShieldAlert } from 'l
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { format } from 'date-fns';
+import { DEFAULT_CURRENCY } from '@/lib/currency';
 import { fr, enUS } from 'date-fns/locale';
 
 type Snapshot = any; // shape mirrors the SQL function output
