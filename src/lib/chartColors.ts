@@ -1,7 +1,5 @@
 /**
  * Palette de couleurs centralisée pour tous les charts.
- * Inclut des tokens semantiques en priorité (theme-aware) + un fallback
- * de couleurs vives cohérentes avec le design system glassmorphism dark.
  */
 export const CHART_PALETTE: readonly string[] = [
   'hsl(var(--primary))',
@@ -22,3 +20,27 @@ export const CHART_PALETTE: readonly string[] = [
 export function getChartColor(index: number): string {
   return CHART_PALETTE[index % CHART_PALETTE.length];
 }
+
+// === Tokens sémantiques (theme-aware) ===
+export const CHART_POSITIVE = 'hsl(var(--success, 142 76% 45%))';
+export const CHART_NEGATIVE = 'hsl(var(--destructive))';
+export const CHART_INCOME = CHART_POSITIVE;
+export const CHART_EXPENSE = CHART_NEGATIVE;
+export const CHART_ALERT = 'hsl(var(--warning, 38 92% 50%))';
+export const CHART_NEUTRAL = 'hsl(var(--muted-foreground))';
+
+// Axes / grilles / tooltip
+export const CHART_GRID = 'hsl(var(--border))';
+export const CHART_AXIS = 'hsl(var(--muted-foreground))';
+export const CHART_TOOLTIP_BG = 'hsl(var(--popover))';
+
+// Couleurs par type de compte (utilisé par AccountsHeroHeader)
+export const ACCOUNT_TYPE_COLORS: Record<string, string> = {
+  checking: 'hsl(var(--primary))',
+  savings: 'hsl(var(--secondary))',
+  cash: '#F59E0B',
+  credit: '#EF4444',
+  investment: '#8B5CF6',
+  mobile_money: '#22C55E',
+  other: 'hsl(var(--muted-foreground))',
+};
