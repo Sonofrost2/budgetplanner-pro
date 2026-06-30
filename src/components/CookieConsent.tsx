@@ -3,7 +3,7 @@ import { Cookie, Shield, BarChart3, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/i18n/LanguageContext';
 import { Link } from 'react-router-dom';
 import { getConsent, setConsent, acceptAll, rejectAll } from '@/lib/cookieConsent';
 
