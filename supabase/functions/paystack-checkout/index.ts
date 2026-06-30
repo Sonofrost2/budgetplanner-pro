@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { ANNUAL_DISCOUNT_RATE, getAnnualTotal } from '../_shared/pricing.ts';
+import { reportError } from '../_shared/sentry.ts';
 
 // Restrict cross-origin access on this payment endpoint. Requests from
 // unknown origins are rejected (browser CORS) while server-to-server callers
@@ -259,6 +260,7 @@ Deno.serve(async (req) => {
     return json({ status: false, message: 'Invalid action. Use "initialize" or "verify".' }, 400, corsHeaders);
   } catch (err: any) {
     console.error('paystack-checkout error:', err);
+    await reportError(err, { function_name: 'paystack-checkout' });
     return json({ status: false, message: err?.message || 'Server error' }, 500, corsHeaders);
   }
 });

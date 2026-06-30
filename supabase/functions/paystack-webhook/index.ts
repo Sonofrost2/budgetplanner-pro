@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { reportError } from '../_shared/sentry.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -256,6 +257,7 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     console.error('Webhook error:', err);
+    await reportError(err, { function_name: 'paystack-webhook' });
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
