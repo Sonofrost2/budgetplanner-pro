@@ -39,7 +39,7 @@ interface BudgetFormProps {
 
 export const BudgetForm = ({
   open, onOpenChange, editId, form, setForm, errors, saving, onSave,
-  allCategories, savingsGoals = [], fmt, t, locale, currency = 'EUR',
+  allCategories, savingsGoals = [], fmt, t, locale, currency = DEFAULT_CURRENCY,
 }: BudgetFormProps) => {
   const isFr = locale === 'fr';
   const filteredCategories = useMemo(() =>

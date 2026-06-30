@@ -33,7 +33,7 @@ interface TransferDialogProps {
   locale?: string;
 }
 
-export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSuccess, defaultFromAccountId, defaultToAccountId, defaultAmount, defaultDescription, currency = 'EUR', locale: localeProp }: TransferDialogProps) => {
+export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSuccess, defaultFromAccountId, defaultToAccountId, defaultAmount, defaultDescription, currency = DEFAULT_CURRENCY, locale: localeProp }: TransferDialogProps) => {
   // Prefer the parent-provided locale (single source of truth across forms);
   // fall back to the LanguageContext when the prop is omitted.
   const { locale: ctxLocale } = useLanguage();

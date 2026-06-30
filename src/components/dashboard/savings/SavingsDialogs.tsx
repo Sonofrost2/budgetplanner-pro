@@ -29,7 +29,7 @@ interface SimulationResult {
 // ─── Add Contribution Dialog ──────────────────────────
 export const AddContributionDialog = ({
   open, onClose, amount, setAmount, sourceAccountId, setSourceAccountId,
-  accounts, goal, onSave, saving, t, locale, currency = 'EUR',
+  accounts, goal, onSave, saving, t, locale, currency = DEFAULT_CURRENCY,
   linkedBudget,
 }: {
   open: boolean; onClose: () => void; amount: string; setAmount: (v: string) => void;
@@ -95,7 +95,7 @@ export const AddContributionDialog = ({
 // ─── Withdraw Dialog ──────────────────────────────────
 export const WithdrawDialog = ({
   open, onClose, amount, setAmount, targetAccountId, setTargetAccountId,
-  accounts, goal, onSave, saving, fmt, t, locale, currency = 'EUR'
+  accounts, goal, onSave, saving, fmt, t, locale, currency = DEFAULT_CURRENCY
 }: {
   open: boolean; onClose: () => void; amount: string; setAmount: (v: string) => void;
   targetAccountId: string; setTargetAccountId: (v: string) => void;

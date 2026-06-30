@@ -60,7 +60,7 @@ export const TransactionForm = ({
   open, onOpenChange, editing, form, setForm, errors, saving, onSave,
   onTransfer, allowTransfer = true, transferDisabledReason,
   categories, accounts, recentDescriptions, savingsGoals = [], budgets = [],
-  canUseAISuggestions, t, locale, currency = 'EUR',
+  canUseAISuggestions, t, locale, currency = DEFAULT_CURRENCY,
 }: TransactionFormProps) => {
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);

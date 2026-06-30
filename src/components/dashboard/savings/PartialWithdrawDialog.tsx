@@ -19,7 +19,7 @@ interface Props {
   currency?: string;
 }
 
-export const PartialWithdrawDialog = ({ open, onOpenChange, goal, accounts, onWithdrawn, locale = 'fr', currency = 'EUR' }: Props) => {
+export const PartialWithdrawDialog = ({ open, onOpenChange, goal, accounts, onWithdrawn, locale = 'fr', currency = DEFAULT_CURRENCY }: Props) => {
   const fr = locale === 'fr';
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState('');
