@@ -1162,6 +1162,8 @@ export type Database = {
           marketing_consent: boolean
           onboarding_completed: boolean
           phone: string | null
+          referral_code: string | null
+          referred_by: string | null
           signup_country: string | null
           signup_ip: unknown
           sms_consent: boolean
@@ -1185,6 +1187,8 @@ export type Database = {
           marketing_consent?: boolean
           onboarding_completed?: boolean
           phone?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           signup_country?: string | null
           signup_ip?: unknown
           sms_consent?: boolean
@@ -1208,6 +1212,8 @@ export type Database = {
           marketing_consent?: boolean
           onboarding_completed?: boolean
           phone?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           signup_country?: string | null
           signup_ip?: unknown
           sms_consent?: boolean
@@ -1216,6 +1222,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "admin_user_overview"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "profiles_user_id_fkey"
             columns: ["user_id"]
@@ -2097,6 +2110,7 @@ export type Database = {
         Returns: Json
       }
       ensure_user_family_root: { Args: { p_user_id: string }; Returns: string }
+      generate_referral_code: { Args: never; Returns: string }
       get_account_drilldown: {
         Args: { p_account_id: string; p_user_id: string }
         Returns: Json
