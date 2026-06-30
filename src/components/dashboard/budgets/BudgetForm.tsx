@@ -10,7 +10,7 @@ import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { LinkPicker } from '@/components/dashboard/LinkPicker';
 import { TrendingUp, TrendingDown, Calendar, Tag, Settings2, BarChart3, CalendarClock, Link2 } from 'lucide-react';
 import { computeAnnualizedAmount } from '@/lib/budgetProjection';
-import { currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
+import { DEFAULT_CURRENCY, currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
 const VALID_PERIODS = ['daily', 'weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly'] as const;
@@ -39,7 +39,7 @@ interface BudgetFormProps {
 
 export const BudgetForm = ({
   open, onOpenChange, editId, form, setForm, errors, saving, onSave,
-  allCategories, savingsGoals = [], fmt, t, locale, currency = 'EUR',
+  allCategories, savingsGoals = [], fmt, t, locale, currency = DEFAULT_CURRENCY,
 }: BudgetFormProps) => {
   const isFr = locale === 'fr';
   const filteredCategories = useMemo(() =>

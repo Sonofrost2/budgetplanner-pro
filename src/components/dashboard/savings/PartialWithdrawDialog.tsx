@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowDownToLine } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { coachToast } from '@/lib/coachToast';
-import { exampleAmount, amountLabel } from '@/lib/currency';
+import { DEFAULT_CURRENCY, exampleAmount, amountLabel } from '@/lib/currency';
 
 interface Props {
   open: boolean;
@@ -19,7 +19,7 @@ interface Props {
   currency?: string;
 }
 
-export const PartialWithdrawDialog = ({ open, onOpenChange, goal, accounts, onWithdrawn, locale = 'fr', currency = 'EUR' }: Props) => {
+export const PartialWithdrawDialog = ({ open, onOpenChange, goal, accounts, onWithdrawn, locale = 'fr', currency = DEFAULT_CURRENCY }: Props) => {
   const fr = locale === 'fr';
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState('');

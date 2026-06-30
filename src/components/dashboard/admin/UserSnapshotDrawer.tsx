@@ -13,6 +13,7 @@ import { Loader2, EyeOff, Wallet, Activity, Brain, Users2, ShieldAlert } from 'l
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { format } from 'date-fns';
+import { DEFAULT_CURRENCY } from '@/lib/currency';
 import { fr, enUS } from 'date-fns/locale';
 
 type Snapshot = any; // shape mirrors the SQL function output
@@ -49,7 +50,7 @@ export const UserSnapshotDrawer = ({ userId, open, onOpenChange }: Props) => {
   }, [open, userId]);
 
   const fmtMoney = (n: number, ccy?: string | null) => {
-    const code = (ccy || 'EUR').toUpperCase();
+    const code = (ccy || DEFAULT_CURRENCY).toUpperCase();
     try {
       return new Intl.NumberFormat(isFr ? 'fr-FR' : 'en-US', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(n || 0);
     } catch {
