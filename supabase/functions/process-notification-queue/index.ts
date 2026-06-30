@@ -1,6 +1,7 @@
 // Processes deferred notifications (quiet-hours overflow) and replays them
 // once the user's quiet window has passed. Runs every 5 min via cron.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireCronAuth } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,8 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const unauth = requireCronAuth(req, corsHeaders);
+  if (unauth) return unauth;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

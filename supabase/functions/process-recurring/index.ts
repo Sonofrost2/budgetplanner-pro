@@ -13,7 +13,11 @@ Deno.serve(async (req) => {
 
   try {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    if (req.headers.get("Authorization") !== `Bearer ${serviceKey}`) {
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const authOk =
+      req.headers.get("Authorization") === `Bearer ${serviceKey}` ||
+      (cronSecret && req.headers.get("x-cron-secret") === cronSecret);
+    if (!authOk) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
