@@ -1,5 +1,37 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.98.0'
 
+// Verify Twilio's X-Twilio-Signature: HMAC-SHA1 of (url + sorted form params concatenated),
+// keyed by the Twilio Auth Token, base64-encoded. See:
+// https://www.twilio.com/docs/usage/security#validating-requests
+async function verifyTwilioSignature(
+  authToken: string,
+  url: string,
+  params: Record<string, string>,
+  signature: string,
+): Promise<boolean> {
+  const sortedKeys = Object.keys(params).sort()
+  let data = url
+  for (const k of sortedKeys) data += k + params[k]
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(authToken),
+    { name: 'HMAC', hash: 'SHA-1' },
+    false,
+    ['sign'],
+  )
+  const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))
+  const expected = btoa(String.fromCharCode(...new Uint8Array(sigBuf)))
+
+  // Constant-time compare
+  if (expected.length !== signature.length) return false
+  let diff = 0
+  for (let i = 0; i < expected.length; i++) {
+    diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i)
+  }
+  return diff === 0
+}
+
 // Twilio posts application/x-www-form-urlencoded with fields including:
 // MessageSid, MessageStatus (queued|sent|delivered|failed|undelivered),
 // ErrorCode, ErrorMessage. We update the matching sms_send_logs row.
@@ -9,6 +41,20 @@ Deno.serve(async (req) => {
   }
   try {
     const form = await req.formData()
+
+    // Signature verification — reject if invalid or missing auth token
+    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')
+    const signature = req.headers.get('X-Twilio-Signature') || ''
+    if (!authToken || !signature) {
+      return new Response('Forbidden', { status: 403 })
+    }
+    const params: Record<string, string> = {}
+    for (const [k, v] of form.entries()) params[k] = String(v)
+    const valid = await verifyTwilioSignature(authToken, req.url, params, signature)
+    if (!valid) {
+      return new Response('Forbidden', { status: 403 })
+    }
+
     const sid = String(form.get('MessageSid') || form.get('SmsSid') || '')
     const status = String(form.get('MessageStatus') || form.get('SmsStatus') || '').toLowerCase()
     const errorCode = form.get('ErrorCode') ? String(form.get('ErrorCode')) : null
