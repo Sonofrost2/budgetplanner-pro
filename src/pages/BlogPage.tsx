@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -20,6 +21,59 @@ const articles = {
 const BlogPage = () => {
   const { locale } = useLanguage();
   const posts = articles[locale];
+
+  useEffect(() => {
+    const origin = 'https://budget-planner-pro.eurekaci.dev';
+    const title = locale === 'fr'
+      ? 'Blog — Budget Planner Pro'
+      : 'Blog — Budget Planner Pro';
+    const desc = locale === 'fr'
+      ? 'Conseils, astuces et actualités pour mieux gérer votre budget, votre épargne et vos finances familiales.'
+      : 'Tips, advice and news to better manage your budget, savings and family finances.';
+    document.title = title;
+    const setMeta = (selector: string, attr: string, value: string) => {
+      let el = document.head.querySelector(selector) as HTMLMetaElement | HTMLLinkElement | null;
+      if (!el) {
+        const isLink = selector.startsWith('link');
+        el = document.createElement(isLink ? 'link' : 'meta');
+        const a = selector.match(/\[([^=]+)="([^"]+)"\]/);
+        if (a) (el as any).setAttribute(a[1], a[2]);
+        document.head.appendChild(el);
+      }
+      (el as any).setAttribute(attr, value);
+    };
+    setMeta('meta[name="description"]', 'content', desc);
+    setMeta('link[rel="canonical"]', 'href', `${origin}/blog`);
+    setMeta('meta[property="og:title"]', 'content', title);
+    setMeta('meta[property="og:description"]', 'content', desc);
+    setMeta('meta[property="og:url"]', 'content', `${origin}/blog`);
+    setMeta('meta[property="og:type"]', 'content', 'website');
+
+    const ldId = 'blog-jsonld';
+    document.getElementById(ldId)?.remove();
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = ldId;
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Blog',
+      name: title,
+      description: desc,
+      url: `${origin}/blog`,
+      inLanguage: locale,
+      publisher: { '@type': 'Organization', name: 'Budget Planner Pro', url: origin },
+      blogPost: posts.map(p => ({
+        '@type': 'BlogPosting',
+        headline: p.title,
+        datePublished: p.date,
+        articleSection: p.tag,
+        description: p.summary,
+        author: { '@type': 'Organization', name: 'Budget Planner Pro' },
+      })),
+    });
+    document.head.appendChild(script);
+    return () => { document.getElementById(ldId)?.remove(); };
+  }, [locale, posts]);
 
   return (
     <div className="min-h-screen bg-background">

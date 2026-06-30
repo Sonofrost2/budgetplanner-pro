@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { User, Bell, Lock, Database, Settings as Cog, ShieldCheck, Trash2, Download, AlertTriangle, LogOut, Smartphone } from 'lucide-react';
+import ReferralCard from '@/components/settings/ReferralCard';
 import { toast } from 'sonner';
 import NotificationPreferencesCard from '@/components/dashboard/settings/NotificationPreferencesCard';
 import PhoneNumberCard from '@/components/dashboard/settings/PhoneNumberCard';
@@ -244,6 +245,9 @@ const SettingsPage = () => {
                     </Button>
                   </div>
                 </Panel>
+              )}
+              {activeSection === 'profile' && (
+                <ReferralCard />
               )}
 
               {activeSection === 'preferences' && (

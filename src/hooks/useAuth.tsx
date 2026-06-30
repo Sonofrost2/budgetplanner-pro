@@ -41,6 +41,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         initialized.current = true;
         setLoading(false);
       }
+      // Apply pending referral linkage once the user is authenticated
+      if (session?.user?.id) {
+        try {
+          const ref = localStorage.getItem('bp_referral_code');
+          if (ref) {
+            setTimeout(async () => {
+              const { data: ref_row } = await supabase
+                .from('profiles')
+                .select('user_id')
+                .eq('referral_code', ref)
+                .maybeSingle();
+              const referrerId = (ref_row as any)?.user_id;
+              if (referrerId && referrerId !== session.user.id) {
+                await supabase
+                  .from('profiles')
+                  .update({ referred_by: referrerId })
+                  .eq('user_id', session.user.id)
+                  .is('referred_by', null);
+              }
+              localStorage.removeItem('bp_referral_code');
+            }, 1200);
+          }
+        } catch {}
+      }
     });
 
     // Then check initial session - avoid race condition by using ref
