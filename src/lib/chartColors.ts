@@ -1,47 +1,46 @@
 /**
- * Shared chart palette. Keeps gradient stops, axes and grid colors
- * consistent across StatsCards, Reports, Accounts and Charts sections.
- * Update once here to retheme every chart.
+ * Palette de couleurs centralisée pour tous les charts.
  */
-
-export const CHART_INCOME = 'hsl(165, 70%, 46%)';
-export const CHART_EXPENSE = 'hsl(250, 85%, 60%)';
-export const CHART_POSITIVE = CHART_INCOME;
-export const CHART_NEGATIVE = 'hsl(0, 84%, 60%)';
-export const CHART_ALERT = 'hsl(340, 80%, 55%)';
-export const CHART_GRID = 'hsl(225, 15%, 88%)';
-export const CHART_AXIS = 'hsl(225, 10%, 45%)';
-
-/** Accent hues used for categorical series (pies, multi-line charts…). */
-export const CHART_WARNING = 'hsl(35, 92%, 55%)';
-export const CHART_INFO = 'hsl(200, 80%, 50%)';
-export const CHART_PURPLE = 'hsl(280, 65%, 55%)';
-export const CHART_ORANGE = 'hsl(15, 85%, 55%)';
-export const CHART_GREEN_DARK = 'hsl(130, 55%, 45%)';
-export const CHART_YELLOW = 'hsl(45, 90%, 50%)';
-export const CHART_BLUE = 'hsl(217, 91%, 60%)';
-
-/** Default categorical palette — keep order stable. */
-export const CHART_PALETTE = [
-  CHART_INCOME,
-  CHART_EXPENSE,
-  CHART_WARNING,
-  CHART_ALERT,
-  CHART_INFO,
-  CHART_PURPLE,
-  CHART_ORANGE,
-  CHART_GREEN_DARK,
-  CHART_YELLOW,
+export const CHART_PALETTE: readonly string[] = [
+  'hsl(var(--primary))',
+  'hsl(var(--secondary))',
+  'hsl(var(--accent))',
+  '#F59E0B', // amber
+  '#3B82F6', // blue
+  '#8B5CF6', // violet
+  '#22C55E', // emerald
+  '#EF4444', // red
+  '#EC4899', // pink
+  '#14B8A6', // teal
+  '#F97316', // orange
+  '#06B6D4', // cyan
 ];
 
-/** Tooltip background — uses CSS theme token so it adapts to dark mode. */
-export const CHART_TOOLTIP_BG = 'hsl(var(--card))';
+/** Renvoie une couleur stable basée sur l'index. */
+export function getChartColor(index: number): string {
+  return CHART_PALETTE[index % CHART_PALETTE.length];
+}
 
-/** Palette mapped to account types (bank/cash/mobile/...). */
+// === Tokens sémantiques (theme-aware) ===
+export const CHART_POSITIVE = 'hsl(var(--success, 142 76% 45%))';
+export const CHART_NEGATIVE = 'hsl(var(--destructive))';
+export const CHART_INCOME = CHART_POSITIVE;
+export const CHART_EXPENSE = CHART_NEGATIVE;
+export const CHART_ALERT = 'hsl(var(--warning, 38 92% 50%))';
+export const CHART_NEUTRAL = 'hsl(var(--muted-foreground))';
+
+// Axes / grilles / tooltip
+export const CHART_GRID = 'hsl(var(--border))';
+export const CHART_AXIS = 'hsl(var(--muted-foreground))';
+export const CHART_TOOLTIP_BG = 'hsl(var(--popover))';
+
+// Couleurs par type de compte (utilisé par AccountsHeroHeader)
 export const ACCOUNT_TYPE_COLORS: Record<string, string> = {
-  bank: CHART_BLUE,
-  mobile_money: CHART_WARNING,
-  cash: CHART_INCOME,
-  card: CHART_PURPLE,
-  savings: CHART_ALERT,
+  checking: 'hsl(var(--primary))',
+  savings: 'hsl(var(--secondary))',
+  cash: '#F59E0B',
+  credit: '#EF4444',
+  investment: '#8B5CF6',
+  mobile_money: '#22C55E',
+  other: 'hsl(var(--muted-foreground))',
 };

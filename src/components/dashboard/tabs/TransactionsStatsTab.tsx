@@ -14,7 +14,7 @@ import { abbreviateNumber, groupTopN, cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-const COLORS = ['#6C63FF', '#22C55E', '#F59E0B', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#06B6D4'];
+import { CHART_PALETTE as COLORS } from '@/lib/chartColors';
 
 const TOOLTIP_STYLE = {
   borderRadius: '12px',

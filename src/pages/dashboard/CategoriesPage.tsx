@@ -35,7 +35,7 @@ import { archiveItem, unarchiveItem } from '@/lib/archive';
 import { fetchCategoryAnalytics, type CategoryStats } from '@/lib/categoryAnalytics';
 
 const ICONS = ['🛒', '🚗', '🏠', '🎮', '💊', '💰', '💻', '📚', '👗', '🍽️', '✈️', '🎬', '📱', '💡', '🏥', '🎁', '🔧', '📁'];
-const COLORS = ['#22C55E', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#10B981', '#6366F1', '#EC4899', '#14B8A6', '#F97316'];
+import { CHART_PALETTE as COLORS } from '@/lib/chartColors';
 
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import { useSubscription } from '@/hooks/useSubscription';

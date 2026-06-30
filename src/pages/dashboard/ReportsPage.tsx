@@ -22,7 +22,7 @@ import DailyJournalReport from '@/components/dashboard/reports/DailyJournalRepor
 import AIInsightsReport from '@/components/dashboard/reports/AIInsightsReport';
 import { ReportsHeroHeader } from '@/components/dashboard/reports/ReportsHeroHeader';
 
-const COLORS = ['#6C63FF', '#2DD4A8', '#F5A623', '#EF4444', '#3B82F6', '#8B5CF6', '#EC4899'];
+import { CHART_PALETTE as COLORS } from '@/lib/chartColors';
 
 type PeriodPreset = 'all' | 'month' | 'quarter' | 'semester' | 'year' | 'custom';
 
