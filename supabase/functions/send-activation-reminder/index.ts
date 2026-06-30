@@ -71,6 +71,8 @@ function emailCopy(stage: Stage, locale: "fr" | "en", doneCount: number, totalCo
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const unauth = requireCronAuth(req, corsHeaders);
+  if (unauth) return unauth;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
