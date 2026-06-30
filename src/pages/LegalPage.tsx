@@ -2,6 +2,8 @@ import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useParams } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { openCookieSettings } from '@/lib/cookieConsent';
 
 const pages: Record<string, Record<string, { title: string; content: string[] }>> = {
   privacy: {
@@ -138,19 +140,25 @@ const pages: Record<string, Record<string, { title: string; content: string[] }>
     fr: {
       title: 'Politique de cookies',
       content: [
-        "Budget Planner utilise des cookies strictement nécessaires au fonctionnement de l'application (authentification, préférences de langue et de thème).",
-        "Nous n'utilisons pas de cookies publicitaires ni de trackers tiers.",
-        "Les cookies de session sont supprimés à la déconnexion. Les cookies de préférences sont stockés localement sur votre appareil.",
-        'Dernière mise à jour : Mars 2026.',
+        "Budget Planner utilise trois catégories de cookies et technologies similaires :",
+        "1. Strictement nécessaires — authentification, préférences de langue et de thème, sécurité (protection CSRF, rate-limiting). Toujours actifs, ils ne requièrent pas votre consentement.",
+        "2. Mesure d'audience — statistiques internes anonymisées (pages vues, performances) afin d'améliorer le produit. Activables avec votre accord.",
+        "3. Marketing — pixels Meta (Facebook/Instagram) et TikTok permettant de mesurer l'efficacité de nos campagnes publicitaires et d'afficher des publicités pertinentes. Activables avec votre accord uniquement.",
+        "Vous pouvez à tout moment modifier vos préférences via le bouton « Gérer mes cookies » ci-dessous. Le refus n'altère pas le fonctionnement de l'application.",
+        "Vos choix sont stockés localement sur votre appareil. Nous respectons l'en-tête « Do Not Track » de votre navigateur.",
+        "Dernière mise à jour : Juin 2026.",
       ],
     },
     en: {
       title: 'Cookie Policy',
       content: [
-        'Budget Planner uses cookies strictly necessary for the operation of the application (authentication, language and theme preferences).',
-        'We do not use advertising cookies or third-party trackers.',
-        'Session cookies are deleted on logout. Preference cookies are stored locally on your device.',
-        'Last updated: March 2026.',
+        'Budget Planner uses three categories of cookies and similar technologies:',
+        '1. Strictly necessary — authentication, language/theme preferences, security (CSRF protection, rate-limiting). Always on, no consent required.',
+        '2. Audience measurement — anonymized internal analytics (page views, performance) used to improve the product. Opt-in.',
+        '3. Marketing — Meta (Facebook/Instagram) and TikTok pixels used to measure our ad campaigns and display relevant ads. Opt-in only.',
+        'You can change your preferences at any time via the "Manage my cookies" button below. Declining does not affect the operation of the app.',
+        'Your choices are stored locally on your device. We honor your browser\'s "Do Not Track" header.',
+        'Last updated: June 2026.',
       ],
     },
   },
@@ -171,6 +179,13 @@ const LegalPage = () => {
             <p key={i} className="text-muted-foreground leading-relaxed">{p}</p>
           ))}
         </div>
+        {slug === 'cookies' && (
+          <div className="mt-8">
+            <Button onClick={openCookieSettings}>
+              {locale === 'en' ? 'Manage my cookies' : 'Gérer mes cookies'}
+            </Button>
+          </div>
+        )}
       </main>
       <Footer />
     </div>
