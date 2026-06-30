@@ -143,15 +143,14 @@ const templates: Record<string, (data: Record<string, unknown>) => { subject: st
 
   'generic': (data) => ({
     subject: String(data.subject || data.title || 'Notification — Budget Planner'),
-    html: data.html
-      ? String(data.html)
-      : wrapHtml({
-          title: String(data.title || 'Notification'),
-          heroEmoji: '📬',
-          heroLabel: String(data.title || 'Notification'),
-          accent: 'primary',
-          body: `${greeting(data.displayName as string)}${paragraph(String(data.body || ''))}`,
-        }),
+    // Raw HTML passthrough removed for security: only structured fields accepted.
+    html: wrapHtml({
+      title: String(data.title || 'Notification'),
+      heroEmoji: '📬',
+      heroLabel: String(data.title || 'Notification'),
+      accent: 'primary',
+      body: `${greeting(data.displayName as string)}${paragraph(String(data.body || ''))}`,
+    }),
   }),
 
   'confirm-signup': (data) => ({
@@ -343,6 +342,13 @@ Deno.serve(async (req) => {
   try {
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY is not configured');
+
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!serviceKey || req.headers.get('Authorization') !== `Bearer ${serviceKey}`) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const { template, to, data } = await req.json();
 

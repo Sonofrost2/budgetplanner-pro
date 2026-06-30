@@ -10,7 +10,14 @@ Deno.serve(async (req) => {
 
   try {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || Deno.env.get('VITE_SUPABASE_URL');
-    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY');
+    const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    // Internal-only: require service-role bearer token
+    if (!SERVICE_KEY || req.headers.get('Authorization') !== `Bearer ${SERVICE_KEY}`) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const { email, displayName, planName, amount, currency, date } = await req.json();
     if (!email) throw new Error('Email is required');
@@ -20,8 +27,8 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY!,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SERVICE_KEY,
+        'Authorization': `Bearer ${SERVICE_KEY}`,
       },
       body: JSON.stringify({
         template: 'payment-confirmation',
