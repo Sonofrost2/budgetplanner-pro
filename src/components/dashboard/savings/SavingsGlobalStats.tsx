@@ -243,7 +243,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
           </div>
 
           {(() => {
-            const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444', '#10B981'];
+            const COLORS = CHART_PALETTE;
             const bankEntries = Object.entries(stats.byBank).sort(([, a], [, b]) => b.totalSaved - a.totalSaved);
             const chartData = bankEntries.map(([bank, data]) => ({ name: bank, value: data.totalSaved }));
 
