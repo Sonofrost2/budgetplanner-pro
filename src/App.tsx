@@ -11,6 +11,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { Suspense, forwardRef } from "react";
 import { Loader2 } from "lucide-react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import MarketingPixels from "@/components/marketing/MarketingPixels";
 
 // Eager-loaded (landing only - critical for LCP on first visit)
 import Index from "./pages/Index";
@@ -131,6 +132,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <MarketingPixels />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AnimatedRoutes />
           </BrowserRouter>
