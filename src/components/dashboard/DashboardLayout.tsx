@@ -253,6 +253,8 @@ const DashboardLayout = () => {
           </div>
         </main>
 
+        <LegalFooter variant="compact" className="hidden md:block" />
+
         {/* Mobile bottom nav */}
         <MobileBottomNav />
 
