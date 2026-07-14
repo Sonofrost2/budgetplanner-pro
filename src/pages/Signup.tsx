@@ -346,6 +346,7 @@ const Signup = () => {
               </motion.p>
             </>
           )}
+          <LegalFooter variant="compact" className="mt-8 border-0 bg-transparent" />
         </motion.div>
       </div>
     </div>
