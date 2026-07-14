@@ -196,7 +196,7 @@ const DashboardLayout = () => {
         </div>
 
         {/* Main content */}
-        <main className="flex-1 min-w-0 pb-20 lg:pb-0">
+        <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 pb-20 lg:pb-0">
           <DemoBanner />
           <header className="sticky top-0 z-30 bg-background/60 backdrop-blur-xl border-b border-border/50 px-4 lg:px-6 h-14 flex items-center gap-3">
             {/* Sidebar toggle — desktop only */}

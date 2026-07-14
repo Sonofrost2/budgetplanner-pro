@@ -86,7 +86,7 @@ const Index = () => {
         />
       ))}
       <Navbar />
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <HeroSection />
         <FeaturesSection />
         <PricingSection />
