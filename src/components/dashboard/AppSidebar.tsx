@@ -47,6 +47,8 @@ interface AppSidebarProps {
   profile: { display_name: string | null; avatar_url: string | null } | null;
   userPlan: string | null;
   userEmail: string | null;
+  profileLoading?: boolean;
+  planLoading?: boolean;
   onLogout: () => void;
   onSearchOpen: () => void;
 }
@@ -67,7 +69,15 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: AppSidebarProps) => {
+const AppSidebar = ({
+  profile,
+  userPlan,
+  userEmail,
+  profileLoading = false,
+  planLoading = false,
+  onLogout,
+  onSearchOpen,
+}: AppSidebarProps) => {
   const { locale, toggleLocale } = useLanguage();
   const { mode, setMode } = useTheme();
   const { isAdmin } = useRole();
@@ -83,10 +93,16 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
 
   const planRank = (p: string | null | undefined) => p === 'premium' ? 2 : p === 'pro' ? 1 : 0;
   const userRank = isAdmin ? 2 : planRank(userPlan);
-  const isLocked = (item: NavItem) => !!item.requiredPlan && userRank < planRank(item.requiredPlan);
+  // While the plan is still resolving, never mark items as locked — avoids flashing
+  // "PRO/PREMIUM" locks for paying users on every reload.
+  const isLocked = (item: NavItem) =>
+    !planLoading && !!item.requiredPlan && userRank < planRank(item.requiredPlan);
 
-  const displayName = profile?.display_name || 'User';
-  const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const identityLoading = profileLoading && !profile;
+  const displayName = profile?.display_name || (identityLoading ? '' : 'User');
+  const initials = displayName
+    ? displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : '';
 
   const homeItem: NavItem = { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' };
 
@@ -491,8 +507,16 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
                   )}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-xs font-semibold text-sidebar-foreground truncate">{displayName}</p>
-                  <p className="text-[10px] text-muted-foreground truncate capitalize">{userPlan || t.freePlan}</p>
+                  {identityLoading ? (
+                    <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                  ) : (
+                    <p className="text-xs font-semibold text-sidebar-foreground truncate">{displayName}</p>
+                  )}
+                  {planLoading ? (
+                    <div className="mt-1 h-2.5 w-14 rounded bg-muted/60 animate-pulse" />
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground truncate capitalize">{userPlan || t.freePlan}</p>
+                  )}
                 </div>
                 <ChevronUp className="w-3.5 h-3.5 text-muted-foreground shrink-0 group-hover:text-sidebar-foreground transition-colors" />
               </button>
@@ -512,15 +536,23 @@ const AppSidebar = ({ profile, userPlan, userEmail, onLogout, onSearchOpen }: Ap
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{displayName}</p>
+                  {identityLoading ? (
+                    <div className="h-3.5 w-28 rounded bg-muted animate-pulse" />
+                  ) : (
+                    <p className="text-sm font-semibold truncate">{displayName}</p>
+                  )}
                   <p className="text-[11px] text-muted-foreground truncate">{userEmail || ''}</p>
                 </div>
               </div>
               <div className="mt-2.5">
-                <Badge variant="outline" className={cn('text-[9px] font-bold uppercase', planColor)}>
-                  <Sparkles className="w-2.5 h-2.5 mr-1" />
-                  {userPlan || t.freePlan}
-                </Badge>
+                {planLoading ? (
+                  <div className="h-4 w-16 rounded bg-muted animate-pulse" />
+                ) : (
+                  <Badge variant="outline" className={cn('text-[9px] font-bold uppercase', planColor)}>
+                    <Sparkles className="w-2.5 h-2.5 mr-1" />
+                    {userPlan || t.freePlan}
+                  </Badge>
+                )}
               </div>
             </div>
 
