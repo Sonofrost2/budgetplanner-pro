@@ -178,7 +178,10 @@ const BudgetsPage = () => {
 
   const bulk = useBulkSelection(currentBudgets);
 
-  const refreshData = () => { invalidate('budgets', 'budget-spending'); bulk.clear(); };
+  const refreshData = () => {
+    invalidate('budgets', 'budget-spending', 'budget-annual-spending');
+    bulk.clear();
+  };
 
   const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
 
