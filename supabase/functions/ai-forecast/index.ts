@@ -27,6 +27,46 @@ serve(async (req) => {
       category_name: tx.categories?.name || null,
     }));
 
+    // ── Per-user per-day cache ───────────────────────────────────────────
+    // The forecast is deterministic within a calendar day for a given
+    // (user, transactions, categories, locale) tuple. This prevents the
+    // demo account (and any real user) from getting different numbers every
+    // time they hit "Generate" during the same day.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const today = new Date().toISOString().slice(0, 10);
+    const inputSignature = JSON.stringify({
+      t: anonymizedTransactions,
+      c: (categories || []).map((c: any) => ({ id: c.id, name: c.name, type: c.type })),
+      l: locale || "fr",
+    });
+    const hashBuf = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(inputSignature),
+    );
+    const inputHash = Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+      .slice(0, 24);
+    const cacheKey = `forecast::${gate.userId}::${today}::${inputHash}`;
+
+    try {
+      const { data: cached } = await admin
+        .from("ai_cache")
+        .select("response")
+        .eq("cache_key", cacheKey)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+      if (cached?.response) {
+        return new Response(
+          JSON.stringify({ ...(cached.response as any), cached: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    } catch (_) { /* best-effort */ }
+
     const systemPrompt = locale === 'fr'
       ? `Tu es un expert en finances personnelles africaines/francophones. Analyse les transactions et génère :
 1. Un score de santé financière (0-100) avec label
@@ -211,6 +251,21 @@ Analyze thoroughly and provide comprehensive forecasts with health score, risk a
     }
 
     const forecast = JSON.parse(toolCall.function.arguments);
+
+    // Store for the day (24h TTL). Ignore conflicts silently.
+    admin
+      .from("ai_cache")
+      .upsert(
+        {
+          cache_key: cacheKey,
+          feature: "ai_forecast",
+          response: forecast,
+          expires_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+        },
+        { onConflict: "cache_key" },
+      )
+      .then(() => {}, () => {});
+
     return new Response(JSON.stringify(forecast), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
