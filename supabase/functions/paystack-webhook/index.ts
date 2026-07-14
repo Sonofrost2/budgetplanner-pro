@@ -111,6 +111,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Idempotency: if this reference is already tied to a subscription, ack and stop.
+    const { data: existingSub, error: existingSubErr } = await supabase
+      .from('subscriptions')
+      .select('id, status')
+      .eq('user_id', userId)
+      .eq('last_payment_token', reference)
+      .maybeSingle();
+    if (existingSubErr) {
+      console.error('Idempotency check error (subscriptions):', existingSubErr);
+    }
+    if (existingSub) {
+      console.log('Duplicate webhook for reference', reference, '— skipping');
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Defense-in-depth: re-verify the transaction directly with Paystack
     // before trusting the payload (mitigates risk if signing key ever leaks).
     try {
@@ -191,15 +209,24 @@ Deno.serve(async (req) => {
       console.log('New subscription created for user', userId);
     }
 
-    // 6. Confirm payment receipt
-    const { error: receiptError } = await supabase
+    // 6. Confirm payment receipt (idempotent: skip if already confirmed)
+    const { data: existingReceipt, error: receiptLookupErr } = await supabase
       .from('payment_receipts')
-      .update({ status: 'confirmed' })
+      .select('id, status')
       .eq('payment_token', reference)
-      .eq('user_id', userId);
-
-    if (receiptError) {
-      console.error('Receipt update error:', receiptError);
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (receiptLookupErr) {
+      console.error('Receipt lookup error:', receiptLookupErr);
+    }
+    if (existingReceipt && existingReceipt.status !== 'confirmed') {
+      const { error: receiptError } = await supabase
+        .from('payment_receipts')
+        .update({ status: 'confirmed' })
+        .eq('id', existingReceipt.id);
+      if (receiptError) {
+        console.error('Receipt update error:', receiptError);
+      }
     }
 
     // 7. Send confirmation email + SMS/WhatsApp via notify-user
