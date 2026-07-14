@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { isDemoUserEmail } from '@/lib/demo';
 
 const FREE_LIMITS = {
   transactionsPerMonth: 15,
@@ -51,9 +52,18 @@ export const useSubscription = () => {
   const { user } = useAuth();
   const [planTier, setPlanTier] = useState<PlanTier>('free');
   const [loading, setLoading] = useState(true);
+  const demo = isDemoUserEmail(user?.email);
 
   const refresh = () => {
     if (!user) { setLoading(false); return; }
+    // Compte démo : vitrine complète des fonctionnalités payantes.
+    // Traité comme Premium pour rester cohérent avec les données affichées
+    // (5 comptes, budgets multiples, etc.) et éviter les bandeaux de limite.
+    if (isDemoUserEmail(user.email)) {
+      setPlanTier('premium');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     supabase
       .from('subscriptions')
@@ -100,7 +110,7 @@ export const useSubscription = () => {
   const canUseAISuggestions = canUseAIBasic;
 
   return {
-    isPremium, isPro, isPaid, planTier, loading, limits, refresh,
+    isPremium, isPro, isPaid, planTier, loading, limits, refresh, isDemo: demo,
     canUseRecurring, canUseAIBasic, canUseAIPremium, canUseChatCoach,
     canUseReceipts, canUseWealth, canUseFamily, canUseForecast,
     canExportAdvanced, canUseAISuggestions,
