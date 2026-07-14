@@ -349,10 +349,10 @@ export const TransactionsHeroHeader = ({
                   onChange={(e) => setQuickInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') { e.preventDefault(); handleQuickParse(); }
-                    if (e.key === 'Escape') { setQuickOpen(false); setQuickInput(''); }
+                    if (e.key === 'Escape') { closeQuick(); }
                   }}
                   placeholder={quickPh}
-                  disabled={quickLoading}
+                  disabled={quickLoading || !!preview}
                   maxLength={500}
                   className="h-9 rounded-xl bg-background/70 border-primary/25 focus-visible:ring-primary/40 text-sm"
                 />
@@ -363,7 +363,7 @@ export const TransactionsHeroHeader = ({
               <Button
                 size="sm"
                 onClick={handleQuickParse}
-                disabled={!quickInput.trim() || quickLoading}
+                disabled={!quickInput.trim() || quickLoading || !!preview}
                 className="h-9 rounded-xl text-primary-foreground shrink-0"
                 style={{ background: 'var(--gradient-primary)' }}
               >
@@ -373,12 +373,30 @@ export const TransactionsHeroHeader = ({
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => { setQuickOpen(false); setQuickInput(''); }}
+                onClick={closeQuick}
                 className="h-9 w-9 rounded-xl shrink-0"
               >
                 <X className="w-4 h-4" />
               </Button>
             </div>
+            {preview && (
+              <div className="px-5 sm:px-7 pb-4">
+                <QuickAddPreview
+                  initial={preview}
+                  locale={locale}
+                  onCancel={closeQuick}
+                  onConfirmed={() => {
+                    closeQuick();
+                    // Refresh transaction lists, balances, budgets, etc.
+                    queryClient.invalidateQueries();
+                  }}
+                  onEditAdvanced={(values) => {
+                    onQuickAdd?.(values);
+                    closeQuick();
+                  }}
+                />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
