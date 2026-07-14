@@ -30,7 +30,7 @@ export function initSentry() {
     beforeSend(event) {
       // Strip potential secrets from URLs / extra
       if (event.request?.url) {
-        event.request.url = event.request.url.replace(/(access_token|token|key)=[^&]+/gi, "$1=[Filtered]");
+        event.request.url = event.request.url.replace(/(access_token|token|key)=[^&]+/gi, "$1=[Filtered]"); // allow-currency
       }
       return event;
     },

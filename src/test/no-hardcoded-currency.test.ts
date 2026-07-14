@@ -45,6 +45,9 @@ const FILE_WHITELIST = new Set<string>([
   'lib/smsTemplates.ts',
   // Cash count denominations (real banknote values per ISO code)
   'components/dashboard/CashCountDialog.tsx',
+  // Bilingual blog content — West-African financial education explicitly
+  // references XOF / FCFA amounts as pedagogical examples (not dynamic UI).
+  'content/blog.ts',
   // Test files themselves (this scanner contains the patterns!)
   'test/no-hardcoded-currency.test.ts',
 ]);
