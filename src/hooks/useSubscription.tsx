@@ -26,6 +26,17 @@ const PREMIUM_LIMITS = {
 
 export type PlanTier = 'free' | 'pro' | 'premium';
 
+// Admin QA override — session-only, never persisted to DB / billing.
+export const ADMIN_TEST_PLAN_KEY = 'bp_admin_test_plan';
+export const ADMIN_TEST_PLAN_EVENT = 'bp:admin-test-plan-changed';
+
+const readAdminOverride = (): PlanTier | null => {
+  try {
+    const v = sessionStorage.getItem(ADMIN_TEST_PLAN_KEY);
+    return v === 'free' || v === 'pro' || v === 'premium' ? v : null;
+  } catch { return null; }
+};
+
 export const getTransferQuotaState = (transactionCount: number, transactionLimit: number) => {
   const transferCost = 2;
 
@@ -53,6 +64,17 @@ export const useSubscription = () => {
   const [planTier, setPlanTier] = useState<PlanTier>('free');
   const [loading, setLoading] = useState(true);
   const demo = isDemoUserEmail(user?.email);
+  const [override, setOverride] = useState<PlanTier | null>(readAdminOverride);
+
+  useEffect(() => {
+    const onChange = () => setOverride(readAdminOverride());
+    window.addEventListener(ADMIN_TEST_PLAN_EVENT, onChange);
+    window.addEventListener('storage', onChange);
+    return () => {
+      window.removeEventListener(ADMIN_TEST_PLAN_EVENT, onChange);
+      window.removeEventListener('storage', onChange);
+    };
+  }, []);
 
   const refresh = () => {
     if (!user) { setLoading(false); return; }
@@ -87,8 +109,9 @@ export const useSubscription = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const isPremium = planTier === 'premium';
-  const isPro = planTier === 'pro';
+  const effectiveTier: PlanTier = override ?? planTier;
+  const isPremium = effectiveTier === 'premium';
+  const isPro = effectiveTier === 'pro';
   const isPaid = isPro || isPremium;
 
   const limits = isPremium ? PREMIUM_LIMITS : isPro ? PRO_LIMITS : FREE_LIMITS;
@@ -110,7 +133,8 @@ export const useSubscription = () => {
   const canUseAISuggestions = canUseAIBasic;
 
   return {
-    isPremium, isPro, isPaid, planTier, loading, limits, refresh, isDemo: demo,
+    isPremium, isPro, isPaid, planTier: effectiveTier, loading, limits, refresh, isDemo: demo,
+    isAdminOverride: !!override,
     canUseRecurring, canUseAIBasic, canUseAIPremium, canUseChatCoach,
     canUseReceipts, canUseWealth, canUseFamily, canUseForecast,
     canExportAdvanced, canUseAISuggestions,

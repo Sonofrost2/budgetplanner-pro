@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Check, X, Crown, Zap, Loader2, AlertCircle, Star, Shield, Sparkles,
-  Receipt, Clock, Download, Calendar, CreditCard, Search, TrendingUp, Gift,
+  Receipt, Clock, Download, Calendar, CreditCard, Search, TrendingUp, Gift, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -371,7 +371,7 @@ const PaymentPage = () => {
   const [receipts, setReceipts] = useState<any[]>([]);
   const [receiptsLoading, setReceiptsLoading] = useState(true);
   const [receiptSearch, setReceiptSearch] = useState('');
-  const [receiptStatus, setReceiptStatus] = useState<'all' | 'confirmed' | 'pending'>('all');
+  const [receiptStatus, setReceiptStatus] = useState<'all' | 'confirmed' | 'pending' | 'canceled'>('all');
   const [activeTab, setActiveTab] = useState<string>('plan');
 
   useEffect(() => {
@@ -533,6 +533,18 @@ const PaymentPage = () => {
       return true;
     });
   }, [receipts, receiptSearch, receiptStatus]);
+
+  const handleDeleteReceipt = async (receipt: any) => {
+    if (receipt.status === 'confirmed') return;
+    const ok = window.confirm(isFr
+      ? 'Supprimer cette tentative de paiement de l\'historique ?'
+      : 'Remove this payment attempt from history?');
+    if (!ok) return;
+    const { error } = await supabase.rpc('cancel_my_pending_receipt', { p_receipt_id: receipt.id });
+    if (error) { toast.error(error.message); return; }
+    setReceipts(prev => prev.filter(r => r.id !== receipt.id));
+    toast.success(isFr ? 'Reçu supprimé' : 'Receipt removed');
+  };
 
   if (loading) {
     return (
@@ -748,6 +760,7 @@ const PaymentPage = () => {
             user={user}
             plans={plans}
             subscription={subscription}
+            onDelete={handleDeleteReceipt}
           />
         </TabsContent>
       </Tabs>
@@ -1004,7 +1017,7 @@ const FeatureComparisonTable = ({ plans, isFr }: { plans: Plan[]; isFr: boolean 
 };
 
 /* ============ BILLING TAB ============ */
-const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch, setReceiptSearch, receiptStatus, setReceiptStatus, isFr, locale, fmt, t, user, plans, subscription }: any) => {
+const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch, setReceiptSearch, receiptStatus, setReceiptStatus, isFr, locale, fmt, t, user, plans, subscription, onDelete }: any) => {
   const [displayName, setDisplayName] = useState<string | null>(null);
   useEffect(() => {
     if (!user?.id) return;
@@ -1032,13 +1045,19 @@ const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch
           />
         </div>
         <div className="flex gap-1 glass rounded-xl p-1">
-          {(['all', 'confirmed', 'pending'] as const).map(s => (
+          {(['all', 'confirmed', 'pending', 'canceled'] as const).map(s => (
             <button
               key={s}
               onClick={() => setReceiptStatus(s)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${receiptStatus === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
             >
-              {s === 'all' ? (isFr ? 'Tous' : 'All') : s === 'confirmed' ? (isFr ? 'Confirmés' : 'Confirmed') : (isFr ? 'En attente' : 'Pending')}
+              {s === 'all'
+                ? (isFr ? 'Tous' : 'All')
+                : s === 'confirmed'
+                  ? (isFr ? 'Confirmés' : 'Confirmed')
+                  : s === 'pending'
+                    ? (isFr ? 'En attente' : 'Pending')
+                    : (isFr ? 'Annulés' : 'Canceled')}
             </button>
           ))}
         </div>
@@ -1073,12 +1092,19 @@ const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch
                 ? 'bg-secondary/15 text-secondary'
                 : r.status === 'pending'
                   ? 'bg-warning/15 text-warning'
-                  : 'bg-destructive/15 text-destructive';
+                  : r.status === 'canceled' || r.status === 'expired'
+                    ? 'bg-muted text-muted-foreground'
+                    : 'bg-destructive/15 text-destructive';
               const statusLabel = r.status === 'confirmed'
                 ? (isFr ? 'Confirmé' : 'Confirmed')
                 : r.status === 'pending'
                   ? (isFr ? 'En attente' : 'Pending')
-                  : r.status;
+                  : r.status === 'canceled'
+                    ? (isFr ? 'Annulé' : 'Canceled')
+                    : r.status === 'expired'
+                      ? (isFr ? 'Expiré' : 'Expired')
+                      : r.status;
+              const canDelete = r.status !== 'confirmed';
 
               return (
                 <motion.div
@@ -1122,6 +1148,17 @@ const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch
                   >
                     <Download className="w-3.5 h-3.5" />
                   </Button>
+                  {canDelete && onDelete && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-lg shrink-0 text-destructive hover:text-destructive"
+                      onClick={() => onDelete(r)}
+                      title={isFr ? 'Supprimer cette tentative' : 'Delete this attempt'}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </motion.div>
               );
             })}

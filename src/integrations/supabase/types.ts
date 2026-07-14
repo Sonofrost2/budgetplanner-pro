@@ -2112,6 +2112,10 @@ export type Database = {
         }
         Returns: Json
       }
+      cancel_my_pending_receipt: {
+        Args: { p_receipt_id: string }
+        Returns: undefined
+      }
       cancel_my_subscription: {
         Args: { p_subscription_id: string }
         Returns: undefined
