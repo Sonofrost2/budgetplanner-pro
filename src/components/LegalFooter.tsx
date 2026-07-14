@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useLanguage } from '@/i18n/LanguageContext';
 
 interface LegalFooterProps {
   variant?: 'full' | 'compact';
