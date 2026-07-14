@@ -22,6 +22,7 @@ import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, 
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import AccountsRecapTab from '@/components/dashboard/tabs/AccountsRecapTab';
 import { toast } from 'sonner';
+import { showApiError } from '@/lib/apiError';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';

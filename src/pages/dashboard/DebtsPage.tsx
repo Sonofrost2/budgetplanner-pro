@@ -18,6 +18,7 @@ import { InputField } from '@/components/ui/input-field';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Landmark, Pencil, Trash2, Sparkles, Loader2, TrendingDown, Target, Lightbulb, Search, X, Download, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
+import { showApiError } from '@/lib/apiError';
 import { useAccounts } from '@/hooks/useDashboardData';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { Skeleton } from '@/components/ui/skeleton';

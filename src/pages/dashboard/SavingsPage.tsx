@@ -38,6 +38,7 @@ import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjection
 import SavingsEvolutionTab from '@/components/dashboard/tabs/SavingsEvolutionTab';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
+import { showApiError } from '@/lib/apiError';
 import { coachToast } from '@/lib/coachToast';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';

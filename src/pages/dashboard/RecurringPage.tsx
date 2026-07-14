@@ -20,6 +20,7 @@ import { Progress } from '@/components/ui/progress';
 import { Plus, RefreshCw, Pencil, Trash2, Sparkles, Check, X, Zap, TrendingDown, TrendingUp, Loader2, FileText, CalendarDays, Repeat, Tag, CreditCard } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
+import { showApiError } from '@/lib/apiError';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';

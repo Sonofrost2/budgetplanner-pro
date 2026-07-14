@@ -25,6 +25,7 @@ import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingU
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { toast } from 'sonner';
+import { showApiError } from '@/lib/apiError';
 import { coachToast } from '@/lib/coachToast';
 import { BudgetsHeroHeader } from '@/components/dashboard/budgets/BudgetsHeroHeader';
 import { BudgetCoachInsights } from '@/components/dashboard/budgets/BudgetCoachInsights';
