@@ -26,8 +26,11 @@ const DailyJournalReport = () => {
 
   useEffect(() => {
     if (!user || !startDate || !endDate) return;
+    // Exclude transfer legs — see BLOC D. Transfers between own accounts
+    // are not real income/expense flows for reporting.
     supabase.from('transactions').select('type, amount, date')
-      .eq('user_id', user.id).gte('date', startDate).lte('date', endDate)
+      .eq('user_id', user.id).is('deleted_at', null).eq('is_transfer', false)
+      .gte('date', startDate).lte('date', endDate)
       .order('date', { ascending: true })
       .then(({ data: txs }) => {
         const dayMap: Record<string, { income: number; expenses: number }> = {};

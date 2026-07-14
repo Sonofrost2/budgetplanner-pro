@@ -49,6 +49,7 @@ export async function fetchMonthlyRegularizationStats(userId: string): Promise<R
       .eq('user_id', userId)
       .in('category_id', ids)
       .is('deleted_at', null)
+      .eq('is_transfer', false)
       .gte('date', start)
       .lte('date', end);
 
