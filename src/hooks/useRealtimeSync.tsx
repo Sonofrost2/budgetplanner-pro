@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef, useSyncExternalStore } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvalidate } from '@/hooks/useDashboardData';
+import { isDemoUserEmail } from '@/lib/demo';
 
 // NOTE — Alertes serveur (`check-alerts` edge function) : elles tournent en
 // cron (toutes les X minutes), donc les notifications push ne sont PAS
@@ -33,6 +34,8 @@ export type SyncState = {
   channel: SyncChannelStatus;
   lastRefetchAt: number | null;
   lastChangeAt: number | null;
+  demo: boolean;
+  consecutiveErrors: number;
 };
 
 let syncState: SyncState = {
@@ -40,6 +43,8 @@ let syncState: SyncState = {
   channel: 'idle',
   lastRefetchAt: null,
   lastChangeAt: null,
+  demo: false,
+  consecutiveErrors: 0,
 };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
@@ -47,6 +52,10 @@ const setSyncState = (patch: Partial<SyncState>) => {
   syncState = { ...syncState, ...patch };
   emit();
 };
+
+// Manual retry trigger (used by the "Réessayer" action in the indicator).
+let retryHandler: (() => void) | null = null;
+export const retrySync = () => retryHandler?.();
 
 export const useSyncStatus = (): SyncState =>
   useSyncExternalStore(
@@ -61,6 +70,7 @@ export const useSyncStatus = (): SyncState =>
 export const useRealtimeSync = () => {
   const { user } = useAuth();
   const { invalidate, invalidateAll } = useInvalidate();
+  const demo = isDemoUserEmail(user?.email);
 
   // Coalesce rapid bursts (bulk imports, multi-row updates) into a single
   // invalidate call per table within a 2-second window.
@@ -88,13 +98,27 @@ export const useRealtimeSync = () => {
   // and auto-disconnect when the tab stays hidden > 60s to save Realtime quota.
   useEffect(() => {
     if (!user) return;
+    // Mode démo : pas de synchro serveur réelle → jamais d'erreur trompeuse.
+    if (demo) {
+      setSyncState({ channel: 'idle', demo: true, consecutiveErrors: 0 });
+      retryHandler = null;
+      return;
+    }
+    setSyncState({ demo: false });
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let hideTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let disposed = false;
+
+    const ERROR_THRESHOLD = 3; // n'affiche 'error' qu'après 3 échecs consécutifs
+    const MAX_BACKOFF = 30_000;
 
     const connect = () => {
       if (channel) return;
-      setSyncState({ channel: 'connecting' });
+      // Ne repasse pas visuellement en "connecting" si on est déjà "live" et
+      // qu'on tente juste une reconnexion silencieuse.
+      if (syncState.channel !== 'live') setSyncState({ channel: 'connecting' });
       const f = `user_id=eq.${user.id}`;
       channel = supabase
         .channel('dashboard-sync')
@@ -110,9 +134,21 @@ export const useRealtimeSync = () => {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_transactions', filter: f }, () => handleChange('recurring_transactions'))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_counts', filter: f }, () => handleChange('cash_counts'))
         .subscribe((status) => {
-          if (status === 'SUBSCRIBED') setSyncState({ channel: 'live' });
-          else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSyncState({ channel: 'error' });
-          else if (status === 'CLOSED') setSyncState({ channel: 'closed' });
+          if (disposed) return;
+          if (status === 'SUBSCRIBED') {
+            setSyncState({ channel: 'live', consecutiveErrors: 0 });
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            const errs = syncState.consecutiveErrors + 1;
+            // Reste "connecting" tant qu'on n'a pas atteint le seuil réel.
+            setSyncState({
+              consecutiveErrors: errs,
+              channel: errs >= ERROR_THRESHOLD ? 'error' : (syncState.channel === 'live' ? 'connecting' : syncState.channel),
+            });
+            scheduleReconnect(errs);
+          } else if (status === 'CLOSED') {
+            // 'CLOSED' est émis lors du cleanup normal — ne pas marquer 'error'.
+            if (syncState.channel !== 'error') setSyncState({ channel: 'closed' });
+          }
         });
     };
 
@@ -120,8 +156,25 @@ export const useRealtimeSync = () => {
       if (channel) {
         supabase.removeChannel(channel);
         channel = null;
-        setSyncState({ channel: 'idle' });
+        if (syncState.channel !== 'error') setSyncState({ channel: 'idle' });
       }
+    };
+
+    const scheduleReconnect = (errCount: number) => {
+      if (retryTimer) clearTimeout(retryTimer);
+      const delay = Math.min(MAX_BACKOFF, 1000 * 2 ** Math.min(errCount, 5));
+      retryTimer = setTimeout(() => {
+        if (disposed) return;
+        disconnect();
+        connect();
+      }, delay);
+    };
+
+    retryHandler = () => {
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+      setSyncState({ consecutiveErrors: 0, channel: 'connecting' });
+      disconnect();
+      connect();
     };
 
     const onVisibility = () => {
@@ -138,11 +191,14 @@ export const useRealtimeSync = () => {
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
+      disposed = true;
+      retryHandler = null;
       document.removeEventListener('visibilitychange', onVisibility);
       if (hideTimer) clearTimeout(hideTimer);
+      if (retryTimer) clearTimeout(retryTimer);
       disconnect();
     };
-  }, [user, handleChange]);
+  }, [user, handleChange, demo]);
 
   // Refetch on focus/visibility/online
   useEffect(() => {
