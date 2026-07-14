@@ -24,6 +24,10 @@ import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
 import DashboardBreadcrumb from '@/components/dashboard/Breadcrumb';
 import DemoBanner from '@/components/dashboard/DemoBanner';
 import { isDemoUserEmail } from '@/lib/demo';
+import { safeGet, safeSet } from '@/lib/safeStorage';
+
+const PLAN_CACHE_PREFIX = 'bp_plan_cache:';
+const PROFILE_CACHE_PREFIX = 'bp_profile_cache:';
 
 const DashboardLayout = () => {
   useRealtimeSync();
@@ -35,8 +39,10 @@ const DashboardLayout = () => {
   const t = dashT[locale];
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean; avatar_url: string | null } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userPlan, setUserPlan] = useState<string | null>(null);
+  const [planLoading, setPlanLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(false);
 
   useEffect(() => {
@@ -49,21 +55,44 @@ const DashboardLayout = () => {
     if (isDemoUserEmail(user.email)) {
       setProfile({ display_name: 'Compte Démo', onboarding_completed: true, avatar_url: null });
       setUserPlan(null);
+      setProfileLoading(false);
+      setPlanLoading(false);
       return;
     }
+
+    // Instant hydration from persisted cache so we never flash "User"/"Gratuit" on reload.
+    try {
+      const cachedProfile = safeGet(PROFILE_CACHE_PREFIX + user.id);
+      if (cachedProfile) {
+        const parsed = JSON.parse(cachedProfile);
+        setProfile(parsed);
+        setProfileLoading(false);
+      }
+      const cachedPlan = safeGet(PLAN_CACHE_PREFIX + user.id);
+      if (cachedPlan !== null) {
+        setUserPlan(cachedPlan === '' ? null : cachedPlan);
+        setPlanLoading(false);
+      }
+    } catch { /* noop */ }
+
+    setProfileLoading((prev) => (profile ? false : prev));
     supabase.from('profiles').select('display_name, onboarding_completed, avatar_url').eq('user_id', user.id).single()
       .then(({ data }) => {
         setProfile(data);
+        setProfileLoading(false);
+        if (data) safeSet(PROFILE_CACHE_PREFIX + user.id, JSON.stringify(data));
         if (data && !data.onboarding_completed) navigate('/onboarding');
       });
     supabase.from('subscriptions').select('status, subscription_plans(name)').eq('user_id', user.id).eq('status', 'active')
       .order('created_at', { ascending: false }).limit(1)
       .then(({ data }) => {
+        let resolved: string | null = null;
         if (data && data.length > 0) {
-          setUserPlan((data[0] as any).subscription_plans?.name || null);
-        } else {
-          setUserPlan(null);
+          resolved = (data[0] as any).subscription_plans?.name || null;
         }
+        setUserPlan(resolved);
+        setPlanLoading(false);
+        safeSet(PLAN_CACHE_PREFIX + user.id, resolved || '');
       });
   }, [user, navigate]);
 
@@ -159,6 +188,8 @@ const DashboardLayout = () => {
             profile={profile}
             userPlan={userPlan}
             userEmail={user?.email || null}
+            profileLoading={profileLoading}
+            planLoading={planLoading}
             onLogout={() => setLogoutDialogOpen(true)}
             onSearchOpen={() => setSearchOpen(true)}
           />
@@ -172,8 +203,13 @@ const DashboardLayout = () => {
             <SidebarTrigger className="hidden lg:flex h-8 w-8 rounded-xl" />
 
             <div className="flex flex-col min-w-0">
-              <h1 className="text-sm font-semibold font-display truncate">
-                {t.welcome}, {profile?.display_name?.split(' ')[0] || 'User'} 👋
+              <h1 className="text-sm font-semibold font-display truncate flex items-center gap-1">
+                <span>{t.welcome},</span>
+                {profileLoading && !profile ? (
+                  <span className="inline-block h-3.5 w-20 rounded-md bg-muted animate-pulse" aria-hidden />
+                ) : (
+                  <span>{profile?.display_name?.split(' ')[0] || 'User'} 👋</span>
+                )}
               </h1>
               <DashboardBreadcrumb />
             </div>
