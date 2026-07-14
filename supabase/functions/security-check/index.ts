@@ -64,6 +64,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Rate-limit by IP: max 10 requests / 10 minutes. Prevents abuse of the
+    // external IP-info API (unauthenticated endpoint).
+    const { data: rl, error: rlErr } = await supabase.rpc('check_security_ratelimit', {
+      _ip: ip,
+      _max: 10,
+      _window_minutes: 10,
+    });
+    if (!rlErr && Array.isArray(rl) && rl.length > 0 && rl[0].allowed === false) {
+      return new Response(
+        JSON.stringify({ ok: false, error: 'rate_limited', retry_after: rl[0].retry_after_seconds }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': String(rl[0].retry_after_seconds ?? 60),
+          },
+        },
+      );
+    }
+
     const info = await fetchIpInfo(ip);
     const org = (info.org || '').trim();
     const isHosting = HOSTING_RE.test(org);

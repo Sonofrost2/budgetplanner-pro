@@ -1463,6 +1463,27 @@ export type Database = {
           },
         ]
       }
+      security_check_ratelimit: {
+        Row: {
+          count: number
+          ip: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          ip: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          ip?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       security_signals: {
         Row: {
           created_at: string
@@ -2099,6 +2120,14 @@ export type Database = {
       check_and_increment_usage: {
         Args: { _feature: string; _limit: number; _user_id: string }
         Returns: Json
+      }
+      check_security_ratelimit: {
+        Args: { _ip: string; _max?: number; _window_minutes?: number }
+        Returns: {
+          allowed: boolean
+          current_count: number
+          retry_after_seconds: number
+        }[]
       }
       cleanup_expired_ai_cache: { Args: never; Returns: undefined }
       cleanup_old_deleted: { Args: never; Returns: Json }
