@@ -429,7 +429,7 @@ export const useAccountTransactions = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('id, date, amount, type, account_id, description, category_id')
+        .select('id, date, amount, type, account_id, description, category_id, is_transfer, linked_transfer_id')
         .eq('user_id', user!.id)
         .is('deleted_at', null)
         .order('date', { ascending: false });
