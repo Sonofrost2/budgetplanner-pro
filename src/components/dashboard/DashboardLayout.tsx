@@ -18,6 +18,7 @@ import GlobalSearchCommand from '@/components/dashboard/GlobalSearchCommand';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { useDeviceFingerprint } from '@/hooks/useDeviceFingerprint';
 import { PWAUpdatePrompt } from '@/components/dashboard/PWAUpdatePrompt';
+import SkipLink from '@/components/SkipLink';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/dashboard/AppSidebar';
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
