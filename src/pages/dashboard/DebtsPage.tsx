@@ -24,6 +24,7 @@ import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageSkeleton } from '@/components/ui/loading-state';
+import { PageHeader } from '@/components/ui/page-header';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
@@ -214,26 +215,29 @@ const DebtsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-2xl font-bold font-display">{t.debts}</h2>
-          {debts.length > 0 && <p className="text-sm text-muted-foreground mt-1">{fmt(totalPaid)} / {fmt(totalDebt)} {locale === 'fr' ? 'remboursé' : 'repaid'} — {locale === 'fr' ? 'Reste' : 'Remaining'}: <span className="font-semibold text-destructive">{fmt(totalRemaining)}</span></p>}
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {debts.length > 0 && (
-            <>
-              <Button size="sm" variant="outline" className="rounded-xl" onClick={handleExportCSV}><Download className="w-4 h-4 mr-1" /> CSV</Button>
-              <Button size="sm" variant="outline" className="rounded-xl" onClick={handleExportExcel}><Download className="w-4 h-4 mr-1" /> Excel</Button>
-            </>
-          )}
-          {debts.length > 0 && debts.some(d => Number(d.total_amount) - Number(d.paid_amount) > 0) && (
-            <Button size="sm" variant="outline" className="rounded-xl" onClick={handleAIPlan} disabled={aiPlanLoading}>
-              <Sparkles className="w-4 h-4 mr-1" />{locale === 'fr' ? 'Plan IA' : 'AI Plan'}
-            </Button>
-          )}
-          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button>
-        </div>
-      </div>
+      <PageHeader
+        title={t.debts}
+        icon={Landmark}
+        description={debts.length > 0
+          ? `${fmt(totalPaid)} / ${fmt(totalDebt)} ${locale === 'fr' ? 'remboursé' : 'repaid'} — ${locale === 'fr' ? 'Reste' : 'Remaining'}: ${fmt(totalRemaining)}`
+          : (locale === 'fr' ? 'Suivez et remboursez vos dettes intelligemment.' : 'Track and pay down your debts smartly.')}
+        actions={
+          <>
+            {debts.length > 0 && (
+              <>
+                <Button size="sm" variant="outline" className="rounded-xl" onClick={handleExportCSV}><Download className="w-4 h-4 mr-1" /> CSV</Button>
+                <Button size="sm" variant="outline" className="rounded-xl" onClick={handleExportExcel}><Download className="w-4 h-4 mr-1" /> Excel</Button>
+              </>
+            )}
+            {debts.length > 0 && debts.some(d => Number(d.total_amount) - Number(d.paid_amount) > 0) && (
+              <Button size="sm" variant="outline" className="rounded-xl" onClick={handleAIPlan} disabled={aiPlanLoading}>
+                <Sparkles className="w-4 h-4 mr-1" />{locale === 'fr' ? 'Plan IA' : 'AI Plan'}
+              </Button>
+            )}
+            <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button>
+          </>
+        }
+      />
 
       {/* Search & filters */}
       {debts.length > 0 && (
