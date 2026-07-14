@@ -206,16 +206,9 @@ Deno.serve(async (req) => {
           last_payment_token: reference,
         });
       }
-      await supabase.from('payment_receipts').insert({
-        user_id: user.id,
-        plan_name: plan.name,
-        amount: resolved.amount,
-        currency: resolved.currency,
-        display_amount: displayAmount,
-        display_currency: userCurrency,
-        payment_token: reference,
-        status: 'pending',
-      });
+      // NOTE: Do NOT create a payment_receipts row here. Receipts are created
+      // ONLY after Paystack confirms the payment (webhook / verify), so that
+      // abandoned checkouts don't pollute "My receipts" with pending rows.
 
       return json(data, 200, corsHeaders);
     }
@@ -252,6 +245,27 @@ Deno.serve(async (req) => {
           });
         } catch (e) {
           console.error('activate_paid_subscription failed:', e);
+        }
+        // Insert receipt if webhook hasn't done it yet (idempotent via unique index)
+        try {
+          const meta = data?.data?.metadata || {};
+          const displayAmount = Number(meta.display_amount) || Number(data?.data?.amount || 0) / 100;
+          const displayCurrency = String(meta.display_currency || data?.data?.currency || 'XOF');
+          await supabase.from('payment_receipts').insert({
+            user_id: user.id,
+            plan_name: meta.plan_name || 'plan',
+            amount: Number(data?.data?.amount || 0) / 100,
+            currency: String(data?.data?.currency || 'XOF'),
+            display_amount: displayAmount,
+            display_currency: displayCurrency,
+            payment_token: reference,
+            status: 'confirmed',
+          });
+        } catch (e) {
+          // Unique-constraint conflict is expected if the webhook already inserted it.
+          if (!String((e as any)?.message || '').includes('duplicate')) {
+            console.warn('Receipt insert (verify) skipped:', e);
+          }
         }
       }
       return json(data, 200, corsHeaders);
