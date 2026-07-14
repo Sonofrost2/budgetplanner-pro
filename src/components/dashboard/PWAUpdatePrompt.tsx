@@ -1,53 +1,28 @@
-import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+// @ts-ignore -- virtual module provided by vite-plugin-pwa at build time
+import { useRegisterSW } from 'virtual:pwa-register/react';
+
+const UPDATE_CHECK_INTERVAL_MS = 60_000;
 
 export const PWAUpdatePrompt = () => {
-  const [showUpdate, setShowUpdate] = useState(false);
-  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
-
-  useEffect(() => {
-    if (!('serviceWorker' in navigator)) return;
-
-    const handleControllerChange = () => {
-      window.location.reload();
-    };
-
-    // Check for waiting SW on load
-    navigator.serviceWorker.ready.then(reg => {
-      if (reg.waiting) {
-        setWaitingWorker(reg.waiting);
-        setShowUpdate(true);
-      }
-
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            setWaitingWorker(newWorker);
-            setShowUpdate(true);
-          }
-        });
-      });
-    });
-
-    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-    return () => {
-      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
-    };
-  }, []);
-
-  const handleUpdate = () => {
-    if (waitingWorker) {
-      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-    }
-  };
+  const {
+    needRefresh: [needRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegisteredSW(swUrl, registration) {
+      if (!registration) return;
+      // Poll for a new SW every 60s so users see updates without a full reload.
+      setInterval(() => {
+        registration.update().catch(() => {});
+      }, UPDATE_CHECK_INTERVAL_MS);
+    },
+  });
 
   return (
     <AnimatePresence>
-      {showUpdate && (
+      {needRefresh && (
         <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -56,7 +31,12 @@ export const PWAUpdatePrompt = () => {
         >
           <RefreshCw className="w-4 h-4 text-primary animate-spin" />
           <span className="text-sm font-medium">Nouvelle version disponible</span>
-          <Button size="sm" className="rounded-xl text-primary-foreground" style={{ background: 'var(--gradient-primary)' }} onClick={handleUpdate}>
+          <Button
+            size="sm"
+            className="rounded-xl text-primary-foreground"
+            style={{ background: 'var(--gradient-primary)' }}
+            onClick={() => updateServiceWorker(true)}
+          >
             Mettre à jour
           </Button>
         </motion.div>

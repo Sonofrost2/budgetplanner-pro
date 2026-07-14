@@ -27,10 +27,15 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
-      injectRegister: "script-defer",
+      registerType: "prompt",
+      // useRegisterSW (React hook) is the single registrar — disable auto-injection.
+      injectRegister: null,
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: false,
+        navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/~oauth/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         importScripts: ["/sw-push.js"],
