@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requirePlan } from "../_shared/requirePlan.ts";
 
 const corsHeaders = {
@@ -16,6 +17,45 @@ serve(async (req) => {
     const { monthlyData, categoryData, savingsProgress, budgetPerformance, debtsOverview, locale } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Deterministic per-day cache — same inputs on the same day = same insights.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const today = new Date().toISOString().slice(0, 10);
+    const inputSignature = JSON.stringify({
+      m: monthlyData ?? null,
+      c: categoryData ?? null,
+      s: savingsProgress ?? null,
+      b: budgetPerformance ?? null,
+      d: debtsOverview ?? null,
+      l: locale || "fr",
+    });
+    const hashBuf = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(inputSignature),
+    );
+    const inputHash = Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+      .slice(0, 24);
+    const cacheKey = `report-insights::${gate.userId}::${today}::${inputHash}`;
+
+    try {
+      const { data: cached } = await admin
+        .from("ai_cache")
+        .select("response")
+        .eq("cache_key", cacheKey)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle();
+      if (cached?.response) {
+        return new Response(
+          JSON.stringify({ ...(cached.response as any), cached: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    } catch (_) { /* best-effort */ }
 
     const lang = locale === 'fr' ? 'français' : 'English';
     const systemPrompt = `Tu es un analyste financier expert. Analyse les données financières de l'utilisateur et génère un rapport d'insights intelligent avec des recommandations actionnables. Réponds en ${lang}.
@@ -135,6 +175,18 @@ Analyse et génère un rapport d'insights.`;
     const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
       const insights = typeof toolCall.function.arguments === 'string' ? JSON.parse(toolCall.function.arguments) : toolCall.function.arguments;
+      admin
+        .from("ai_cache")
+        .upsert(
+          {
+            cache_key: cacheKey,
+            feature: "ai_report_insights",
+            response: insights,
+            expires_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+          },
+          { onConflict: "cache_key" },
+        )
+        .then(() => {}, () => {});
       return new Response(JSON.stringify(insights), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
