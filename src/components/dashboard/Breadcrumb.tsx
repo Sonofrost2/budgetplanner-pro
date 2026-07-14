@@ -19,6 +19,9 @@ const routeLabels: Record<string, { fr: string; en: string }> = {
   recurring: { fr: 'Récurrences', en: 'Recurring' },
   wealth: { fr: 'Patrimoine', en: 'Wealth' },
   guide: { fr: 'Guide', en: 'Guide' },
+  notifications: { fr: 'Notifications', en: 'Notifications' },
+  blog: { fr: 'Blog', en: 'Blog' },
+  legal: { fr: 'Mentions légales', en: 'Legal' },
 };
 
 // ERP group mapping — keep in sync with AppSidebar
@@ -48,7 +51,8 @@ const DashboardBreadcrumb = () => {
   if (segments.length === 0) return null;
 
   const currentSegment = segments[segments.length - 1];
-  const label = routeLabels[currentSegment]?.[locale] || currentSegment;
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const label = routeLabels[currentSegment]?.[locale] || capitalize(currentSegment);
   const group = groupForRoute[currentSegment]?.[locale];
 
   return (
