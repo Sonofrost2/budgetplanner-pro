@@ -13,6 +13,8 @@ import type { DashTranslations } from '@/i18n/dashTranslations';
 import type { QuickParsedTransaction } from '@/components/dashboard/transactions/TransactionsHeroHeader';
 import { useProfile } from '@/hooks/useProfile';
 import { exampleValue } from '@/lib/currency';
+import { QuickAddPreview } from '@/components/dashboard/QuickAddPreview';
+import { useQueryClient } from '@tanstack/react-query';
 
 type PeriodKey = 'today' | 'thisWeek' | 'thisMonth' | 'thisQuarter' | 'thisSemester' | 'thisYear' | 'custom';
 
@@ -63,6 +65,8 @@ export const DashboardHeroHeader = ({
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickInput, setQuickInput] = useState('');
   const [quickLoading, setQuickLoading] = useState(false);
+  const [preview, setPreview] = useState<QuickParsedTransaction | null>(null);
+  const queryClient = useQueryClient();
 
   // Live clock — refreshes every minute so the displayed time stays current.
   const [now, setNow] = useState<Date>(() => new Date());
@@ -119,17 +123,24 @@ export const DashboardHeroHeader = ({
         body: { input: text, categories: cats || [], accounts: accs || [], locale },
       });
       if (!data?.description || typeof data.amount !== 'number') {
-        throw new Error(isFr ? 'Saisie non comprise' : 'Could not parse input');
+        throw new Error(
+          isFr
+            ? 'Je n\'ai pas compris. Reformule, par exemple : « Café 1500 » ou « Salaire 250000 ».'
+            : 'I did not understand. Try e.g. "Coffee 1500" or "Salary 250000".'
+        );
       }
-      onQuickAdd(data as QuickParsedTransaction);
-      setQuickInput('');
-      setQuickOpen(false);
-      toast.success(isFr ? '✨ Transaction pré-remplie' : '✨ Transaction pre-filled');
+      setPreview(data as QuickParsedTransaction);
     } catch (e: any) {
       toast.error(e?.message || (isFr ? 'Erreur IA' : 'AI error'));
     } finally {
       setQuickLoading(false);
     }
+  };
+
+  const closeQuick = () => {
+    setPreview(null);
+    setQuickInput('');
+    setQuickOpen(false);
   };
 
   return (
