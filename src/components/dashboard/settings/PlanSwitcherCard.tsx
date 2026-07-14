@@ -6,10 +6,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRole } from '@/hooks/useRole';
 import { useSubscription, type PlanTier } from '@/hooks/useSubscription';
 import { useLanguage } from '@/i18n/LanguageContext';
-import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Beaker, Loader2, ShieldCheck } from 'lucide-react';
+import { Beaker, Loader2, ShieldCheck, RotateCcw } from 'lucide-react';
+import { ADMIN_TEST_PLAN_KEY, ADMIN_TEST_PLAN_EVENT } from '@/hooks/useSubscription';
 
 /**
  * Admin-only QA card to switch the current user's active subscription
@@ -23,15 +23,7 @@ export const PlanSwitcherCard = () => {
   const isFr = locale === 'fr';
   const qc = useQueryClient();
 
-  const [plans, setPlans] = useState<{ id: string; name: string }[]>([]);
   const [busy, setBusy] = useState<PlanTier | null>(null);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    supabase.from('subscription_plans').select('id, name').then(({ data }) => {
-      setPlans((data as any[]) || []);
-    });
-  }, [isAdmin]);
 
   if (roleLoading || !isAdmin) return null;
 
@@ -39,18 +31,29 @@ export const PlanSwitcherCard = () => {
     if (!user) return;
     setBusy(target);
     try {
-      // Admin-only RPC; server enforces role + cancels current active sub.
-      const { error } = await supabase.rpc('admin_switch_my_plan', { p_plan_name: target });
-      if (error) throw error;
+      // Session-only override: NEVER touches the real subscription or billing.
+      // Cleared on tab close (sessionStorage).
+      sessionStorage.setItem(ADMIN_TEST_PLAN_KEY, target);
+      window.dispatchEvent(new CustomEvent(ADMIN_TEST_PLAN_EVENT));
       await qc.invalidateQueries();
       refresh();
-      toast.success(isFr ? `Plan basculé sur ${target}` : `Switched to ${target}`);
+      toast.success(isFr ? `Test QA : plan ${target} (session)` : `QA test: plan ${target} (session)`);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setBusy(null);
     }
   };
+
+  const clearOverride = async () => {
+    sessionStorage.removeItem(ADMIN_TEST_PLAN_KEY);
+    window.dispatchEvent(new CustomEvent(ADMIN_TEST_PLAN_EVENT));
+    await qc.invalidateQueries();
+    refresh();
+    toast.success(isFr ? 'Override QA levé — plan réel restauré' : 'QA override cleared — real plan restored');
+  };
+
+  const hasOverride = typeof window !== 'undefined' && !!sessionStorage.getItem(ADMIN_TEST_PLAN_KEY);
 
   const tiers: { key: PlanTier; label: string; tone: string }[] = [
     { key: 'free', label: 'Free', tone: 'bg-muted text-foreground' },
@@ -74,8 +77,8 @@ export const PlanSwitcherCard = () => {
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               {isFr
-                ? 'Bascule instantanée du plan actif pour vérifier les garde-fous (limites, gating, IA).'
-                : 'Instantly toggle the active plan to verify gating, limits and AI access.'}
+                ? 'Override QA en session uniquement — n\'impacte ni l\'abonnement réel ni la facturation.'
+                : 'Session-only QA override — never touches the real subscription or billing.'}
             </p>
           </div>
         </div>
@@ -102,6 +105,12 @@ export const PlanSwitcherCard = () => {
             );
           })}
         </div>
+        {hasOverride && (
+          <Button variant="ghost" size="sm" onClick={clearOverride} className="w-full gap-2 text-xs">
+            <RotateCcw className="w-3.5 h-3.5" />
+            {isFr ? 'Revenir au plan réel' : 'Restore real plan'}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
