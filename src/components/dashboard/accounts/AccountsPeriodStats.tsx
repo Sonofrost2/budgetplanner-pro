@@ -117,6 +117,10 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
       const d = new Date(tx.date);
       if (d < start || d > end) continue;
       if (!tx.account_id || !byAccount[tx.account_id]) continue;
+      // Exclude transfer legs from income/expense stats (BLOC D): a transfer
+      // between own accounts is not real income/expense. The theoretical
+      // balance loop below still counts them because they DO move money.
+      if ((tx as any).is_transfer === true || (tx as any).linked_transfer_id) continue;
       const amount = Number(tx.amount);
       if (tx.type === 'income') {
         totalIncome += amount;
