@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import LegalFooter from '@/components/LegalFooter';
 import { Wallet, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -142,6 +143,7 @@ const ResetPassword = () => {
             </form>
           </>
         )}
+        <LegalFooter variant="compact" className="mt-8 border-0 bg-transparent" />
       </motion.div>
     </div>
   );
