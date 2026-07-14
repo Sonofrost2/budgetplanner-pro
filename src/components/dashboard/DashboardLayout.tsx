@@ -19,6 +19,7 @@ import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { useDeviceFingerprint } from '@/hooks/useDeviceFingerprint';
 import { PWAUpdatePrompt } from '@/components/dashboard/PWAUpdatePrompt';
 import SkipLink from '@/components/SkipLink';
+import LegalFooter from '@/components/LegalFooter';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/dashboard/AppSidebar';
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
