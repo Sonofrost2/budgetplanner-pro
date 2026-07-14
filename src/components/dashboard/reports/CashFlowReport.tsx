@@ -22,8 +22,11 @@ const CashFlowReport = () => {
     if (!user) return;
     const start = `${year}-01-01`;
     const end = `${year}-12-31`;
+    // Exclude transfer legs — they move money between own accounts and are
+    // not real income/expense flows (BLOC D consistency).
     supabase.from('transactions').select('type, amount, date')
-      .eq('user_id', user.id).gte('date', start).lte('date', end)
+      .eq('user_id', user.id).is('deleted_at', null).eq('is_transfer', false)
+      .gte('date', start).lte('date', end)
       .then(({ data: txs }) => {
         const months: typeof data = [];
         let carry = 0;
