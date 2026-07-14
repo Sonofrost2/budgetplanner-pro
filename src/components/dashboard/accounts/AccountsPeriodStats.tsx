@@ -270,7 +270,7 @@ export const AccountsPeriodStats = ({ accounts, transactions, fmt, t, locale }: 
               </SelectContent>
             </Select>
 
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}>
+            <Button aria-label="Changer l’ordre de tri" variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}>
               <ArrowUpDown className={cn('w-4 h-4 transition-transform', sortOrder === 'desc' && 'rotate-180')} />
             </Button>
           </div>

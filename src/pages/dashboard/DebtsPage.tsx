@@ -290,8 +290,8 @@ const DebtsPage = () => {
                       <div><span>{d.creditor_name}</span>{d.due_date && <p className={`text-[11px] font-normal ${isOverdue ? 'text-destructive' : 'text-muted-foreground'}`}>{locale === 'fr' ? 'Échéance' : 'Due'}: {new Date(d.due_date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US')}</p>}</div>
                     </CardTitle>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(d)}><Pencil className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(d.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      <Button aria-label="Modifier" variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(d)}><Pencil className="w-3.5 h-3.5" /></Button>
+                      <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(d.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                     </div>
                   </div>
                 </CardHeader>

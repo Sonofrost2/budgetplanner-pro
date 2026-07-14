@@ -195,10 +195,10 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
                 </div>
               </div>
               <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={onEdit}>
+                <Button aria-label="Modifier" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={onEdit}>
                   <Pencil className="w-3.5 h-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={onDelete}>
+                <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={onDelete}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>
@@ -398,7 +398,7 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
           </Button>
         )}
         {onSimulate && (goal as any).status !== 'completed' && (
-          <Button onClick={onSimulate} variant="outline" className="rounded-xl" size="icon" title={t.simulateAI}>
+          <Button aria-label="Suggestions IA" onClick={onSimulate} variant="outline" className="rounded-xl" size="icon" title={t.simulateAI}>
             <Sparkles className="w-4 h-4 text-primary" />
           </Button>
         )}

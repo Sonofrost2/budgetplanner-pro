@@ -443,16 +443,16 @@ const AIChatWidget = () => {
                   </div>
                 </div>
                 <div className="flex gap-0.5">
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={() => setShowHistory(s => !s)} title={locale === 'fr' ? 'Historique' : 'History'}>
+                  <Button aria-label="Action" variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={() => setShowHistory(s => !s)} title={locale === 'fr' ? 'Historique' : 'History'}>
                     <History className="w-3.5 h-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={refreshContext} title={locale === 'fr' ? 'Rafraîchir contexte' : 'Refresh context'}>
+                  <Button aria-label="Réinitialiser" variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={refreshContext} title={locale === 'fr' ? 'Rafraîchir contexte' : 'Refresh context'}>
                     <RotateCcw className="w-3.5 h-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={newConversation} title={locale === 'fr' ? 'Nouvelle conversation' : 'New conversation'}>
+                  <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={newConversation} title={locale === 'fr' ? 'Nouvelle conversation' : 'New conversation'}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={() => setOpen(false)}>
+                  <Button aria-label="Fermer" variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15" onClick={() => setOpen(false)}>
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
@@ -548,7 +548,7 @@ const AIChatWidget = () => {
                   rows={1}
                   disabled={isLoading}
                 />
-                <Button type="submit" size="icon" className="h-10 w-10 rounded-xl text-primary-foreground shrink-0" style={{ background: 'var(--gradient-primary)' }} disabled={isLoading || !input.trim()}>
+                <Button aria-label="Envoyer" type="submit" size="icon" className="h-10 w-10 rounded-xl text-primary-foreground shrink-0" style={{ background: 'var(--gradient-primary)' }} disabled={isLoading || !input.trim()}>
                   <Send className="w-4 h-4" />
                 </Button>
               </form>

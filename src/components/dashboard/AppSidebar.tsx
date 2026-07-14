@@ -468,7 +468,7 @@ const AppSidebar = ({
                 </button>
               ))}
             </div>
-            <Button variant="ghost" size="icon" className="text-muted-foreground rounded-xl h-8 w-8 shrink-0 border border-sidebar-border/40" onClick={toggleLocale}>
+            <Button aria-label="Changer de langue" variant="ghost" size="icon" className="text-muted-foreground rounded-xl h-8 w-8 shrink-0 border border-sidebar-border/40" onClick={toggleLocale}>
               <Globe className="w-3.5 h-3.5" />
             </Button>
           </div>

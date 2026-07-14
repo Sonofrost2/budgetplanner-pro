@@ -169,17 +169,17 @@ const PaginationBar = ({ page, totalPages, totalCount, onPageChange, t }: {
         {totalCount} {t.results} — {t.page} {page + 1}/{totalPages}
       </span>
       <div className="flex items-center gap-0.5">
-        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" disabled={page === 0} onClick={() => onPageChange(0)}>
+        <Button aria-label="Action" variant="ghost" size="icon" className="h-7 w-7 rounded-lg" disabled={page === 0} onClick={() => onPageChange(0)}>
           <ChevronsLeft className="w-3.5 h-3.5" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" disabled={page === 0} onClick={() => onPageChange(page - 1)}>
+        <Button aria-label="Précédent" variant="ghost" size="icon" className="h-7 w-7 rounded-lg" disabled={page === 0} onClick={() => onPageChange(page - 1)}>
           <ChevronLeft className="w-3.5 h-3.5" />
         </Button>
         {pages.map((p, i) =>
           p === 'ellipsis' ? (
             <span key={`e${i}`} className="w-7 text-center text-xs text-muted-foreground">…</span>
           ) : (
-            <Button
+            <Button aria-label="Action"
               key={p}
               variant={p === page ? 'default' : 'ghost'}
               size="icon"
@@ -190,10 +190,10 @@ const PaginationBar = ({ page, totalPages, totalCount, onPageChange, t }: {
             </Button>
           )
         )}
-        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" disabled={page >= totalPages - 1} onClick={() => onPageChange(page + 1)}>
+        <Button aria-label="Suivant" variant="ghost" size="icon" className="h-7 w-7 rounded-lg" disabled={page >= totalPages - 1} onClick={() => onPageChange(page + 1)}>
           <ChevronRight className="w-3.5 h-3.5" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" disabled={page >= totalPages - 1} onClick={() => onPageChange(totalPages - 1)}>
+        <Button aria-label="Action" variant="ghost" size="icon" className="h-7 w-7 rounded-lg" disabled={page >= totalPages - 1} onClick={() => onPageChange(totalPages - 1)}>
           <ChevronsRight className="w-3.5 h-3.5" />
         </Button>
       </div>
@@ -359,7 +359,7 @@ export const TransactionList = ({
               <div className="flex-1" />
               <SortButton field="amount" current={sortField} order={sortOrder} onSort={onSort} label={t.amount} />
               <div className="ml-auto pl-2">
-                <Button
+                <Button aria-label="Action"
                   variant="ghost"
                   size="icon"
                   className={`h-7 w-7 rounded-lg transition-colors ${condensed ? 'bg-primary/10 text-primary' : 'hover:bg-muted/40'}`}
@@ -459,10 +459,10 @@ export const TransactionList = ({
                           {/* Desktop: hover actions */}
                           {!isMobile && (
                             <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary" onClick={() => onEdit(tx)}>
+                              <Button aria-label="Modifier" variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary" onClick={() => onEdit(tx)}>
                                 <Pencil className="w-3 h-3" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md text-destructive hover:bg-destructive/10" onClick={() => onDelete(tx.id)}>
+                              <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-6 w-6 rounded-md text-destructive hover:bg-destructive/10" onClick={() => onDelete(tx.id)}>
                                 <Trash2 className="w-3 h-3" />
                               </Button>
                             </div>
@@ -470,7 +470,7 @@ export const TransactionList = ({
                           {isMobile && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md"><MoreVertical className="w-3 h-3" /></Button>
+                                <Button aria-label="Plus d’options" variant="ghost" size="icon" className="h-6 w-6 rounded-md"><MoreVertical className="w-3 h-3" /></Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
                                 <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg"><Pencil className="w-3.5 h-3.5" /> {t.edit}</DropdownMenuItem>
@@ -546,10 +546,10 @@ export const TransactionList = ({
                             </motion.div>
                             {!isMobile && (
                               <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => onEdit(tx)}>
+                                <Button aria-label="Modifier" variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => onEdit(tx)}>
                                   <Pencil className="w-3.5 h-3.5" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(tx.id)}>
+                                <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(tx.id)}>
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                               </div>
@@ -557,7 +557,7 @@ export const TransactionList = ({
                             {isMobile && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl"><MoreVertical className="w-4 h-4" /></Button>
+                                  <Button aria-label="Plus d’options" variant="ghost" size="icon" className="h-8 w-8 rounded-xl"><MoreVertical className="w-4 h-4" /></Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
                                   <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg"><Pencil className="w-3.5 h-3.5" /> {t.edit}</DropdownMenuItem>

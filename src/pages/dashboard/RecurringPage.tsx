@@ -383,8 +383,8 @@ const RecurringPage = () => {
                       </CardTitle>
                       <div className="flex items-center gap-1">
                         <Switch checked={r.active ?? true} onCheckedChange={() => toggleActive(r.id, r.active ?? true)} className="scale-75" />
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(r)}><Pencil className="w-3.5 h-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(r.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        <Button aria-label="Modifier" variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(r)}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(r.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                       </div>
                     </div>
                   </CardHeader>

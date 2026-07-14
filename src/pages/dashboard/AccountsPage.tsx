@@ -617,7 +617,7 @@ const AccountsPage = () => {
                         {Number(c.discrepancy) >= 0 ? '+' : ''}{fmt(Number(c.discrepancy))}
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => setPreviewCashCount(c)}>
+                        <Button aria-label="Afficher" variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => setPreviewCashCount(c)}>
                           <Eye className="w-3.5 h-3.5" />
                         </Button>
                       </TableCell>

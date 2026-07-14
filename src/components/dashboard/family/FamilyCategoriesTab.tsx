@@ -169,7 +169,7 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
                     </p>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
+                    <Button aria-label="Modifier"
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8"
@@ -179,7 +179,7 @@ export const FamilyCategoriesTab = ({ groupId, isOwner }: Props) => {
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
-                    <Button
+                    <Button aria-label="Supprimer"
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 text-destructive hover:text-destructive"

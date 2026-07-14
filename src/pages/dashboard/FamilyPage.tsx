@@ -169,7 +169,7 @@ const FamilyPage = () => {
                   <h3 className="text-sm font-semibold flex items-center gap-1.5">
                     🔒 Vie privée respectée — <span className="text-primary">Privacy by Design</span>
                   </h3>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 -mr-1 -mt-1" onClick={dismissPrivacy}>
+                  <Button aria-label="Fermer" variant="ghost" size="icon" className="h-6 w-6 -mr-1 -mt-1" onClick={dismissPrivacy}>
                     <X className="w-3.5 h-3.5" />
                   </Button>
                 </div>

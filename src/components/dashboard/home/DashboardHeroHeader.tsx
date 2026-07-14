@@ -351,7 +351,7 @@ export const DashboardHeroHeader = ({
               >
                 {quickLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               </Button>
-              <Button
+              <Button aria-label="Fermer"
                 size="icon"
                 variant="ghost"
                 onClick={closeQuick}

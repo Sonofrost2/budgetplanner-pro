@@ -227,7 +227,7 @@ const DashboardLayout = () => {
               </kbd>
             </button>
             {/* Mobile search icon */}
-            <Button variant="ghost" size="icon" className="sm:hidden rounded-xl h-8 w-8" onClick={() => setSearchOpen(true)}>
+            <Button aria-label="Rechercher" variant="ghost" size="icon" className="sm:hidden rounded-xl h-8 w-8" onClick={() => setSearchOpen(true)}>
               <Search className="w-4 h-4" />
             </Button>
 

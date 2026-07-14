@@ -348,7 +348,7 @@ const AdminUsersPage = () => {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={actionLoading === u.user_id}>
+                          <Button aria-label="Chargement" variant="ghost" size="icon" className="h-7 w-7" disabled={actionLoading === u.user_id}>
                             {actionLoading === u.user_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MoreVertical className="w-3.5 h-3.5" />}
                           </Button>
                         </DropdownMenuTrigger>

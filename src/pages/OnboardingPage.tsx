@@ -452,7 +452,7 @@ const OnboardingPage = () => {
                     </Select>
                     <Input type="number" className="w-28" placeholder={isFr ? 'Solde' : 'Balance'} value={acc.opening_balance} onChange={e => updateAccount(i, 'opening_balance', e.target.value)} />
                     {accounts.length > 1 && (
-                      <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive" onClick={() => removeAccount(i)}>
+                      <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-10 w-10 text-destructive" onClick={() => removeAccount(i)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     )}

@@ -549,10 +549,10 @@ const WealthPage = () => {
                             </div>
                           </div>
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => openEdit(asset)}>
+                            <Button aria-label="Modifier" variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => openEdit(asset)}>
                               <Pencil className="w-3 h-3" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-destructive" onClick={() => setDeleteId(asset.id)}>
+                            <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-destructive" onClick={() => setDeleteId(asset.id)}>
                               <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
