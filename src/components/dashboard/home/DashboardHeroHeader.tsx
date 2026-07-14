@@ -213,7 +213,7 @@ export const DashboardHeroHeader = ({
           {/* Balance */}
           <div className="rounded-2xl border border-primary/25 bg-primary/8 px-3.5 py-3">
             <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary uppercase tracking-wider">
-              <Wallet className="w-3 h-3" />{t.totalBalance}
+              <Wallet className="w-3 h-3" />{t.totalBalanceGlobal}
             </div>
             <div className="text-lg sm:text-xl font-extrabold text-primary tabular-nums mt-1 leading-none">
               <AnimatedNumber value={totalBalance} format={fmt} duration={0.6} />
