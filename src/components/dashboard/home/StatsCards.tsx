@@ -110,17 +110,17 @@ export const StatsCards = ({
               <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
                 <Wallet className="w-4.5 h-4.5 text-white" />
               </div>
-              <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{t.totalBalance}</p>
+              <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{t.periodBalance}</p>
             </div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums tracking-tight leading-none">{fmt(balance)}</p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums tracking-tight leading-none">
+              {fmt(netCashFlow ?? 0)}
+            </p>
             {/* Mini stats row */}
             <div className="flex flex-wrap items-center gap-3 mt-3">
-              {netCashFlow !== undefined && (
-                <span className={`text-xs font-semibold flex items-center gap-1 ${netCashFlow >= 0 ? 'text-emerald-200' : 'text-red-200'}`}>
-                  {netCashFlow >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {netCashFlow >= 0 ? '+' : ''}{fmt(netCashFlow)}
-                </span>
-              )}
+              <span className={`text-xs font-semibold flex items-center gap-1 ${(netCashFlow ?? 0) >= 0 ? 'text-emerald-200' : 'text-red-200'}`}>
+                {(netCashFlow ?? 0) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {(netCashFlow ?? 0) >= 0 ? '+' : ''}{fmt(Math.abs(netCashFlow ?? 0))}
+              </span>
               {savingsRate !== undefined && (
                 <span className="text-xs font-semibold text-white/60 flex items-center gap-1">
                   <Percent className="w-3 h-3" />
