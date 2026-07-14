@@ -162,6 +162,7 @@ const Login = () => {
             {t.auth.noAccount}{' '}
             <Link to="/signup" className="text-primary font-semibold hover:underline">{t.auth.signup}</Link>
           </motion.p>
+          <LegalFooter variant="compact" className="mt-8 border-0 bg-transparent" />
         </motion.div>
       </div>
     </div>
