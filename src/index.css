@@ -41,6 +41,8 @@
     --warning-foreground: 35 80% 15%;
 
     --gradient-primary: linear-gradient(135deg, hsl(250 85% 60%), hsl(280 80% 65%), hsl(200 85% 58%));
+    /* Text-safe variant with darker stops for WCAG AA contrast on light bg (>= 4.5:1). */
+    --gradient-primary-text: linear-gradient(135deg, hsl(250 85% 45%), hsl(280 75% 48%), hsl(200 90% 38%));
     --gradient-accent: linear-gradient(135deg, hsl(165 70% 46%), hsl(145 60% 45%));
     --gradient-warm: linear-gradient(135deg, hsl(30 95% 55%), hsl(350 80% 60%));
     --gradient-hero: linear-gradient(160deg,
