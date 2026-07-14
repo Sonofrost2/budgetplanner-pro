@@ -3,12 +3,14 @@ import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 const LAZY_RELOAD_PREFIX = "lazy-retry";
 
 const isDynamicImportFetchError = (error: unknown) => {
+  const err = error as any;
+  if (err?.name === "ChunkLoadError") return true;
   const message = error instanceof Error ? error.message : String(error);
-
   return [
     "Failed to fetch dynamically imported module",
     "Importing a module script failed",
     "Failed to load module script",
+    "error loading dynamically imported module",
   ].some((fragment) => message.includes(fragment));
 };
 
