@@ -29,6 +29,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { useSubscription } from '@/hooks/useSubscription';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import PlanLockedView from '@/components/dashboard/PlanLockedView';
 import { currencySymbol } from '@/lib/currency';
 import { Lock } from 'lucide-react';
 
@@ -249,9 +250,12 @@ const RecurringPage = () => {
 
   if (loading) return <div className="space-y-6"><div className="flex items-center justify-between"><Skeleton className="h-8 w-32" /><Skeleton className="h-9 w-36" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div></div>;
 
+  if (!canUseRecurring) {
+    return <PlanLockedView title={t.recurring} message={t.upgradeRecurring} />;
+  }
+
   return (
     <div className="space-y-6">
-      {!canUseRecurring && <UpgradeBanner message={t.upgradeRecurring} />}
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
