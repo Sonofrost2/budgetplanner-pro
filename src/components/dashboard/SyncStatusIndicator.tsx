@@ -91,7 +91,7 @@ export const SyncStatusIndicator = () => {
             type="button"
             aria-label={view.label}
             className={cn(
-              'inline-flex items-center gap-1.5 h-8 px-2 sm:px-2.5 rounded-xl',
+              'inline-flex items-center gap-1.5 h-8 px-2 sm:px-2.5 rounded-xl shrink-0 whitespace-nowrap',
               'border border-border/50 bg-background/50 hover:bg-background transition-colors',
               'text-[11px] font-medium text-muted-foreground',
             )}
