@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { InputField } from '@/components/ui/input-field';
 import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DEFAULT_CURRENCY, currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
@@ -42,6 +42,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
   const [toAccountId, setToAccountId] = useState(defaultToAccountId || '');
   const [amount, setAmount] = useState(defaultAmount || '');
   const [description, setDescription] = useState(defaultDescription || '');
+  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -61,6 +62,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
     setToAccountId(defaultToAccountId || '');
     setAmount(defaultAmount || '');
     setDescription(defaultDescription || '');
+    setDate(new Date().toISOString().split('T')[0]);
     setErrors({});
   };
 
@@ -91,6 +93,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
         p_to_account_id: toAccountId,
         p_amount: Number(amount),
         p_description: description.trim(),
+        p_date: date,
       });
 
       if (error) throw error;
@@ -187,6 +190,14 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
           charCount
           label={`${t.description} (${t.optional})`}
           placeholder={t.transferDescPlaceholder}
+        />
+
+        <InputField
+          type="date"
+          value={date}
+          onChange={e => setDate((e.target as HTMLInputElement).value)}
+          icon={<Calendar className="w-3 h-3" />}
+          label={t.date}
         />
       </div>
     </ResponsiveFormDialog>
