@@ -9,6 +9,38 @@ import { runSchemaMigration } from "./lib/safeStorage";
 runSchemaMigration();
 initSentry();
 
+// A11y: mark Lucide/decorative SVGs inside interactive elements as aria-hidden.
+// Icons inside <button>/<a> are visual only — the accessible name comes from
+// aria-label or child text. Scoped to interactive elements so charts (Recharts,
+// standalone <svg>) are not affected.
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  const markDecorative = (root: ParentNode) => {
+    const nodes = root.querySelectorAll<SVGElement>(
+      'button svg:not([aria-hidden]):not([aria-label]):not([role="img"][aria-labelledby]), a svg:not([aria-hidden]):not([aria-label]):not([role="img"][aria-labelledby]), [role="button"] svg:not([aria-hidden]):not([aria-label]), [role="tab"] svg:not([aria-hidden]):not([aria-label]), [role="menuitem"] svg:not([aria-hidden]):not([aria-label])'
+    );
+    nodes.forEach((n) => {
+      n.setAttribute('aria-hidden', 'true');
+      n.setAttribute('focusable', 'false');
+    });
+  };
+  const start = () => {
+    markDecorative(document.body);
+    const obs = new MutationObserver((muts) => {
+      for (const m of muts) {
+        m.addedNodes.forEach((n) => {
+          if (n.nodeType === 1) markDecorative(n as Element);
+        });
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+}
+
 // Global handler: catch chunk-load errors that escape React's tree (e.g. inside async event handlers).
 if (typeof window !== "undefined") {
   const isChunk = (msg: string) =>
