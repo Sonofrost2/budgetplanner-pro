@@ -38,6 +38,7 @@ import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjection
 import SavingsEvolutionTab from '@/components/dashboard/tabs/SavingsEvolutionTab';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
+import { showApiError } from '@/lib/apiError';
 import { coachToast } from '@/lib/coachToast';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -449,10 +450,10 @@ const SavingsPage = () => {
 
       if (editGoalId) {
         const { error } = await supabase.from('savings_goals').update(payload).eq('id', editGoalId);
-        if (error) { toast.error(error.message); setSaving(false); return; }
+        if (error) { showApiError(error, locale); setSaving(false); return; }
       } else {
         const { error } = await supabase.from('savings_goals').insert({ user_id: user.id, ...payload });
-        if (error) { toast.error(error.message); setSaving(false); return; }
+        if (error) { showApiError(error, locale); setSaving(false); return; }
       }
       setDialogOpen(false);
       setEditGoalId(null);

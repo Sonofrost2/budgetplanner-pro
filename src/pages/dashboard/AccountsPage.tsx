@@ -22,6 +22,7 @@ import { Plus, Pencil, Trash2, Wallet, TrendingUp, TrendingDown, AlertTriangle, 
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import AccountsRecapTab from '@/components/dashboard/tabs/AccountsRecapTab';
 import { toast } from 'sonner';
+import { showApiError } from '@/lib/apiError';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
@@ -101,7 +102,7 @@ const AccountsPage = () => {
   const handleArchiveToggle = async (acc: Account) => {
     const fn = acc.archived_at ? unarchiveItem : archiveItem;
     const { error } = await fn('payment_accounts', acc.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { showApiError(error, locale); return; }
     refreshAll();
     toast.success(acc.archived_at ? (at.unarchived) : (at.archivedToast));
   };
@@ -141,7 +142,7 @@ const AccountsPage = () => {
   const handleBulkDelete = async () => {
     const ids = Array.from(bulk.selectedIds);
     const { error } = await supabase.from('payment_accounts').delete().in('id', ids);
-    if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
+    if (error) { showApiError(error, locale); setBulkDeleteOpen(false); return; }
     setBulkDeleteOpen(false); bulk.clear(); refreshAll();
     toast.success(t.bulkDeleted(ids.length));
   };
@@ -207,10 +208,10 @@ const AccountsPage = () => {
     if (editing) {
       const { real_balance, ...updatePayload } = payload;
       const { error } = await supabase.from('payment_accounts').update(updatePayload).eq('id', editing.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
+      if (error) { showApiError(error, locale); setSaving(false); return; }
     } else {
       const { data: newAcc, error } = await supabase.from('payment_accounts').insert(payload).select('id').single();
-      if (error) { toast.error(error.message); setSaving(false); return; }
+      if (error) { showApiError(error, locale); setSaving(false); return; }
       // opening_balance is already used by recalculate_account_balance (opening_balance + income - expense)
       // so we do NOT insert a transaction — that would double-count it
     }
@@ -243,7 +244,7 @@ const AccountsPage = () => {
   const handleUpdateRealBalance = async () => {
     if (!updateBalanceDialog) return;
     const { error } = await supabase.from('payment_accounts').update({ real_balance: Number(newRealBalance) }).eq('id', updateBalanceDialog.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { showApiError(error, locale); return; }
     setUpdateBalanceDialog(null);
     refreshAll();
     toast.success(t.saved);

@@ -20,6 +20,7 @@ import { Progress } from '@/components/ui/progress';
 import { Plus, RefreshCw, Pencil, Trash2, Sparkles, Check, X, Zap, TrendingDown, TrendingUp, Loader2, FileText, CalendarDays, Repeat, Tag, CreditCard } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
+import { showApiError } from '@/lib/apiError';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
@@ -130,7 +131,7 @@ const RecurringPage = () => {
     const { error } = editId
       ? await supabase.from('recurring_transactions').update(payload).eq('id', editId)
       : await supabase.from('recurring_transactions').insert({ ...payload, user_id: user.id });
-    if (error) { toast.error(error.message); return; }
+    if (error) { showApiError(error, locale); return; }
     setDialogOpen(false); setEditId(null);
     refreshData(); toast.success(t.saved);
   };
@@ -197,7 +198,7 @@ const RecurringPage = () => {
       active: true,
     };
     const { error } = await supabase.from('recurring_transactions').insert(payload);
-    if (error) { toast.error(error.message); return; }
+    if (error) { showApiError(error, locale); return; }
     setAiPatterns(prev => prev.filter(p => p.description !== pattern.description));
     refreshData();
     toast.success(t.saved);

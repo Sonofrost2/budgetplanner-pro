@@ -18,6 +18,7 @@ import { InputField } from '@/components/ui/input-field';
 import { Progress } from '@/components/ui/progress';
 import { Plus, Landmark, Pencil, Trash2, Sparkles, Loader2, TrendingDown, Target, Lightbulb, Search, X, Download, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
+import { showApiError } from '@/lib/apiError';
 import { useAccounts } from '@/hooks/useDashboardData';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -74,7 +75,7 @@ const DebtsPage = () => {
   const handleBulkDelete = async () => {
     const ids = Array.from(bulk.selectedIds);
     const { error } = await supabase.from('debts').delete().in('id', ids);
-    if (error) { toast.error(error.message); setBulkDeleteOpen(false); return; }
+    if (error) { showApiError(error, locale); setBulkDeleteOpen(false); return; }
     bulk.clear();
     setBulkDeleteOpen(false);
     refreshData();
@@ -109,7 +110,7 @@ const DebtsPage = () => {
     const { error } = editId
       ? await supabase.from('debts').update(payload).eq('id', editId)
       : await supabase.from('debts').insert({ ...payload, user_id: user.id });
-    if (error) { toast.error(error.message); return; }
+    if (error) { showApiError(error, locale); return; }
     setDialogOpen(false); setEditId(null);
     refreshData();
     toast.success(t.saved);
