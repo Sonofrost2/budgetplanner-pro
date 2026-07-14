@@ -11,6 +11,18 @@ import { SEOHead } from '@/components/SEOHead';
 // the actual domain serving the page (lovable.app, custom domain, etc.).
 const CANONICAL = 'https://budgetplanner-pro.lovable.app';
 
+/**
+ * Escape sequences that could break out of a <script> tag when embedding
+ * serialized JSON. Safe to apply even to fully static payloads.
+ */
+const escapeJsonLd = (json: string): string =>
+  json
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+
 const jsonLd = [
   {
     '@context': 'https://schema.org',
@@ -58,12 +70,19 @@ const Index = () => {
         ogImageAlt="Budget Planner Pro – Tableau de bord avec graphiques de budget, suivi des dépenses et objectifs d'épargne"
         locale="fr_FR"
       />
-      {/* JSON-LD structured data */}
+      {/*
+        JSON-LD structured data.
+        SECURITY: `jsonLd` above MUST contain only static, developer-authored
+        values — never user input, URL params, or fetched content. Any dynamic
+        string could contain "</script>" and break out of this <script> tag.
+        If a dynamic value is ever added, escape "<" as "\u003c" in the
+        serialized string (see `escapeJsonLd` below) before injection.
+      */}
       {jsonLd.map((schema, i) => (
         <script
           key={i}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(schema)) }}
         />
       ))}
       <Navbar />
