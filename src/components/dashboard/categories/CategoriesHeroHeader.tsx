@@ -17,7 +17,9 @@ interface Props {
 
 export const CategoriesHeroHeader = ({ categories, stats, onCreate, onOpenTemplates, isFr }: Props) => {
   const kpis = useMemo(() => {
-    const active = categories.length;
+    // "Actives" = non-archived categories. Header text and KpiCard must use the same source.
+    const activeCats = categories.filter(c => !(c as any).deleted_at);
+    const active = activeCats.length;
     let unused = 0;
     let topName = '—';
     let topIcon = '📁';
@@ -25,7 +27,7 @@ export const CategoriesHeroHeader = ({ categories, stats, onCreate, onOpenTempla
     let totalExpense = 0;
     const expenseTotals: { name: string; icon: string; total: number }[] = [];
 
-    categories.forEach(c => {
+    activeCats.forEach(c => {
       const s = stats[c.id];
       const total = s?.total_amount ?? 0;
       const count = s?.transaction_count ?? 0;
