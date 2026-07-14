@@ -5,3 +5,32 @@
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(self "https://checkout.paystack.com"), interest-cohort=()
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://checkout.paystack.com https://cdn.mxpnl.com https://*.lovable.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https: ; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.paystack.co https://api.mixpanel.com https://api-js.mixpanel.com https://ipapi.co https://open.er-api.com; frame-src https://checkout.paystack.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.paystack.com; object-src 'none'; upgrade-insecure-requests
+
+# Cache rules — critical shell files must never be cached so every load picks
+# up the latest hashed chunk references. Hashed assets under /assets/* are
+# safe to cache forever (Vite versions filenames). Static icons/images get a
+# 7-day cache.
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+/registerSW.js
+  Cache-Control: no-cache, no-store, must-revalidate
+/manifest.json
+  Cache-Control: no-cache, no-store, must-revalidate
+/manifest.webmanifest
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/icons/*
+  Cache-Control: public, max-age=604800
+*.png
+  Cache-Control: public, max-age=604800
+*.svg
+  Cache-Control: public, max-age=604800
+*.ico
+  Cache-Control: public, max-age=604800
