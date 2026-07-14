@@ -260,17 +260,32 @@ export const TransactionsHeroHeader = ({
 
         {/* Right: actions */}
         <div className="flex lg:flex-col gap-2 lg:items-stretch">
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              size="sm"
-              className="w-full text-primary-foreground rounded-xl shadow-md hover:shadow-lg transition-shadow"
-              style={{ background: 'var(--gradient-primary)' }}
-              onClick={onAddNew}
-              disabled={limitReached}
-            >
-              <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
-            </Button>
-          </motion.div>
+          {(() => {
+            const addTooltip = limitReached
+              ? (isFr
+                  ? `Limite du plan Gratuit atteinte : ${monthlyLimit} transactions/mois. Passez au plan Pro pour continuer.`
+                  : `Free plan limit reached: ${monthlyLimit} transactions/month. Upgrade to Pro to continue.`)
+              : undefined;
+            return (
+              <motion.div
+                whileHover={limitReached ? undefined : { scale: 1.02 }}
+                whileTap={limitReached ? undefined : { scale: 0.98 }}
+                title={addTooltip}
+                aria-label={addTooltip}
+              >
+                <Button
+                  size="sm"
+                  className="w-full text-primary-foreground rounded-xl shadow-md hover:shadow-lg transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: 'var(--gradient-primary)' }}
+                  onClick={onAddNew}
+                  disabled={limitReached}
+                  aria-disabled={limitReached}
+                >
+                  <Plus className="w-4 h-4 mr-1" />{t.addTransaction}
+                </Button>
+              </motion.div>
+            );
+          })()}
           {onQuickAdd && canUseAI && (
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
