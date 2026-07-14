@@ -220,15 +220,13 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeSection}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18 }}
-              className="space-y-5"
-            >
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            className="space-y-5"
+          >
               {activeSection === 'profile' && (
                 <Panel>
                   <div className="space-y-4">
@@ -354,8 +352,7 @@ const SettingsPage = () => {
                   </Panel>
                 </div>
               )}
-            </motion.div>
-          </AnimatePresence>
+          </motion.div>
         </div>
       </div>
 
