@@ -66,7 +66,9 @@ export const useAccounts = (opts?: { includeArchived?: boolean }) => {
       return (data ?? []) as Account[];
     },
     enabled: !!user,
-    staleTime: 30_000,
+    // Solde des comptes = donnée financière critique → staleTime court pour
+    // éviter d'afficher un solde périmé après un refetch background.
+    staleTime: 10_000,
   });
 };
 
@@ -588,7 +590,9 @@ export const useInvalidate = () => {
     ['accounts', 'transactions', 'all-transactions', 'paginated-transactions',
      'categories', 'budgets', 'savings-goals', 'debts', 'recurring',
      'chart-data', 'receipts', 'reports-data', 'forecast-raw-tx',
-     'account-theoretical-balances', 'account-cash-counts', 'savings-page-data'].forEach(k =>
+     'account-theoretical-balances', 'account-transactions', 'account-cash-counts',
+     'savings-page-data', 'budget-spending', 'budget-annual-spending',
+     'tx-month-count'].forEach(k =>
       queryClient.invalidateQueries({ queryKey: [k, user.id] })
     );
     // Also invalidate range-based transaction queries
