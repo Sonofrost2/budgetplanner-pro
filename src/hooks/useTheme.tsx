@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { safeGet, safeSet } from '@/lib/safeStorage';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
 type ResolvedTheme = 'light' | 'dark';
@@ -25,10 +26,9 @@ const resolveTheme = (mode: ThemeMode): ResolvedTheme =>
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [mode, setModeState] = useState<ThemeMode>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('theme-mode') as ThemeMode) || 'light';
-    }
-    return 'light';
+    if (typeof window === 'undefined') return 'light';
+    const raw = safeGet('theme-mode');
+    return raw === 'light' || raw === 'dark' || raw === 'auto' ? raw : 'light';
   });
 
   const [theme, setTheme] = useState<ResolvedTheme>(() => resolveTheme(mode));
@@ -42,7 +42,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
-    localStorage.setItem('theme-mode', newMode);
+    safeSet('theme-mode', newMode);
     applyTheme(resolveTheme(newMode));
   };
 
