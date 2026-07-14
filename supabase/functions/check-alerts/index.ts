@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
 
       const [budgetsRes, allTxRes, savingsRes, savingsMonthTxRes, recurringRes, profileRes, accountsRes, accountTxRes] = await Promise.all([
         supabase.from("budgets").select("*, categories(name, icon)").eq("user_id", userId).is("deleted_at", null),
-        supabase.from("transactions").select("category_id, amount, type, date")
+        supabase.from("transactions").select("category_id, amount, type, date, is_transfer")
           .eq("user_id", userId).is("deleted_at", null).gte("date", yearStart).lte("date", todayStr),
         supabase.from("savings_goals").select("*").eq("user_id", userId).is("deleted_at", null),
         supabase.from("transactions").select("amount, date, notes, type, account_id, description")
@@ -200,6 +200,7 @@ Deno.serve(async (req) => {
           const periodTxs = allTxs.filter(
             (tx: any) => tx.category_id === budget.category_id &&
               tx.type === budgetType &&
+              tx.is_transfer !== true &&
               tx.date >= periodStartStr && tx.date <= periodEndStr
           );
           const spent = periodTxs.reduce((s: number, tx: any) => s + Number(tx.amount), 0);
