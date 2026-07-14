@@ -18,6 +18,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
 import { Plus, Tag, Palette, Inbox, Merge, FolderTree, Download, Upload, Archive, RotateCcw, Trash2 } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import CategoryEvolutionChart from '@/components/dashboard/categories/CategoryEvolutionChart';
 import { CategoriesHeroHeader } from '@/components/dashboard/categories/CategoriesHeroHeader';
 import { CategoryTreeView } from '@/components/dashboard/categories/CategoryTreeView';
@@ -452,9 +453,15 @@ const CategoriesPage = () => {
                   </h3>
                 </div>
                 {archivedCategories.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">
-                    {isFr ? 'Aucune catégorie archivée. Cliquez sur l\'icône archive d\'une catégorie pour la masquer sans la supprimer.' : 'No archived categories. Click the archive icon on a category to hide it without deleting.'}
-                  </p>
+                  <EmptyState
+                    icon={Archive}
+                    variant="compact"
+                    bordered={false}
+                    title={isFr ? 'Aucune catégorie archivée' : 'No archived categories'}
+                    description={isFr
+                      ? 'Cliquez sur l\'icône archive d\'une catégorie pour la masquer sans la supprimer.'
+                      : 'Click the archive icon on a category to hide it without deleting.'}
+                  />
                 ) : (
                   <div className="space-y-1.5">
                     {archivedCategories.map(c => (
