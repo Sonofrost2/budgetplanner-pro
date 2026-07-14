@@ -28,7 +28,8 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "prompt",
-      injectRegister: "script-defer",
+      // useRegisterSW (React hook) is the single registrar — disable auto-injection.
+      injectRegister: null,
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         cleanupOutdatedCaches: true,
