@@ -166,7 +166,13 @@ const SavingsPage = () => {
 
   // Invalidate react-query caches that depend on transactions/accounts
   const invalidateCrossModule = () => {
-    invalidate('accounts', 'transactions', 'paginated-transactions', 'chart-data', 'all-transactions', 'savings-goals', 'budget-spending');
+    invalidate(
+      'accounts', 'account-theoretical-balances', 'account-transactions',
+      'transactions', 'paginated-transactions', 'chart-data', 'all-transactions',
+      'savings-goals', 'savings-page-data',
+      'budget-spending', 'budget-annual-spending',
+      'reports-data', 'forecast-raw-tx',
+    );
   };
 
   const filteredGoals = useMemo(() => {
