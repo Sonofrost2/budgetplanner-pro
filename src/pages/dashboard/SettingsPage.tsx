@@ -305,14 +305,6 @@ const SettingsPage = () => {
                     />
                     <Separator />
                     <Row
-                      title={isFr ? 'Authentification à 2 facteurs (2FA)' : 'Two-factor authentication (2FA)'}
-                      desc={isFr ? 'Ajoutez une couche de sécurité supplémentaire (bientôt disponible)' : 'Add an extra layer of security (coming soon)'}
-                      icon={Smartphone}
-                      badge={isFr ? 'Bientôt' : 'Soon'}
-                      action={<Switch checked={twoFAEnabled} onCheckedChange={(v) => { setTwoFAEnabled(v); toast.info(isFr ? '2FA bientôt disponible' : '2FA coming soon'); }} disabled />}
-                    />
-                    <Separator />
-                    <Row
                       title={isFr ? 'Session active' : 'Active session'}
                       desc={isFr ? `Connecté en tant que ${user?.email}` : `Logged in as ${user?.email}`}
                       icon={ShieldCheck}
