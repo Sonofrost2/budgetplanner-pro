@@ -43,7 +43,7 @@ const HeroSection = () => {
             <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
               className="mt-8 text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight leading-[1.08]">
               {t.hero.title}{' '}
-              <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'var(--gradient-primary)' }}>{t.hero.titleHighlight}</span>
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'var(--gradient-primary-text)' }}>{t.hero.titleHighlight}</span>
             </motion.h1>
 
             <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
