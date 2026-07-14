@@ -26,6 +26,7 @@ import { FamilySettingsTab } from '@/components/dashboard/family/FamilySettingsT
 import { FamilyCategoriesTab } from '@/components/dashboard/family/FamilyCategoriesTab';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import PlanLockedView from '@/components/dashboard/PlanLockedView';
 
 const FamilyPage = () => {
   const { user } = useAuth();
@@ -138,10 +139,12 @@ const FamilyPage = () => {
     );
   }
 
+  if (!canUseFamily) {
+    return <PlanLockedView message={dashT[locale].upgradeFamily} />;
+  }
+
   return (
     <div className="space-y-6">
-      {!canUseFamily && <UpgradeBanner message={dashT[locale].upgradeFamily} />}
-
       <FamilyHeroHeader
         groupCount={groups.length}
         memberCount={totalMembers}
