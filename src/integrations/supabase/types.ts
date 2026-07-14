@@ -1792,6 +1792,7 @@ export type Database = {
           description: string
           family_category_id: string | null
           id: string
+          is_transfer: boolean
           linked_transfer_id: string | null
           notes: string | null
           parent_transaction_id: string | null
@@ -1811,6 +1812,7 @@ export type Database = {
           description: string
           family_category_id?: string | null
           id?: string
+          is_transfer?: boolean
           linked_transfer_id?: string | null
           notes?: string | null
           parent_transaction_id?: string | null
@@ -1830,6 +1832,7 @@ export type Database = {
           description?: string
           family_category_id?: string | null
           id?: string
+          is_transfer?: boolean
           linked_transfer_id?: string | null
           notes?: string | null
           parent_transaction_id?: string | null
@@ -2279,30 +2282,18 @@ export type Database = {
         Args: { p_source_ids: string[]; p_target_id: string; p_user_id: string }
         Returns: Json
       }
-      perform_transfer:
-        | {
-            Args: {
-              p_amount: number
-              p_description: string
-              p_expense_category_id?: string
-              p_from_account_id: string
-              p_to_account_id: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_amount: number
-              p_date?: string
-              p_description: string
-              p_expense_category_id?: string
-              p_from_account_id: string
-              p_to_account_id: string
-              p_user_id: string
-            }
-            Returns: Json
-          }
+      perform_transfer: {
+        Args: {
+          p_amount: number
+          p_date?: string
+          p_description: string
+          p_expense_category_id?: string
+          p_from_account_id: string
+          p_to_account_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       process_paystack_refund: {
         Args: { p_payment_token: string; p_reason?: string }
         Returns: Json
