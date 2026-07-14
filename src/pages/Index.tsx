@@ -58,12 +58,19 @@ const Index = () => {
         ogImageAlt="Budget Planner Pro – Tableau de bord avec graphiques de budget, suivi des dépenses et objectifs d'épargne"
         locale="fr_FR"
       />
-      {/* JSON-LD structured data */}
+      {/*
+        JSON-LD structured data.
+        SECURITY: `jsonLd` above MUST contain only static, developer-authored
+        values — never user input, URL params, or fetched content. Any dynamic
+        string could contain "</script>" and break out of this <script> tag.
+        If a dynamic value is ever added, escape "<" as "\u003c" in the
+        serialized string (see `escapeJsonLd` below) before injection.
+      */}
       {jsonLd.map((schema, i) => (
         <script
           key={i}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(schema)) }}
         />
       ))}
       <Navbar />
