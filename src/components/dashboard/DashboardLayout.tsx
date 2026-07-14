@@ -23,6 +23,7 @@ import LegalFooter from '@/components/LegalFooter';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/dashboard/AppSidebar';
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
+import MobileNavDrawer from '@/components/dashboard/MobileNavDrawer';
 import DashboardBreadcrumb from '@/components/dashboard/Breadcrumb';
 import DemoBanner from '@/components/dashboard/DemoBanner';
 import { isDemoUserEmail } from '@/lib/demo';
@@ -43,6 +44,7 @@ const DashboardLayout = () => {
   const [profile, setProfile] = useState<{ display_name: string | null; onboarding_completed: boolean; avatar_url: string | null } | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [userPlan, setUserPlan] = useState<string | null>(null);
   const [planLoading, setPlanLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(false);
@@ -109,6 +111,9 @@ const DashboardLayout = () => {
     const timer = setTimeout(() => setPageLoading(false), 600);
     return () => clearTimeout(timer);
   }, [location.pathname]);
+
+  // Close mobile drawer on route change
+  useEffect(() => { setMobileNavOpen(false); }, [location.pathname]);
 
   // ⌘K + g+x shortcuts
   useEffect(() => {
@@ -205,6 +210,19 @@ const DashboardLayout = () => {
             {/* Sidebar toggle — desktop only */}
             <SidebarTrigger className="hidden lg:flex h-8 w-8 rounded-xl" />
 
+            {/* Mobile drawer trigger */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden h-8 w-8 rounded-xl shrink-0"
+              aria-label={locale === 'fr' ? 'Ouvrir le menu' : 'Open menu'}
+              aria-expanded={mobileNavOpen}
+              aria-controls="mobile-nav-drawer"
+              onClick={() => setMobileNavOpen(true)}
+            >
+              <Menu className="w-4 h-4" />
+            </Button>
+
             <div className="flex flex-col min-w-0">
               <h1 className="text-sm font-semibold font-display truncate flex items-center gap-1">
                 <span>{t.welcome},</span>
@@ -258,7 +276,17 @@ const DashboardLayout = () => {
         </main>
 
         {/* Mobile bottom nav */}
-        <MobileBottomNav />
+        <MobileBottomNav onMoreClick={() => setMobileNavOpen(true)} moreOpen={mobileNavOpen} />
+
+        <MobileNavDrawer
+          open={mobileNavOpen}
+          onOpenChange={setMobileNavOpen}
+          profile={profile}
+          userPlan={userPlan}
+          userEmail={user?.email || null}
+          onLogout={() => setLogoutDialogOpen(true)}
+          onSearchOpen={() => setSearchOpen(true)}
+        />
 
         <OfflineBanner />
         <PWAUpdatePrompt />
