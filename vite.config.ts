@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+import { compression } from "vite-plugin-compression2";
 
 export default defineConfig(({ mode }) => ({
   server: {
@@ -18,6 +19,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           supabase: ['@supabase/supabase-js'],
+          charts: ['recharts'],
           ui: ['@radix-ui/react-dialog', '@radix-ui/react-popover', '@radix-ui/react-select', '@radix-ui/react-tabs'],
         },
       },
@@ -26,6 +28,19 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    // Precompress assets at build time so hosting can serve .br / .gz sidecars
+    // when its origin does not compress large JS bundles (Supabase chunk was
+    // shipping uncompressed at ~193 KB). Only files > 1 KB are worth it.
+    compression({
+      algorithm: "brotliCompress",
+      exclude: [/\.(br)$/, /\.(gz)$/],
+      threshold: 1024,
+    }),
+    compression({
+      algorithm: "gzip",
+      exclude: [/\.(br)$/, /\.(gz)$/],
+      threshold: 1024,
+    }),
     VitePWA({
       registerType: "prompt",
       // useRegisterSW (React hook) is the single registrar — disable auto-injection.
