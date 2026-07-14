@@ -682,6 +682,8 @@ export const dashT = {
     logout: 'Log out',
     welcome: 'Hello',
     totalBalance: 'Total Balance',
+    totalBalanceGlobal: 'Global balance · all accounts',
+    periodBalance: 'Period balance',
     income: 'Income',
     expenses: 'Expenses',
     thisMonth: 'This month',
