@@ -9,6 +9,7 @@
         "@capacitor/cli": "^8.2.0",
         "@capacitor/core": "^8.2.0",
         "@capacitor/ios": "^8.2.0",
+        "@capgo/capacitor-updater": "^8.51.0",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
@@ -294,6 +295,8 @@
     "@capacitor/core": ["@capacitor/core@8.3.0", "", { "dependencies": { "tslib": "^2.1.0" } }, "sha512-S4ajn4G/fS3VJj8salxqH/3LO5PPWv1VxGKQ27OCajnDcLJjEg9VXwgMPnlypgkIOqCJ2fmQLtk8GT+BlI9/rw=="],
 
     "@capacitor/ios": ["@capacitor/ios@8.3.0", "", { "peerDependencies": { "@capacitor/core": "^8.3.0" } }, "sha512-5Rtwv8SITKlYTt8lAZG+khnVIdzPtqbocH3eP+JkEmX1vpSMwx4TOKtT8OBz8gpQ+pUJDRp7DBYOv3U6l/obCw=="],
+
+    "@capgo/capacitor-updater": ["@capgo/capacitor-updater@8.51.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@capgo/capacitor-updater/-/capacitor-updater-8.51.0.tgz", { "peerDependencies": { "@capacitor/core": "^8.0.0" } }, "sha512-iahGCmnyZGhQ9WEN+xHMWpf/ChqE6x8VZekBsB2v82dI63/Ib5aaPn91HmNRV4+j2I7KfcR4WIaZYuhTQoaAGg=="],
 
     "@dnd-kit/accessibility": ["@dnd-kit/accessibility@3.1.1", "", { "dependencies": { "tslib": "^2.0.0" }, "peerDependencies": { "react": ">=16.8.0" } }, "sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw=="],
 
