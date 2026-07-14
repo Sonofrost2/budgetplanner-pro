@@ -224,10 +224,10 @@ export const useReportsData = (locale: string) => {
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
       const [txRes, catRes] = await Promise.all([
-        supabase.from('transactions').select('type, amount, date, description, categories(name)')
+        supabase.from('transactions').select('type, amount, date, description, is_transfer, categories(name)')
           .eq('user_id', user!.id).is('deleted_at', null).gte('date', twelveAgo).order('date', { ascending: false }),
         supabase.from('transactions').select('amount, categories(name, color)')
-          .eq('user_id', user!.id).is('deleted_at', null).eq('type', 'expense').gte('date', monthStart).lte('date', monthEnd),
+          .eq('user_id', user!.id).is('deleted_at', null).eq('is_transfer', false).eq('type', 'expense').gte('date', monthStart).lte('date', monthEnd),
       ]);
       if (txRes.error) throw txRes.error;
 
@@ -242,8 +242,8 @@ export const useReportsData = (locale: string) => {
         });
         months.push({
           name: label,
-          income: txs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
-          expenses: txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
+          income: txs.filter(t => t.type === 'income' && (t as any).is_transfer !== true).reduce((s, t) => s + Number(t.amount), 0),
+          expenses: txs.filter(t => t.type === 'expense' && (t as any).is_transfer !== true).reduce((s, t) => s + Number(t.amount), 0),
         });
       }
 
@@ -382,7 +382,7 @@ export const useChartData = (locale: string) => {
       }
       const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
       const { data, error } = await supabase
-        .from('transactions').select('type, amount, date')
+        .from('transactions').select('type, amount, date, is_transfer')
         .eq('user_id', user!.id).is('deleted_at', null).gte('date', sixMonthsAgo);
       if (error) throw error;
       return months.map(m => {
@@ -392,8 +392,8 @@ export const useChartData = (locale: string) => {
         });
         return {
           name: m.label,
-          income: monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
-          expenses: monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
+          income: monthTxs.filter(t => t.type === 'income' && (t as any).is_transfer !== true).reduce((s, t) => s + Number(t.amount), 0),
+          expenses: monthTxs.filter(t => t.type === 'expense' && (t as any).is_transfer !== true).reduce((s, t) => s + Number(t.amount), 0),
         };
       });
     },
