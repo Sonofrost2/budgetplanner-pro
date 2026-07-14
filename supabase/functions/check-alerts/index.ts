@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireCronAuth } from "../_shared/cronAuth.ts";
+import { getBudgetPeriodBounds, formatDateStr } from "../_shared/budgetPeriod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,48 +8,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-/** Compute period boundaries for a budget */
-function getBudgetPeriodBounds(period: string, now: Date, referenceDate?: string | null) {
-  let periodStart: Date, periodEnd: Date;
-  if (period === "daily") {
-    periodStart = periodEnd = new Date(now);
-  } else if (period === "weekly") {
-    const day = now.getDay();
-    periodStart = new Date(now);
-    periodStart.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-    periodEnd = new Date(periodStart);
-    periodEnd.setDate(periodStart.getDate() + 6);
-  } else if (period === "quarterly") {
-    if (referenceDate) {
-      const ref = new Date(referenceDate);
-      periodStart = new Date(ref);
-      while (periodStart > now) periodStart.setMonth(periodStart.getMonth() - 3);
-      while (new Date(periodStart.getFullYear(), periodStart.getMonth() + 3, periodStart.getDate()) <= now) {
-        periodStart.setMonth(periodStart.getMonth() + 3);
-      }
-      periodEnd = new Date(periodStart);
-      periodEnd.setMonth(periodEnd.getMonth() + 3);
-      periodEnd.setDate(periodEnd.getDate() - 1);
-    } else {
-      const q = Math.floor(now.getMonth() / 3);
-      periodStart = new Date(now.getFullYear(), q * 3, 1);
-      periodEnd = new Date(now.getFullYear(), q * 3 + 3, 0);
-    }
-  } else if (period === "semi_annual") {
-    const s = now.getMonth() < 6 ? 0 : 6;
-    periodStart = new Date(now.getFullYear(), s, 1);
-    periodEnd = new Date(now.getFullYear(), s + 6, 0);
-  } else if (period === "yearly") {
-    periodStart = new Date(now.getFullYear(), 0, 1);
-    periodEnd = new Date(now.getFullYear(), 11, 31);
-  } else {
-    periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  }
-  return { periodStart, periodEnd };
-}
-
-function fmt(d: Date): string { return d.toISOString().split("T")[0]; }
+/**
+ * Local-timezone YYYY-MM-DD. `toISOString()` would coerce to UTC and shift by
+ * one day for users west of UTC around midnight — use `formatDateStr` from the
+ * shared module for consistency with the frontend.
+ */
+const fmt = formatDateStr;
 
 function isoWeek(d: Date): string {
   const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
