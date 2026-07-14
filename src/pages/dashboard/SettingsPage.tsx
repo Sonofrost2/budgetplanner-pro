@@ -24,7 +24,7 @@ import { TrashCard } from '@/components/dashboard/settings/TrashCard';
 import { ArchivedItemsCard } from '@/components/dashboard/settings/ArchivedItemsCard';
 import { PlanSwitcherCard } from '@/components/dashboard/settings/PlanSwitcherCard';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 type SectionId = 'profile' | 'preferences' | 'notifications' | 'security' | 'data' | 'advanced';
 type Section = { id: SectionId; label: string; icon: any; hint?: string };
