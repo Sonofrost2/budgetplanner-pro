@@ -181,6 +181,7 @@ const DashboardLayout = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen mesh-bg flex w-full">
+        <SkipLink />
         <TopLoadingBar loading={pageLoading} />
 
         {/* Sidebar — hidden on mobile, uses shadcn collapsible on desktop */}
