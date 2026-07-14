@@ -32,13 +32,14 @@ export const HeroHeaderShell = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
       className={cn(
-        'relative overflow-hidden rounded-3xl border border-[hsl(var(--glass-border))] bg-[hsl(var(--glass))] backdrop-blur-xl shadow-[var(--shadow-glass)]',
+        // Default bottom margin detaches hero from page content; overridable via className.
+        'relative overflow-hidden rounded-3xl border border-[hsl(var(--glass-border))] bg-[hsl(var(--glass))] backdrop-blur-xl shadow-[var(--shadow-glass)] mb-6 lg:mb-8',
         className,
       )}
     >
       <div className={cn('pointer-events-none absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl', topBlobClassName)} />
       <div className={cn('pointer-events-none absolute -bottom-24 -left-20 w-72 h-72 rounded-full blur-3xl', bottomBlobClassName)} />
-      <div className={cn('relative', innerClassName ?? 'p-5 sm:p-6 lg:p-7')}>
+      <div className={cn('relative', innerClassName ?? 'p-6 sm:p-7 lg:p-8')}>
         {children}
       </div>
     </motion.div>
