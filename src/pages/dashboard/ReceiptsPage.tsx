@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Receipt, Inbox, Printer, Download, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageSkeleton } from '@/components/ui/loading-state';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { formatAmount, bcp47 } from '@/lib/currency';
 import { toast } from 'sonner';
@@ -81,7 +83,7 @@ const ReceiptsPage = () => {
     if (!exportToExcel(rows, 'receipts')) toast.info(t.noReceipts);
   };
 
-  if (loading) return <div className="space-y-6"><Skeleton className="h-8 w-40" />{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>;
+  if (loading) return <PageSkeleton layout="list" count={5} />;
 
   if (!canUseReceipts) {
     return (
@@ -150,7 +152,24 @@ const ReceiptsPage = () => {
       )}
 
       {filtered.length === 0 ? (
-        <Card className="border-none shadow-[var(--shadow-card)]"><CardContent className="py-16 text-center"><Inbox className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-medium text-muted-foreground">{t.noReceipts}</p></CardContent></Card>
+        <EmptyState
+          icon={Inbox}
+          title={receipts.length === 0
+            ? (locale === 'fr' ? 'Aucun reçu pour le moment' : 'No receipts yet')
+            : (locale === 'fr' ? 'Aucun reçu correspondant' : 'No matching receipts')}
+          description={receipts.length === 0
+            ? (locale === 'fr'
+                ? 'Vos reçus de paiement apparaîtront ici après votre premier abonnement.'
+                : 'Your payment receipts will appear here after your first subscription.')
+            : (locale === 'fr'
+                ? 'Essayez d\'ajuster la recherche ou le filtre de statut.'
+                : 'Try adjusting the search or status filter.')}
+          action={receipts.length > 0 && (searchQuery || statusFilter) ? (
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => { setSearchQuery(''); setStatusFilter(''); }}>
+              {locale === 'fr' ? 'Réinitialiser les filtres' : 'Reset filters'}
+            </Button>
+          ) : undefined}
+        />
       ) : (
         <Card className="border-none shadow-[var(--shadow-card)]">
           <CardContent className="p-0">
