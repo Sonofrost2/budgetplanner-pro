@@ -12,6 +12,8 @@ export const dashT = {
     logout: 'Déconnexion',
     welcome: 'Bonjour',
     totalBalance: 'Solde total',
+    totalBalanceGlobal: 'Solde global · tous comptes',
+    periodBalance: 'Solde de la période',
     income: 'Revenus',
     expenses: 'Dépenses',
     thisMonth: 'Ce mois',
