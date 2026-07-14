@@ -432,7 +432,7 @@ export const TransactionList = ({
                           key={tx.id}
                           variants={itemVariants}
                           layout
-                          className={`group relative flex items-center gap-2 px-4 py-1.5 transition-all duration-200 cursor-default border-b border-border/8 last:border-b-0 ${
+                          className={`group relative flex items-center gap-2 px-4 py-2.5 transition-all duration-200 cursor-default border-b border-border/8 last:border-b-0 ${
                             selectedIds.has(tx.id)
                               ? 'bg-primary/[0.06] border-l-2 border-l-primary'
                               : 'hover:bg-[hsl(var(--glass-hover))] border-l-2 border-l-transparent'
@@ -485,7 +485,7 @@ export const TransactionList = ({
                           key={tx.id}
                           variants={itemVariants}
                           layout
-                          className={`group relative flex items-center justify-between px-5 py-3.5 transition-all duration-300 cursor-default border-b border-border/10 last:border-b-0 ${
+                          className={`group relative flex items-center justify-between px-5 py-4 sm:py-5 transition-all duration-300 cursor-default border-b border-border/10 last:border-b-0 ${
                             selectedIds.has(tx.id)
                               ? 'bg-primary/[0.06] border-l-[3px] border-l-primary'
                               : 'hover:bg-[hsl(var(--glass-hover))] border-l-[3px] border-l-transparent'

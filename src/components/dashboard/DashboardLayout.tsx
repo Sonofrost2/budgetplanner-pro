@@ -199,7 +199,8 @@ const DashboardLayout = () => {
             <NotificationBell />
           </header>
 
-          <div className="p-4 lg:p-6">
+          {/* Global page container — increased padding for better breathing room across all dashboard pages. */}
+          <div className="p-5 lg:p-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
