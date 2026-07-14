@@ -760,6 +760,7 @@ const PaymentPage = () => {
             user={user}
             plans={plans}
             subscription={subscription}
+            onDelete={handleDeleteReceipt}
           />
         </TabsContent>
       </Tabs>
