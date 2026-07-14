@@ -107,22 +107,25 @@ const TransactionsPage = () => {
   // Lightweight count query for this month's transactions (limit checking)
   const monthStart = useMemo(() => {
     const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   }, []);
 
   const { data: thisMonthCount = 0 } = useQuery({
     queryKey: ['tx-month-count', user?.id, monthStart],
     queryFn: async () => {
+      // Must mirror the backend trigger `enforce_free_plan_monthly_limit`:
+      // count by `created_at` (not user-picked `date`) and exclude soft-deleted rows.
       const { count, error } = await supabase
         .from('transactions')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user!.id)
-        .gte('date', monthStart);
+        .is('deleted_at', null)
+        .gte('created_at', monthStart);
       if (error) throw error;
       return count ?? 0;
     },
     enabled: !!user,
-    staleTime: 30_000,
+    staleTime: 10_000,
   });
 
   // Lightweight description suggestions query (last 200 unique descriptions)
