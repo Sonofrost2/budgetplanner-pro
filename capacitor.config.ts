@@ -21,6 +21,21 @@ const config: CapacitorConfig = {
   appId: 'app.lovable.2f84ea3c29cc4df2ab1dda5d2ef488ee',
   appName: 'Budget Planner',
   webDir: 'dist',
+  // OTA web bundle updates via @capgo/capacitor-updater.
+  // Publication flow: `npm run build` → `npx @capgo/cli bundle zip -p ./dist`
+  // → `npx @capgo/cli bundle upload --channel production`. Installed apps
+  // fetch the new bundle on startup and swap it in at next launch. No new
+  // store submission is required for pure web changes.
+  plugins: {
+    CapacitorUpdater: {
+      autoUpdate: true,
+      // Channel used to segment releases (production / staging / beta).
+      defaultChannel: 'production',
+      // Delay auto-install to the next cold start so the swap never happens
+      // mid-session and users don't see a jarring reload.
+      directUpdate: false,
+    },
+  },
   // In production no `server.url` → Capacitor serves the local `dist` bundle.
   // `androidScheme: 'https'` keeps cookies / Service Worker / OAuth happy.
   server: isDev
