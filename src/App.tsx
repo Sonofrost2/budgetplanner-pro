@@ -8,11 +8,12 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
-import { Suspense, forwardRef } from "react";
+import { Suspense, forwardRef, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import MarketingPixels from "@/components/marketing/MarketingPixels";
 import CookieConsent from "@/components/CookieConsent";
+import { initCapgoOTA } from "@/lib/capgoUpdater";
 
 // Eager-loaded (landing only - critical for LCP on first visit)
 import Index from "./pages/Index";
@@ -129,7 +130,13 @@ const AnimatedRoutes = () => {
   );
 };
 
-const App = () => (
+const App = () => {
+  useEffect(() => {
+    // OTA bundle update check (native only, no-op on web).
+    initCapgoOTA();
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
     <LanguageProvider>
@@ -147,6 +154,7 @@ const App = () => (
     </LanguageProvider>
     </ThemeProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
