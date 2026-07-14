@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import MarketingPixels from "@/components/marketing/MarketingPixels";
 import CookieConsent from "@/components/CookieConsent";
+import ScrollToTop from "@/components/ScrollToTop";
 import { initCapgoOTA } from "@/lib/capgoUpdater";
 
 // Eager-loaded (landing only - critical for LCP on first visit)
@@ -145,6 +146,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <ScrollToTop />
             <MarketingPixels />
             <CookieConsent />
             <AnimatedRoutes />
