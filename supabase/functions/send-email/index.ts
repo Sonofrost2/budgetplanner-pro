@@ -2,6 +2,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+import { isServiceRoleAuthorized } from '../_shared/serviceAuth.ts';
 
 // ─── Refonte design system ─────────────────────────────────────────
 // Dark-aware palette inspired by Space Grotesk + glassmorphism brand
@@ -343,8 +344,7 @@ Deno.serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY is not configured');
 
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!serviceKey || req.headers.get('Authorization') !== `Bearer ${serviceKey}`) {
+    if (!isServiceRoleAuthorized(req)) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
