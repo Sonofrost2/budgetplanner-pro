@@ -25,6 +25,49 @@ import { translateFeature } from '@/lib/planFeatures';
 import { getAnnualTotal, getDiscountedMonthly } from '@/lib/pricing';
 
 /**
+ * Expand plans so that each tier explicitly INHERITS the features of the
+ * lower-priced tier when it references them via a "Tout du plan X" /
+ * "Everything in X" placeholder. This ensures both the plan cards and the
+ * comparison matrix show a ✓ on every inherited feature (e.g. Premium gets
+ * all Pro features in addition to its own).
+ *
+ * The placeholder line itself is removed after expansion.
+ */
+const INHERIT_PLACEHOLDER_RE = /^(tout du plan|everything in)\s+/i;
+
+const expandInheritedFeatures = <T extends { name: string; base_price: number; features: string[] }>(plans: T[]): T[] => {
+  // Ordered from cheapest to most expensive.
+  const ordered = [...plans].sort((a, b) => (a.base_price ?? 0) - (b.base_price ?? 0));
+  const expanded = new Map<string, string[]>();
+
+  for (const plan of ordered) {
+    const own = (plan.features || []).filter((f) => !INHERIT_PLACEHOLDER_RE.test(f.trim()));
+    const hasPlaceholder = (plan.features || []).some((f) => INHERIT_PLACEHOLDER_RE.test(f.trim()));
+    let inherited: string[] = [];
+    if (hasPlaceholder) {
+      // Merge every lower tier already computed. Lower tier features come first
+      // so that Pro-tier bullets appear before Premium-only bullets on cards.
+      for (const lower of ordered) {
+        if (lower.name === plan.name) break;
+        inherited = inherited.concat(expanded.get(lower.name) || []);
+      }
+    }
+    // Dedupe while preserving order.
+    const seen = new Set<string>();
+    const merged: string[] = [];
+    for (const f of [...inherited, ...own]) {
+      const key = f.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(f);
+    }
+    expanded.set(plan.name, merged);
+  }
+
+  return plans.map((p) => ({ ...p, features: expanded.get(p.name) || p.features }));
+};
+
+/**
  * Sanitize a string for jsPDF's WinAnsi (Latin-1) encoding.
  * Replaces narrow no-break spaces (NNBSP / NBSP) and other Unicode chars
  * that render as "/" in built-in fonts.
