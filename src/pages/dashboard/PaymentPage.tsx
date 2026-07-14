@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Check, X, Crown, Zap, Loader2, AlertCircle, Star, Shield, Sparkles,
-  Receipt, Clock, Download, Calendar, CreditCard, Search, TrendingUp, Gift,
+  Receipt, Clock, Download, Calendar, CreditCard, Search, TrendingUp, Gift, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -371,7 +371,7 @@ const PaymentPage = () => {
   const [receipts, setReceipts] = useState<any[]>([]);
   const [receiptsLoading, setReceiptsLoading] = useState(true);
   const [receiptSearch, setReceiptSearch] = useState('');
-  const [receiptStatus, setReceiptStatus] = useState<'all' | 'confirmed' | 'pending'>('all');
+  const [receiptStatus, setReceiptStatus] = useState<'all' | 'confirmed' | 'pending' | 'canceled'>('all');
   const [activeTab, setActiveTab] = useState<string>('plan');
 
   useEffect(() => {
@@ -533,6 +533,18 @@ const PaymentPage = () => {
       return true;
     });
   }, [receipts, receiptSearch, receiptStatus]);
+
+  const handleDeleteReceipt = async (receipt: any) => {
+    if (receipt.status === 'confirmed') return;
+    const ok = window.confirm(isFr
+      ? 'Supprimer cette tentative de paiement de l\'historique ?'
+      : 'Remove this payment attempt from history?');
+    if (!ok) return;
+    const { error } = await supabase.rpc('cancel_my_pending_receipt', { p_receipt_id: receipt.id });
+    if (error) { toast.error(error.message); return; }
+    setReceipts(prev => prev.filter(r => r.id !== receipt.id));
+    toast.success(isFr ? 'Reçu supprimé' : 'Receipt removed');
+  };
 
   if (loading) {
     return (
