@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Wifi, WifiOff, CircleAlert, Loader2 } from 'lucide-react';
-import { useSyncStatus } from '@/hooks/useRealtimeSync';
+import { Wifi, WifiOff, CircleAlert, Loader2, RefreshCw, FlaskConical } from 'lucide-react';
+import { useSyncStatus, retrySync } from '@/hooks/useRealtimeSync';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ function formatRelative(ts: number | null, locale: 'fr' | 'en'): string {
 }
 
 export const SyncStatusIndicator = () => {
-  const { online, channel, lastRefetchAt, lastChangeAt } = useSyncStatus();
+  const { online, channel, lastRefetchAt, lastChangeAt, demo } = useSyncStatus();
   const { locale } = useLanguage();
   // Re-render every 15s so the relative timestamp stays fresh
   const [, force] = useState(0);
@@ -35,7 +35,14 @@ export const SyncStatusIndicator = () => {
   };
 
   let view: View;
-  if (!online) {
+  if (demo) {
+    view = {
+      label: locale === 'fr' ? 'Mode démo' : 'Demo mode',
+      dot: 'bg-sky-500',
+      icon: <FlaskConical className="w-3.5 h-3.5" />,
+      tone: 'idle',
+    };
+  } else if (!online) {
     view = {
       label: locale === 'fr' ? 'Hors-ligne' : 'Offline',
       dot: 'bg-destructive',
@@ -105,14 +112,35 @@ export const SyncStatusIndicator = () => {
               {view.icon}
               <span>{view.label}</span>
             </div>
-            <div className="flex justify-between gap-4 text-muted-foreground">
-              <span>{refetchTxt}</span>
-              <span className="text-foreground">{formatRelative(lastRefetchAt, locale)}</span>
-            </div>
-            <div className="flex justify-between gap-4 text-muted-foreground">
-              <span>{changeTxt}</span>
-              <span className="text-foreground">{formatRelative(lastChangeAt, locale)}</span>
-            </div>
+            {!demo && (
+              <>
+                <div className="flex justify-between gap-4 text-muted-foreground">
+                  <span>{refetchTxt}</span>
+                  <span className="text-foreground">{formatRelative(lastRefetchAt, locale)}</span>
+                </div>
+                <div className="flex justify-between gap-4 text-muted-foreground">
+                  <span>{changeTxt}</span>
+                  <span className="text-foreground">{formatRelative(lastChangeAt, locale)}</span>
+                </div>
+              </>
+            )}
+            {demo && (
+              <div className="text-muted-foreground">
+                {locale === 'fr'
+                  ? 'Aucune synchro serveur en mode démo.'
+                  : 'No server sync in demo mode.'}
+              </div>
+            )}
+            {channel === 'error' && !demo && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); retrySync(); }}
+                className="mt-1 inline-flex items-center gap-1.5 justify-center h-7 px-2 rounded-md border border-border/60 bg-background hover:bg-muted text-foreground"
+              >
+                <RefreshCw className="w-3 h-3" />
+                {locale === 'fr' ? 'Réessayer' : 'Retry'}
+              </button>
+            )}
           </div>
         </TooltipContent>
       </Tooltip>
