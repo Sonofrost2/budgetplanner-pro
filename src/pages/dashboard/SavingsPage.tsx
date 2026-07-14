@@ -449,10 +449,10 @@ const SavingsPage = () => {
 
       if (editGoalId) {
         const { error } = await supabase.from('savings_goals').update(payload).eq('id', editGoalId);
-        if (error) { toast.error(error.message); setSaving(false); return; }
+        if (error) { showApiError(error, locale); setSaving(false); return; }
       } else {
         const { error } = await supabase.from('savings_goals').insert({ user_id: user.id, ...payload });
-        if (error) { toast.error(error.message); setSaving(false); return; }
+        if (error) { showApiError(error, locale); setSaving(false); return; }
       }
       setDialogOpen(false);
       setEditGoalId(null);

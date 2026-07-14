@@ -130,7 +130,7 @@ const RecurringPage = () => {
     const { error } = editId
       ? await supabase.from('recurring_transactions').update(payload).eq('id', editId)
       : await supabase.from('recurring_transactions').insert({ ...payload, user_id: user.id });
-    if (error) { toast.error(error.message); return; }
+    if (error) { showApiError(error, locale); return; }
     setDialogOpen(false); setEditId(null);
     refreshData(); toast.success(t.saved);
   };
@@ -197,7 +197,7 @@ const RecurringPage = () => {
       active: true,
     };
     const { error } = await supabase.from('recurring_transactions').insert(payload);
-    if (error) { toast.error(error.message); return; }
+    if (error) { showApiError(error, locale); return; }
     setAiPatterns(prev => prev.filter(p => p.description !== pattern.description));
     refreshData();
     toast.success(t.saved);
