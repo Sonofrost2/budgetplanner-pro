@@ -32,12 +32,12 @@ export default defineConfig(({ mode }) => ({
     // when its origin does not compress large JS bundles (Supabase chunk was
     // shipping uncompressed at ~193 KB). Only files > 1 KB are worth it.
     compression({
-      algorithm: "brotliCompress",
+      algorithms: ["brotliCompress"],
       exclude: [/\.(br)$/, /\.(gz)$/],
       threshold: 1024,
     }),
     compression({
-      algorithm: "gzip",
+      algorithms: ["gzip"],
       exclude: [/\.(br)$/, /\.(gz)$/],
       threshold: 1024,
     }),
