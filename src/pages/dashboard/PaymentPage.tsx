@@ -518,6 +518,8 @@ const PaymentPage = () => {
     () => plans.find(p => p.id === subscription?.plan_id) ?? null,
     [plans, subscription]
   );
+  // Plans with cross-tier inheritance expanded — used by cards + comparison table.
+  const displayPlans = useMemo(() => expandInheritedFeatures(plans), [plans]);
   const isOnFreePlan = !subscription || !currentPlan;
   const planLabel = isOnFreePlan ? t.freePlan : (currentPlan!.name.charAt(0).toUpperCase() + currentPlan!.name.slice(1));
   const daysLeft = subscription?.current_period_end
