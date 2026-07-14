@@ -24,7 +24,7 @@ import { TrashCard } from '@/components/dashboard/settings/TrashCard';
 import { ArchivedItemsCard } from '@/components/dashboard/settings/ArchivedItemsCard';
 import { PlanSwitcherCard } from '@/components/dashboard/settings/PlanSwitcherCard';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 type SectionId = 'profile' | 'preferences' | 'notifications' | 'security' | 'data' | 'advanced';
 type Section = { id: SectionId; label: string; icon: any; hint?: string };
@@ -220,15 +220,13 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeSection}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18 }}
-              className="space-y-5"
-            >
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            className="space-y-5"
+          >
               {activeSection === 'profile' && (
                 <Panel>
                   <div className="space-y-4">
@@ -354,8 +352,7 @@ const SettingsPage = () => {
                   </Panel>
                 </div>
               )}
-            </motion.div>
-          </AnimatePresence>
+          </motion.div>
         </div>
       </div>
 
