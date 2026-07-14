@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
       console.log('New subscription created for user', userId);
     }
 
-    // 6. Confirm payment receipt (idempotent: skip if already confirmed)
+    // 6. Create/confirm payment receipt (only AFTER successful payment)
     const { data: existingReceipt, error: receiptLookupErr } = await supabase
       .from('payment_receipts')
       .select('id, status')
@@ -270,7 +270,23 @@ Deno.serve(async (req) => {
     if (receiptLookupErr) {
       console.error('Receipt lookup error:', receiptLookupErr);
     }
-    if (existingReceipt && existingReceipt.status !== 'confirmed') {
+    if (!existingReceipt) {
+      const displayAmount = Number(metadata.display_amount) || Number(txData.amount || 0) / 100;
+      const displayCurrency = String(metadata.display_currency || txData.currency || 'XOF');
+      const { error: insErr } = await supabase.from('payment_receipts').insert({
+        user_id: userId,
+        plan_name: planName || 'plan',
+        amount: Number(txData.amount || 0) / 100,
+        currency: String(txData.currency || 'XOF'),
+        display_amount: displayAmount,
+        display_currency: displayCurrency,
+        payment_token: reference,
+        status: 'confirmed',
+      });
+      if (insErr && !String(insErr.message || '').includes('duplicate')) {
+        console.error('Receipt insert error:', insErr);
+      }
+    } else if (existingReceipt.status !== 'confirmed') {
       const { error: receiptError } = await supabase
         .from('payment_receipts')
         .update({ status: 'confirmed' })
