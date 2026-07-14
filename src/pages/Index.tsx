@@ -11,6 +11,18 @@ import { SEOHead } from '@/components/SEOHead';
 // the actual domain serving the page (lovable.app, custom domain, etc.).
 const CANONICAL = 'https://budgetplanner-pro.lovable.app';
 
+/**
+ * Escape sequences that could break out of a <script> tag when embedding
+ * serialized JSON. Safe to apply even to fully static payloads.
+ */
+const escapeJsonLd = (json: string): string =>
+  json
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+
 const jsonLd = [
   {
     '@context': 'https://schema.org',
