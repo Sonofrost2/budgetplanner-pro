@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import LegalFooter from '@/components/LegalFooter';
 import { Wallet, Mail, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -162,6 +163,7 @@ const Login = () => {
             {t.auth.noAccount}{' '}
             <Link to="/signup" className="text-primary font-semibold hover:underline">{t.auth.signup}</Link>
           </motion.p>
+          <LegalFooter variant="compact" className="mt-8 border-0 bg-transparent" />
         </motion.div>
       </div>
     </div>

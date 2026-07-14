@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import LegalFooter from '@/components/LegalFooter';
 import { Wallet, Mail, User, CheckCircle, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -273,6 +274,8 @@ const Signup = () => {
                       <Link to="/legal/terms" target="_blank" className="text-primary font-medium hover:underline">{t.auth.termsLink}</Link>
                       {' '}{t.auth.andLink}{' '}
                       <Link to="/legal/privacy" target="_blank" className="text-primary font-medium hover:underline">{t.auth.privacyLink}</Link>
+                      {' · '}
+                      <Link to="/legal/cookies" target="_blank" className="text-primary font-medium hover:underline">Cookies</Link>
                       {' '}<span className="text-destructive">*</span>
                     </span>
                   </label>
@@ -344,6 +347,7 @@ const Signup = () => {
               </motion.p>
             </>
           )}
+          <LegalFooter variant="compact" className="mt-8 border-0 bg-transparent" />
         </motion.div>
       </div>
     </div>
