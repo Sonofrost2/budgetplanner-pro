@@ -1,6 +1,21 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { reportError } from '../_shared/sentry.ts';
+import { getAnnualTotal } from '../_shared/pricing.ts';
+
+// Mirror of resolveServerPrice() in paystack-checkout: converts a display
+// amount into the currency actually charged by Paystack.
+const PAYSTACK_NATIVE = ['XOF', 'XAF', 'NGN', 'GHS', 'KES', 'ZAR', 'USD'];
+const TO_XOF: Record<string, number> = {
+  EUR: 655.957, XOF: 1, XAF: 1, GBP: 760, CHF: 700, CAD: 480, USD: 600,
+  NGN: 0.4, GHS: 50, KES: 4.5, ZAR: 35,
+};
+function resolveServerPrice(displayAmount: number, displayCurrency: string) {
+  const cur = (displayCurrency || 'XOF').toUpperCase();
+  if (PAYSTACK_NATIVE.includes(cur)) return { amount: displayAmount, currency: cur };
+  const rate = TO_XOF[cur] ?? TO_XOF.EUR;
+  return { amount: Math.round(displayAmount * rate), currency: 'XOF' };
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -144,13 +159,49 @@ Deno.serve(async (req) => {
         console.error('Re-verify failed', status, verifyJson?.message);
         return new Response('Verification failed', { status: 400 });
       }
-      // Cross-check amount/currency with the webhook payload
+      // Defense-in-depth: recompute the expected charge from our own DB
+      // (plan + user currency) instead of trusting Paystack's echoed amount.
+      if (!planId) {
+        console.error('Missing plan_id in metadata — cannot verify amount');
+        return new Response('Missing plan_id', { status: 400 });
+      }
+      const displayCurrency = String(metadata.display_currency || 'XOF').toUpperCase();
+      const isAnnualMeta = !!metadata.annual;
+      const { data: planRow, error: planErr } = await supabase
+        .from('subscription_plans')
+        .select('id, currency_prices')
+        .eq('id', planId)
+        .maybeSingle();
+      if (planErr || !planRow) {
+        console.error('Plan lookup failed for amount check:', planErr);
+        return new Response('Plan not found', { status: 400 });
+      }
+      const prices = (planRow.currency_prices || {}) as Record<string, number>;
+      const monthly = prices[displayCurrency];
+      if (monthly === undefined || monthly === null) {
+        console.error('Plan not priced for currency', displayCurrency);
+        return new Response('Plan currency not priced', { status: 400 });
+      }
+      const displayAmount = isAnnualMeta ? getAnnualTotal(monthly) : monthly;
+      const resolved = resolveServerPrice(displayAmount, displayCurrency);
+      const expectedSubunits = Math.round(resolved.amount * 100);
+      const diff = Math.abs(Number(verifiedAmount) - expectedSubunits);
       if (
-        Number(verifiedAmount) !== Number(txData.amount) ||
-        String(verifiedCurrency) !== String(txData.currency)
+        String(verifiedCurrency).toUpperCase() !== resolved.currency.toUpperCase() ||
+        diff > 100 // >1 currency unit (Paystack amounts are in subunits)
       ) {
-        console.error('Amount/currency mismatch between webhook and verify');
-        return new Response('Amount mismatch', { status: 400 });
+        console.error('Amount mismatch vs plan', {
+          reference,
+          verifiedAmount,
+          verifiedCurrency,
+          expectedSubunits,
+          expectedCurrency: resolved.currency,
+          diffSubunits: diff,
+          planId,
+          displayCurrency,
+          isAnnual: isAnnualMeta,
+        });
+        return new Response('Amount does not match plan price', { status: 400 });
       }
     } catch (e) {
       console.error('Re-verify exception:', e);
