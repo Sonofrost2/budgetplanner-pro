@@ -137,9 +137,9 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <MarketingPixels />
-          <CookieConsent />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <MarketingPixels />
+            <CookieConsent />
             <AnimatedRoutes />
           </BrowserRouter>
         </TooltipProvider>
