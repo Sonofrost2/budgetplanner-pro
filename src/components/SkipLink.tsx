@@ -5,8 +5,8 @@ import { useLanguage } from '@/i18n/LanguageContext';
  * Hidden until focused; jumps focus to #main-content.
  */
 export function SkipLink() {
-  const { language } = useLanguage();
-  const label = language === 'en' ? 'Skip to main content' : 'Aller au contenu principal';
+  const { locale } = useLanguage();
+  const label = locale === 'en' ? 'Skip to main content' : 'Aller au contenu principal';
   return (
     <a
       href="#main-content"
