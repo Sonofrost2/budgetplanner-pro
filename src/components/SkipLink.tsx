@@ -1,12 +1,12 @@
-import { useLocale } from '@/i18n/LanguageContext';
+import { useLanguage } from '@/i18n/LanguageContext';
 
 /**
  * WCAG 2.4.1 — Skip to main content link.
  * Hidden until focused; jumps focus to #main-content.
  */
 export function SkipLink() {
-  const { locale } = useLocale();
-  const label = locale === 'en' ? 'Skip to main content' : 'Aller au contenu principal';
+  const { language } = useLanguage();
+  const label = language === 'en' ? 'Skip to main content' : 'Aller au contenu principal';
   return (
     <a
       href="#main-content"
