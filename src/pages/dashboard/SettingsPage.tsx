@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { User, Bell, Lock, Database, Settings as Cog, ShieldCheck, Trash2, Download, AlertTriangle, LogOut, Smartphone } from 'lucide-react';
+import { User, Bell, Lock, Database, Settings as Cog, ShieldCheck, Trash2, Download, AlertTriangle, LogOut } from 'lucide-react';
 import ReferralCard from '@/components/settings/ReferralCard';
 import { toast } from 'sonner';
 import NotificationPreferencesCard from '@/components/dashboard/settings/NotificationPreferencesCard';
@@ -45,7 +45,6 @@ const SettingsPage = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [twoFAEnabled, setTwoFAEnabled] = useState(false);
 
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
