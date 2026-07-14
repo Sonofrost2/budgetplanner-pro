@@ -276,7 +276,7 @@ const DashboardLayout = () => {
         </main>
 
         {/* Mobile bottom nav */}
-        <MobileBottomNav />
+        <MobileBottomNav onMoreClick={() => setMobileNavOpen(true)} moreOpen={mobileNavOpen} />
 
         <MobileNavDrawer
           open={mobileNavOpen}
