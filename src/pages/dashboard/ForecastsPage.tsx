@@ -16,6 +16,7 @@ import { Loader2, Sparkles, TrendingUp, TrendingDown, Minus, AlertTriangle, Lock
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
+import PlanLockedView from '@/components/dashboard/PlanLockedView';
 
 const LOADING_STEPS_FR = [
   '🔍 Analyse des revenus…',
@@ -180,10 +181,12 @@ const ForecastsPage = () => {
     return { opt: 'optimistic_balance', real: 'realistic_balance', pess: 'pessimistic_balance' };
   }, [chartMode]);
 
+  if (!canUseForecast) {
+    return <PlanLockedView title={t.forecastTitle} message={t.upgradeForecast} />;
+  }
+
   return (
     <div className="space-y-6 pb-8">
-      {!canUseForecast && <UpgradeBanner message={t.upgradeForecast} />}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
