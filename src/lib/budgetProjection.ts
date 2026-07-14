@@ -125,13 +125,20 @@ export function computeDaysRemaining(
 /**
  * Compute the precise annualized budget amount.
  *
- * Rules:
- * - daily:  amount × active_days_per_week × 52.18 (or × 365 if 7 days)
- * - weekly: amount × 52
- * - monthly: amount × 12
- * - quarterly: amount × 4
- * - semi_annual: amount × 2
- * - yearly: amount × 1
+ * Annualization base — harmonized on the Gregorian mean year of 365.25 days
+ * (≈ 52.1786 weeks). This guarantees that two equivalent budgets expressed in
+ * days or in weeks yield the SAME annual total. Previously `daily` used 52.18
+ * (partial week) or 365 (full week) while `weekly` used 52, so a 7 000/week
+ * budget and a 1 000/day 7-day budget didn't match.
+ *
+ * Rules (DAYS_PER_YEAR = 365.25, WEEKS_PER_YEAR = 365.25 / 7 ≈ 52.1786):
+ * - daily (7 j/7):        amount × 365.25
+ * - daily (n j/7, n<7):   amount × n × WEEKS_PER_YEAR
+ * - weekly:               amount × WEEKS_PER_YEAR
+ * - monthly:              amount × 12
+ * - quarterly:            amount × 4
+ * - semi_annual:          amount × 2
+ * - yearly:               amount × 1
  *
  * If occurrence_frequency is set:
  * - The `amount` field is the budget for the PERIOD.
@@ -139,6 +146,9 @@ export function computeDaysRemaining(
  *   e.g. monthly budget of 500k with freq=once → 500k/month → 6M/year
  *   e.g. monthly budget of 500k with freq=weekly → still 500k/month → 6M/year
  */
+export const DAYS_PER_YEAR = 365.25;
+export const WEEKS_PER_YEAR = DAYS_PER_YEAR / 7; // ≈ 52.17857
+
 export function computeAnnualizedAmount(
   amount: number,
   period: string,
@@ -147,12 +157,12 @@ export function computeAnnualizedAmount(
   if (period === 'daily') {
     const activeDaysArr = activeDays ? String(activeDays).split(',').filter(Boolean) : [];
     if (activeDaysArr.length > 0 && activeDaysArr.length < 7) {
-      return Math.round(amount * activeDaysArr.length * 52.18);
+      return Math.round(amount * activeDaysArr.length * WEEKS_PER_YEAR);
     }
-    return Math.round(amount * 365);
+    return Math.round(amount * DAYS_PER_YEAR);
   }
   const multipliers: Record<string, number> = {
-    weekly: 52,
+    weekly: WEEKS_PER_YEAR,
     monthly: 12,
     quarterly: 4,
     semi_annual: 2,
