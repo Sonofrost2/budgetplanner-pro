@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageSkeleton } from '@/components/ui/loading-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { formatAmount, bcp47 } from '@/lib/currency';
 import { toast } from 'sonner';
@@ -88,7 +89,11 @@ const ReceiptsPage = () => {
   if (!canUseReceipts) {
     return (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold font-display">{t.receipts}</h2>
+        <PageHeader
+          title={t.receipts}
+          icon={Receipt}
+          description={locale === 'fr' ? 'Historique de vos paiements et factures.' : 'History of your payments and invoices.'}
+        />
         <UpgradeBanner message={(t as any).upgradeReceipts} />
         <Card className="border-none shadow-[var(--shadow-card)]">
           <CardContent className="py-16 text-center">
@@ -102,15 +107,17 @@ const ReceiptsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold font-display">{t.receipts}</h2>
-        {receipts.length > 0 && (
-          <div className="flex gap-2">
+      <PageHeader
+        title={t.receipts}
+        icon={Receipt}
+        description={locale === 'fr' ? 'Historique de vos paiements et factures.' : 'History of your payments and invoices.'}
+        actions={receipts.length > 0 ? (
+          <>
             <Button variant="outline" size="sm" onClick={handleExportCSV} className="rounded-xl"><Download className="w-4 h-4 mr-1" /> CSV</Button>
             <Button variant="outline" size="sm" onClick={handleExportExcel} className="rounded-xl"><Download className="w-4 h-4 mr-1" /> Excel</Button>
-          </div>
-        )}
-      </div>
+          </>
+        ) : undefined}
+      />
 
       {/* Filters */}
       {receipts.length > 0 && (
