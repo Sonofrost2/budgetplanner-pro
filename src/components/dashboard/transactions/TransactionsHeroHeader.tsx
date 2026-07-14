@@ -370,7 +370,7 @@ export const TransactionsHeroHeader = ({
                 {quickLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 <span className="ml-1 hidden sm:inline">{isFr ? 'Pré-remplir' : 'Pre-fill'}</span>
               </Button>
-              <Button
+              <Button aria-label="Fermer"
                 size="icon"
                 variant="ghost"
                 onClick={closeQuick}

@@ -18,6 +18,7 @@ import GlobalSearchCommand from '@/components/dashboard/GlobalSearchCommand';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { useDeviceFingerprint } from '@/hooks/useDeviceFingerprint';
 import { PWAUpdatePrompt } from '@/components/dashboard/PWAUpdatePrompt';
+import SkipLink from '@/components/SkipLink';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/dashboard/AppSidebar';
 import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
@@ -180,6 +181,7 @@ const DashboardLayout = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen mesh-bg flex w-full">
+        <SkipLink />
         <TopLoadingBar loading={pageLoading} />
 
         {/* Sidebar — hidden on mobile, uses shadcn collapsible on desktop */}
@@ -196,7 +198,7 @@ const DashboardLayout = () => {
         </div>
 
         {/* Main content */}
-        <main className="flex-1 min-w-0 pb-20 lg:pb-0">
+        <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 pb-20 lg:pb-0">
           <DemoBanner />
           <header className="sticky top-0 z-30 bg-background/60 backdrop-blur-xl border-b border-border/50 px-4 lg:px-6 h-14 flex items-center gap-3">
             {/* Sidebar toggle — desktop only */}
@@ -227,7 +229,7 @@ const DashboardLayout = () => {
               </kbd>
             </button>
             {/* Mobile search icon */}
-            <Button variant="ghost" size="icon" className="sm:hidden rounded-xl h-8 w-8" onClick={() => setSearchOpen(true)}>
+            <Button aria-label="Rechercher" variant="ghost" size="icon" className="sm:hidden rounded-xl h-8 w-8" onClick={() => setSearchOpen(true)}>
               <Search className="w-4 h-4" />
             </Button>
 

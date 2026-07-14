@@ -1131,7 +1131,7 @@ const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${statusColor}`}>
                     {statusLabel}
                   </span>
-                  <Button
+                  <Button aria-label="Télécharger"
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 rounded-lg shrink-0"
@@ -1149,7 +1149,7 @@ const BillingTab = ({ receipts, filteredReceipts, receiptsLoading, receiptSearch
                     <Download className="w-3.5 h-3.5" />
                   </Button>
                   {canDelete && onDelete && (
-                    <Button
+                    <Button aria-label="Supprimer"
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 rounded-lg shrink-0 text-destructive hover:text-destructive"

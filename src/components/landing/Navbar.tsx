@@ -69,10 +69,10 @@ const Navbar = () => {
             transition={{ delay: 0.35 }}
             className="hidden md:flex items-center gap-1.5"
           >
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground rounded-xl h-8 w-8">
+            <Button aria-label="Changer de thème" variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground rounded-xl h-8 w-8">
               {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
             </Button>
-            <Button variant="ghost" size="icon" onClick={toggleLocale} className="text-muted-foreground rounded-xl h-8 w-8">
+            <Button aria-label="Changer de langue" variant="ghost" size="icon" onClick={toggleLocale} className="text-muted-foreground rounded-xl h-8 w-8">
               <Globe className="w-3.5 h-3.5" />
             </Button>
             <span className="text-[10px] font-bold text-muted-foreground uppercase">{locale}</span>
@@ -96,10 +96,10 @@ const Navbar = () => {
           </motion.div>
 
           <div className="md:hidden flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl h-8 w-8">
+            <Button aria-label="Changer de thème" variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl h-8 w-8">
               {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)} className="rounded-xl h-8 w-8">
+            <Button aria-label="Fermer" variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)} className="rounded-xl h-8 w-8">
               {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </Button>
           </div>

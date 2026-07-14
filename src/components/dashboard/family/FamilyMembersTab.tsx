@@ -78,10 +78,10 @@ export const FamilyMembersTab = ({ members, pendingInvitations, groupId, isOwner
                 </div>
                 {isOwner && !isMe && !isOwnerRole && (
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Transférer la propriété" onClick={() => setTransferOpen(true)}>
+                    <Button aria-label="Action" size="icon" variant="ghost" className="h-8 w-8" title="Transférer la propriété" onClick={() => setTransferOpen(true)}>
                       <ArrowRightLeft className="w-3.5 h-3.5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemove(m.id, m.display_name || 'ce membre')}>
+                    <Button aria-label="Action" size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemove(m.id, m.display_name || 'ce membre')}>
                       <UserMinus className="w-3.5 h-3.5" />
                     </Button>
                   </div>

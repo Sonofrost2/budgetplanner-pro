@@ -113,7 +113,7 @@ export const FilterToolbar = ({
               </SelectContent>
             </Select>
             {onSortOrderToggle && (
-              <Button
+              <Button aria-label="Changer l’ordre de tri"
                 variant="outline"
                 size="icon"
                 className={`h-11 w-11 rounded-xl shrink-0 border-border/40 bg-background/60 hover:bg-background/80 transition-all duration-200 ${sortOrder === 'asc' ? 'text-primary' : ''}`}

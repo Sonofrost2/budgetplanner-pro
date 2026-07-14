@@ -202,15 +202,15 @@ const CategoryNode = ({
           <CategorySparkline values={series} color={category.color} className="hidden sm:flex" />
 
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onEdit(category)} title={isFr ? 'Modifier' : 'Edit'}>
+            <Button aria-label="Modifier" variant="ghost" size="icon" className="h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onEdit(category)} title={isFr ? 'Modifier' : 'Edit'}>
               <Pencil className="w-3.5 h-3.5" />
             </Button>
             {onArchive && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-warning opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onArchive(category.id)} title={isFr ? 'Archiver' : 'Archive'}>
+              <Button aria-label="Action" variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-warning opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onArchive(category.id)} title={isFr ? 'Archiver' : 'Archive'}>
                 <Archive className="w-3.5 h-3.5" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(category.id)} title={isFr ? 'Supprimer' : 'Delete'}>
+            <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(category.id)} title={isFr ? 'Supprimer' : 'Delete'}>
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
           </div>

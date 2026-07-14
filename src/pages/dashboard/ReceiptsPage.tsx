@@ -164,7 +164,7 @@ const ReceiptsPage = () => {
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold">{formatAmount(Number(r.amount), r.currency, locale)}</span>
                     <Badge variant={r.status === 'confirmed' ? 'default' : 'secondary'} className="text-xs">{r.status}</Badge>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => printReceipt(r, locale)}>
+                    <Button aria-label="Imprimer" variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => printReceipt(r, locale)}>
                       <Printer className="w-3.5 h-3.5" />
                     </Button>
                   </div>

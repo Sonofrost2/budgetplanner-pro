@@ -5,6 +5,7 @@ import PricingSection from '@/components/landing/PricingSection';
 import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import Footer from '@/components/landing/Footer';
 import { SEOHead } from '@/components/SEOHead';
+import SkipLink from '@/components/SkipLink';
 
 // Canonical/og:url are now resolved at runtime by <SEOHead /> from
 // VITE_PUBLIC_SITE_URL or window.location.origin so they always match
@@ -85,8 +86,9 @@ const Index = () => {
           dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(schema)) }}
         />
       ))}
+      <SkipLink />
       <Navbar />
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <HeroSection />
         <FeaturesSection />
         <PricingSection />

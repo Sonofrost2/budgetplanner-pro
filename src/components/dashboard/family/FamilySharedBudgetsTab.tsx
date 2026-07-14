@@ -107,7 +107,7 @@ export const FamilySharedBudgetsTab = ({ dashboard, groupId, isOwner, myBudgets,
                         {fmt(spent, currency, numLoc)} / {fmt(amount, currency, numLoc)}
                       </span>
                       {isOwner && (
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleUnshare(sb.id)}>
+                        <Button aria-label="Supprimer" size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleUnshare(sb.id)}>
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       )}
