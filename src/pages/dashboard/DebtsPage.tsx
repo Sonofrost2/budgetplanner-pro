@@ -22,6 +22,8 @@ import { showApiError } from '@/lib/apiError';
 import { useAccounts } from '@/hooks/useDashboardData';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageSkeleton } from '@/components/ui/loading-state';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
@@ -202,7 +204,7 @@ const DebtsPage = () => {
   const totalPaid = debts.reduce((s, d) => s + Number(d.paid_amount), 0);
   const totalRemaining = totalDebt - totalPaid;
 
-  if (loading) return <div className="space-y-6"><div className="flex items-center justify-between"><Skeleton className="h-8 w-32" /><Skeleton className="h-9 w-36" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}</div></div>;
+  if (loading) return <PageSkeleton layout="grid" count={4} />;
 
   const methodLabels: Record<string, string> = {
     snowball: locale === 'fr' ? '❄️ Boule de neige' : '❄️ Snowball',
@@ -271,9 +273,30 @@ const DebtsPage = () => {
       )}
 
       {filteredDebts.length === 0 && debts.length === 0 ? (
-        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-16 text-center"><Landmark className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" /><p className="text-lg font-semibold text-muted-foreground mb-2">{locale === 'fr' ? 'Aucune dette enregistrée' : 'No debts recorded'}</p><Button size="sm" className="text-primary-foreground mt-2 rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}><Plus className="w-4 h-4 mr-1" />{t.addDebt}</Button></CardContent></Card>
+        <EmptyState
+          icon={Landmark}
+          title={locale === 'fr' ? 'Aucune dette enregistrée' : 'No debts recorded'}
+          description={locale === 'fr'
+            ? 'Ajoutez vos crédits, emprunts ou dettes personnelles pour suivre les échéances et un plan de remboursement.'
+            : 'Add your loans, credits or personal debts to track deadlines and a repayment plan.'}
+          action={
+            <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+              <Plus className="w-4 h-4 mr-1" />{t.addDebt}
+            </Button>
+          }
+        />
       ) : filteredDebts.length === 0 ? (
-        <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl"><CardContent className="py-12 text-center"><p className="text-muted-foreground">{t.noResults}</p></CardContent></Card>
+        <EmptyState
+          icon={Search}
+          variant="compact"
+          title={t.noResults}
+          description={locale === 'fr' ? 'Ajustez la recherche ou les filtres pour retrouver une dette.' : 'Adjust search or filters to find a debt.'}
+          action={
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
+              {locale === 'fr' ? 'Réinitialiser les filtres' : 'Reset filters'}
+            </Button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredDebts.map(d => {

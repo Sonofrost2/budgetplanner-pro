@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import { LayoutDashboard, Users, Share2, Activity, Mail, Plus, Lock, CheckCheck, Settings2, ShieldCheck, X, FolderTree } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -210,16 +211,19 @@ const FamilyPage = () => {
       )}
 
       {groups.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="py-16 text-center">
-            <Users className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-lg font-medium text-muted-foreground mb-4">Aucun groupe familial</p>
-            <Button onClick={() => setCreateOpen(true)} disabled={!canUseFamily} className="text-primary-foreground" style={{ background: 'var(--gradient-primary)' }}>
+        <EmptyState
+          icon={Users}
+          title={locale === 'fr' ? 'Aucun groupe familial' : 'No family group yet'}
+          description={locale === 'fr'
+            ? 'Créez un groupe pour partager budgets, catégories et suivi avec votre famille ou vos colocataires.'
+            : 'Create a group to share budgets, categories and tracking with your family or roommates.'}
+          action={
+            <Button onClick={() => setCreateOpen(true)} disabled={!canUseFamily} className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }}>
               {!canUseFamily ? <Lock className="w-4 h-4 mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
-              Créer un groupe
+              {locale === 'fr' ? 'Créer un groupe' : 'Create a group'}
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       ) : (
         <>
           <FamilyGroupSelector

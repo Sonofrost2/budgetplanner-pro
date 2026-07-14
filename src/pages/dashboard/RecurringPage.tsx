@@ -22,6 +22,8 @@ import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
 import { showApiError } from '@/lib/apiError';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PageSkeleton } from '@/components/ui/loading-state';
 import { Checkbox } from '@/components/ui/checkbox';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
@@ -248,7 +250,7 @@ const RecurringPage = () => {
   const totalFixedExpenses = items.filter(i => i.active && i.type === 'expense').reduce((s, i) => s + Number(i.amount), 0);
   const totalFixedIncome = items.filter(i => i.active && i.type === 'income').reduce((s, i) => s + Number(i.amount), 0);
 
-  if (loading) return <div className="space-y-6"><div className="flex items-center justify-between"><Skeleton className="h-8 w-32" /><Skeleton className="h-9 w-36" /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div></div>;
+  if (loading) return <PageSkeleton layout="grid" count={4} />;
 
   if (!canUseRecurring) {
     return <PlanLockedView title={t.recurring} message={t.upgradeRecurring} />;
@@ -344,28 +346,24 @@ const RecurringPage = () => {
         {/* Confirmed recurring */}
         <TabsContent value="confirmed" className="mt-4">
           {items.length === 0 ? (
-            <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
-              <CardContent className="py-16 text-center">
-                <RefreshCw className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
-                <p className="text-lg font-semibold text-muted-foreground mb-2">
-                  {locale === 'fr' ? 'Aucune charge récurrente' : 'No recurring transactions'}
-                </p>
-                <p className="text-sm text-muted-foreground/70 mb-4">
-                  {locale === 'fr'
-                    ? 'Utilisez l\'IA pour détecter automatiquement vos charges récurrentes à partir de vos transactions.'
-                    : 'Use AI to automatically detect recurring charges from your transactions.'}
-                </p>
-                <div className="flex items-center justify-center gap-2">
-                  <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={runAiDetection} disabled={aiDetecting}>
-                    {aiDetecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    {t.aiDetect}
-                  </Button>
-                  <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
-                    <Plus className="w-4 h-4 mr-1" />{t.addRecurring}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={RefreshCw}
+              title={locale === 'fr' ? 'Aucune charge récurrente' : 'No recurring transactions'}
+              description={locale === 'fr'
+                ? 'Ajoutez vos loyers, abonnements et salaires — ou laissez l\'IA les détecter automatiquement depuis vos transactions.'
+                : 'Add your rents, subscriptions and salaries — or let AI detect them automatically from your transactions.'}
+              action={
+                <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={openNew}>
+                  <Plus className="w-4 h-4 mr-1" />{t.addRecurring}
+                </Button>
+              }
+              secondaryAction={
+                <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={runAiDetection} disabled={aiDetecting}>
+                  {aiDetecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {t.aiDetect}
+                </Button>
+              }
+            />
           ) : (
             <>
               {bulk.hasSelection && (
