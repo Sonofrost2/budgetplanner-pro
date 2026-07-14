@@ -123,7 +123,8 @@ const BudgetsPage = () => {
       return spendMap;
     },
     enabled: !!user && budgetPeriodRanges.length > 0,
-    staleTime: 30_000,
+    // Conso budget = donnée critique (dépassement, alertes) → staleTime court.
+    staleTime: 10_000,
   });
 
   // Annual spending per category (Jan 1 → Dec 31 of current year)
@@ -142,7 +143,7 @@ const BudgetsPage = () => {
       return map;
     },
     enabled: !!user && budgetPeriodRanges.length > 0,
-    staleTime: 60_000,
+    staleTime: 30_000,
   });
 
   const expenseBudgets = useMemo(() => {
