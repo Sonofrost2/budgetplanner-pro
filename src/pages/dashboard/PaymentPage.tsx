@@ -666,7 +666,7 @@ const PaymentPage = () => {
 
           {/* Plan cards */}
           <PlanCards
-            plans={plans}
+            plans={displayPlans}
             subscription={subscription}
             currency={currency}
             fmt={fmt}
@@ -681,7 +681,7 @@ const PaymentPage = () => {
           />
 
           {/* Features comparison table */}
-          <FeatureComparisonTable plans={plans} isFr={isFr} />
+          <FeatureComparisonTable plans={displayPlans} isFr={isFr} />
 
           {/* Payment methods */}
           <div className="glass rounded-2xl px-6 py-4 flex flex-wrap items-center justify-center gap-3">
