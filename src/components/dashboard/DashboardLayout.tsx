@@ -252,9 +252,10 @@ const DashboardLayout = () => {
               </motion.div>
             </AnimatePresence>
           </div>
-        </main>
 
-        <LegalFooter variant="compact" className="hidden md:block" />
+          {/* Legal footer — inside <main> so it stays at the bottom of the content column, not beside it. */}
+          <LegalFooter variant="compact" className="mt-8" />
+        </main>
 
         {/* Mobile bottom nav */}
         <MobileBottomNav />
