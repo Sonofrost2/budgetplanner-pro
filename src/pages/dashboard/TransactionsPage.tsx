@@ -31,6 +31,7 @@ import { TransactionsHeroHeader } from '@/components/dashboard/transactions/Tran
 import { TransactionInsightsBar } from '@/components/dashboard/transactions/TransactionInsightsBar';
 import { transactionSchema, validateForm } from '@/lib/validationSchemas';
 import { coachToast } from '@/lib/coachToast';
+import { showApiError } from '@/lib/apiError';
 
 const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
@@ -441,10 +442,10 @@ const TransactionsPage = () => {
 
     if (editing) {
       const { error } = await supabase.from('transactions').update(payload).eq('id', editing.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
+      if (error) { showApiError(error, locale); setSaving(false); return; }
     } else {
       const { error } = await supabase.from('transactions').insert(payload);
-      if (error) { toast.error(error.message); setSaving(false); return; }
+      if (error) { showApiError(error, locale); setSaving(false); return; }
     }
     setSaving(false);
     setDialogOpen(false);
@@ -463,7 +464,7 @@ const TransactionsPage = () => {
       family_category_id: form.family_category_id || null,
     };
     const { error } = await supabase.from('transactions').insert(payload);
-    if (error) { toast.error(error.message); setSaving(false); return; }
+    if (error) { showApiError(error, locale); setSaving(false); return; }
     setSaving(false);
     setDialogOpen(false);
     refreshData();
@@ -495,12 +496,7 @@ const TransactionsPage = () => {
       refreshData();
       coachToast.money(t.transferSuccess);
     } catch (err: any) {
-      const msg = String(err?.message || '');
-      if (msg.includes('PLAN_LIMIT_REACHED')) {
-        toast.error(transferLimitMessage);
-      } else {
-        toast.error(msg || 'Erreur');
-      }
+      showApiError(err, locale);
     } finally {
       setSaving(false);
     }
@@ -509,7 +505,7 @@ const TransactionsPage = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     const { error } = await supabase.from('transactions').delete().eq('id', deleteId);
-    if (error) { toast.error(error.message); setDeleteId(null); return; }
+    if (error) { showApiError(error, locale); setDeleteId(null); return; }
     setDeleteId(null);
     refreshData();
     coachToast.saved(locale === 'fr' ? 'Transaction supprimée' : 'Transaction deleted');
