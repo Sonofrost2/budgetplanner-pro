@@ -15,6 +15,26 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
     const el = ref.current;
     if (!el) return;
 
+    // Respect reduced motion — reveal immediately.
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    // If IntersectionObserver is unavailable, reveal immediately.
+    if (prefersReducedMotion || typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return;
+    }
+
+    // If element is already in viewport at mount, reveal immediately (no wait for scroll).
+    const rect = el.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+    if (rect.top < vh && rect.bottom > 0 && rect.left < vw && rect.right > 0) {
+      setIsVisible(true);
+      if (once) return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -28,7 +48,14 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+
+    // Safety fallback: never leave content hidden — force reveal after 1.2s.
+    const fallback = window.setTimeout(() => setIsVisible(true), 1200);
+
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(fallback);
+    };
   }, [threshold, rootMargin, once]);
 
   return { ref, isVisible };
