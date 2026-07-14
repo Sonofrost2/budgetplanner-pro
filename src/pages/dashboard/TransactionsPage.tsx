@@ -217,8 +217,15 @@ const TransactionsPage = () => {
   }, [searchParams, setSearchParams, catLoading, accLoading, categories, accounts, locale]);
 
   const refreshData = () => {
-    invalidate('paginated-transactions', 'accounts', 'chart-data', 'transactions', 'all-transactions', 'budget-spending', 'category-tx-counts');
-    invalidate('tx-month-count', 'tx-descriptions');
+    // Invalidation large : chaque saisie/édition/suppression peut impacter
+    // soldes, budgets, épargnes, rapports et alertes calculées client-side.
+    invalidate(
+      'paginated-transactions', 'accounts', 'chart-data', 'transactions',
+      'all-transactions', 'account-transactions', 'account-theoretical-balances',
+      'budget-spending', 'budget-annual-spending', 'category-tx-counts',
+      'tx-month-count', 'tx-descriptions', 'reports-data', 'forecast-raw-tx',
+      'savings-page-data', 'savings-goals',
+    );
   };
 
   // Debounced search

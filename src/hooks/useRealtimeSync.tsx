@@ -3,17 +3,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useInvalidate } from '@/hooks/useDashboardData';
 
+// NOTE — Alertes serveur (`check-alerts` edge function) : elles tournent en
+// cron (toutes les X minutes), donc les notifications push ne sont PAS
+// instantanées. Pour refléter en direct un dépassement de budget dans l'UI,
+// on s'appuie sur ces invalidations React Query côté client (calcul local
+// live à partir des transactions), pas sur l'arrivée des notifs.
 const TABLE_TO_QUERY_KEYS: Record<string, string[]> = {
   // Une transaction touche soldes, comptes, épargnes, rapports, dashboard, …
   transactions: [
     'transactions', 'all-transactions', 'paginated-transactions',
     'chart-data', 'reports-data', 'forecast-raw-tx',
-    'budget-spending', 'tx-month-count',
+    'budget-spending', 'budget-annual-spending', 'tx-month-count',
     'account-theoretical-balances', 'account-transactions',
     'savings-page-data', 'savings-goals',
   ],
-  payment_accounts: ['accounts', 'account-theoretical-balances'],
-  budgets: ['budgets', 'budget-spending'],
+  payment_accounts: ['accounts', 'account-theoretical-balances', 'savings-page-data'],
+  budgets: ['budgets', 'budget-spending', 'budget-annual-spending'],
   categories: ['categories', 'category-tx-counts'],
   savings_goals: ['savings-goals', 'savings-page-data'],
   debts: ['debts'],
