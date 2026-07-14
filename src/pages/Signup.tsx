@@ -273,6 +273,8 @@ const Signup = () => {
                       <Link to="/legal/terms" target="_blank" className="text-primary font-medium hover:underline">{t.auth.termsLink}</Link>
                       {' '}{t.auth.andLink}{' '}
                       <Link to="/legal/privacy" target="_blank" className="text-primary font-medium hover:underline">{t.auth.privacyLink}</Link>
+                      {' · '}
+                      <Link to="/legal/cookies" target="_blank" className="text-primary font-medium hover:underline">Cookies</Link>
                       {' '}<span className="text-destructive">*</span>
                     </span>
                   </label>
