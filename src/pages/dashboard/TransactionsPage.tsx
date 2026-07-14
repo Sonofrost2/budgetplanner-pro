@@ -477,12 +477,13 @@ const TransactionsPage = () => {
   const handleTransferSubmit = async () => {
     if (!user) return;
     const errs: Record<string, string> = {};
-    if (!form.from_account_id) errs.from_account_id = t.nameRequired;
-    if (!form.to_account_id) errs.to_account_id = t.nameRequired;
+    if (!form.from_account_id) errs.from_account_id = locale === 'fr' ? 'Compte source requis' : 'Source account required';
+    if (!form.to_account_id) errs.to_account_id = locale === 'fr' ? 'Compte destinataire requis' : 'Destination account required';
     if (form.from_account_id && form.from_account_id === form.to_account_id) errs.to_account_id = t.transferSameAccount;
     const amt = Number(form.amount);
-    if (!form.amount || amt <= 0) errs.amount = t.invalidAmount;
-    if (amt > 999999999) errs.amount = t.amountTooHigh;
+    if (!form.amount) errs.amount = locale === 'fr' ? 'Montant requis' : 'Amount required';
+    else if (amt <= 0) errs.amount = t.invalidAmount;
+    else if (amt > 999999999) errs.amount = t.amountTooHigh;
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setSaving(true);
