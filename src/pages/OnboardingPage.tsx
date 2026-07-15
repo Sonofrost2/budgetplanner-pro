@@ -53,6 +53,15 @@ const OnboardingPage = () => {
   const [accounts, setAccounts] = useState<{ name: string; type: string; icon: string; opening_balance: string }[]>([
     { name: '', type: 'mobile_money', icon: '📱', opening_balance: '0' },
   ]);
+  // Goal & Budget quick-start
+  const [goalName, setGoalName] = useState('');
+  const [goalIcon, setGoalIcon] = useState('🎯');
+  const [goalTarget, setGoalTarget] = useState('');
+  const [goalMonths, setGoalMonths] = useState('6');
+  const [budgetCategoryId, setBudgetCategoryId] = useState('');
+  const [budgetAmount, setBudgetAmount] = useState('');
+  const [budgetPeriod, setBudgetPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [expenseCategories, setExpenseCategories] = useState<{ id: string; name: string; icon: string | null }[]>([]);
   // Payment state
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentToken, setPaymentToken] = useState('');
