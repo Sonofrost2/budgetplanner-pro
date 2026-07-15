@@ -382,6 +382,45 @@ Deno.serve(async (req) => {
             }
             continue;
           }
+
+          // ────── Deadline notifications (upcoming + exceeded) ──────
+          if (prefSavingsDeadline && goal.deadline) {
+            const dl = new Date(goal.deadline);
+            const dlMid = new Date(dl.getFullYear(), dl.getMonth(), dl.getDate());
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const daysUntilDl = Math.round((dlMid.getTime() - today.getTime()) / 86400000);
+            const remainingAmt = Math.max(0, Number(goal.target_amount) - Number(goal.current_amount));
+            const remainingLbl = Math.round(remainingAmt).toLocaleString();
+
+            if (daysUntilDl < 0) {
+              // Deadline exceeded — recurring per user cadence
+              const overdueDays = Math.abs(daysUntilDl);
+              alerts.push({
+                title: isFr
+                  ? `⏰ Échéance dépassée (${overdueDays}j)`
+                  : `⏰ Deadline exceeded (${overdueDays}d)`,
+                body: `${goal.icon} ${goal.name} — ${isFr ? "reste" : "left"} ${remainingLbl}`,
+                notification_type: "savings_deadline_exceeded",
+                dedup_key: `savings_dl_over_${goal.id}${statusWindow || `_${now.getFullYear()}m${now.getMonth()}`}`,
+                reference_id: goal.id,
+              });
+            } else if (daysUntilDl === 0 || daysUntilDl === 2 || daysUntilDl === 7 || daysUntilDl === 30) {
+              // Upcoming deadline — J-30 / J-7 / J-2 / J-0
+              const inLbl = daysUntilDl === 0
+                ? (isFr ? "aujourd'hui" : "today")
+                : (isFr ? `dans ${daysUntilDl}j` : `in ${daysUntilDl}d`);
+              alerts.push({
+                title: isFr
+                  ? `⏳ Échéance ${inLbl}`
+                  : `⏳ Deadline ${inLbl}`,
+                body: `${goal.icon} ${goal.name} — ${isFr ? "reste" : "left"} ${remainingLbl}`,
+                notification_type: "savings_deadline_upcoming",
+                dedup_key: `savings_dl_up_${goal.id}_d${daysUntilDl}_${now.getFullYear()}m${now.getMonth()}`,
+                reference_id: goal.id,
+              });
+            }
+          }
+
           if (!prefSavings) continue;
 
           let totalContributed = 0;
