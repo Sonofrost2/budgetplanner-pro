@@ -13,17 +13,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sparkles, Wallet, Globe, CreditCard, ArrowRight, ArrowLeft, Plus, Trash2, Loader2, XCircle, Bell, Mail, MessageSquare, Smartphone } from 'lucide-react';
+import { CheckCircle2, Sparkles, Wallet, Globe, CreditCard, ArrowRight, ArrowLeft, Plus, Trash2, Loader2, XCircle, Bell, Mail, MessageSquare, Smartphone, Target, PiggyBank, Timer } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
-const STEPS = ['welcome', 'plan', 'preferences', 'notifications', 'accounts', 'payment', 'done'] as const;
+const STEPS = ['welcome', 'plan', 'preferences', 'notifications', 'accounts', 'goal', 'budget', 'payment', 'done'] as const;
 
 const ACCOUNT_TYPES = [
   { value: 'mobile_money', label: '📱 Mobile Money' },
   { value: 'bank', label: '🏦 Banque' },
   { value: 'cash', label: '💵 Espèces' },
   { value: 'card', label: '💳 Carte' },
+];
+
+const GOAL_PRESETS = [
+  { icon: '🛟', fr: "Fonds d'urgence", en: 'Emergency fund' },
+  { icon: '✈️', fr: 'Voyage', en: 'Trip' },
+  { icon: '🏠', fr: 'Logement', en: 'Home' },
+  { icon: '🎓', fr: 'Éducation', en: 'Education' },
+  { icon: '🚗', fr: 'Véhicule', en: 'Vehicle' },
+  { icon: '💍', fr: 'Événement', en: 'Event' },
 ];
 
 const OnboardingPage = () => {
