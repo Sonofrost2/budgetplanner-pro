@@ -428,7 +428,7 @@ const BudgetsPage = () => {
     const periodStart = range ? new Date(range.start) : new Date();
     const periodEnd = range ? new Date(range.end) : new Date();
     const today = new Date();
-    const { daysLeft, label: daysLabel } = computeDaysRemaining(b.period, today, {
+    const { daysLeft, label: daysLabel, targetDate } = computeDaysRemaining(b.period, today, {
       expectedDay: b.expected_day,
       occurrenceFrequency: b.occurrence_frequency,
       referenceDate: b.reference_date,
@@ -436,6 +436,10 @@ const BudgetsPage = () => {
       periodStart,
       periodEnd,
     });
+
+    const targetDateStr = targetDate
+      ? targetDate.toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })
+      : '';
 
     const occFreqLabels: Record<string, string> = { once: t.occurrenceOnce, daily: t.daily, weekly: t.weekly, biweekly: t.occurrenceBiweekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
 
@@ -492,7 +496,9 @@ const BudgetsPage = () => {
               {daysLabel === 'today' ? (isFr ? "📍 Aujourd'hui" : '📍 Today')
                 : daysLabel === 'passed' ? (isFr ? '✅ Échéance passée' : '✅ Due date passed')
                 : daysLabel === 'thisWeek' ? (isFr ? '📅 Cette semaine' : '📅 This week')
-                : `${daysLeft} ${t.daysRemaining}`}
+                : targetDateStr
+                  ? `${daysLeft} ${t.daysRemaining} · ${targetDateStr}`
+                  : `${daysLeft} ${t.daysRemaining}`}
             </span>
           </div>
 
