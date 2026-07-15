@@ -1118,6 +1118,7 @@ const SavingsPage = () => {
                   priority: String((g as any).priority ?? 2),
                   purpose: (g as any).purpose || 'other',
                   notes: (g as any).notes || '',
+                  contribution_frequency: ((g as any).contribution_frequency || 'monthly') as ContributionFrequency,
                 });
                 setCustomBankMode(false);
                 setDialogOpen(true);
