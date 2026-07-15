@@ -454,7 +454,7 @@ export const TransactionList = ({
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
                           <span className="text-xs font-semibold truncate flex-1 text-foreground/85 flex items-center gap-1.5 min-w-0">
                             <span className="truncate">{tx.description}</span>
-                            {tx.linked_transfer_id && <TransferBadge locale={locale} compact />}
+                            {isTransferTx(tx) && <TransferBadge locale={locale} compact />}
                           </span>
                           {tx.categories?.name ? (
                             <button
@@ -491,7 +491,7 @@ export const TransactionList = ({
                               <Button aria-label="Modifier" variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary" onClick={() => onEdit(tx)}>
                                 <Pencil className="w-3 h-3" />
                               </Button>
-                              {onDuplicate && !tx.linked_transfer_id && (
+                              {onDuplicate && !isTransferTx(tx) && (
                                 <Button aria-label={locale === 'fr' ? 'Dupliquer' : 'Duplicate'} variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary" onClick={() => onDuplicate(tx)} title={locale === 'fr' ? 'Dupliquer à la date du jour' : 'Duplicate to today'}>
                                   <Copy className="w-3 h-3" />
                                 </Button>
@@ -508,7 +508,7 @@ export const TransactionList = ({
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
                                 <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg"><Pencil className="w-3.5 h-3.5" /> {t.edit}</DropdownMenuItem>
-                                {onDuplicate && !tx.linked_transfer_id && (
+                                {onDuplicate && !isTransferTx(tx) && (
                                   <DropdownMenuItem onClick={() => onDuplicate(tx)} className="gap-2 rounded-lg"><Copy className="w-3.5 h-3.5" /> {locale === 'fr' ? 'Dupliquer' : 'Duplicate'}</DropdownMenuItem>
                                 )}
                                 <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg"><Trash2 className="w-3.5 h-3.5" /> {t.delete}</DropdownMenuItem>
@@ -548,7 +548,7 @@ export const TransactionList = ({
                               <p className="text-sm font-bold truncate leading-tight text-foreground/90 flex items-center gap-1.5">
                                 <PrivacyIndicator shared={!!tx.family_category_id} locale={locale} />
                                 <span className="truncate">{tx.description}</span>
-                                {tx.linked_transfer_id && <TransferBadge locale={locale} />}
+                                {isTransferTx(tx) && <TransferBadge locale={locale} />}
                               </p>
                               <p className="text-[11px] text-muted-foreground/70 mt-0.5 flex items-center gap-1 flex-wrap">
                                 <button
@@ -602,7 +602,7 @@ export const TransactionList = ({
                                 <Button aria-label="Modifier" variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => onEdit(tx)}>
                                   <Pencil className="w-3.5 h-3.5" />
                                 </Button>
-                                {onDuplicate && !tx.linked_transfer_id && (
+                                {onDuplicate && !isTransferTx(tx) && (
                                   <Button aria-label={locale === 'fr' ? 'Dupliquer' : 'Duplicate'} variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => onDuplicate(tx)} title={locale === 'fr' ? 'Dupliquer à la date du jour' : 'Duplicate to today'}>
                                     <Copy className="w-3.5 h-3.5" />
                                   </Button>
@@ -619,7 +619,7 @@ export const TransactionList = ({
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
                                   <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg"><Pencil className="w-3.5 h-3.5" /> {t.edit}</DropdownMenuItem>
-                                  {onDuplicate && !tx.linked_transfer_id && (
+                                  {onDuplicate && !isTransferTx(tx) && (
                                     <DropdownMenuItem onClick={() => onDuplicate(tx)} className="gap-2 rounded-lg"><Copy className="w-3.5 h-3.5" /> {locale === 'fr' ? 'Dupliquer' : 'Duplicate'}</DropdownMenuItem>
                                   )}
                                   <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg"><Trash2 className="w-3.5 h-3.5" /> {t.delete}</DropdownMenuItem>
