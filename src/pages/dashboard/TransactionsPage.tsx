@@ -101,6 +101,15 @@ const TransactionsPage = () => {
   const totalCount = paginatedResult?.totalCount ?? 0;
   const totalPages = paginatedResult?.totalPages ?? 1;
 
+  const pageTotals = useMemo(() => {
+    let inc = 0, exp = 0;
+    for (const tx of transactions) {
+      if (tx.type === 'income') inc += Number(tx.amount);
+      else exp += Number(tx.amount);
+    }
+    return { income: inc, expense: exp, net: inc - exp };
+  }, [transactions]);
+
   const { data: categories = [], isLoading: catLoading } = useCategories();
   const { data: accounts = [], isLoading: accLoading } = useAccounts();
   const { data: budgets = [] } = useBudgets();
