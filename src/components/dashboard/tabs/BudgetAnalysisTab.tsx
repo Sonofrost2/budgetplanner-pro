@@ -222,7 +222,8 @@ const BudgetAnalysisTab = () => {
         [isFr ? 'Total consomme' : 'Total Consumed', pdfFmt(summary.totalConsumed)],
         [isFr ? 'Taux de consommation' : 'Consumption Rate', `${summary.totalBudgeted > 0 ? Math.round((summary.totalConsumed / summary.totalBudgeted) * 100) : 0}%`],
         [isFr ? 'Budgets en bonne voie' : 'On Track', String(summary.onTrackCount)],
-        [isFr ? 'Budgets en alerte' : 'In Alert', String(summary.overBudgetCount)],
+        [isFr ? 'Budgets depasses (max)' : 'Overspent (max)', String(summary.overBudgetCount)],
+        [isFr ? 'Objectifs min non atteints' : 'Min goals missed', String(summary.minMissedCount)],
         [isFr ? 'Total economies' : 'Total Savings', pdfFmt(Math.round(summary.totalSavings))],
         [isFr ? 'Total depassements' : 'Total Overspend', pdfFmt(Math.round(summary.totalOverspend))],
         [isFr ? 'Variance nette' : 'Net Variance', `${summary.netVariance >= 0 ? '+' : ''}${pdfFmt(Math.round(summary.netVariance))}`],
@@ -382,6 +383,18 @@ const BudgetAnalysisTab = () => {
               ))}
             </SelectContent>
           </Select>
+          <Select value={sortMode} onValueChange={(v) => setSortMode(v as SortMode)}>
+            <SelectTrigger className="w-[170px] h-8 rounded-xl text-xs">
+              <ArrowUpDown className="w-3 h-3 mr-1 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="consumed_desc">{isFr ? '% consommé (↓)' : '% consumed (↓)'}</SelectItem>
+              <SelectItem value="variance_desc">{isFr ? 'Variance (↓)' : 'Variance (↓)'}</SelectItem>
+              <SelectItem value="variance_asc">{isFr ? 'Variance (↑)' : 'Variance (↑)'}</SelectItem>
+              <SelectItem value="name">{isFr ? 'Nom (A→Z)' : 'Name (A→Z)'}</SelectItem>
+            </SelectContent>
+          </Select>
           {analysisPeriod === 'custom' && (
             <>
               <Popover>
@@ -434,7 +447,7 @@ const BudgetAnalysisTab = () => {
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.totalConsumed}</p>
             <p className="text-lg font-bold amount-display">{fmt(summary.totalConsumed)}</p>
             <p className="text-[10px] text-muted-foreground">
-              {summary.totalBudgeted > 0 ? Math.round((summary.totalConsumed / summary.totalBudgeted) * 100) : 0}%
+              {summary.consumptionRate}%
             </p>
           </CardContent>
         </Card>
@@ -451,8 +464,17 @@ const BudgetAnalysisTab = () => {
           <CardContent className="p-4 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-destructive" />
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.budgetsInAlert}</p>
-              <p className="text-lg font-bold text-destructive">{summary.overBudgetCount}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                {isFr ? 'Dépassés / Manqués' : 'Over / Missed'}
+              </p>
+              <p className="text-lg font-bold text-destructive">
+                {summary.overBudgetCount}
+                {summary.minMissedCount > 0 && (
+                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                    +{summary.minMissedCount} {isFr ? 'min' : 'min'}
+                  </span>
+                )}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -494,13 +516,20 @@ const BudgetAnalysisTab = () => {
       {/* Chart — budget vs actual only */}
       {chartData.length > 0 && (
         <Card className="border border-border/50 rounded-2xl">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex-row items-center justify-between">
             <CardTitle className="text-base font-bold">{t.budgetVsActual}</CardTitle>
+            {sortedAnalysis.length > TOP_N && (
+              <Button variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setShowAll(v => !v)}>
+                {showAll
+                  ? (isFr ? `Top ${TOP_N}` : `Top ${TOP_N}`)
+                  : (isFr ? `Tout afficher (+${hiddenCount})` : `Show all (+${hiddenCount})`)}
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
-            <div className="h-72" ref={chartRef}>
+            <div style={{ height: Math.max(288, displayedAnalysis.length * 44 + 40) }} ref={chartRef}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical">
+                <BarChart data={chartData} layout="vertical" barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
                   <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => abbreviateNumber(v, locale)} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={100} />
@@ -526,8 +555,8 @@ const BudgetAnalysisTab = () => {
 
       {/* Detail cards per budget — simplified */}
       <div className="space-y-3">
-        {budgetAnalysis.map(a => {
-          const over = a.actual > a.amount;
+        {displayedAnalysis.map(a => {
+          const over = a.isMax ? a.actual > a.amount : a.actual < a.amount;
           return (
             <Card key={a.budget.id} className={`border border-border/50 rounded-2xl glow-primary ${over ? 'ring-1 ring-destructive/20' : ''}`}>
               <CardContent className="p-4 space-y-3">
@@ -537,6 +566,16 @@ const BudgetAnalysisTab = () => {
                     {a.rawAmount !== a.amount && (
                       <span className="text-[10px] font-normal text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-md">
                         {isFr ? 'normalisé' : 'normalized'}
+                      </span>
+                    )}
+                    {a.isSavings && (
+                      <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                        <Target className="w-2.5 h-2.5" />{isFr ? 'Épargne' : 'Savings'}
+                      </span>
+                    )}
+                    {!a.isMax && (
+                      <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-md">
+                        {isFr ? 'Min' : 'Min'}
                       </span>
                     )}
                   </span>
@@ -549,13 +588,26 @@ const BudgetAnalysisTab = () => {
                 <div className="flex items-center justify-between text-[11px] px-1">
                   <span className="text-muted-foreground">{Math.round(a.pct)}% {isFr ? 'consommé' : 'consumed'}</span>
                   <span className={`font-bold ${a.variance >= 0 ? 'text-secondary' : 'text-destructive'}`}>
-                    {a.variance >= 0 ? (isFr ? 'Économie' : 'Saving') : (isFr ? 'Dépassement' : 'Overspend')}: {fmt(Math.abs(Math.round(a.variance)))}
+                    {a.variance >= 0
+                      ? (isFr ? 'Marge' : 'Margin')
+                      : (a.isMax ? (isFr ? 'Dépassement' : 'Overspend') : (isFr ? 'Manque' : 'Shortfall'))}
+                    : {fmt(Math.abs(Math.round(a.variance)))}
                   </span>
                 </div>
               </CardContent>
             </Card>
           );
         })}
+        {hiddenCount > 0 && (
+          <Button variant="outline" size="sm" className="w-full h-9 rounded-xl text-xs" onClick={() => setShowAll(true)}>
+            {isFr ? `Afficher ${hiddenCount} budget(s) supplémentaire(s)` : `Show ${hiddenCount} more budget(s)`}
+          </Button>
+        )}
+        {showAll && sortedAnalysis.length > TOP_N && (
+          <Button variant="ghost" size="sm" className="w-full h-8 rounded-xl text-[11px]" onClick={() => setShowAll(false)}>
+            {isFr ? `Réduire au top ${TOP_N}` : `Collapse to top ${TOP_N}`}
+          </Button>
+        )}
       </div>
     </div>
   );
