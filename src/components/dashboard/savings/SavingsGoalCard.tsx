@@ -447,6 +447,18 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
             <Sparkles className="w-4 h-4 text-primary" />
           </Button>
         )}
+        {onScheduleAuto && (goal as any).status !== 'completed' && (
+          <Button
+            onClick={onScheduleAuto}
+            variant="outline"
+            className="rounded-xl"
+            size="sm"
+            title={locale === 'fr' ? 'Programmer un versement récurrent automatique' : 'Schedule an automatic recurring deposit'}
+          >
+            <CalendarPlus className="w-4 h-4 mr-1.5 text-primary" />
+            <span className="text-xs">{locale === 'fr' ? 'Auto' : 'Auto'}</span>
+          </Button>
+        )}
       </div>
     </Card>
   );
