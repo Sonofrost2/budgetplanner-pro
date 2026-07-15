@@ -30,7 +30,6 @@ export const transferSchema = (
   locale: string,
 ) => {
   const fr = locale === 'fr';
-  const base = transactionSchema(t, locale).innerType ? undefined : undefined; // no-op guard
   return z.object({
     description: z.string().trim().min(1, t.descriptionRequired).max(200, t.maxChars(200)),
     amount: z.string()
