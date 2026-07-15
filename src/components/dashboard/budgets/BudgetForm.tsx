@@ -8,7 +8,9 @@ import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { LinkPicker } from '@/components/dashboard/LinkPicker';
-import { TrendingUp, TrendingDown, Calendar, Tag, Settings2, BarChart3, CalendarClock, Link2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Tag, Settings2, BarChart3, CalendarClock, Link2, Repeat, Wallet, StickyNote, Flag } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { computeAnnualizedAmount } from '@/lib/budgetProjection';
 import { DEFAULT_CURRENCY, currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 import type { DashTranslations } from '@/i18n/dashTranslations';
@@ -24,6 +26,8 @@ interface BudgetFormProps {
     alert_threshold: string; budget_type: string; control_type: string;
     expected_day: string; occurrence_frequency: string; reference_date: string; active_days: string;
     linked_savings_goal_id: string;
+    is_renewable?: boolean; carry_over?: boolean; notes?: string;
+    priority?: 'low' | 'medium' | 'high'; tags?: string; payment_account_id?: string;
   };
   setForm: React.Dispatch<React.SetStateAction<BudgetFormProps['form']>>;
   errors: Record<string, string>;
@@ -31,6 +35,7 @@ interface BudgetFormProps {
   onSave: () => void;
   allCategories: any[];
   savingsGoals?: any[];
+  accounts?: any[];
   fmt: (n: number) => string;
   t: DashTranslations;
   locale: string;
@@ -39,7 +44,7 @@ interface BudgetFormProps {
 
 export const BudgetForm = ({
   open, onOpenChange, editId, form, setForm, errors, saving, onSave,
-  allCategories, savingsGoals = [], fmt, t, locale, currency = DEFAULT_CURRENCY,
+  allCategories, savingsGoals = [], accounts = [], fmt, t, locale, currency = DEFAULT_CURRENCY,
 }: BudgetFormProps) => {
   const isFr = locale === 'fr';
   const filteredCategories = useMemo(() =>
@@ -50,6 +55,11 @@ export const BudgetForm = ({
     () => savingsGoals.filter((g: any) => !g.deleted_at && !g.paused_at && (g.status ?? 'active') === 'active'),
     [savingsGoals]
   );
+  const activeAccounts = useMemo(
+    () => accounts.filter((a: any) => !a.archived_at && !a.deleted_at),
+    [accounts]
+  );
+  const isOnce = form.occurrence_frequency === 'once';
 
   const periodLabels: Record<string, string> = {
     daily: t.daily, weekly: t.weekly, monthly: t.monthly,
