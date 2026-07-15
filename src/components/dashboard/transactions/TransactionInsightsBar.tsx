@@ -98,17 +98,18 @@ export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Prop
       const curTxs = cur ?? [];
       if (!curTxs.length) return result;
 
-      // 1. Top expense (single transaction)
+      // 1. Top expense (single transaction) — keep full description; CSS handles truncation, title shows full text.
       const top = [...curTxs].sort((a, b) => Number(b.amount) - Number(a.amount))[0];
       if (top) {
         const catName = categories.find(c => c.id === top.category_id)?.name;
+        const desc = (top.description || '').trim();
         result.push({
           key: 'top',
           icon: <Crown className="w-3.5 h-3.5" />,
           tone: 'primary',
           text: locale === 'fr'
-            ? `Top dépense : ${top.description.slice(0, 22)} · ${fmt(Number(top.amount))}${catName ? ` (${catName})` : ''}`
-            : `Top spend: ${top.description.slice(0, 22)} · ${fmt(Number(top.amount))}${catName ? ` (${catName})` : ''}`,
+            ? `Top dépense · ${fmt(Number(top.amount))} — ${desc}${catName ? ` (${catName})` : ''}`
+            : `Top spend · ${fmt(Number(top.amount))} — ${desc}${catName ? ` (${catName})` : ''}`,
         });
       }
 
@@ -192,10 +193,13 @@ export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Prop
             initial={{ opacity: 0, scale: 0.95, y: 4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: i * 0.06 }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-semibold backdrop-blur-sm ${toneClasses[ins.tone]}`}
+            title={ins.text}
+            className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-semibold backdrop-blur-sm transition-all cursor-help hover:max-w-none ${toneClasses[ins.tone]}`}
           >
-            {ins.icon}
-            <span className="truncate max-w-[280px]">{ins.text}</span>
+            <span className="flex-shrink-0">{ins.icon}</span>
+            <span className="truncate max-w-[220px] sm:max-w-[320px] md:max-w-[440px] lg:max-w-[560px] group-hover:max-w-[720px] transition-[max-width] duration-300">
+              {ins.text}
+            </span>
           </motion.div>
         ))}
       </AnimatePresence>
