@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Globe, Wallet, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -13,6 +13,19 @@ const Navbar = () => {
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const goToSection = (section: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    setMobileOpen(false);
+    if (location.pathname === '/') {
+      document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' });
+      history.replaceState(null, '', `/#${section}`);
+    } else {
+      navigate(`/#${section}`);
+    }
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -52,7 +65,8 @@ const Navbar = () => {
             {['features', 'pricing', 'testimonials'].map((section, i) => (
               <motion.a
                 key={section}
-                href={`#${section}`}
+                href={`/#${section}`}
+                onClick={goToSection(section)}
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + i * 0.06 }}
@@ -111,9 +125,9 @@ const Navbar = () => {
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
             className="md:hidden glass-strong border-b border-glass-border overflow-hidden">
             <div className="px-4 py-4 space-y-2">
-              <a href="#features" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-muted-foreground">{t.nav.features}</a>
-              <a href="#pricing" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-muted-foreground">{t.nav.pricing}</a>
-              <a href="#testimonials" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-muted-foreground">{t.nav.testimonials}</a>
+              <a href="/#features" onClick={goToSection('features')} className="block py-2 text-sm font-medium text-muted-foreground">{t.nav.features}</a>
+              <a href="/#pricing" onClick={goToSection('pricing')} className="block py-2 text-sm font-medium text-muted-foreground">{t.nav.pricing}</a>
+              <a href="/#testimonials" onClick={goToSection('testimonials')} className="block py-2 text-sm font-medium text-muted-foreground">{t.nav.testimonials}</a>
               <div className="pt-3 flex flex-col gap-2">
                 {user ? (
                   <Link to="/dashboard" onClick={() => setMobileOpen(false)}>

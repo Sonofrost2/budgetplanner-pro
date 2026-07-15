@@ -19,13 +19,18 @@ serve(async (req) => {
 
     const { transactions, categories, locale } = await req.json();
 
-    const anonymizedTransactions = (transactions || []).map((tx: any) => ({
-      type: tx.type,
-      amount: tx.amount,
-      date: tx.date,
-      category_id: tx.category_id,
-      category_name: tx.categories?.name || null,
-    }));
+    // Filter out account-to-account transfers: they are not real income or
+    // expenses and would otherwise land in an "Autres" bucket, biasing the
+    // model's advice on spending patterns.
+    const anonymizedTransactions = (transactions || [])
+      .filter((tx: any) => !tx?.is_transfer)
+      .map((tx: any) => ({
+        type: tx.type,
+        amount: tx.amount,
+        date: tx.date,
+        category_id: tx.category_id,
+        category_name: tx.categories?.name || null,
+      }));
 
     // ── Per-user per-day cache ───────────────────────────────────────────
     // The forecast is deterministic within a calendar day for a given

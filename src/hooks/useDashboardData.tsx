@@ -278,8 +278,11 @@ export const useForecastRawTx = () => {
       const now = new Date();
       const sixAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().split('T')[0];
       const { data, error } = await supabase
-        .from('transactions').select('type, amount, date, category_id, categories(name)')
-        .eq('user_id', user!.id).is('deleted_at', null).gte('date', sixAgo);
+        .from('transactions').select('type, amount, date, category_id, is_transfer, categories(name)')
+        .eq('user_id', user!.id).is('deleted_at', null).gte('date', sixAgo)
+        // Exclude account-to-account transfers: they aren't real income/expense
+        // and would skew AI advice (they'd fall into "Autres").
+        .or('is_transfer.is.null,is_transfer.eq.false');
       if (error) throw error;
       return data ?? [];
     },
