@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock, Lock, Unlock, Landmark, Sparkles, Coins, Archive, RotateCcw, ArrowRight, Pause, Play, Repeat } from 'lucide-react';
+import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock, Lock, Unlock, Landmark, Sparkles, Coins, Archive, RotateCcw, ArrowRight, Pause, Play, Repeat, CalendarPlus } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { SavingsRingProgress } from './SavingsRingProgress';
@@ -35,9 +35,10 @@ interface SavingsGoalCardProps {
   onReinvest?: () => void;
   onReactivate?: () => void;
   onTogglePause?: () => void;
+  onScheduleAuto?: () => void;
 }
 
-export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onPartialWithdraw, onEdit, onDelete, onSimulate, onCapitalizeInterest, isCapitalizing, onArchive, onReinvest, onReactivate, onTogglePause }: SavingsGoalCardProps) => {
+export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onPartialWithdraw, onEdit, onDelete, onSimulate, onCapitalizeInterest, isCapitalizing, onArchive, onReinvest, onReactivate, onTogglePause, onScheduleAuto }: SavingsGoalCardProps) => {
   const pct = goal.target_amount > 0 ? Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100) : 0;
   const done = pct >= 100;
   const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.current_amount));
@@ -444,6 +445,18 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
         {onSimulate && (goal as any).status !== 'completed' && (
           <Button aria-label="Suggestions IA" onClick={onSimulate} variant="outline" className="rounded-xl" size="icon" title={t.simulateAI}>
             <Sparkles className="w-4 h-4 text-primary" />
+          </Button>
+        )}
+        {onScheduleAuto && (goal as any).status !== 'completed' && (
+          <Button
+            onClick={onScheduleAuto}
+            variant="outline"
+            className="rounded-xl"
+            size="sm"
+            title={locale === 'fr' ? 'Programmer un versement récurrent automatique' : 'Schedule an automatic recurring deposit'}
+          >
+            <CalendarPlus className="w-4 h-4 mr-1.5 text-primary" />
+            <span className="text-xs">{locale === 'fr' ? 'Auto' : 'Auto'}</span>
           </Button>
         )}
       </div>

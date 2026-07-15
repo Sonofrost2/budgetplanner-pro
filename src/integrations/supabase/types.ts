@@ -1364,6 +1364,7 @@ export type Database = {
           frequency: string | null
           id: string
           next_date: string
+          savings_goal_id: string | null
           skipped_dates: string[]
           type: string | null
           user_id: string
@@ -1380,6 +1381,7 @@ export type Database = {
           frequency?: string | null
           id?: string
           next_date: string
+          savings_goal_id?: string | null
           skipped_dates?: string[]
           type?: string | null
           user_id: string
@@ -1396,6 +1398,7 @@ export type Database = {
           frequency?: string | null
           id?: string
           next_date?: string
+          savings_goal_id?: string | null
           skipped_dates?: string[]
           type?: string | null
           user_id?: string
@@ -1413,6 +1416,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_savings_goal_id_fkey"
+            columns: ["savings_goal_id"]
+            isOneToOne: false
+            referencedRelation: "savings_goals"
             referencedColumns: ["id"]
           },
         ]

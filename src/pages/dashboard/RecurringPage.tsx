@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
-import { useRecurring, useCategories, useAccounts, useInvalidate } from '@/hooks/useDashboardData';
+import { useRecurring, useCategories, useAccounts, useInvalidate, useSavingsGoals } from '@/hooks/useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -62,11 +63,12 @@ const RecurringPage = () => {
   const { data: items = [], isLoading: recLoading } = useRecurring();
   const { data: categories = [], isLoading: catLoading } = useCategories();
   const { data: accounts = [], isLoading: accLoading } = useAccounts();
+  const { data: savingsGoals = [] } = useSavingsGoals();
   const loading = recLoading || catLoading || accLoading;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: '', active: true });
+  const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: '', active: true, savings_goal_id: '' });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('confirmed');
@@ -129,9 +131,38 @@ const RecurringPage = () => {
     return Object.keys(errs).length === 0;
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Pre-open dialog from ?goal=<id>&amount=<n> (Savings page → "Programmer un versement").
+  useEffect(() => {
+    const goalId = searchParams.get('goal');
+    if (!goalId || savingsGoals.length === 0) return;
+    const goal = savingsGoals.find((g: any) => g.id === goalId);
+    if (!goal) return;
+    const amount = searchParams.get('amount') || String((goal as any).monthly_contribution || '');
+    setEditId(null);
+    setFormErrors({});
+    setForm({
+      description: locale === 'fr' ? `Versement épargne — ${goal.name}` : `Savings deposit — ${goal.name}`,
+      amount,
+      type: 'expense',
+      category_id: '',
+      account_id: (goal as any).account_id || '',
+      frequency: (goal as any).contribution_frequency || 'monthly',
+      next_date: new Date().toISOString().split('T')[0],
+      active: true,
+      savings_goal_id: goal.id,
+    });
+    setDialogOpen(true);
+    // clean the params so the dialog doesn't re-open on close
+    const next = new URLSearchParams(searchParams);
+    next.delete('goal'); next.delete('amount');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, savingsGoals, locale, setSearchParams]);
+
   const handleSave = async () => {
     if (!user || !validateRecurringForm()) return;
-    const payload = { description: form.description.trim(), amount: Number(form.amount), type: form.type, category_id: form.category_id || null, account_id: form.account_id || null, frequency: form.frequency, next_date: form.next_date, active: form.active };
+    const payload = { description: form.description.trim(), amount: Number(form.amount), type: form.type, category_id: form.category_id || null, account_id: form.account_id || null, frequency: form.frequency, next_date: form.next_date, active: form.active, savings_goal_id: form.savings_goal_id || null };
     const { error } = editId
       ? await supabase.from('recurring_transactions').update(payload).eq('id', editId)
       : await supabase.from('recurring_transactions').insert({ ...payload, user_id: user.id });
@@ -151,8 +182,8 @@ const RecurringPage = () => {
     setDeleteId(null); refreshData();
   };
 
-  const openNew = () => { setEditId(null); setFormErrors({}); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: new Date().toISOString().split('T')[0], active: true }); setDialogOpen(true); };
-  const openEdit = (r: any) => { setEditId(r.id); setFormErrors({}); setForm({ description: r.description, amount: String(r.amount), type: r.type, category_id: r.category_id || '', account_id: r.account_id || '', frequency: r.frequency, next_date: r.next_date, active: r.active }); setDialogOpen(true); };
+  const openNew = () => { setEditId(null); setFormErrors({}); setForm({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', frequency: 'monthly', next_date: new Date().toISOString().split('T')[0], active: true, savings_goal_id: '' }); setDialogOpen(true); };
+  const openEdit = (r: any) => { setEditId(r.id); setFormErrors({}); setForm({ description: r.description, amount: String(r.amount), type: r.type, category_id: r.category_id || '', account_id: r.account_id || '', frequency: r.frequency, next_date: r.next_date, active: r.active, savings_goal_id: r.savings_goal_id || '' }); setDialogOpen(true); };
 
   // AI Detection
   const runAiDetection = async () => {
@@ -569,6 +600,29 @@ const RecurringPage = () => {
                 <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3.5 h-3.5 text-muted-foreground" />{t.account} ({t.optional})</Label>
                 <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
               </div>
+              {form.type === 'expense' && savingsGoals.filter((g: any) => !g.deleted_at && !g.paused_at && (g.status || 'active') === 'active').length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="form-label">
+                    {locale === 'fr' ? 'Objectif d\'épargne à créditer' : 'Savings goal to credit'} ({t.optional})
+                  </Label>
+                  <Select value={form.savings_goal_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, savings_goal_id: v === '__none__' ? '' : v }))}>
+                    <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">{locale === 'fr' ? '— Aucun —' : '— None —'}</SelectItem>
+                      {savingsGoals
+                        .filter((g: any) => !g.deleted_at && !g.paused_at && (g.status || 'active') === 'active')
+                        .map((g: any) => (
+                          <SelectItem key={g.id} value={g.id}>{g.icon} {g.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">
+                    {locale === 'fr'
+                      ? 'À chaque échéance, l\'objectif sera crédité automatiquement du montant.'
+                      : 'On each due date, the goal will be automatically credited by this amount.'}
+                  </p>
+                </div>
+              )}
             </FormSection>
           </div>
       </ResponsiveFormDialog>

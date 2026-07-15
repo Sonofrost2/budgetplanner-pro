@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -95,6 +95,7 @@ const SavingsPage = () => {
   const { fmt: fmtCurrency, currency } = useProfile();
   const t = dashT[locale];
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initialSearch = searchParams.get('q') || '';
   const { data: savingsData, isLoading: loading, refetch: refetchSavings } = useSavingsPageData();
   const { data: budgetsAll = [] } = useBudgets();
@@ -1179,6 +1180,10 @@ const SavingsPage = () => {
               onReinvest={(g as any).status === 'completed' ? () => handleReinvest(g.id) : undefined}
               onReactivate={(g as any).status === 'completed' ? () => handleReactivate(g.id) : undefined}
               onTogglePause={(g as any).status === 'active' ? () => handleTogglePause(g.id, !!(g as any).paused_at) : undefined}
+              onScheduleAuto={(g as any).status === 'active' ? () => {
+                const monthly = Number((g as any).monthly_contribution) || '';
+                navigate(`/dashboard/recurring?goal=${g.id}${monthly ? `&amount=${monthly}` : ''}`);
+              } : undefined}
             />
         );
 
