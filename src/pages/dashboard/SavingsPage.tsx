@@ -83,6 +83,9 @@ const EMPTY_GOAL_FORM = {
   linked_budget_id: '',
   priority: '2', purpose: 'other', notes: '',
   contribution_frequency: 'monthly' as ContributionFrequency,
+  opening_balance: '',
+  is_renewable: false,
+  renewal_frequency: 'yearly',
 };
 
 const SavingsPage = () => {
@@ -474,13 +477,18 @@ const SavingsPage = () => {
         purpose: form.purpose || 'other',
         notes: form.notes?.trim() || null,
         contribution_frequency: form.contribution_frequency || 'monthly',
+        opening_balance: form.opening_balance ? Number(form.opening_balance) : 0,
+        is_renewable: !!form.is_renewable,
+        renewal_frequency: form.renewal_frequency || 'yearly',
       };
 
       if (editGoalId) {
         const { error } = await supabase.from('savings_goals').update(payload).eq('id', editGoalId);
         if (error) { showApiError(error, locale); setSaving(false); return; }
       } else {
-        const { error } = await supabase.from('savings_goals').insert({ user_id: user.id, ...payload });
+        // À la création, le solde initial devient current_amount
+        const insertPayload = { user_id: user.id, ...payload, current_amount: payload.opening_balance };
+        const { error } = await supabase.from('savings_goals').insert(insertPayload);
         if (error) { showApiError(error, locale); setSaving(false); return; }
       }
       setDialogOpen(false);
@@ -728,6 +736,9 @@ const SavingsPage = () => {
       priority: String((goal as any).priority ?? 2),
       purpose: (goal as any).purpose || 'other',
       notes: (goal as any).notes || '',
+      opening_balance: '',
+      is_renewable: !!(goal as any).is_renewable,
+      renewal_frequency: (goal as any).renewal_frequency || 'yearly',
     });
     setCustomBankMode(false);
     setDialogOpen(true);
@@ -1140,6 +1151,9 @@ const SavingsPage = () => {
                   purpose: (g as any).purpose || 'other',
                   notes: (g as any).notes || '',
                   contribution_frequency: ((g as any).contribution_frequency || 'monthly') as ContributionFrequency,
+                  opening_balance: (g as any).opening_balance != null ? String((g as any).opening_balance) : '',
+                  is_renewable: !!(g as any).is_renewable,
+                  renewal_frequency: (g as any).renewal_frequency || 'yearly',
                 });
                 setCustomBankMode(false);
                 setDialogOpen(true);
@@ -1540,6 +1554,46 @@ const SavingsPage = () => {
               </div>
               <Switch checked={form.is_locked} onCheckedChange={v => setForm(f => ({ ...f, is_locked: v }))} />
             </div>
+
+            {/* Solde initial (création uniquement) */}
+            {!editGoalId && (
+              <InputField
+                type="number" min="0" step="0.01"
+                value={form.opening_balance}
+                onChange={e => setForm(f => ({ ...f, opening_balance: (e.target as HTMLInputElement).value }))}
+                label={locale === 'fr' ? 'Solde initial (optionnel)' : 'Opening balance (optional)'}
+                placeholder="0"
+              />
+            )}
+
+            {/* Renouvellement automatique */}
+            <div className="flex items-center justify-between bg-muted/50 rounded-xl p-3">
+              <div className="flex items-center gap-2">
+                <div>
+                  <p className="text-sm font-medium">{locale === 'fr' ? 'Objectif renouvelable' : 'Renewable goal'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {locale === 'fr'
+                      ? 'Recrée automatiquement un nouveau cycle après l\'échéance'
+                      : 'Automatically starts a new cycle after the deadline'}
+                  </p>
+                </div>
+              </div>
+              <Switch checked={form.is_renewable} onCheckedChange={v => setForm(f => ({ ...f, is_renewable: v }))} />
+            </div>
+            {form.is_renewable && (
+              <div className="space-y-1.5">
+                <Label className="form-label">{locale === 'fr' ? 'Fréquence de renouvellement' : 'Renewal frequency'}</Label>
+                <Select value={form.renewal_frequency} onValueChange={v => setForm(f => ({ ...f, renewal_frequency: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">{locale === 'fr' ? 'Mensuelle' : 'Monthly'}</SelectItem>
+                    <SelectItem value="quarterly">{locale === 'fr' ? 'Trimestrielle' : 'Quarterly'}</SelectItem>
+                    <SelectItem value="semi_annual">{locale === 'fr' ? 'Semestrielle' : 'Semi-annual'}</SelectItem>
+                    <SelectItem value="yearly">{locale === 'fr' ? 'Annuelle' : 'Yearly'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </FormSection>
 
           {(() => {

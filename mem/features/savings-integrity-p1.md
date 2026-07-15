@@ -15,3 +15,17 @@ SECURITY DEFINER. Contrôles côté serveur : ownership `auth.uid()`, `is_locked
 **Soft-delete uniforme** : `handleDelete` dans `SavingsPage.tsx` ne fait plus `DELETE` mais `UPDATE deleted_at=now()` — cohérent avec les autres modules (transactions/budgets) et la corbeille 30 j.
 
 **À faire (P2/P3)** : cron de capitalisation, solde initial, objectifs renouvelables, Zod dur, milestones, versements auto, Pause/Reprise dans l'UI.
+
+## P2 — Métier (2026-07)
+
+**Nouvelles colonnes `savings_goals`** : `opening_balance` (défaut 0), `is_renewable`, `renewal_frequency` ∈ {monthly,quarterly,semi_annual,yearly}, `last_renewed_at`, `renewal_count`.
+
+À la création d'un objectif, `current_amount = opening_balance` (permet de repartir d'un solde déjà présent). Champ affiché uniquement en création (pas en édition).
+
+**Cron `savings-maintenance-daily`** (02:15 UTC) enchaîne :
+- `capitalize_savings_interest()` : crédite les intérêts composés au taux périodique = annuel / n_périodes, période échue depuis `last_capitalized_at`. Ledger `kind='interest'`.
+- `renew_savings_goals()` : archive les objectifs `is_renewable=true` dont la deadline est atteinte ou déjà `completed`, puis clone un nouveau cycle avec `current_amount=0`, `opening_balance=0`, nouvelle `deadline = ancienne + renewal_frequency`, `renewal_count += 1`.
+
+Les deux RPC sont SECURITY DEFINER, `EXECUTE` révoqué à PUBLIC, accordé à `service_role` (et pg_cron s'exécute en superuser).
+
+**Zod durci** (`savingsGoalSchema`) : plafond 999 999 999, `interest_frequency` en enum, notes max 500 car., `superRefine` bloque deadline ≤ start_date et opening_balance > target_amount.

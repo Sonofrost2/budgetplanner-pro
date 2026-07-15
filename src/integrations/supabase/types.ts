@@ -1517,14 +1517,19 @@ export type Database = {
           interest_frequency: string | null
           interest_rate: number | null
           is_locked: boolean
+          is_renewable: boolean
           last_capitalized_at: string | null
+          last_renewed_at: string | null
           linked_budget_id: string | null
           monthly_contribution: number | null
           name: string
           notes: string | null
+          opening_balance: number
           paused_at: string | null
           priority: number
           purpose: string
+          renewal_count: number
+          renewal_frequency: string
           start_date: string | null
           status: string
           target_amount: number
@@ -1545,14 +1550,19 @@ export type Database = {
           interest_frequency?: string | null
           interest_rate?: number | null
           is_locked?: boolean
+          is_renewable?: boolean
           last_capitalized_at?: string | null
+          last_renewed_at?: string | null
           linked_budget_id?: string | null
           monthly_contribution?: number | null
           name: string
           notes?: string | null
+          opening_balance?: number
           paused_at?: string | null
           priority?: number
           purpose?: string
+          renewal_count?: number
+          renewal_frequency?: string
           start_date?: string | null
           status?: string
           target_amount: number
@@ -1573,14 +1583,19 @@ export type Database = {
           interest_frequency?: string | null
           interest_rate?: number | null
           is_locked?: boolean
+          is_renewable?: boolean
           last_capitalized_at?: string | null
+          last_renewed_at?: string | null
           linked_budget_id?: string | null
           monthly_contribution?: number | null
           name?: string
           notes?: string | null
+          opening_balance?: number
           paused_at?: string | null
           priority?: number
           purpose?: string
+          renewal_count?: number
+          renewal_frequency?: string
           start_date?: string | null
           status?: string
           target_amount?: number
@@ -2272,6 +2287,7 @@ export type Database = {
         Args: { p_transaction_id: string; p_user_id: string }
         Returns: Json
       }
+      capitalize_savings_interest: { Args: never; Returns: Json }
       check_and_increment_usage: {
         Args: { _feature: string; _limit: number; _user_id: string }
         Returns: Json
@@ -2463,6 +2479,7 @@ export type Database = {
         Args: { p_account_id: string }
         Returns: undefined
       }
+      renew_savings_goals: { Args: never; Returns: Json }
       reset_demo_account: { Args: never; Returns: undefined }
       resolve_pending_alerts: {
         Args: {
