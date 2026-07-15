@@ -88,20 +88,47 @@ export function toFriendlyError(err: unknown, locale: Locale = 'fr'): FriendlyEr
   };
 }
 
+export interface ShowApiErrorOpts {
+  /** Fire a retry callback with a "Retry" button in the toast. */
+  retry?: () => void | Promise<void>;
+  /** Override the built-in action (e.g. upgrade link) with a custom one. */
+  action?: { label: string; onClick: () => void };
+  /** Override the toast duration (ms). */
+  duration?: number;
+}
+
 /**
  * Show an API error using a friendly, translated toast — never a raw code.
+ * When `retry` is provided, a "Réessayer / Retry" action is added automatically.
  */
-export function showApiError(err: unknown, locale: Locale = 'fr'): void {
+export function showApiError(
+  err: unknown,
+  locale: Locale = 'fr',
+  opts: ShowApiErrorOpts = {},
+): void {
   const f = toFriendlyError(err, locale);
+  const isFr = locale === 'fr';
+
+  let action: { label: string; onClick: () => void } | undefined;
+  if (opts.retry) {
+    action = {
+      label: isFr ? 'Réessayer' : 'Retry',
+      onClick: () => { void opts.retry!(); },
+    };
+  } else if (opts.action) {
+    action = opts.action;
+  } else if (f.action) {
+    action = {
+      label: f.action.label,
+      onClick: () => {
+        if (typeof window !== 'undefined') window.location.href = f.action!.href;
+      },
+    };
+  }
+
   toast.error(f.title, {
     description: f.description,
-    action: f.action
-      ? {
-          label: f.action.label,
-          onClick: () => {
-            if (typeof window !== 'undefined') window.location.href = f.action!.href;
-          },
-        }
-      : undefined,
+    duration: opts.duration ?? 5500,
+    action,
   });
 }
