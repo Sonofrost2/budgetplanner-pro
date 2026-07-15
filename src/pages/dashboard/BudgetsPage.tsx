@@ -443,6 +443,49 @@ const BudgetsPage = () => {
 
     const occFreqLabels: Record<string, string> = { once: t.occurrenceOnce, daily: t.daily, weekly: t.weekly, biweekly: t.occurrenceBiweekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
 
+    // ── One-shot budget status (P1 + P2 + P3) ──
+    const isOnce = b.occurrence_frequency === 'once' && !!b.reference_date;
+    const onceStatus = isOnce
+      ? computeOnceStatus(today, b.period || 'yearly', b.reference_date!, amount, actual)
+      : null;
+    const dateFmt = (d: Date) =>
+      d.toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' });
+    const onceBadge = (() => {
+      if (!onceStatus) return null;
+      const base = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide';
+      switch (onceStatus.kind) {
+        case 'upcoming': return <span className={`${base} bg-primary/10 text-primary`}>{isFr ? 'Prévu' : 'Planned'}</span>;
+        case 'today': return <span className={`${base} bg-accent/15 text-accent-foreground`}>{isFr ? "Aujourd'hui" : 'Today'}</span>;
+        case 'fulfilled': return <span className={`${base} bg-secondary/15 text-secondary`}>{isFr ? 'Réalisé' : 'Fulfilled'} ✓</span>;
+        case 'exceeded': return <span className={`${base} bg-destructive/15 text-destructive`}>{isFr ? 'Dépassé' : 'Exceeded'}</span>;
+        case 'partial': return <span className={`${base} bg-accent/15 text-accent`}>{isFr ? 'Partiel' : 'Partial'}</span>;
+        case 'missed': return <span className={`${base} bg-destructive/15 text-destructive`}>{isFr ? 'Manqué' : 'Missed'}</span>;
+      }
+    })();
+    const onceCountdown = (() => {
+      if (!onceStatus) return null;
+      switch (onceStatus.kind) {
+        case 'upcoming': return `${onceStatus.daysLeft} ${t.daysRemaining} · ${dateFmt(onceStatus.refDate)}`;
+        case 'today': return isFr ? `📍 Échéance aujourd'hui` : `📍 Due today`;
+        case 'fulfilled':
+          return onceStatus.nextRefDate
+            ? (isFr ? `✅ Réalisé · Prochaine : ${dateFmt(onceStatus.nextRefDate)} (J-${onceStatus.daysToNext})`
+                    : `✅ Fulfilled · Next: ${dateFmt(onceStatus.nextRefDate)} (in ${onceStatus.daysToNext}d)`)
+            : (isFr ? '✅ Réalisé' : '✅ Fulfilled');
+        case 'exceeded':
+          return onceStatus.nextRefDate
+            ? (isFr ? `🔴 Dépassé de ${fmt(onceStatus.overshoot)} · Prochaine ${dateFmt(onceStatus.nextRefDate)}`
+                    : `🔴 Over by ${fmt(onceStatus.overshoot)} · Next ${dateFmt(onceStatus.nextRefDate)}`)
+            : (isFr ? `🔴 Dépassé de ${fmt(onceStatus.overshoot)}` : `🔴 Over by ${fmt(onceStatus.overshoot)}`);
+        case 'partial':
+          return isFr ? `⚠️ Partiel (${Math.round(onceStatus.pct)}%) · Retard ${onceStatus.daysLate}j`
+                     : `⚠️ Partial (${Math.round(onceStatus.pct)}%) · ${onceStatus.daysLate}d late`;
+        case 'missed':
+          return isFr ? `❌ En retard de ${onceStatus.daysLate}j · ${dateFmt(onceStatus.refDate)}`
+                     : `❌ ${onceStatus.daysLate}d overdue · ${dateFmt(onceStatus.refDate)}`;
+      }
+    })();
+
     return (
       <ScrollReveal key={b.id}>
       <Card className={`card-interactive hover:-translate-y-1 glow-primary ${(b as any).archived_at ? 'opacity-60' : ''} ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
