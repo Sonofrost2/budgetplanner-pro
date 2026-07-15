@@ -56,7 +56,7 @@ export const FamilySettingsTab = ({ group, canEdit, onChange }: Props) => {
     });
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
-      parsed.error.errors.forEach((e) => {
+      parsed.error.issues.forEach((e) => {
         if (e.path[0]) fieldErrors[String(e.path[0])] = e.message;
       });
       setErrors(fieldErrors);
