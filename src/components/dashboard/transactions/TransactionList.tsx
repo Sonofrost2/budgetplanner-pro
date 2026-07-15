@@ -352,9 +352,6 @@ export const TransactionList = ({
           </motion.div>
         ) : (
           <>
-            {/* KPI Summary */}
-            <KPIBar transactions={transactions} fmt={fmt} locale={locale} />
-
             {/* Sort header — glass */}
             <div className="flex items-center gap-4 px-5 py-2.5 bg-muted/15 backdrop-blur-sm border-b border-border/20 text-xs font-semibold text-muted-foreground">
               <div className="w-8 flex-shrink-0"><Checkbox checked={allPageSelected} onCheckedChange={onToggleSelectAll} /></div>
