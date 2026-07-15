@@ -33,6 +33,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent, CheckCircle2, Search, X, Link2, Flag, Tag, StickyNote } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Textarea } from '@/components/ui/textarea';
+import { computeGoalEstimation, formatMonthsHuman, type ContributionFrequency } from '@/lib/savingsEstimation';
+import { AlertCircle, CheckCircle, Info, Zap, Repeat } from 'lucide-react';
 import { AddContributionDialog, WithdrawDialog, SimulationDialog } from '@/components/dashboard/savings/SavingsDialogs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjectionsTab';
@@ -78,6 +80,7 @@ const EMPTY_GOAL_FORM = {
   is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
   linked_budget_id: '',
   priority: '2', purpose: 'other', notes: '',
+  contribution_frequency: 'monthly' as ContributionFrequency,
 };
 
 const SavingsPage = () => {
