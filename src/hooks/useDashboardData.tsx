@@ -91,14 +91,19 @@ export const useCategories = (opts: { includeArchived?: boolean } = {}) => {
   });
 };
 
-export const useBudgets = () => {
+export const useBudgets = (options?: { includeArchived?: boolean }) => {
+  const includeArchived = options?.includeArchived ?? false;
   const { user } = useAuth();
   return useQuery({
-    queryKey: queryKeys.budgets(user?.id ?? ''),
+    queryKey: [...queryKeys.budgets(user?.id ?? ''), includeArchived ? 'all' : 'active'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from('budgets').select('*, categories(name, icon, color)')
-        .eq('user_id', user!.id).is('deleted_at', null).order('created_at', { ascending: false });
+        .eq('user_id', user!.id).is('deleted_at', null);
+      // Archived budgets are hidden from every dashboard/coach/report by
+      // default. The Budgets management page opts in via includeArchived.
+      if (!includeArchived) q = q.is('archived_at', null);
+      const { data, error } = await q.order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as Budget[];
     },
