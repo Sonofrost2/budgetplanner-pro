@@ -72,6 +72,14 @@ interface SimulationResult {
   summary: string;
 }
 
+const EMPTY_GOAL_FORM = {
+  name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '',
+  monthly_contribution: '', start_date: '', contribution_day: '',
+  is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
+  linked_budget_id: '',
+  priority: '2', purpose: 'other', notes: '',
+};
+
 const SavingsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
