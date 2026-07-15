@@ -2481,6 +2481,7 @@ export type Database = {
         }
         Returns: Json
       }
+      plan_rank: { Args: { _plan: string }; Returns: number }
       process_paystack_refund: {
         Args: { p_payment_token: string; p_reason?: string }
         Returns: Json
@@ -2530,6 +2531,7 @@ export type Database = {
         }
         Returns: Json
       }
+      user_plan_tier: { Args: { _user_id: string }; Returns: string }
       withdraw_from_goal: {
         Args: {
           p_amount: number
