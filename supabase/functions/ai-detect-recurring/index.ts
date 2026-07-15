@@ -31,6 +31,9 @@ Deno.serve(async (req) => {
       .select('description, amount, type, date, category_id, account_id, categories(name, icon, color)')
       .eq('user_id', userId)
       .gte('date', startDate)
+      // Skip account-to-account transfers: they are not recurring "charges"
+      // and would confuse the pattern detector.
+      .or('is_transfer.is.null,is_transfer.eq.false')
       .order('date', { ascending: true });
 
     if (txError) throw txError;
