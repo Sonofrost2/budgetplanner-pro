@@ -506,7 +506,7 @@ const TransactionsPage = () => {
       to_account_id: form.to_account_id,
       notes: form.notes,
     });
-    if (!result.success) { setErrors(result.errors); return; }
+    if (result.success === false) { setErrors(result.errors); return; }
     setErrors({});
     const amt = Number(form.amount);
     setSaving(true);
