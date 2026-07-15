@@ -1143,6 +1143,9 @@ const SavingsPage = () => {
                   purpose: (g as any).purpose || 'other',
                   notes: (g as any).notes || '',
                   contribution_frequency: ((g as any).contribution_frequency || 'monthly') as ContributionFrequency,
+                  opening_balance: (g as any).opening_balance != null ? String((g as any).opening_balance) : '',
+                  is_renewable: !!(g as any).is_renewable,
+                  renewal_frequency: (g as any).renewal_frequency || 'yearly',
                 });
                 setCustomBankMode(false);
                 setDialogOpen(true);
