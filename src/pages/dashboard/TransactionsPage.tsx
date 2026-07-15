@@ -357,6 +357,18 @@ const TransactionsPage = () => {
     coachToast.saved(t.bulkDuplicated(inserts.length));
   };
 
+  const handleDuplicateOne = async (tx: typeof transactions[number]) => {
+    if (!user || tx.linked_transfer_id) return;
+    const { error } = await supabase.from('transactions').insert({
+      user_id: user.id, description: tx.description, amount: Number(tx.amount),
+      type: tx.type, category_id: tx.category_id, account_id: tx.account_id,
+      date: new Date().toISOString().split('T')[0], notes: tx.notes,
+    });
+    if (error) { showApiError(error, locale); return; }
+    refreshData();
+    coachToast.saved(t.bulkDuplicated(1));
+  };
+
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
     else { setSortField(field); setSortOrder('desc'); }
