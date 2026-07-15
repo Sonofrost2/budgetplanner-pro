@@ -15,6 +15,13 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [locale, setLocaleState] = useState<Locale>(() => {
+    if (typeof window !== 'undefined') {
+      const urlLang = new URLSearchParams(window.location.search).get('lang');
+      if (urlLang === 'fr' || urlLang === 'en') {
+        safeSet('budgetplan-locale', urlLang);
+        return urlLang;
+      }
+    }
     const saved = safeGet('budgetplan-locale');
     return (saved === 'en' || saved === 'fr') ? saved : 'fr';
   });
