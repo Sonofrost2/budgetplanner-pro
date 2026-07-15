@@ -35,6 +35,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Textarea } from '@/components/ui/textarea';
 import { computeGoalEstimation, formatMonthsHuman, type ContributionFrequency } from '@/lib/savingsEstimation';
 import { AlertCircle, CheckCircle, Info, Zap, Repeat } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AddContributionDialog, WithdrawDialog, SimulationDialog } from '@/components/dashboard/savings/SavingsDialogs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjectionsTab';
