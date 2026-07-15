@@ -232,13 +232,28 @@ const BudgetsPage = () => {
     if (budgetLimitReached) { coachToast.warn(t.limitBudgetsToast(limits.budgets)); return; }
     const cats = allCategories.filter(c => c.type === budgetType);
     setErrors({}); setEditId(null);
-    setForm({ name: '', amount: '', category_id: cats[0]?.id || '', period: 'monthly', alert_threshold: '80', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max', expected_day: '', occurrence_frequency: '', reference_date: '', active_days: '', linked_savings_goal_id: '' });
+    setForm({ ...EMPTY_FORM, category_id: cats[0]?.id || '', budget_type: budgetType, control_type: budgetType === 'income' ? 'min' : 'max' });
     setDialogOpen(true);
   };
 
   const openEdit = (b: any) => {
     setErrors({}); setEditId(b.id);
-    setForm({ name: b.name, amount: String(b.amount), category_id: b.category_id || '', period: b.period || 'monthly', alert_threshold: String(b.alert_threshold ?? 80), budget_type: b.budget_type || 'expense', control_type: b.control_type || 'max', expected_day: b.expected_day ? String(b.expected_day) : '', occurrence_frequency: b.occurrence_frequency || '', reference_date: b.reference_date || '', active_days: b.active_days || '', linked_savings_goal_id: b.linked_savings_goal_id || '' });
+    setForm({
+      ...EMPTY_FORM,
+      name: b.name, amount: String(b.amount), category_id: b.category_id || '',
+      period: b.period || 'monthly', alert_threshold: String(b.alert_threshold ?? 80),
+      budget_type: b.budget_type || 'expense', control_type: b.control_type || 'max',
+      expected_day: b.expected_day ? String(b.expected_day) : '',
+      occurrence_frequency: b.occurrence_frequency || '',
+      reference_date: b.reference_date || '', active_days: b.active_days || '',
+      linked_savings_goal_id: b.linked_savings_goal_id || '',
+      is_renewable: b.is_renewable !== false,
+      carry_over: !!b.carry_over,
+      notes: b.notes || '',
+      priority: (b.priority as any) || 'medium',
+      tags: Array.isArray(b.tags) ? b.tags.join(', ') : (b.tags || ''),
+      payment_account_id: b.payment_account_id || '',
+    });
     setDialogOpen(true);
   };
 
@@ -256,9 +271,18 @@ const BudgetsPage = () => {
     if (!user || !validate()) return;
     setSaving(true);
     const payload = { name: form.name.trim(), amount: Number(form.amount), category_id: form.category_id || null, period: form.period, alert_threshold: Number(form.alert_threshold) || 80, budget_type: form.budget_type, control_type: form.control_type, expected_day: form.expected_day ? Number(form.expected_day) : null, occurrence_frequency: form.occurrence_frequency || null, reference_date: form.reference_date || null, active_days: form.active_days || null, linked_savings_goal_id: form.linked_savings_goal_id || null };
+    const enriched = {
+      ...payload,
+      is_renewable: form.is_renewable !== false,
+      carry_over: !!form.carry_over,
+      notes: form.notes?.trim() || null,
+      priority: form.priority || 'medium',
+      tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : null,
+      payment_account_id: form.payment_account_id || null,
+    };
     const { error } = editId
-      ? await supabase.from('budgets').update(payload).eq('id', editId)
-      : await supabase.from('budgets').insert({ ...payload, user_id: user.id });
+      ? await (supabase.from('budgets') as any).update(enriched).eq('id', editId)
+      : await (supabase.from('budgets') as any).insert({ ...enriched, user_id: user.id });
     if (error) { coachToast.fail(error.message); setSaving(false); return; }
     setSaving(false); setDialogOpen(false); setEditId(null);
     refreshData();
@@ -396,18 +420,13 @@ const BudgetsPage = () => {
     setErrors({});
     setEditId(null);
     setForm({
+      ...EMPTY_FORM,
       name: s.name,
       amount: String(s.amount),
       category_id: s.category_id,
       period: s.period || 'monthly',
-      alert_threshold: '80',
       budget_type: s.budget_type || 'expense',
       control_type: s.budget_type === 'income' ? 'min' : 'max',
-      expected_day: '',
-      occurrence_frequency: '',
-      reference_date: '',
-      active_days: '',
-      linked_savings_goal_id: '',
     });
     setDialogOpen(true);
   };
