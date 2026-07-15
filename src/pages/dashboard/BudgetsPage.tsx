@@ -439,14 +439,21 @@ const BudgetsPage = () => {
 
     return (
       <ScrollReveal key={b.id}>
-      <Card className={`card-interactive hover:-translate-y-1 glow-primary ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
+      <Card className={`card-interactive hover:-translate-y-1 glow-primary ${(b as any).archived_at ? 'opacity-60' : ''} ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-bold flex items-center gap-2.5">
               <Checkbox checked={isSelected} onCheckedChange={() => bulk.toggle(b.id)} className="mr-1" />
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (b.categories?.color || '#6C63FF') + '20' }}>{b.categories?.icon || '📁'}</div>
               <div>
-                <span>{b.name}</span>
+                <span className="flex items-center gap-1.5">
+                  {b.name}
+                  {(b as any).archived_at && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      <Archive className="w-2.5 h-2.5" />{isFr ? 'Archivé' : 'Archived'}
+                    </span>
+                  )}
+                </span>
                 <p className="text-[11px] font-normal text-muted-foreground">
                   {b.categories?.name || '-'} · {periodLabels[b.period] || b.period}
                   {isIncome && <span className="ml-1 text-secondary">↗</span>}
@@ -456,6 +463,15 @@ const BudgetsPage = () => {
             </CardTitle>
             <div className="flex gap-1">
               <Button aria-label="Modifier" variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(b)}><Pencil className="w-3.5 h-3.5" /></Button>
+              <Button
+                aria-label={(b as any).archived_at ? (isFr ? 'Restaurer' : 'Restore') : (isFr ? 'Archiver' : 'Archive')}
+                title={(b as any).archived_at ? (isFr ? 'Restaurer' : 'Restore') : (isFr ? 'Archiver' : 'Archive')}
+                variant="ghost" size="icon"
+                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-accent"
+                onClick={() => handleToggleArchive(b)}
+              >
+                {(b as any).archived_at ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+              </Button>
               <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(b.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
             </div>
           </div>
