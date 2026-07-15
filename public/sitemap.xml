@@ -1,25 +1,459 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://budget-planner-pro.eurekaci.dev/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/about</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/legal/terms</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/legal/privacy</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/legal/mentions</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/legal/cookies</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/account-deletion</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/login</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/forgot-password</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/reset-password</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/onboarding</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/signup</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/demo</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/"/>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/"/>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/"/>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/about</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/about?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/about?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/about"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/about?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/about?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/about?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/about"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/about?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/about?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/about?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/about"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog"/>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog"/>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog"/>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/astuces-budget-mensuel"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/epargne-objectifs"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/budget-familial-erreurs"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/fonds-urgence"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/blog/budget-planner-vs-excel"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/contact</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/contact?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/contact?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/contact"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/contact?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/contact?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/contact?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/contact"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/contact?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/contact?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/contact?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/contact"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/terms</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/terms?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/terms?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/terms"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/terms?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/terms?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/terms?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/terms"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/terms?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/terms?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/terms?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/terms"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/privacy?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/privacy?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/privacy"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/privacy?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/privacy?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/privacy?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/privacy"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/privacy?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/privacy?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/privacy?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/privacy"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/mentions</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/mentions?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/mentions?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/mentions"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/mentions?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/mentions?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/mentions?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/mentions"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/mentions?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/mentions?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/mentions?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/mentions"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/cookies</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/cookies?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/cookies?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/cookies"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/cookies?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/cookies?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/cookies?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/cookies"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/legal/cookies?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/legal/cookies?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/legal/cookies?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/legal/cookies"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/account-deletion</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/account-deletion?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/account-deletion?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/account-deletion"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/account-deletion?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/account-deletion?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/account-deletion?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/account-deletion"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/account-deletion?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/account-deletion?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/account-deletion?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/account-deletion"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/login</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/login?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/login?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/login"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/login?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/login?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/login?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/login"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/login?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/login?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/login?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/login"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/signup</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/signup?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/signup?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/signup"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/signup?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/signup?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/signup?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/signup"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/signup?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/signup?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/signup?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/signup"/>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/demo</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/demo?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/demo?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/demo"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/demo?lang=fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/demo?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/demo?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/demo"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://budget-planner-pro.eurekaci.dev/demo?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://budget-planner-pro.eurekaci.dev/demo?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://budget-planner-pro.eurekaci.dev/demo?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://budget-planner-pro.eurekaci.dev/demo"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
 </urlset>
