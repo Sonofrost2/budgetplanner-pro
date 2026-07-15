@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
-import { TrendingUp, Filter, Search, Inbox, CalendarDays } from 'lucide-react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, ReferenceLine, ComposedChart, Line } from 'recharts';
+import { Filter, Search, Inbox, CalendarDays, AlertTriangle, Target } from 'lucide-react';
 import { abbreviateNumber, cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,9 +17,25 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CHART_PALETTE, CHART_TOOLTIP_BG, CHART_GRID } from '@/lib/chartColors';
+import { Badge } from '@/components/ui/badge';
+
+// Convert any budget-period amount into a monthly equivalent so weekly,
+// quarterly or yearly limits are directly comparable to the monthly
+// consumption plotted next to them.
+const MONTHLY_FACTOR: Record<string, number> = {
+  daily: 365 / 12,      // ≈ 30.42
+  weekly: 52 / 12,      // ≈ 4.333
+  monthly: 1,
+  quarterly: 1 / 3,
+  semi_annual: 1 / 6,
+  yearly: 1 / 12,
+};
+const toMonthly = (amount: number, period: string) =>
+  amount * (MONTHLY_FACTOR[period] ?? 1);
 
 type PeriodKey = '3m' | '6m' | '1y' | 'all' | 'custom';
 type TypeFilter = 'expense' | 'income' | 'all';
+type ViewMode = 'grouped' | 'overlay';
 
 const TOOLTIP_STYLE = {
   borderRadius: '12px', border: 'none', background: CHART_TOOLTIP_BG,
@@ -45,6 +61,7 @@ const BudgetEvolutionTab = () => {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('expense');
   const [selectedBudgetIds, setSelectedBudgetIds] = useState<Set<string>>(new Set());
   const [budgetSearch, setBudgetSearch] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('grouped');
 
   const periodLabels: Record<PeriodKey, string> = {
     '3m': isFr ? '3 mois' : '3 months', '6m': isFr ? '6 mois' : '6 months',
@@ -54,6 +71,8 @@ const BudgetEvolutionTab = () => {
   const filteredBudgets = useMemo(() => {
     let b = budgets;
     if (typeFilter !== 'all') b = b.filter(bg => bg.budget_type === typeFilter);
+    // Exclude archived budgets from the evolution chart
+    b = b.filter(bg => !(bg as any).archived_at);
     return b;
   }, [budgets, typeFilter]);
 
@@ -79,7 +98,7 @@ const BudgetEvolutionTab = () => {
     });
   };
 
-  const { chartData, activeBudgets } = useMemo(() => {
+  const { chartData, activeBudgets, sharedCategoryIds, savingsLinkedIds, currentMonthLabel } = useMemo(() => {
     const now = new Date();
     let startDate: Date;
     if (period === 'custom' && customFrom) {
@@ -96,6 +115,16 @@ const BudgetEvolutionTab = () => {
 
     const active = filteredBudgets.filter(b => effectiveIds.has(b.id));
 
+    // Detect budgets that share a category (client-side aggregation cannot
+    // disambiguate them — warn the user).
+    const catCount = new Map<string, number>();
+    active.forEach(b => {
+      if (!b.category_id) return;
+      catCount.set(b.category_id, (catCount.get(b.category_id) || 0) + 1);
+    });
+    const sharedIds = new Set(active.filter(b => b.category_id && (catCount.get(b.category_id) || 0) > 1).map(b => b.id));
+    const savingsIds = new Set(active.filter(b => !!(b as any).linked_savings_goal_id).map(b => b.id));
+
     // Build monthly buckets
     const months: { label: string; start: Date; end: Date }[] = [];
     const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
@@ -105,27 +134,42 @@ const BudgetEvolutionTab = () => {
       cursor.setMonth(cursor.getMonth() + 1);
     }
 
+    const currentLabel = now.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' });
+
     const data = months.map(m => {
       const row: Record<string, any> = { name: m.label };
+      row.__isCurrent = m.label === currentLabel;
       active.forEach(b => {
-        // Sum transactions matching budget's category and type in this month
+        // Sum transactions matching budget's category and type in this month.
+        // Transfers (`is_transfer=true`) are explicitly excluded to keep the
+        // chart aligned with the RPC-based consumption used elsewhere.
         const spent = transactions.filter(tx => {
+          if ((tx as any).is_transfer === true) return false;
           if (tx.category_id !== b.category_id) return false;
           if (tx.type !== b.budget_type) return false;
           const d = new Date(tx.date);
           return d >= m.start && d <= m.end;
         }).reduce((s, tx) => s + Number(tx.amount), 0);
         row[`spent_${b.id}`] = spent;
-        row[`limit_${b.id}`] = Number(b.amount);
+        // Normalize the limit to a monthly equivalent so weekly/quarterly/
+        // yearly budgets are directly comparable to monthly consumption.
+        row[`limit_${b.id}`] = Math.round(toMonthly(Number(b.amount), b.period || 'monthly'));
       });
       return row;
     });
 
-    return { chartData: data, activeBudgets: active };
+    return {
+      chartData: data,
+      activeBudgets: active,
+      sharedCategoryIds: sharedIds,
+      savingsLinkedIds: savingsIds,
+      currentMonthLabel: currentLabel,
+    };
   }, [filteredBudgets, effectiveIds, transactions, period, customFrom, customTo, isFr]);
 
   const hasData = activeBudgets.length > 0 && chartData.length > 0;
   const selectedCount = selectedBudgetIds.size;
+  const hasWarnings = sharedCategoryIds.size > 0 || savingsLinkedIds.size > 0;
 
   return (
     <div className="space-y-4">
@@ -222,9 +266,50 @@ const BudgetEvolutionTab = () => {
                 </ScrollArea>
               </PopoverContent>
             </Popover>
+
+            {/* View mode toggle */}
+            <div className="ml-auto flex items-center gap-1 p-0.5 rounded-xl bg-muted/40 border border-border/40">
+              <Button
+                size="sm"
+                variant={viewMode === 'grouped' ? 'default' : 'ghost'}
+                className="h-8 rounded-lg text-[11px] px-2.5"
+                onClick={() => setViewMode('grouped')}
+              >
+                {isFr ? 'Barres' : 'Bars'}
+              </Button>
+              <Button
+                size="sm"
+                variant={viewMode === 'overlay' ? 'default' : 'ghost'}
+                className="h-8 rounded-lg text-[11px] px-2.5"
+                onClick={() => setViewMode('overlay')}
+              >
+                {isFr ? 'Réel + Limite' : 'Actual + Limit'}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {hasWarnings && hasData && (
+        <div className="flex flex-wrap gap-2 text-[11px]">
+          {sharedCategoryIds.size > 0 && (
+            <Badge variant="outline" className="gap-1.5 border-accent/40 text-accent bg-accent/5">
+              <AlertTriangle className="w-3 h-3" />
+              {isFr
+                ? `${sharedCategoryIds.size} budget(s) partagent une catégorie — le réel est agrégé`
+                : `${sharedCategoryIds.size} budget(s) share a category — actual is aggregated`}
+            </Badge>
+          )}
+          {savingsLinkedIds.size > 0 && (
+            <Badge variant="outline" className="gap-1.5 border-primary/40 text-primary bg-primary/5">
+              <Target className="w-3 h-3" />
+              {isFr
+                ? `${savingsLinkedIds.size} budget(s) liés à une épargne — réel approché par catégorie`
+                : `${savingsLinkedIds.size} budget(s) linked to savings — actual approximated`}
+            </Badge>
+          )}
+        </div>
+      )}
 
       {/* Chart */}
       <Card className="border border-border/50 shadow-[var(--shadow-card)] rounded-2xl">
@@ -241,30 +326,94 @@ const BudgetEvolutionTab = () => {
             <>
               <div className="h-[420px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} opacity={0.4} />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => abbreviateNumber(v, locale)} />
-                    <Tooltip
-                      contentStyle={TOOLTIP_STYLE}
-                      formatter={(v: number, name: string) => {
-                        const isLimit = name.startsWith('limit_');
-                        const bId = name.replace('spent_', '').replace('limit_', '');
-                        const b = activeBudgets.find(bg => bg.id === bId);
-                        const cat = b ? categories.find(c => c.id === b.category_id) : null;
-                        const label = b ? `${cat?.icon || '📊'} ${b.name}` : name;
-                        return [fmt(v), isLimit ? `${label} (${isFr ? 'Limite' : 'Limit'})` : label];
-                      }}
-                      labelStyle={{ fontWeight: 600, fontSize: 12 }}
-                    />
-                    {activeBudgets.map((b, i) => {
-                      const cat = categories.find(c => c.id === b.category_id);
-                      return [
-                        <Bar key={`spent_${b.id}`} dataKey={`spent_${b.id}`} fill={cat?.color || COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} name={`spent_${b.id}`} />,
-                        <Bar key={`limit_${b.id}`} dataKey={`limit_${b.id}`} fill={cat?.color || COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} name={`limit_${b.id}`} opacity={0.15} />,
-                      ];
-                    })}
-                  </BarChart>
+                  {viewMode === 'grouped' ? (
+                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} opacity={0.4} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => abbreviateNumber(v, locale)} />
+                      <Tooltip
+                        contentStyle={TOOLTIP_STYLE}
+                        formatter={(v: number, name: string) => {
+                          const isLimit = name.startsWith('limit_');
+                          const bId = name.replace('spent_', '').replace('limit_', '');
+                          const b = activeBudgets.find(bg => bg.id === bId);
+                          const cat = b ? categories.find(c => c.id === b.category_id) : null;
+                          const label = b ? `${cat?.icon || '📊'} ${b.name}` : name;
+                          return [fmt(v), isLimit ? `${label} (${isFr ? 'Limite/mois' : 'Limit/mo'})` : label];
+                        }}
+                        labelStyle={{ fontWeight: 600, fontSize: 12 }}
+                      />
+                      {chartData.some(d => d.__isCurrent) && (
+                        <ReferenceLine
+                          x={currentMonthLabel}
+                          stroke="hsl(var(--accent))"
+                          strokeDasharray="4 4"
+                          label={{ value: isFr ? 'En cours' : 'Current', fill: 'hsl(var(--accent))', fontSize: 10, position: 'top' }}
+                        />
+                      )}
+                      {activeBudgets.map((b, i) => {
+                        const cat = categories.find(c => c.id === b.category_id);
+                        return (
+                          <Bar
+                            key={`spent_${b.id}`}
+                            dataKey={`spent_${b.id}`}
+                            fill={cat?.color || COLORS[i % COLORS.length]}
+                            radius={[4, 4, 0, 0]}
+                            name={`spent_${b.id}`}
+                          />
+                        );
+                      })}
+                    </BarChart>
+                  ) : (
+                    <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} opacity={0.4} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => abbreviateNumber(v, locale)} />
+                      <Tooltip
+                        contentStyle={TOOLTIP_STYLE}
+                        formatter={(v: number, name: string) => {
+                          const isLimit = name.startsWith('limit_');
+                          const bId = name.replace('spent_', '').replace('limit_', '');
+                          const b = activeBudgets.find(bg => bg.id === bId);
+                          const cat = b ? categories.find(c => c.id === b.category_id) : null;
+                          const label = b ? `${cat?.icon || '📊'} ${b.name}` : name;
+                          return [fmt(v), isLimit ? `${label} (${isFr ? 'Limite/mois' : 'Limit/mo'})` : label];
+                        }}
+                        labelStyle={{ fontWeight: 600, fontSize: 12 }}
+                      />
+                      {chartData.some(d => d.__isCurrent) && (
+                        <ReferenceLine
+                          x={currentMonthLabel}
+                          stroke="hsl(var(--accent))"
+                          strokeDasharray="4 4"
+                          label={{ value: isFr ? 'En cours' : 'Current', fill: 'hsl(var(--accent))', fontSize: 10, position: 'top' }}
+                        />
+                      )}
+                      {activeBudgets.map((b, i) => {
+                        const cat = categories.find(c => c.id === b.category_id);
+                        const color = cat?.color || COLORS[i % COLORS.length];
+                        return [
+                          <Bar
+                            key={`spent_${b.id}`}
+                            dataKey={`spent_${b.id}`}
+                            fill={color}
+                            radius={[4, 4, 0, 0]}
+                            name={`spent_${b.id}`}
+                          />,
+                          <Line
+                            key={`limit_${b.id}`}
+                            type="monotone"
+                            dataKey={`limit_${b.id}`}
+                            stroke={color}
+                            strokeDasharray="5 4"
+                            strokeWidth={1.5}
+                            dot={false}
+                            name={`limit_${b.id}`}
+                          />,
+                        ];
+                      })}
+                    </ComposedChart>
+                  )}
                 </ResponsiveContainer>
               </div>
               {/* Legend */}
@@ -275,6 +424,12 @@ const BudgetEvolutionTab = () => {
                     <div key={b.id} className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span className="w-3 h-1.5 rounded-full" style={{ background: cat?.color || COLORS[i % COLORS.length] }} />
                       <span>{cat?.icon || '📊'} {b.name}</span>
+                      {sharedCategoryIds.has(b.id) && (
+                        <AlertTriangle className="w-3 h-3 text-accent" />
+                      )}
+                      {savingsLinkedIds.has(b.id) && (
+                        <Target className="w-3 h-3 text-primary" />
+                      )}
                     </div>
                   );
                 })}

@@ -209,12 +209,23 @@ const DashboardHome = () => {
   }, [transactions]);
 
   const budgets = useMemo(() => {
-    return budgetsRaw.map(b => {
-      const spent = transactions
-        .filter(tx => tx.type === 'expense' && tx.category_id === b.category_id)
-        .reduce((s, tx) => s + Number(tx.amount), 0);
-      return { ...b, spent };
-    }).slice(0, 5);
+    // Only expense budgets are shown in the widget. Transfers and non-matching
+    // categories are excluded so the "consumed" figure matches what the
+    // Budgets page reports (RPC-based) as closely as possible for the current
+    // dashboard period.
+    return budgetsRaw
+      .filter(b => (b as any).budget_type !== 'income' && !(b as any).archived_at)
+      .map(b => {
+        const spent = transactions
+          .filter(tx =>
+            tx.type === 'expense'
+            && (tx as any).is_transfer !== true
+            && tx.category_id === b.category_id
+          )
+          .reduce((s, tx) => s + Number(tx.amount), 0);
+        return { ...b, spent };
+      })
+      .slice(0, 5);
   }, [budgetsRaw, transactions]);
 
   const totalBalance = accounts.reduce((s, a) => s + Number(a.real_balance), 0);
@@ -281,7 +292,7 @@ const DashboardHome = () => {
     />,
     accounts: <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />,
     charts: <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} locale={locale} />,
-    budgets: <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />,
+    budgets: <BudgetsWidget budgets={budgets} totalCount={budgetsRaw.filter(b => (b as any).budget_type !== 'income' && !(b as any).archived_at).length} fmt={fmt} t={t} />,
     savings: <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />,
     forecast: <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />,
     transactions: <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />,

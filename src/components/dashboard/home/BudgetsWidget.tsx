@@ -1,7 +1,7 @@
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { PieChart, Plus, ChevronRight } from 'lucide-react';
+import { PieChart, Plus, ChevronRight, Target, Flame, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -11,10 +11,15 @@ interface BudgetWithSpent {
   amount: number;
   spent: number;
   category_id: string | null;
+  linked_savings_goal_id?: string | null;
+  priority?: string | null;
+  occurrence_frequency?: string | null;
+  is_renewable?: boolean | null;
 }
 
 interface BudgetsWidgetProps {
   budgets: BudgetWithSpent[];
+  totalCount?: number;
   fmt: (n: number) => string;
   t: DashTranslations;
 }
@@ -28,8 +33,10 @@ const listItem = {
   }),
 };
 
-export const BudgetsWidget = ({ budgets, fmt, t }: BudgetsWidgetProps) => {
+export const BudgetsWidget = ({ budgets, totalCount, fmt, t }: BudgetsWidgetProps) => {
   const navigate = useNavigate();
+  const shown = budgets.length;
+  const total = totalCount ?? shown;
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
@@ -40,6 +47,11 @@ export const BudgetsWidget = ({ budgets, fmt, t }: BudgetsWidgetProps) => {
               <PieChart className="w-3.5 h-3.5 text-accent" />
             </div>
             {t.budgets}
+            {total > 0 && (
+              <span className="text-[10px] font-normal text-muted-foreground">
+                {shown}/{total}
+              </span>
+            )}
           </h3>
           <Button variant="ghost" size="sm" className="text-[10px] h-6 px-2 text-muted-foreground" onClick={() => navigate('/dashboard/budgets')}>
             {t.all || 'Voir tout'} <ChevronRight className="w-3 h-3 ml-0.5" />
@@ -61,6 +73,10 @@ export const BudgetsWidget = ({ budgets, fmt, t }: BudgetsWidgetProps) => {
               {budgets.map((b, i) => {
                 const pct = b.amount > 0 ? Math.min(100, (b.spent / b.amount) * 100) : 0;
                 const over = b.spent > b.amount;
+                const isSavings = !!b.linked_savings_goal_id;
+                const isOnce = b.occurrence_frequency === 'once';
+                const isHighPriority = b.priority === 'high';
+                const notRenewable = b.is_renewable === false;
                 return (
                   <motion.div
                     key={b.id}
@@ -74,12 +90,26 @@ export const BudgetsWidget = ({ budgets, fmt, t }: BudgetsWidgetProps) => {
                     onClick={() => navigate(`/dashboard/budgets?q=${encodeURIComponent(b.name)}`)}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold">{b.name}</span>
+                      <span className="text-xs font-semibold flex items-center gap-1.5 min-w-0">
+                        <span className="truncate">{b.name}</span>
+                        {isHighPriority && (
+                          <Flame className="w-2.5 h-2.5 text-destructive shrink-0" />
+                        )}
+                        {isSavings && (
+                          <Target className="w-2.5 h-2.5 text-primary shrink-0" />
+                        )}
+                        {isOnce && (
+                          <span className="text-[8px] font-bold text-accent bg-accent/10 px-1 rounded shrink-0">1×</span>
+                        )}
+                        {notRenewable && (
+                          <Repeat className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0 line-through" />
+                        )}
+                      </span>
                       <motion.span
                         initial={{ opacity: 0, scale: 0.5 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: i * 0.08 + 0.2 }}
-                        className={`text-[10px] font-bold ${over ? 'text-destructive' : 'text-muted-foreground'}`}
+                        className={`text-[10px] font-bold shrink-0 ${over ? 'text-destructive' : 'text-muted-foreground'}`}
                       >
                         {Math.round(pct)}%
                       </motion.span>
