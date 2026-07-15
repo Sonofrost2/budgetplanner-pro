@@ -299,6 +299,7 @@ export type Database = {
           active_days: string | null
           alert_threshold: number | null
           amount: number
+          archived_at: string | null
           budget_type: string
           carried_amount: number
           carry_over: boolean
@@ -321,6 +322,7 @@ export type Database = {
           active_days?: string | null
           alert_threshold?: number | null
           amount: number
+          archived_at?: string | null
           budget_type?: string
           carried_amount?: number
           carry_over?: boolean
@@ -343,6 +345,7 @@ export type Database = {
           active_days?: string | null
           alert_threshold?: number | null
           amount?: number
+          archived_at?: string | null
           budget_type?: string
           carried_amount?: number
           carry_over?: boolean
