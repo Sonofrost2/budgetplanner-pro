@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Lightbulb, TrendingUp, AlertTriangle, PartyPopper, X, Compass } from 'lucide-react';
+import { Lightbulb, TrendingUp, AlertTriangle, PartyPopper, X, Compass, CalendarClock, Snowflake, PieChart } from 'lucide-react';
 import type { SavingsGoal } from '@/hooks/useDashboardData';
+import { isLiveGoal, isReachedGoal, liveSavingsTotal } from '@/lib/savingsLogic';
 
 interface SavingsContribution {
   id: string;
@@ -48,10 +49,23 @@ const ICON_CLASS: Record<InsightTone, string> = {
  * narrative cards based on goal pacing vs deadline + recent contribution rhythm.
  */
 export const SavingsCoachInsights = ({ goals, contributions, fmt, isFr }: Props) => {
+  // Dismissal is bucketed by ISO week so advice resurfaces automatically.
+  const weekBucket = useMemo(() => {
+    const d = new Date();
+    const jan1 = new Date(d.getFullYear(), 0, 1);
+    const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7);
+    return `${d.getFullYear()}W${week}`;
+  }, []);
+
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem('savings-insights-dismissed');
-      return raw ? new Set(JSON.parse(raw)) : new Set();
+      if (!raw) return new Set();
+      const parsed = JSON.parse(raw);
+      // Legacy format (array) → drop, we now scope by week
+      if (Array.isArray(parsed)) return new Set();
+      const forWeek = parsed?.[weekBucket];
+      return new Set(Array.isArray(forWeek) ? forWeek : []);
     } catch {
       return new Set();
     }
@@ -62,7 +76,10 @@ export const SavingsCoachInsights = ({ goals, contributions, fmt, isFr }: Props)
       const next = new Set(prev);
       next.add(id);
       try {
-        localStorage.setItem('savings-insights-dismissed', JSON.stringify([...next]));
+        localStorage.setItem(
+          'savings-insights-dismissed',
+          JSON.stringify({ [weekBucket]: [...next] }),
+        );
       } catch {}
       return next;
     });
@@ -71,8 +88,16 @@ export const SavingsCoachInsights = ({ goals, contributions, fmt, isFr }: Props)
   const insights = useMemo<Insight[]>(() => {
     const out: Insight[] = [];
     const now = new Date();
+    const nowTs = now.getTime();
+    const DAY = 1000 * 60 * 60 * 24;
+    const MONTH = DAY * 30;
 
-    for (const g of goals) {
+    // Only reason about goals that count as live savings, to stay consistent
+    // with the rest of the module (KPIs, evolution chart, projections).
+    const liveGoals = goals.filter(isLiveGoal);
+    const liveTotal = liveSavingsTotal(liveGoals);
+
+    for (const g of liveGoals) {
       const current = Number(g.current_amount);
       const target = Number(g.target_amount);
       if (target <= 0) continue;
@@ -81,18 +106,20 @@ export const SavingsCoachInsights = ({ goals, contributions, fmt, isFr }: Props)
       const deposits = (contributions[g.id] || []).filter(c => c.type === 'deposit');
       const totalDeposits = deposits.reduce((s, c) => s + Number(c.amount), 0);
 
-      // Monthly avg from history
+      // Monthly avg + last deposit timestamp from history
       let monthlyAvg = 0;
+      let lastDepositTs: number | null = null;
       if (deposits.length > 0) {
         const dates = deposits.map(c => new Date(c.date).getTime());
-        const span = Math.max(1, (Math.max(...dates) - Math.min(...dates)) / (1000 * 60 * 60 * 24 * 30));
+        const span = Math.max(1, (Math.max(...dates) - Math.min(...dates)) / MONTH);
         monthlyAvg = totalDeposits / span;
+        lastDepositTs = Math.max(...dates);
       }
 
-      const isCompleted = current >= target;
+      const isCompleted = isReachedGoal(g);
 
       // 1. Goal reached (celebrate)
-      if (isCompleted && (g as any).status !== 'completed') {
+      if (isCompleted) {
         out.push({
           id: `reached-${g.id}`,
           tone: 'celebrate',
@@ -105,10 +132,28 @@ export const SavingsCoachInsights = ({ goals, contributions, fmt, isFr }: Props)
         continue;
       }
 
-      // Pace analysis vs deadline
+      // 2. Deadline already passed and goal not reached (warn, top priority)
+      if (g.deadline && remaining > 0) {
+        const deadline = new Date(g.deadline);
+        if (deadline.getTime() < nowTs) {
+          const daysOver = Math.round((nowTs - deadline.getTime()) / DAY);
+          out.push({
+            id: `overdue-${g.id}`,
+            tone: 'warn',
+            icon: <CalendarClock className="w-4 h-4" />,
+            title: `${g.icon} ${g.name} — ${isFr ? 'échéance dépassée' : 'deadline passed'}`,
+            body: isFr
+              ? `Depuis ${daysOver} j. Reste ${fmt(remaining)} : reporter la date ou ajuster l'objectif ?`
+              : `${daysOver} day(s) ago. ${fmt(remaining)} left: push the deadline or adjust the target?`,
+          });
+          continue;
+        }
+      }
+
+      // 3. Pace analysis vs deadline
       if (g.deadline && monthlyAvg > 0 && remaining > 0) {
         const deadline = new Date(g.deadline);
-        const monthsLeft = Math.max(0, (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30));
+        const monthsLeft = Math.max(0, (deadline.getTime() - nowTs) / MONTH);
         if (monthsLeft <= 0.1) continue;
         const monthlyNeeded = remaining / monthsLeft;
         const ratio = monthlyAvg / monthlyNeeded;
@@ -144,7 +189,23 @@ export const SavingsCoachInsights = ({ goals, contributions, fmt, isFr }: Props)
         }
       }
 
-      // Approaching milestone
+      // 4. Stale — active goal with no deposit in the last 45 days
+      if (remaining > 0 && lastDepositTs !== null) {
+        const daysSince = Math.round((nowTs - lastDepositTs) / DAY);
+        if (daysSince >= 45) {
+          out.push({
+            id: `stale-${g.id}-${Math.floor(daysSince / 15)}`,
+            tone: 'warn',
+            icon: <Snowflake className="w-4 h-4" />,
+            title: `${g.icon} ${g.name} — ${isFr ? 'sans dépôt depuis' : 'no deposit for'} ${daysSince} ${isFr ? 'j' : 'd'}`,
+            body: isFr
+              ? `Reprenez avec un petit versement pour garder l'élan.`
+              : `Restart with a small deposit to keep the momentum.`,
+          });
+        }
+      }
+
+      // 5. Approaching milestone
       if (!isCompleted && pct >= 70 && pct < 100) {
         const milestoneId = `milestone-${g.id}-${Math.floor(pct / 10) * 10}`;
         out.push({
@@ -155,6 +216,25 @@ export const SavingsCoachInsights = ({ goals, contributions, fmt, isFr }: Props)
           body: isFr
             ? `Plus que ${fmt(remaining)} pour boucler. Vous y êtes presque 💪`
             : `Only ${fmt(remaining)} to go. You're almost there 💪`,
+        });
+      }
+    }
+
+    // 6. Concentration — one live goal represents more than 70% of live savings
+    if (liveTotal > 0 && liveGoals.length >= 2) {
+      const heaviest = liveGoals.reduce((max, g) =>
+        Number(g.current_amount) > Number(max.current_amount) ? g : max,
+      liveGoals[0]);
+      const share = Number(heaviest.current_amount) / liveTotal;
+      if (share >= 0.7) {
+        out.push({
+          id: `concentration-${heaviest.id}`,
+          tone: 'info',
+          icon: <PieChart className="w-4 h-4" />,
+          title: isFr ? 'Épargne concentrée' : 'Concentrated savings',
+          body: isFr
+            ? `${heaviest.icon} ${heaviest.name} pèse ${Math.round(share * 100)}% de votre épargne. Diversifier ?`
+            : `${heaviest.icon} ${heaviest.name} holds ${Math.round(share * 100)}% of your savings. Diversify?`,
         });
       }
     }
