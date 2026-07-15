@@ -31,7 +31,7 @@ import { TransactionList } from '@/components/dashboard/transactions/Transaction
 import { BulkModifyDialog, BudgetOverspendDialog } from '@/components/dashboard/transactions/TransactionDialogs';
 import { TransactionsHeroHeader } from '@/components/dashboard/transactions/TransactionsHeroHeader';
 import { TransactionInsightsBar } from '@/components/dashboard/transactions/TransactionInsightsBar';
-import { transactionSchema, validateForm } from '@/lib/validationSchemas';
+import { transactionSchema, transferSchema, validateForm } from '@/lib/validationSchemas';
 import { coachToast } from '@/lib/coachToast';
 import { showApiError } from '@/lib/apiError';
 import { sumIncome, sumExpense } from '@/lib/transactionMath';
@@ -498,16 +498,17 @@ const TransactionsPage = () => {
 
   const handleTransferSubmit = async () => {
     if (!user) return;
-    const errs: Record<string, string> = {};
-    if (!form.from_account_id) errs.from_account_id = locale === 'fr' ? 'Compte source requis' : 'Source account required';
-    if (!form.to_account_id) errs.to_account_id = locale === 'fr' ? 'Compte destinataire requis' : 'Destination account required';
-    if (form.from_account_id && form.from_account_id === form.to_account_id) errs.to_account_id = t.transferSameAccount;
+    const result = validateForm(transferSchema(t, locale), {
+      description: form.description,
+      amount: form.amount,
+      date: form.date,
+      from_account_id: form.from_account_id,
+      to_account_id: form.to_account_id,
+      notes: form.notes,
+    });
+    if (!result.success) { setErrors(result.errors); return; }
+    setErrors({});
     const amt = Number(form.amount);
-    if (!form.amount) errs.amount = locale === 'fr' ? 'Montant requis' : 'Amount required';
-    else if (amt <= 0) errs.amount = t.invalidAmount;
-    else if (amt > 999999999) errs.amount = t.amountTooHigh;
-    setErrors(errs);
-    if (Object.keys(errs).length) return;
     setSaving(true);
     try {
       const { error } = await supabase.rpc('perform_transfer', {
