@@ -636,7 +636,10 @@ const SavingsPage = () => {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    await supabase.from('savings_goals').delete().eq('id', deleteId);
+    // Soft-delete : conserve la traçabilité et permet la restauration depuis la corbeille
+    await supabase.from('savings_goals')
+      .update({ deleted_at: new Date().toISOString() } as never)
+      .eq('id', deleteId);
     setDeleteId(null);
     refreshData();
   };
@@ -1682,7 +1685,7 @@ const SavingsPage = () => {
           <PartialWithdrawDialog
             open={!!partialWithdrawId}
             onOpenChange={(v) => { if (!v) setPartialWithdrawId(null); }}
-            goal={{ id: g.id, name: g.name, current_amount: Number(g.current_amount), user_id: user.id }}
+            goal={{ id: g.id, name: g.name, current_amount: Number(g.current_amount), user_id: user.id, is_locked: !!(g as any).is_locked }}
             accounts={accounts}
             onWithdrawn={() => { setPartialWithdrawId(null); refreshData(); }}
             locale={locale}

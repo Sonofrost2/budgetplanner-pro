@@ -1444,6 +1444,64 @@ export type Database = {
         }
         Relationships: []
       }
+      savings_goal_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          goal_id: string
+          id: string
+          kind: string
+          note: string | null
+          source_account_id: string | null
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          goal_id: string
+          id?: string
+          kind: string
+          note?: string | null
+          source_account_id?: string | null
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          goal_id?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          source_account_id?: string | null
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_goal_transactions_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "savings_goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_goal_transactions_source_account_id_fkey"
+            columns: ["source_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_goal_transactions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       savings_goals: {
         Row: {
           account_id: string | null
@@ -2442,6 +2500,15 @@ export type Database = {
           p_to_account_id: string
           p_transaction_id: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      withdraw_from_goal: {
+        Args: {
+          p_amount: number
+          p_destination_account_id: string
+          p_goal_id: string
+          p_note?: string
         }
         Returns: Json
       }
