@@ -193,6 +193,39 @@ Deno.serve(async (req) => {
           // On hashe le nombre de tx + le montant total pour signer l'état.
           const activitySig = `tx${periodTxs.length}_amt${Math.round(spent)}`;
 
+          // ── P5: One-shot budgets — dedicated missed/partial alert ──
+          // For occurrence_frequency='once' with a reference_date in the past,
+          // emit a specific "échéance manquée / partielle" alert and skip the
+          // generic threshold / projection / upcoming alerts for this budget
+          // (they don't make sense for a one-shot cadence).
+          const isOnceBudget = budget.occurrence_frequency === "once" && !!budget.reference_date;
+          if (isOnceBudget) {
+            const refRaw = new Date(budget.reference_date);
+            const refDay = new Date(refRaw.getFullYear(), refRaw.getMonth(), refRaw.getDate());
+            const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const dDiff = Math.floor((refDay.getTime() - nowDay.getTime()) / 86400000);
+
+            if (dDiff < 0 && spent < amount && prefBudgetAlerts) {
+              const daysLate = -dDiff;
+              const missing = Math.round(amount - spent);
+              const isPartial = spent > 0;
+              alerts.push({
+                title: isPartial
+                  ? (isFr ? "⚠️ Échéance partielle" : "⚠️ Partial due")
+                  : (isFr ? "❌ Échéance manquée" : "❌ Missed due date"),
+                body: `${catIcon} ${budget.name}: ${isFr ? "manque" : "missing"} ${missing.toLocaleString()} (${daysLate}${isFr ? "j" : "d"})`,
+                notification_type: isPartial ? "budget_once_partial" : "budget_once_missed",
+                dedup_key: `budget_once_${isPartial ? "partial" : "missed"}_${budget.id}_d${Math.min(daysLate, 30)}`,
+                reference_id: budget.id,
+                critical: !isPartial && daysLate >= 3,
+              });
+              continue;
+            }
+            // Fulfilled (spent >= amount) or upcoming → let the generic upcoming
+            // block below still fire for J-7 → J-0, but skip threshold noise.
+            if (spent >= amount) continue;
+          }
+
           if (isMax) {
             const isIncomeBudget = budgetType === "income";
             if (prefBudgetAlerts && spent > amount && isIncomeBudget) {
