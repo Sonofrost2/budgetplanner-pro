@@ -1459,7 +1459,10 @@ export type Database = {
           linked_budget_id: string | null
           monthly_contribution: number | null
           name: string
+          notes: string | null
           paused_at: string | null
+          priority: number
+          purpose: string
           start_date: string | null
           status: string
           target_amount: number
@@ -1483,7 +1486,10 @@ export type Database = {
           linked_budget_id?: string | null
           monthly_contribution?: number | null
           name: string
+          notes?: string | null
           paused_at?: string | null
+          priority?: number
+          purpose?: string
           start_date?: string | null
           status?: string
           target_amount: number
@@ -1507,7 +1513,10 @@ export type Database = {
           linked_budget_id?: string | null
           monthly_contribution?: number | null
           name?: string
+          notes?: string | null
           paused_at?: string | null
+          priority?: number
+          purpose?: string
           start_date?: string | null
           status?: string
           target_amount?: number

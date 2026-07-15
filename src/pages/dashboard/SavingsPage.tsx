@@ -30,8 +30,9 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent, CheckCircle2, Search, X, Link2 } from 'lucide-react';
+import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent, CheckCircle2, Search, X, Link2, Flag, Tag, StickyNote } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Textarea } from '@/components/ui/textarea';
 import { AddContributionDialog, WithdrawDialog, SimulationDialog } from '@/components/dashboard/savings/SavingsDialogs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjectionsTab';
@@ -71,6 +72,14 @@ interface SimulationResult {
   summary: string;
 }
 
+const EMPTY_GOAL_FORM = {
+  name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '',
+  monthly_contribution: '', start_date: '', contribution_day: '',
+  is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
+  linked_budget_id: '',
+  priority: '2', purpose: 'other', notes: '',
+};
+
 const SavingsPage = () => {
   const { user } = useAuth();
   const { locale } = useLanguage();
@@ -95,12 +104,7 @@ const SavingsPage = () => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [targetAccountId, setTargetAccountId] = useState('');
-  const [form, setForm] = useState({
-    name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '',
-    monthly_contribution: '', start_date: '', contribution_day: '',
-    is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
-    linked_budget_id: '',
-  });
+  const [form, setForm] = useState(EMPTY_GOAL_FORM);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -446,6 +450,9 @@ const SavingsPage = () => {
         interest_frequency: form.interest_frequency || 'yearly',
         bank_name: form.bank_name?.trim() || null,
         linked_budget_id: form.linked_budget_id || null,
+        priority: form.priority ? Number(form.priority) : 2,
+        purpose: form.purpose || 'other',
+        notes: form.notes?.trim() || null,
       };
 
       if (editGoalId) {
@@ -683,6 +690,7 @@ const SavingsPage = () => {
     setReinvestSourceGoalId(goalId);
     setEditGoalId(null);
     setForm({
+      ...EMPTY_GOAL_FORM,
       name: '', target_amount: '', icon: '🎯', deadline: '',
       account_id: goal.account_id || '',
       monthly_contribution: goal.monthly_contribution ? String(goal.monthly_contribution) : '',
@@ -693,6 +701,9 @@ const SavingsPage = () => {
       interest_frequency: (goal as any).interest_frequency || 'yearly',
       bank_name: (goal as any).bank_name || '',
       linked_budget_id: '',
+      priority: String((goal as any).priority ?? 2),
+      purpose: (goal as any).purpose || 'other',
+      notes: (goal as any).notes || '',
     });
     setCustomBankMode(false);
     setDialogOpen(true);
@@ -942,7 +953,7 @@ const SavingsPage = () => {
         onViewChange={setSavingsView}
         onNewGoal={() => {
           setEditGoalId(null);
-          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '', linked_budget_id: '' });
+          setForm(EMPTY_GOAL_FORM);
           setCustomBankMode(false);
           setDialogOpen(true);
         }}
@@ -1101,6 +1112,9 @@ const SavingsPage = () => {
                   interest_frequency: (g as any).interest_frequency || 'yearly',
                   bank_name: (g as any).bank_name || '',
                   linked_budget_id: (g as any).linked_budget_id || '',
+                  priority: String((g as any).priority ?? 2),
+                  purpose: (g as any).purpose || 'other',
+                  notes: (g as any).notes || '',
                 });
                 setCustomBankMode(false);
                 setDialogOpen(true);
@@ -1135,7 +1149,7 @@ const SavingsPage = () => {
                   </p>
                   <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
                     setEditGoalId(null);
-                    setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '', linked_budget_id: '' });
+                    setForm(EMPTY_GOAL_FORM);
                     setCustomBankMode(false);
                     setDialogOpen(true);
                   }}>
@@ -1222,6 +1236,52 @@ const SavingsPage = () => {
                 onChange={e => setForm(f => ({ ...f, monthly_contribution: e.target.value }))}
                 placeholder={exampleAmount(currency, locale)}
               />
+            </div>
+          </FormSection>
+
+          <FormSection
+            title={locale === 'fr' ? 'Contexte' : 'Context'}
+            icon={<Flag className="w-3.5 h-3.5" />}
+            collapsible
+            defaultOpen={!!(form.notes || (form.priority && form.priority !== '2') || (form.purpose && form.purpose !== 'other'))}
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="form-label flex items-center gap-1.5"><Flag className="w-3.5 h-3.5" />{locale === 'fr' ? 'Priorité' : 'Priority'}</Label>
+                <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">🟢 {locale === 'fr' ? 'Basse' : 'Low'}</SelectItem>
+                    <SelectItem value="2">🟡 {locale === 'fr' ? 'Moyenne' : 'Medium'}</SelectItem>
+                    <SelectItem value="3">🔥 {locale === 'fr' ? 'Haute' : 'High'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="form-label flex items-center gap-1.5"><Tag className="w-3.5 h-3.5" />{locale === 'fr' ? 'Nature' : 'Purpose'}</Label>
+                <Select value={form.purpose} onValueChange={v => setForm(f => ({ ...f, purpose: v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="security">🛡️ {locale === 'fr' ? 'Sécurité (fonds d\'urgence)' : 'Security (emergency fund)'}</SelectItem>
+                    <SelectItem value="project">🚀 {locale === 'fr' ? 'Projet' : 'Project'}</SelectItem>
+                    <SelectItem value="lifestyle">🌴 {locale === 'fr' ? 'Style de vie' : 'Lifestyle'}</SelectItem>
+                    <SelectItem value="growth">📈 {locale === 'fr' ? 'Croissance / Investissement' : 'Growth / Investment'}</SelectItem>
+                    <SelectItem value="other">📁 {locale === 'fr' ? 'Autre' : 'Other'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="form-label flex items-center gap-1.5"><StickyNote className="w-3.5 h-3.5" />{locale === 'fr' ? 'Notes / Motivation' : 'Notes / Motivation'} <span className="text-muted-foreground font-normal">({t.optional})</span></Label>
+              <Textarea
+                value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                maxLength={500}
+                rows={3}
+                placeholder={locale === 'fr' ? 'Ex : Pour financer un voyage en famille en juillet, sans toucher au découvert…' : 'E.g. To fund a family trip in July, without dipping into overdraft…'}
+                className="rounded-xl resize-none"
+              />
+              <p className="text-[10px] text-muted-foreground text-right">{form.notes.length}/500</p>
             </div>
           </FormSection>
 

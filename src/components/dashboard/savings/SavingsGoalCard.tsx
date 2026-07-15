@@ -166,7 +166,27 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="text-base font-bold text-foreground truncate">{goal.name}</h3>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-base font-bold text-foreground truncate">{goal.name}</h3>
+                  {Number((goal as any).priority ?? 2) === 3 && (
+                    <span title="Priorité haute" aria-label="Priorité haute" className="text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive font-semibold">🔥</span>
+                  )}
+                  {(() => {
+                    const p = (goal as any).purpose as string | undefined;
+                    if (!p || p === 'other') return null;
+                    const map: Record<string, { icon: string; label: string }> = {
+                      security: { icon: '🛡️', label: 'Sécurité' },
+                      project: { icon: '🚀', label: 'Projet' },
+                      lifestyle: { icon: '🌴', label: 'Style de vie' },
+                      growth: { icon: '📈', label: 'Croissance' },
+                    };
+                    const m = map[p];
+                    if (!m) return null;
+                    return (
+                      <span title={m.label} aria-label={m.label} className="text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">{m.icon}</span>
+                    );
+                  })()}
+                </div>
                 <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground flex-wrap">
                   {(goal as any).is_locked ? (
                     <span className="flex items-center gap-1 text-destructive font-medium">
