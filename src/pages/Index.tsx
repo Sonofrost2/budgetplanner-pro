@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Navbar from '@/components/landing/Navbar';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
@@ -62,6 +64,17 @@ const jsonLd = [
 ];
 
 const Index = () => {
+  const location = useLocation();
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.slice(1);
+    // Wait for sections to mount before scrolling.
+    const t = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [location.hash]);
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
