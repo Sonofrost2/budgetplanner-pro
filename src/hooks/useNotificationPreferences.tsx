@@ -23,6 +23,7 @@ export interface NotificationPreferences {
   low_balance: boolean;
   low_balance_threshold: number;
   goal_reached: boolean;
+  savings_deadline_alerts: boolean;
   quiet_hours_enabled: boolean;
   quiet_hours_start: number;
   quiet_hours_end: number;
@@ -67,6 +68,7 @@ const defaultPrefs: NotificationPreferences = {
   low_balance: false,
   low_balance_threshold: 5000,
   goal_reached: true,
+  savings_deadline_alerts: true,
   quiet_hours_enabled: false,
   quiet_hours_start: 22,
   quiet_hours_end: 7,
@@ -124,6 +126,7 @@ export const useNotificationPreferences = () => {
           low_balance: data.low_balance,
           low_balance_threshold: Number(data.low_balance_threshold),
           goal_reached: data.goal_reached,
+          savings_deadline_alerts: (data as any).savings_deadline_alerts ?? true,
           quiet_hours_enabled: data.quiet_hours_enabled,
           quiet_hours_start: data.quiet_hours_start,
           quiet_hours_end: data.quiet_hours_end,

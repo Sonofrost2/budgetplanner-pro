@@ -92,6 +92,14 @@ const NotificationPreferencesCard = ({ locale }: Props) => {
       desc: isFr ? 'Quand un objectif d\'épargne ou budget est atteint' : 'When a savings or budget goal is reached',
     },
     {
+      key: 'savings_deadline_alerts' as const,
+      icon: <Target className="w-4 h-4 text-amber-500" />,
+      label: isFr ? 'Échéances d\'épargne' : 'Savings deadlines',
+      desc: isFr
+        ? 'Rappels J-30/J-7/J-2/J-0 et alerte si l\'échéance est dépassée (fréquence configurable ci-dessous)'
+        : 'Reminders D-30/D-7/D-2/D-0 and alert if the deadline is exceeded (frequency configurable below)',
+    },
+    {
       key: 'recurring_reminders' as const,
       icon: <RotateCcw className="w-4 h-4 text-purple-500" />,
       label: isFr ? 'Échéances récurrentes' : 'Recurring due dates',
