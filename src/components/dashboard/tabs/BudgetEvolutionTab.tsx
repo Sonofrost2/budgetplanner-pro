@@ -19,21 +19,19 @@ import { fr } from 'date-fns/locale';
 import { CHART_PALETTE, CHART_TOOLTIP_BG, CHART_GRID } from '@/lib/chartColors';
 import { Badge } from '@/components/ui/badge';
 
-// Convert any budget period amount into a monthly-equivalent limit so the
-// evolution chart compares apples to apples (a yearly budget of 1.2M isn't
-// plotted 12x higher than the monthly consumption).
-const MONTHLY_DIVISOR: Record<string, number> = {
-  daily: 1 / 30,      // amount * 30
-  weekly: 1 / 4.345,  // amount * ~4.35
+// Convert any budget-period amount into a monthly equivalent so weekly,
+// quarterly or yearly limits are directly comparable to the monthly
+// consumption plotted next to them.
+const MONTHLY_FACTOR: Record<string, number> = {
+  daily: 365 / 12,      // ≈ 30.42
+  weekly: 52 / 12,      // ≈ 4.333
   monthly: 1,
-  quarterly: 3,
-  semi_annual: 6,
-  yearly: 12,
+  quarterly: 1 / 3,
+  semi_annual: 1 / 6,
+  yearly: 1 / 12,
 };
-const toMonthly = (amount: number, period: string) => {
-  const d = MONTHLY_DIVISOR[period] ?? 1;
-  return d < 1 ? amount / d : amount / d;
-};
+const toMonthly = (amount: number, period: string) =>
+  amount * (MONTHLY_FACTOR[period] ?? 1);
 
 type PeriodKey = '3m' | '6m' | '1y' | 'all' | 'custom';
 type TypeFilter = 'expense' | 'income' | 'all';
