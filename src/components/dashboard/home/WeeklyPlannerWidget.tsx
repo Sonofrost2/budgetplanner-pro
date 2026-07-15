@@ -416,13 +416,20 @@ export const WeeklyPlannerWidget = ({
         .reduce((s, tx) => s + Number(tx.amount), 0);
       const delta = weeklyTarget - weekSpent;
       const pct = weeklyTarget > 0 ? Math.min(100, (weekSpent / weeklyTarget) * 100) : (weekSpent > 0 ? 100 : 0);
+      const occurrencesInWeek = getOccurrencesInWeek(b, weekStartDate, weekEndDate);
       return {
         id: b.id, name: b.categories?.name || b.name, icon: b.categories?.icon || '📁',
         color: b.categories?.color || '#6C63FF', period: b.period, budgetAmount: b.amount,
         periodSpent, autoTarget, weeklyTarget, isCustom: customTarget !== undefined,
         weekSpent: Math.round(weekSpent), delta: Math.round(delta), pct,
+        occurrencesInWeek,
       };
-    }).filter(c => c.budgetAmount > 0);
+    })
+      .filter(c => c.budgetAmount > 0)
+      // Only show budgets that were actually spent this week OR that have a
+      // scheduled occurrence within the week. Hides prorata-only rows with
+      // zero activity to reduce noise in the weekly planner.
+      .filter(c => c.weekSpent > 0 || c.occurrencesInWeek > 0);
   }, [expenseBudgets, transactions, weekExpenseTxs, weekStartDate, customTargets]);
 
   const incomeRows = useMemo(() => {
