@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { SavingsGoal } from '@/hooks/useDashboardData';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { isLiveGoal } from '@/lib/savingsLogic';
 
 interface SavingsContribution {
   id: string;
@@ -74,10 +75,15 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
   const stats = useMemo(() => {
     const { start, end } = getDateRangeForPeriod(period, customFrom, customTo);
 
+    // E1 — align with SavingsHeroHeader: KPIs must only reflect live goals
+    // (exclude completed/archived/paused/deleted). Otherwise the hero shows
+    // one total and the 4 cards show another.
+    const liveGoals = goals.filter(isLiveGoal);
+
     const goalContribsInPeriod: Record<string, number> = {};
     let totalContribsInPeriod = 0;
 
-    for (const goal of goals) {
+    for (const goal of liveGoals) {
       const contribs = contributions[goal.id] || [];
       const periodContribs = contribs
         .filter(c => {
@@ -89,14 +95,14 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
       totalContribsInPeriod += periodContribs;
     }
 
-    const totalSaved = goals.reduce((s, g) => s + Number(g.current_amount), 0);
-    const totalTarget = goals.reduce((s, g) => s + Number(g.target_amount), 0);
-    const totalMonthlyPlanned = goals.reduce((s, g) => s + Number(g.monthly_contribution || 0), 0);
-    const lockedAmount = goals.filter(g => (g as any).is_locked).reduce((s, g) => s + Number(g.current_amount), 0);
+    const totalSaved = liveGoals.reduce((s, g) => s + Number(g.current_amount), 0);
+    const totalTarget = liveGoals.reduce((s, g) => s + Number(g.target_amount), 0);
+    const totalMonthlyPlanned = liveGoals.reduce((s, g) => s + Number(g.monthly_contribution || 0), 0);
+    const lockedAmount = liveGoals.filter(g => (g as any).is_locked).reduce((s, g) => s + Number(g.current_amount), 0);
     const availableAmount = totalSaved - lockedAmount;
 
     const byBank: Record<string, { goals: SavingsGoal[]; totalSaved: number; totalTarget: number; monthlyPlanned: number; contribsInPeriod: number }> = {};
-    for (const goal of goals) {
+    for (const goal of liveGoals) {
       const bank = (goal as any).bank_name || (locale === 'fr' ? 'Non précisé' : 'Unspecified');
       if (!byBank[bank]) byBank[bank] = { goals: [], totalSaved: 0, totalTarget: 0, monthlyPlanned: 0, contribsInPeriod: 0 };
       byBank[bank].goals.push(goal);
@@ -106,10 +112,10 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
       byBank[bank].contribsInPeriod += goalContribsInPeriod[goal.id] || 0;
     }
 
-    return { totalSaved, totalTarget, totalMonthlyPlanned, totalContribsInPeriod, lockedAmount, availableAmount, byBank };
+    return { totalSaved, totalTarget, totalMonthlyPlanned, totalContribsInPeriod, lockedAmount, availableAmount, byBank, liveGoals };
   }, [goals, contributions, period, customFrom, customTo, locale]);
 
-  if (goals.length === 0) return null;
+  if (stats.liveGoals.length === 0) return null;
 
   const periodLabels: Record<PeriodKey, string> = {
     monthly: isFr ? 'Ce mois' : 'This month',
@@ -157,7 +163,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
             </div>
             <p className="text-xl font-bold font-display amount-display">{fmt(stats.totalMonthlyPlanned)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
-              {goals.filter(g => Number(g.monthly_contribution || 0) > 0).length} {isFr ? 'objectif(s) actif(s)' : 'active goal(s)'}
+              {stats.liveGoals.filter(g => Number(g.monthly_contribution || 0) > 0).length} {isFr ? 'objectif(s) actif(s)' : 'active goal(s)'}
             </p>
           </CardContent>
         </Card>
@@ -173,7 +179,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
             </div>
             <p className="text-xl font-bold font-display amount-display text-secondary">{fmt(stats.availableAmount)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
-              {goals.filter(g => !(g as any).is_locked).length} {isFr ? 'compte(s)' : 'account(s)'}
+              {stats.liveGoals.filter(g => !(g as any).is_locked).length} {isFr ? 'compte(s)' : 'account(s)'}
             </p>
           </CardContent>
         </Card>
@@ -189,7 +195,7 @@ export const SavingsGlobalStats = ({ goals, contributions, fmt, t, locale, onCar
             </div>
             <p className="text-xl font-bold font-display amount-display">{fmt(stats.lockedAmount)}</p>
             <p className="text-[10px] text-muted-foreground mt-1">
-              {goals.filter(g => (g as any).is_locked).length} {isFr ? 'compte(s)' : 'account(s)'}
+              {stats.liveGoals.filter(g => (g as any).is_locked).length} {isFr ? 'compte(s)' : 'account(s)'}
             </p>
           </CardContent>
         </Card>

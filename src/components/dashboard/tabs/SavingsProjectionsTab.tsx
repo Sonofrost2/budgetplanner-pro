@@ -7,6 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { Target, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { abbreviateNumber } from '@/lib/utils';
+import { isLiveGoal } from '@/lib/savingsLogic';
+import { annualizeRate, toMonthlyContribution } from '@/lib/financialNormalization';
 
 const TOOLTIP_STYLE = {
   borderRadius: '12px',
@@ -26,21 +28,34 @@ const SavingsProjectionsTab = ({ goals, fmt }: Props) => {
   const { locale } = useLanguage();
   const t = dashT[locale];
 
-  const totalCurrent = goals.reduce((s, g) => s + Number(g.current_amount), 0);
-  const totalTarget = goals.reduce((s, g) => s + Number(g.target_amount), 0);
+  // E1 — projections sur les objectifs vivants uniquement
+  const liveGoals = useMemo(() => goals.filter(isLiveGoal), [goals]);
+
+  const totalCurrent = liveGoals.reduce((s, g) => s + Number(g.current_amount), 0);
+  const totalTarget = liveGoals.reduce((s, g) => s + Number(g.target_amount), 0);
   const globalPct = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
   const projectionData = useMemo(() => {
     const months: { month: string; projected: number; target: number }[] = [];
     for (let i = 0; i <= 12; i++) {
       let projected = 0;
-      goals.forEach(g => {
-        const monthly = Number(g.monthly_contribution) || 0;
-        const rate = Number((g as any).interest_rate) || 0;
+      liveGoals.forEach(g => {
+        // E2 — normaliser cotisation et taux avant projection.
+        // monthly_contribution peut être exprimé dans une autre fréquence,
+        // et interest_rate n'est pas forcément annuel.
+        const monthly = toMonthlyContribution(
+          Number(g.monthly_contribution) || 0,
+          (g as any).contribution_frequency || 'monthly',
+        );
+        const annualPct = annualizeRate(
+          Number((g as any).interest_rate) || 0,
+          (g as any).interest_frequency || 'yearly',
+        );
+        const monthlyRate = annualPct / 100 / 12;
         let amount = Number(g.current_amount);
         for (let m = 0; m < i; m++) {
           amount += monthly;
-          amount += amount * (rate / 100 / 12);
+          amount += amount * monthlyRate;
         }
         projected += amount;
       });
@@ -48,9 +63,9 @@ const SavingsProjectionsTab = ({ goals, fmt }: Props) => {
       months.push({ month: label, projected, target: totalTarget });
     }
     return months;
-  }, [goals, totalTarget, locale]);
+  }, [liveGoals, totalTarget, locale]);
 
-  if (goals.length === 0) {
+  if (liveGoals.length === 0) {
     return (
       <Card className="border border-border/50 rounded-2xl">
         <CardContent className="py-12 text-center">
@@ -121,7 +136,7 @@ const SavingsProjectionsTab = ({ goals, fmt }: Props) => {
       </Card>
 
       <div className="space-y-3">
-        {goals.map(g => {
+        {liveGoals.map(g => {
           const pct = Number(g.target_amount) > 0 ? (Number(g.current_amount) / Number(g.target_amount)) * 100 : 0;
           return (
             <Card key={g.id} className="border border-border/50 rounded-2xl">
