@@ -657,7 +657,7 @@ const BudgetsPage = () => {
       {budgetLimitReached && <UpgradeBanner message={t.limitBudgetsReached(limits.budgets)} />}
 
       <BudgetsHeroHeader
-        budgets={budgets}
+        budgets={activeBudgets}
         spending={spending}
         fmt={fmt}
         locale={locale as 'fr' | 'en'}
@@ -668,11 +668,11 @@ const BudgetsPage = () => {
         onAlertClick={() => setActiveMainTab('analysis')}
       />
 
-      {budgets.length > 0 && (
-        <BudgetCoachInsights budgets={budgets} spending={spending} fmt={fmt} locale={locale as 'fr' | 'en'} />
+      {activeBudgets.length > 0 && (
+        <BudgetCoachInsights budgets={activeBudgets} spending={spending} fmt={fmt} locale={locale as 'fr' | 'en'} />
       )}
 
-      {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} fmt={fmt} onCardClick={(action) => {
+      {activeBudgets.length > 0 && <BudgetGlobalStats budgets={activeBudgets} spending={spending} fmt={fmt} onCardClick={(action) => {
         if (action === 'evolution') setActiveMainTab('evolution');
         else if (action === 'analysis') setActiveMainTab('analysis');
       }} />}
@@ -716,9 +716,25 @@ const BudgetsPage = () => {
               <TrendingUp className="w-3.5 h-3.5" />{t.incomeBudgets}
             </TabsTrigger>
           </TabsList>
-          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => openNew(activeTab)} disabled={budgetLimitReached}>
-            <Plus className="w-4 h-4 mr-1" />{t.addBudget}
-          </Button>
+          <div className="flex items-center gap-2">
+            {archivedCount > 0 && (
+              <Button
+                size="sm"
+                variant={showArchived ? 'default' : 'outline'}
+                className="rounded-xl gap-1.5"
+                onClick={() => setShowArchived(v => !v)}
+                title={isFr ? 'Afficher les cadres archivés' : 'Show archived budgets'}
+              >
+                <Archive className="w-3.5 h-3.5" />
+                {showArchived
+                  ? (isFr ? 'Masquer archivés' : 'Hide archived')
+                  : (isFr ? `Archivés (${archivedCount})` : `Archived (${archivedCount})`)}
+              </Button>
+            )}
+            <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => openNew(activeTab)} disabled={budgetLimitReached}>
+              <Plus className="w-4 h-4 mr-1" />{t.addBudget}
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="expense" className="mt-4">
