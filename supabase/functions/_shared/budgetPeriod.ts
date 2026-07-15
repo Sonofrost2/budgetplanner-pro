@@ -78,15 +78,45 @@ export function getBudgetPeriodBounds(
       periodEnd = new Date(year, qIdx * 3 + 3, 0);
     }
   } else if (period === 'semi_annual') {
-    const s = (now.getMonth() < 6 ? 0 : 1) - offset;
-    const year = now.getFullYear() + Math.floor(s / 2);
-    const sIdx = ((s % 2) + 2) % 2;
-    periodStart = new Date(year, sIdx * 6, 1);
-    periodEnd = new Date(year, sIdx * 6 + 6, 0);
+    if (referenceDate) {
+      const ref = parseLocalDateLoose(referenceDate);
+      periodStart = new Date(ref);
+      while (periodStart > now) periodStart.setMonth(periodStart.getMonth() - 6);
+      while (
+        new Date(periodStart.getFullYear(), periodStart.getMonth() + 6, periodStart.getDate()) <= now
+      ) {
+        periodStart.setMonth(periodStart.getMonth() + 6);
+      }
+      periodStart.setMonth(periodStart.getMonth() - offset * 6);
+      periodEnd = new Date(periodStart);
+      periodEnd.setMonth(periodEnd.getMonth() + 6);
+      periodEnd.setDate(periodEnd.getDate() - 1);
+    } else {
+      const s = (now.getMonth() < 6 ? 0 : 1) - offset;
+      const year = now.getFullYear() + Math.floor(s / 2);
+      const sIdx = ((s % 2) + 2) % 2;
+      periodStart = new Date(year, sIdx * 6, 1);
+      periodEnd = new Date(year, sIdx * 6 + 6, 0);
+    }
   } else if (period === 'yearly') {
-    const year = now.getFullYear() - offset;
-    periodStart = new Date(year, 0, 1);
-    periodEnd = new Date(year, 11, 31);
+    if (referenceDate) {
+      const ref = parseLocalDateLoose(referenceDate);
+      periodStart = new Date(ref);
+      while (periodStart > now) periodStart.setFullYear(periodStart.getFullYear() - 1);
+      while (
+        new Date(periodStart.getFullYear() + 1, periodStart.getMonth(), periodStart.getDate()) <= now
+      ) {
+        periodStart.setFullYear(periodStart.getFullYear() + 1);
+      }
+      periodStart.setFullYear(periodStart.getFullYear() - offset);
+      periodEnd = new Date(periodStart);
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+      periodEnd.setDate(periodEnd.getDate() - 1);
+    } else {
+      const year = now.getFullYear() - offset;
+      periodStart = new Date(year, 0, 1);
+      periodEnd = new Date(year, 11, 31);
+    }
   } else {
     // monthly default
     const m = now.getMonth() - offset;
