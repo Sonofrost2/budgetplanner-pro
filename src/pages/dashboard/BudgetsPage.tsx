@@ -8,7 +8,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
-import { useBudgets, useCategories, useInvalidate, useSavingsGoals } from '@/hooks/useDashboardData';
+import { useBudgets, useCategories, useInvalidate, useSavingsGoals, useAccounts } from '@/hooks/useDashboardData';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,11 +59,19 @@ const BudgetsPage = () => {
   const { data: budgets = [], isLoading: budLoading } = useBudgets({ includeArchived: true });
   const { data: allCategories = [], isLoading: catLoading } = useCategories();
   const { data: savingsGoals = [] } = useSavingsGoals();
+  const { data: accounts = [] } = useAccounts();
   const loading = budLoading || catLoading;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', amount: '', category_id: '', period: 'monthly', alert_threshold: '80', budget_type: 'expense', control_type: 'max', expected_day: '', occurrence_frequency: '', reference_date: '', active_days: '', linked_savings_goal_id: '' });
+  const EMPTY_FORM = {
+    name: '', amount: '', category_id: '', period: 'monthly', alert_threshold: '80',
+    budget_type: 'expense', control_type: 'max', expected_day: '', occurrence_frequency: '',
+    reference_date: '', active_days: '', linked_savings_goal_id: '',
+    is_renewable: true, carry_over: false, notes: '', priority: 'medium' as 'low'|'medium'|'high',
+    tags: '', payment_account_id: '',
+  };
+  const [form, setForm] = useState<typeof EMPTY_FORM>(EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
