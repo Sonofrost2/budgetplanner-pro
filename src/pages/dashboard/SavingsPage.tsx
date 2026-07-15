@@ -51,6 +51,7 @@ import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { LinkPicker } from '@/components/dashboard/LinkPicker';
 import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 import { SavingsGoalCard } from '@/components/dashboard/savings/SavingsGoalCard';
+import { SAVINGS_TEMPLATES, monthsFromNowISO } from '@/lib/savingsTemplates';
 import { PartialWithdrawDialog } from '@/components/dashboard/savings/PartialWithdrawDialog';
 import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSummaryTable';
 import { SavingsControlTable } from '@/components/dashboard/savings/SavingsControlTable';
