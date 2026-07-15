@@ -33,7 +33,7 @@ export const BudgetCoachInsights = forwardRef<HTMLDivElement, Props>(({ budgets,
     type Row = { b: any; pct: number; actual: number; amount: number };
     const rows: Row[] = active.map((b) => {
       const amount = Number(b.amount);
-      const actual = spending[b.category_id || ''] || 0;
+      const actual = spending[b.id] || 0;
       const pct = amount > 0 ? (actual / amount) * 100 : 0;
       return { b, pct, actual, amount };
     });

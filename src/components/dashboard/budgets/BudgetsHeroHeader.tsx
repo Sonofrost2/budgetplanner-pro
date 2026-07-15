@@ -37,7 +37,7 @@ export const BudgetsHeroHeader = ({
 
     for (const b of activeBudgets) {
       const amount = Number(b.amount);
-      const actual = spending[b.category_id || ''] || 0;
+      const actual = spending[b.id] || 0;
       const isMax = (b.control_type || 'max') === 'max';
       const threshold = b.alert_threshold ?? 80;
       const pct = amount > 0 ? (actual / amount) * 100 : 0;

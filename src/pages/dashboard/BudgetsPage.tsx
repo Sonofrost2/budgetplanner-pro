@@ -194,7 +194,7 @@ const BudgetsPage = () => {
       let cmp = 0;
       if (sortField === 'name') cmp = a.name.localeCompare(b.name);
       else if (sortField === 'amount') cmp = Number(a.amount) - Number(b.amount);
-      else if (sortField === 'spent') cmp = (spending[a.category_id || ''] || 0) - (spending[b.category_id || ''] || 0);
+      else if (sortField === 'spent') cmp = (spending[a.id] || 0) - (spending[b.id] || 0);
       return sortOrder === 'desc' ? -cmp : cmp;
     });
     return result;
@@ -208,7 +208,7 @@ const BudgetsPage = () => {
       let cmp = 0;
       if (sortField === 'name') cmp = a.name.localeCompare(b.name);
       else if (sortField === 'amount') cmp = Number(a.amount) - Number(b.amount);
-      else if (sortField === 'spent') cmp = (spending[a.category_id || ''] || 0) - (spending[b.category_id || ''] || 0);
+      else if (sortField === 'spent') cmp = (spending[a.id] || 0) - (spending[b.id] || 0);
       return sortOrder === 'desc' ? -cmp : cmp;
     });
     return result;
@@ -448,7 +448,7 @@ const BudgetsPage = () => {
   };
 
   const renderBudgetCard = (b: any) => {
-    const actual = spending[b.category_id || ''] || 0;
+    const actual = spending[b.id] || 0;
     const amount = Number(b.amount);
     const pct = amount > 0 ? Math.min((actual / amount) * 100, 100) : 0;
     const controlType = b.control_type || 'max';
