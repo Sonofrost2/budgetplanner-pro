@@ -12,7 +12,7 @@ import { DEFAULT_CURRENCY, exampleAmount, amountLabel } from '@/lib/currency';
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  goal: { id: string; name: string; current_amount: number; user_id: string };
+  goal: { id: string; name: string; current_amount: number; user_id: string; is_locked?: boolean };
   accounts: any[];
   onWithdrawn: () => void;
   locale?: string;
@@ -28,19 +28,31 @@ export const PartialWithdrawDialog = ({ open, onOpenChange, goal, accounts, onWi
   const handleWithdraw = async () => {
     const n = parseFloat(amount);
     if (!n || n <= 0) { coachToast.warn(fr ? 'Montant invalide' : 'Invalid amount'); return; }
+    if (goal.is_locked) { coachToast.warn(fr ? 'Objectif verrouillé — retrait impossible' : 'Locked goal — withdrawal blocked'); return; }
     if (n > goal.current_amount) { coachToast.warn(fr ? 'Solde insuffisant' : 'Insufficient balance'); return; }
     if (!accountId) { coachToast.warn(fr ? 'Compte requis' : 'Account required'); return; }
     setSaving(true);
     try {
-      const { error: e1 } = await supabase.from('savings_goals')
-        .update({ current_amount: goal.current_amount - n } as never).eq('id', goal.id);
-      if (e1) throw e1;
-      const { error: e2 } = await supabase.from('transactions').insert({
-        user_id: goal.user_id, type: 'income', amount: n,
-        description: `${fr ? 'Retrait épargne' : 'Savings withdrawal'}: ${goal.name}`,
-        account_id: accountId, date: new Date().toISOString().slice(0, 10),
-      } as never);
-      if (e2) throw e2;
+      // Retrait atomique + contrôle serveur (verrou, solde, ownership, ledger d'audit)
+      const { data, error } = await supabase.rpc('withdraw_from_goal' as any, {
+        p_goal_id: goal.id,
+        p_amount: n,
+        p_destination_account_id: accountId,
+        p_note: `${fr ? 'Retrait épargne' : 'Savings withdrawal'}: ${goal.name}`,
+      });
+      if (error) {
+        const code = (error.message || '').match(/GOAL_LOCKED|INSUFFICIENT_BALANCE|GOAL_DELETED|DESTINATION_ACCOUNT_INVALID|INVALID_AMOUNT|GOAL_NOT_FOUND/)?.[0];
+        const map: Record<string, string> = {
+          GOAL_LOCKED: fr ? 'Objectif verrouillé' : 'Goal locked',
+          INSUFFICIENT_BALANCE: fr ? 'Solde insuffisant' : 'Insufficient balance',
+          GOAL_DELETED: fr ? 'Objectif supprimé' : 'Goal deleted',
+          DESTINATION_ACCOUNT_INVALID: fr ? 'Compte destination invalide' : 'Invalid destination account',
+          INVALID_AMOUNT: fr ? 'Montant invalide' : 'Invalid amount',
+          GOAL_NOT_FOUND: fr ? 'Objectif introuvable' : 'Goal not found',
+        };
+        throw new Error(code ? map[code] : error.message);
+      }
+      void data;
       coachToast.money(fr ? 'Puisé dans votre épargne' : 'Withdrawn from your savings');
       onOpenChange(false);
       onWithdrawn();
