@@ -458,7 +458,7 @@ const BudgetsPage = () => {
             </div>
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-muted-foreground">{isFr ? 'Consommé cette année' : 'Consumed this year'}</span>
-              <span className="font-semibold amount-display">{fmt(annualActual)} <span className={`${annualPct > 100 ? 'text-destructive' : annualPct > 75 ? 'text-accent' : 'text-secondary'}`}>({Math.round(annualPct)}%)</span></span>
+              <span className="font-semibold amount-display">{fmt(annualActual)} <span className={`${annualPctRaw > 100 ? 'text-destructive' : annualPctRaw > 75 ? 'text-accent' : 'text-secondary'}`}>({Math.round(annualPctRaw)}%)</span></span>
             </div>
             <Progress value={Math.min(annualPct, 100)} className="h-1.5 rounded-full" />
           </div>
