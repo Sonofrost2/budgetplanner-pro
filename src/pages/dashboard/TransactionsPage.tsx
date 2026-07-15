@@ -33,6 +33,7 @@ import { TransactionInsightsBar } from '@/components/dashboard/transactions/Tran
 import { transactionSchema, validateForm } from '@/lib/validationSchemas';
 import { coachToast } from '@/lib/coachToast';
 import { showApiError } from '@/lib/apiError';
+import { sumIncome, sumExpense } from '@/lib/transactionMath';
 
 const PAGE_SIZE = 20;
 type SortField = 'date' | 'amount' | 'description';
