@@ -1,19 +1,18 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useMemo, useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
-import { supabase } from '@/integrations/supabase/client';
-import { getBudgetPeriodBounds, formatDateStr } from '@/lib/budgetProjection';
+import { useBudgets } from '@/hooks/useDashboardData';
+import { useBudgetSpending, type BudgetSpendingRange } from '@/hooks/useBudgetSpending';
+import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount } from '@/lib/budgetProjection';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-
-const PERIOD_MULTIPLIER: Record<string, number> = {
-  daily: 365, weekly: 52, monthly: 12, quarterly: 4, semi_annual: 2, yearly: 1,
-};
+import { Button } from '@/components/ui/button';
+import { ArrowUp, ArrowDown, ArrowUpDown, Target } from 'lucide-react';
 
 interface Row {
+  id: string;
   name: string;
   icon: string;
   color: string;
@@ -26,84 +25,125 @@ interface Row {
   projection: number;
   annualized: number;
   period: string;
+  isSavings: boolean;
+  daysElapsed: number;
 }
 
+type SortKey = 'name' | 'budget' | 'actual' | 'projection' | 'annualized' | 'variance' | 'pct';
 
 const BudgetVsActualReport = () => {
-  const { user } = useAuth();
   const { locale } = useLanguage();
   const { fmt: fmtCurrency } = useProfile();
   const t = dashT[locale];
-  const [rows, setRows] = useState<Row[]>([]);
+  const isFr = locale === 'fr';
+  const { data: budgets = [] } = useBudgets();
+  const [sortKey, setSortKey] = useState<SortKey>('pct');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const fmt = (n: number) => fmtCurrency(n, locale);
 
-  useEffect(() => {
-    if (!user) return;
+  // Filter out archived / soft-deleted budgets, then build spending ranges
+  // for the shared hook (keyed by budget id, savings-aware).
+  const activeBudgets = useMemo(
+    () => budgets.filter(b => !(b as any).archived_at),
+    [budgets],
+  );
 
-    supabase.from('budgets').select('*, categories(name, icon, color)').eq('user_id', user.id).then(async (budRes) => {
-      const budgets = budRes.data || [];
-      const results: Row[] = [];
-
-      const promises = budgets.map(async (b) => {
-        const bType = (b as any).budget_type || 'expense';
-        const controlType = (b as any).control_type || 'max';
-        const txType = bType === 'income' ? 'income' : 'expense';
-        const period = b.period || 'monthly';
-        const now = new Date();
-        const { periodStart: ps, periodEnd: pe } = getBudgetPeriodBounds(period, now, (b as any).reference_date);
-        const start = formatDateStr(ps);
-        const end = formatDateStr(pe);
-
-        const { data: spendingData } = await supabase.rpc('get_budget_spending', {
-          p_user_id: user.id,
-          p_category_id: b.category_id!,
-          p_type: txType,
-          p_start_date: start,
-          p_end_date: end,
-        });
-
-        const actual = Number(spendingData || 0);
-        const amount = Number(b.amount);
-        const variance = controlType === 'max' ? amount - actual : actual - amount;
-        const pct = amount > 0 ? Math.round((actual / amount) * 100) : 0;
-
-        // Projection
-        const periodStart = new Date(start);
-        const periodEnd = new Date(end);
-        const today = new Date();
-        const daysElapsed = Math.max(1, Math.floor((today.getTime() - periodStart.getTime()) / 86400000) + 1);
-        const daysTotal = Math.max(1, Math.floor((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1);
-        const projection = Math.round((actual / daysElapsed) * daysTotal);
-        const annualized = amount * (PERIOD_MULTIPLIER[period] || 12);
-
-        const cat = b.categories as { icon?: string; color?: string; name?: string } | null;
-        return {
-          name: b.name,
-          icon: cat?.icon || '📁',
-          color: cat?.color || '#6C63FF',
-          budget: amount,
-          actual,
-          variance,
-          pct,
-          controlType,
-          budgetType: bType,
-          projection,
-          annualized,
-          period,
-        };
-      });
-
-      const settled = await Promise.all(promises);
-      setRows(settled);
+  const ranges = useMemo<BudgetSpendingRange[]>(() => {
+    const now = new Date();
+    return activeBudgets.map(b => {
+      const bType = (b as any).budget_type || 'expense';
+      const { periodStart, periodEnd } = getBudgetPeriodBounds(b.period || 'monthly', now, (b as any).reference_date);
+      return {
+        id: b.id,
+        category_id: b.category_id,
+        type: bType === 'income' ? 'income' : 'expense',
+        start: formatDateStr(periodStart),
+        end: formatDateStr(periodEnd),
+        linked_savings_goal_id: (b as any).linked_savings_goal_id || null,
+      };
     });
-  }, [user]);
+  }, [activeBudgets]);
 
-  const totalBudget = rows.reduce((s, r) => s + r.budget, 0);
-  const totalActual = rows.reduce((s, r) => s + r.actual, 0);
-  const totalProjection = rows.reduce((s, r) => s + r.projection, 0);
-  const totalAnnualized = rows.reduce((s, r) => s + r.annualized, 0);
-  const totalPct = totalBudget > 0 ? Math.round((totalActual / totalBudget) * 100) : 0;
+  const { data: spending = {} } = useBudgetSpending(ranges, { queryKey: 'report' });
+
+  const rows: Row[] = useMemo(() => {
+    const now = new Date();
+    return activeBudgets.map(b => {
+      const bType = (b as any).budget_type || 'expense';
+      const controlType = (b as any).control_type || 'max';
+      const period = b.period || 'monthly';
+      const { periodStart, periodEnd } = getBudgetPeriodBounds(period, now, (b as any).reference_date);
+
+      const actual = Number(spending[b.id] || 0);
+      const amount = Number(b.amount);
+      const variance = controlType === 'max' ? amount - actual : actual - amount;
+      const pct = amount > 0 ? Math.round((actual / amount) * 100) : 0;
+
+      // Safer projection:
+      // - Requires ≥7 days of history to project (avoids the "1st-of-month → ×365" trap).
+      // - Capped at 2× the budget so a single spike doesn't wreck the display.
+      const daysElapsed = Math.max(1, Math.floor((now.getTime() - periodStart.getTime()) / 86400000) + 1);
+      const daysTotal = Math.max(1, Math.floor((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1);
+      const projection =
+        daysElapsed >= Math.min(7, daysTotal)
+          ? Math.min(Math.round((actual / daysElapsed) * daysTotal), amount * 3)
+          : actual; // Not enough data → show actual, not extrapolation
+
+      const annualized = Math.round(computeAnnualizedAmount(amount, period, (b as any).active_days));
+
+      const cat = (b as any).categories as { icon?: string; color?: string; name?: string } | null;
+      return {
+        id: b.id,
+        name: b.name,
+        icon: cat?.icon || '📁',
+        color: cat?.color || '#6C63FF',
+        budget: amount,
+        actual,
+        variance,
+        pct,
+        controlType,
+        budgetType: bType,
+        projection,
+        annualized,
+        period,
+        isSavings: !!(b as any).linked_savings_goal_id,
+        daysElapsed,
+      };
+    });
+  }, [activeBudgets, spending]);
+
+  const sortedRows = useMemo(() => {
+    const arr = [...rows];
+    const dir = sortDir === 'asc' ? 1 : -1;
+    arr.sort((a, b) => {
+      if (sortKey === 'name') return a.name.localeCompare(b.name) * dir;
+      return ((a[sortKey] as number) - (b[sortKey] as number)) * dir;
+    });
+    return arr;
+  }, [rows, sortKey, sortDir]);
+
+  // Split expense / income so the footer totals are meaningful.
+  const expenseRows = sortedRows.filter(r => r.budgetType !== 'income');
+  const incomeRows = sortedRows.filter(r => r.budgetType === 'income');
+
+  const sumOf = (rs: Row[], k: 'budget' | 'actual' | 'projection' | 'annualized') =>
+    rs.reduce((s, r) => s + r[k], 0);
+
+  const expTotals = {
+    budget: sumOf(expenseRows, 'budget'),
+    actual: sumOf(expenseRows, 'actual'),
+    projection: sumOf(expenseRows, 'projection'),
+    annualized: sumOf(expenseRows, 'annualized'),
+  };
+  const incTotals = {
+    budget: sumOf(incomeRows, 'budget'),
+    actual: sumOf(incomeRows, 'actual'),
+    projection: sumOf(incomeRows, 'projection'),
+    annualized: sumOf(incomeRows, 'annualized'),
+  };
+  const expPct = expTotals.budget > 0 ? Math.round((expTotals.actual / expTotals.budget) * 100) : 0;
+  const incPct = incTotals.budget > 0 ? Math.round((incTotals.actual / incTotals.budget) * 100) : 0;
 
   const getPctColor = (pct: number) => {
     if (pct > 100) return 'text-destructive';
@@ -122,6 +162,60 @@ const BudgetVsActualReport = () => {
     quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly,
   };
 
+  const SortableHead = ({ k, children, align = 'right' }: { k: SortKey; children: React.ReactNode; align?: 'left' | 'right' }) => {
+    const active = sortKey === k;
+    return (
+      <TableHead className={align === 'right' ? 'text-right' : ''}>
+        <button
+          type="button"
+          className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${active ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}
+          onClick={() => {
+            if (active) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+            else { setSortKey(k); setSortDir(k === 'name' ? 'asc' : 'desc'); }
+          }}
+        >
+          {children}
+          {active
+            ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)
+            : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+        </button>
+      </TableHead>
+    );
+  };
+
+  const renderBody = (rs: Row[]) => rs.map((r) => (
+    <TableRow key={r.id}>
+      <TableCell className="font-medium">
+        <span className="mr-2">{r.icon}</span>{r.name}
+        {r.isSavings && (
+          <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-md align-middle">
+            <Target className="w-2.5 h-2.5" />{isFr ? 'Épargne' : 'Savings'}
+          </span>
+        )}
+      </TableCell>
+      <TableCell className="text-right text-xs text-muted-foreground">{periodLabels[r.period] || r.period}</TableCell>
+      <TableCell className="text-right text-sm">{fmt(r.budget)}</TableCell>
+      <TableCell className="text-right text-sm font-semibold">{fmt(r.actual)}</TableCell>
+      <TableCell
+        className={`text-right text-sm ${r.projection > r.budget ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}
+        title={r.daysElapsed < 7 ? (isFr ? 'Peu de données — projection = réel' : 'Insufficient data — projection = actual') : undefined}
+      >
+        {fmt(r.projection)}
+        {r.daysElapsed < 7 && <span className="ml-1 text-[9px] text-muted-foreground/70">*</span>}
+      </TableCell>
+      <TableCell className="text-right text-xs text-muted-foreground">{fmt(r.annualized)}</TableCell>
+      <TableCell className={`text-right text-sm font-semibold ${r.variance >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+        {r.variance >= 0 ? '+' : ''}{fmt(r.variance)}
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <Progress value={Math.min(r.pct, 100)} className={`h-2 flex-1 rounded-full ${getBarClass(r.pct)}`} />
+          <span className={`text-xs font-bold w-10 text-right ${getPctColor(r.pct)}`}>{r.pct}%</span>
+        </div>
+      </TableCell>
+    </TableRow>
+  ));
+
   return (
     <Card className="border-none shadow-[var(--shadow-card)]">
       <CardHeader>
@@ -135,59 +229,91 @@ const BudgetVsActualReport = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t.category}</TableHead>
+                  <SortableHead k="name" align="left">{t.category}</SortableHead>
                   <TableHead className="text-right">{t.period}</TableHead>
-                  <TableHead className="text-right">Budget</TableHead>
-                  <TableHead className="text-right">{locale === 'fr' ? 'Réel' : 'Actual'}</TableHead>
-                  <TableHead className="text-right">{t.projection}</TableHead>
-                  <TableHead className="text-right">{t.annualized}</TableHead>
-                  <TableHead className="text-right">{t.variance}</TableHead>
-                  <TableHead className="min-w-[120px]">{t.consumptionPct}</TableHead>
+                  <SortableHead k="budget">Budget</SortableHead>
+                  <SortableHead k="actual">{isFr ? 'Réel' : 'Actual'}</SortableHead>
+                  <SortableHead k="projection">{t.projection}</SortableHead>
+                  <SortableHead k="annualized">{t.annualized}</SortableHead>
+                  <SortableHead k="variance">{t.variance}</SortableHead>
+                  <TableHead className="min-w-[120px]">
+                    <button
+                      type="button"
+                      className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${sortKey === 'pct' ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}
+                      onClick={() => { if (sortKey === 'pct') setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else { setSortKey('pct'); setSortDir('desc'); } }}
+                    >
+                      {t.consumptionPct}
+                      {sortKey === 'pct'
+                        ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)
+                        : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </button>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">
-                      <span className="mr-2">{r.icon}</span>{r.name}
+                {expenseRows.length > 0 && (
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableCell colSpan={8} className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-1.5">
+                      {isFr ? 'Dépenses' : 'Expenses'} · {expenseRows.length}
                     </TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground">{periodLabels[r.period] || r.period}</TableCell>
-                    <TableCell className="text-right text-sm">{fmt(r.budget)}</TableCell>
-                    <TableCell className="text-right text-sm font-semibold">{fmt(r.actual)}</TableCell>
-                    <TableCell className={`text-right text-sm ${r.projection > r.budget ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>{fmt(r.projection)}</TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground">{fmt(r.annualized)}</TableCell>
-                    <TableCell className={`text-right text-sm font-semibold ${r.variance >= 0 ? 'text-secondary' : 'text-destructive'}`}>
-                      {r.variance >= 0 ? '+' : ''}{fmt(r.variance)}
+                  </TableRow>
+                )}
+                {renderBody(expenseRows)}
+                {incomeRows.length > 0 && (
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableCell colSpan={8} className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-1.5">
+                      {isFr ? 'Revenus' : 'Income'} · {incomeRows.length}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {renderBody(incomeRows)}
+              </TableBody>
+              <TableFooter>
+                {expenseRows.length > 0 && (
+                  <TableRow>
+                    <TableCell className="font-bold">{isFr ? 'Total dépenses' : 'Total expenses'}</TableCell>
+                    <TableCell />
+                    <TableCell className="text-right font-bold">{fmt(expTotals.budget)}</TableCell>
+                    <TableCell className="text-right font-bold">{fmt(expTotals.actual)}</TableCell>
+                    <TableCell className={`text-right font-bold ${expTotals.projection > expTotals.budget ? 'text-destructive' : ''}`}>{fmt(expTotals.projection)}</TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground font-bold">{fmt(expTotals.annualized)}</TableCell>
+                    <TableCell className={`text-right font-bold ${expTotals.budget - expTotals.actual >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                      {expTotals.budget - expTotals.actual >= 0 ? '+' : ''}{fmt(expTotals.budget - expTotals.actual)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Progress value={Math.min(r.pct, 100)} className={`h-2 flex-1 rounded-full ${getBarClass(r.pct)}`} />
-                        <span className={`text-xs font-bold w-10 text-right ${getPctColor(r.pct)}`}>{r.pct}%</span>
+                        <Progress value={Math.min(expPct, 100)} className={`h-2 flex-1 rounded-full ${getBarClass(expPct)}`} />
+                        <span className={`text-xs font-bold w-10 text-right ${getPctColor(expPct)}`}>{expPct}%</span>
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell className="font-bold">{t.savingsTotal}</TableCell>
-                  <TableCell />
-                  <TableCell className="text-right font-bold">{fmt(totalBudget)}</TableCell>
-                  <TableCell className="text-right font-bold">{fmt(totalActual)}</TableCell>
-                  <TableCell className={`text-right font-bold ${totalProjection > totalBudget ? 'text-destructive' : ''}`}>{fmt(totalProjection)}</TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground font-bold">{fmt(totalAnnualized)}</TableCell>
-                  <TableCell className={`text-right font-bold ${totalBudget - totalActual >= 0 ? 'text-secondary' : 'text-destructive'}`}>
-                    {totalBudget - totalActual >= 0 ? '+' : ''}{fmt(totalBudget - totalActual)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Progress value={Math.min(totalPct, 100)} className={`h-2 flex-1 rounded-full ${getBarClass(totalPct)}`} />
-                      <span className={`text-xs font-bold w-10 text-right ${getPctColor(totalPct)}`}>{totalPct}%</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                )}
+                {incomeRows.length > 0 && (
+                  <TableRow>
+                    <TableCell className="font-bold">{isFr ? 'Total revenus' : 'Total income'}</TableCell>
+                    <TableCell />
+                    <TableCell className="text-right font-bold">{fmt(incTotals.budget)}</TableCell>
+                    <TableCell className="text-right font-bold">{fmt(incTotals.actual)}</TableCell>
+                    <TableCell className="text-right font-bold text-muted-foreground">{fmt(incTotals.projection)}</TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground font-bold">{fmt(incTotals.annualized)}</TableCell>
+                    <TableCell className={`text-right font-bold ${incTotals.actual - incTotals.budget >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                      {incTotals.actual - incTotals.budget >= 0 ? '+' : ''}{fmt(incTotals.actual - incTotals.budget)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Progress value={Math.min(incPct, 100)} className={`h-2 flex-1 rounded-full ${getBarClass(incPct)}`} />
+                        <span className={`text-xs font-bold w-10 text-right ${getPctColor(incPct)}`}>{incPct}%</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableFooter>
             </Table>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              * {isFr
+                ? 'Projection = réel tant que la période n\'a pas atteint 7 jours d\'historique.'
+                : 'Projection = actual until the period has ≥ 7 days of history.'}
+            </p>
           </div>
         )}
       </CardContent>
