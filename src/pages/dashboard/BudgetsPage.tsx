@@ -56,7 +56,7 @@ const BudgetsPage = () => {
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get('q') || '';
 
-  const { data: budgets = [], isLoading: budLoading } = useBudgets();
+  const { data: budgets = [], isLoading: budLoading } = useBudgets({ includeArchived: true });
   const { data: allCategories = [], isLoading: catLoading } = useCategories();
   const { data: savingsGoals = [] } = useSavingsGoals();
   const loading = budLoading || catLoading;
