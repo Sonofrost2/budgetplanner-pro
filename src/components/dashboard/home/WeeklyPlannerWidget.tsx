@@ -390,7 +390,7 @@ export const WeeklyPlannerWidget = ({
   // Build expense rows
   const expenseRows = useMemo(() => {
     return expenseBudgets.map(b => {
-      const range = getPeriodRange(b.period, weekStartDate);
+      const range = getPeriodRange(b.period, weekStartDate, b.reference_date);
       const rangeStart = range.start.toISOString().split('T')[0];
       const rangeEnd = range.end.toISOString().split('T')[0];
       const periodSpent = transactions
@@ -426,7 +426,7 @@ export const WeeklyPlannerWidget = ({
 
   const incomeRows = useMemo(() => {
     return incomeBudgets.map(b => {
-      const range = getPeriodRange(b.period, weekStartDate);
+      const range = getPeriodRange(b.period, weekStartDate, b.reference_date);
       const rangeStart = range.start.toISOString().split('T')[0];
       const rangeEnd = range.end.toISOString().split('T')[0];
       const periodReceived = transactions
