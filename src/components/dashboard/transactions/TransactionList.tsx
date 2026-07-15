@@ -466,8 +466,8 @@ export const TransactionList = ({
                           {tx.payment_accounts?.name ? (
                             <button
                               type="button"
-                              onClick={(e) => { e.stopPropagation(); if (tx.payment_account_id && onFilterAccount) onFilterAccount(tx.payment_account_id); }}
-                              disabled={!onFilterAccount || !tx.payment_account_id}
+                              onClick={(e) => { e.stopPropagation(); if (tx.account_id && onFilterAccount) onFilterAccount(tx.account_id); }}
+                              disabled={!onFilterAccount || !tx.account_id}
                               className="text-[10px] text-muted-foreground/50 flex-shrink-0 tabular-nums hidden md:inline hover:text-primary hover:underline underline-offset-2 disabled:hover:no-underline disabled:hover:text-muted-foreground/50"
                               title={locale === 'fr' ? 'Filtrer par ce compte' : 'Filter by this account'}
                             >
@@ -549,8 +549,8 @@ export const TransactionList = ({
                                 <span className="text-muted-foreground/30">·</span>
                                 <button
                                   type="button"
-                                  onClick={(e) => { e.stopPropagation(); if (tx.payment_account_id && onFilterAccount) onFilterAccount(tx.payment_account_id); }}
-                                  disabled={!onFilterAccount || !tx.payment_account_id}
+                                  onClick={(e) => { e.stopPropagation(); if (tx.account_id && onFilterAccount) onFilterAccount(tx.account_id); }}
+                                  disabled={!onFilterAccount || !tx.account_id}
                                   className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] hover:bg-primary/10 hover:text-primary transition-colors disabled:hover:bg-transparent disabled:hover:text-inherit"
                                   title={locale === 'fr' ? 'Filtrer par ce compte' : 'Filter by this account'}
                                 >
