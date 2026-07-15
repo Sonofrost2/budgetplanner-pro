@@ -1239,6 +1239,52 @@ const SavingsPage = () => {
             </div>
           </FormSection>
 
+          <FormSection
+            title={locale === 'fr' ? 'Contexte' : 'Context'}
+            icon={<Flag className="w-3.5 h-3.5" />}
+            collapsible
+            defaultOpen={!!(form.notes || (form.priority && form.priority !== '2') || (form.purpose && form.purpose !== 'other'))}
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="form-label flex items-center gap-1.5"><Flag className="w-3.5 h-3.5" />{locale === 'fr' ? 'Priorité' : 'Priority'}</Label>
+                <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">🟢 {locale === 'fr' ? 'Basse' : 'Low'}</SelectItem>
+                    <SelectItem value="2">🟡 {locale === 'fr' ? 'Moyenne' : 'Medium'}</SelectItem>
+                    <SelectItem value="3">🔥 {locale === 'fr' ? 'Haute' : 'High'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="form-label flex items-center gap-1.5"><Tag className="w-3.5 h-3.5" />{locale === 'fr' ? 'Nature' : 'Purpose'}</Label>
+                <Select value={form.purpose} onValueChange={v => setForm(f => ({ ...f, purpose: v }))}>
+                  <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="security">🛡️ {locale === 'fr' ? 'Sécurité (fonds d\'urgence)' : 'Security (emergency fund)'}</SelectItem>
+                    <SelectItem value="project">🚀 {locale === 'fr' ? 'Projet' : 'Project'}</SelectItem>
+                    <SelectItem value="lifestyle">🌴 {locale === 'fr' ? 'Style de vie' : 'Lifestyle'}</SelectItem>
+                    <SelectItem value="growth">📈 {locale === 'fr' ? 'Croissance / Investissement' : 'Growth / Investment'}</SelectItem>
+                    <SelectItem value="other">📁 {locale === 'fr' ? 'Autre' : 'Other'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="form-label flex items-center gap-1.5"><StickyNote className="w-3.5 h-3.5" />{locale === 'fr' ? 'Notes / Motivation' : 'Notes / Motivation'} <span className="text-muted-foreground font-normal">({t.optional})</span></Label>
+              <Textarea
+                value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                maxLength={500}
+                rows={3}
+                placeholder={locale === 'fr' ? 'Ex : Pour financer un voyage en famille en juillet, sans toucher au découvert…' : 'E.g. To fund a family trip in July, without dipping into overdraft…'}
+                className="rounded-xl resize-none"
+              />
+              <p className="text-[10px] text-muted-foreground text-right">{form.notes.length}/500</p>
+            </div>
+          </FormSection>
+
           <FormSection title={locale === 'fr' ? 'Paramètres avancés' : 'Advanced settings'} icon={<CalendarDays className="w-3.5 h-3.5" />} collapsible defaultOpen={!!form.account_id || !!form.start_date}>
             <div className="space-y-1.5">
               <Label className="form-label">{t.savingsTargetAccount} ({t.optional})</Label>
