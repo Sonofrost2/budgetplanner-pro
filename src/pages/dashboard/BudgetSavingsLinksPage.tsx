@@ -121,18 +121,14 @@ export default function BudgetSavingsLinksPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <Link2 className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold">{t('Liens Budget ↔ Épargne', 'Budget ↔ Savings Links')}</h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {t(
-            'Visualisez et gérez toutes vos liaisons entre budgets et objectifs d’épargne.',
-            'View and manage all links between your budgets and savings goals.'
-          )}
-        </p>
-      </div>
+      <PageHeader
+        title={t('Liens Budget ↔ Épargne', 'Budget ↔ Savings Links')}
+        icon={Link2}
+        description={t(
+          'Visualisez et gérez toutes vos liaisons entre budgets et objectifs d’épargne.',
+          'View and manage all links between your budgets and savings goals.'
+        )}
+      />
 
       <Card className="glass">
         <CardContent className="p-4 flex items-center gap-3">
