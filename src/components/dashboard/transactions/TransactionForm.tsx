@@ -120,7 +120,15 @@ export const TransactionForm = ({
 
   const filteredCategories = categories.filter(c => c.type === form.type);
   const isTransfer = form.type === 'transfer';
-  const showTransferTab = allowTransfer && !editing;
+  // Keep the transfer tab visible even when editing so the form layout matches
+  // the create form (consistent 3-tab selector). When editing, the transfer
+  // tab is disabled with a tooltip explaining why.
+  const showTransferTab = allowTransfer;
+  const transferTabDisabledReason = editing
+    ? (isFr
+        ? "Impossible de convertir une transaction existante en transfert. Supprimez-la et créez un transfert."
+        : "Cannot convert an existing transaction into a transfer. Delete it and create a transfer instead.")
+    : transferDisabledReason;
 
   // Auto-pre-fill category when picking a savings account linked to a budget.
   // Triggers on account_id change, only when category is empty and not editing.
@@ -221,15 +229,15 @@ export const TransactionForm = ({
               <motion.button
                 type="button"
                 onClick={() => {
-                  if (transferDisabledReason) { toast.error(transferDisabledReason); return; }
+                  if (transferTabDisabledReason) { toast.error(transferTabDisabledReason); return; }
                   setForm(f => ({ ...f, type: 'transfer', category_id: '' }));
                 }}
-                whileHover={transferDisabledReason ? undefined : { scale: 1.02 }}
-                whileTap={transferDisabledReason ? undefined : { scale: 0.98 }}
-                disabled={!!transferDisabledReason && !isTransfer}
-                aria-disabled={!!transferDisabledReason && !isTransfer}
-                title={transferDisabledReason || undefined}
-                className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${isTransfer ? 'border-primary bg-primary/10 text-primary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'} ${transferDisabledReason && !isTransfer ? 'opacity-50 cursor-not-allowed hover:bg-card' : ''}`}>
+                whileHover={transferTabDisabledReason ? undefined : { scale: 1.02 }}
+                whileTap={transferTabDisabledReason ? undefined : { scale: 0.98 }}
+                disabled={!!transferTabDisabledReason && !isTransfer}
+                aria-disabled={!!transferTabDisabledReason && !isTransfer}
+                title={transferTabDisabledReason || undefined}
+                className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${isTransfer ? 'border-primary bg-primary/10 text-primary shadow-sm' : 'border-border bg-card text-muted-foreground hover:bg-muted/50'} ${transferTabDisabledReason && !isTransfer ? 'opacity-50 cursor-not-allowed hover:bg-card' : ''}`}>
                 <ArrowLeftRight className="w-4 h-4" />{t.transfer}
               </motion.button>
             )}
