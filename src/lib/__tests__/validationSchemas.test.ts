@@ -26,7 +26,7 @@ describe('transactionSchema', () => {
       description: '', amount: '10', type: 'expense', date: today, notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) throw new Error('expected failure');
+    if (r.success) { throw new Error('expected failure'); }
     expect(r.errors.description).toBe(tFr.descriptionRequired);
   });
 
@@ -35,7 +35,7 @@ describe('transactionSchema', () => {
       description: 'x', amount: '0', type: 'expense', date: today, notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) throw new Error('expected failure');
+    if (r.success) { throw new Error('expected failure'); }
     expect(r.errors.amount).toBe(tFr.invalidAmount);
   });
 
@@ -44,7 +44,7 @@ describe('transactionSchema', () => {
       description: 'x', amount: '9999999999', type: 'expense', date: today, notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) throw new Error('expected failure');
+    if (r.success) { throw new Error('expected failure'); }
     expect(r.errors.amount).toBe(tFr.amountTooHigh);
   });
 });
@@ -64,7 +64,7 @@ describe('transferSchema', () => {
       from_account_id: 'a', to_account_id: 'b', notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) throw new Error('expected failure');
+    if (r.success) { throw new Error('expected failure'); }
     expect(r.errors.amount).toBe(tFr.invalidAmount);
   });
 
@@ -74,7 +74,7 @@ describe('transferSchema', () => {
       from_account_id: 'a', to_account_id: 'a', notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) throw new Error('expected failure');
+    if (r.success) { throw new Error('expected failure'); }
     expect(r.errors.to_account_id).toBe(tFr.transferSameAccount);
   });
 
@@ -84,7 +84,7 @@ describe('transferSchema', () => {
       from_account_id: '', to_account_id: 'b', notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) throw new Error('expected failure');
+    if (r.success) { throw new Error('expected failure'); }
     expect(r.errors.from_account_id).toBe('Compte source requis');
   });
 });
