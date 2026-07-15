@@ -102,11 +102,8 @@ const TransactionsPage = () => {
   const totalPages = paginatedResult?.totalPages ?? 1;
 
   const pageTotals = useMemo(() => {
-    let inc = 0, exp = 0;
-    for (const tx of transactions) {
-      if (tx.type === 'income') inc += Number(tx.amount);
-      else exp += Number(tx.amount);
-    }
+    const inc = sumIncome(transactions as any);
+    const exp = sumExpense(transactions as any);
     return { income: inc, expense: exp, net: inc - exp };
   }, [transactions]);
 
