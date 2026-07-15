@@ -95,6 +95,7 @@ const SavingsPage = () => {
   const { fmt: fmtCurrency, currency } = useProfile();
   const t = dashT[locale];
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initialSearch = searchParams.get('q') || '';
   const { data: savingsData, isLoading: loading, refetch: refetchSavings } = useSavingsPageData();
   const { data: budgetsAll = [] } = useBudgets();
