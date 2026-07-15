@@ -190,6 +190,40 @@ export const BLOG_POSTS: BlogPost[] = [
       ],
     },
   },
+  {
+    slug: 'budget-planner-vs-excel',
+    tag: 'Comparatif',
+    date: '2026-07-15',
+    readingMinutes: 7,
+    fr: {
+      title: 'Tableau Excel budget familial gratuit vs Budget Planner Pro : le comparatif 2026',
+      summary: "Excel reste la référence gratuite pour gérer un budget familial. Mais entre saisie manuelle, formules fragiles et partage compliqué, un outil dédié comme Budget Planner Pro change vraiment la donne. Comparatif honnête, cas d'usage et verdict.",
+      body: [
+        "Chaque mois, des milliers de familles francophones cherchent un « tableau Excel budget familial gratuit ». C'est un excellent réflexe : Excel (ou Google Sheets) est libre, connu de tous et suffisamment souple pour modéliser à peu près n'importe quoi. Mais après quelques semaines d'utilisation, les mêmes limites reviennent : oublis de saisie, formules cassées, fichier non partagé avec le conjoint, aucune vue mobile lisible. C'est exactement le vide que Budget Planner Pro cherche à combler — sans faire payer ce qu'Excel offre gratuitement.",
+        "Excel / Google Sheets : les vrais points forts. C'est gratuit, personnalisable à 100 % et vous restez propriétaire du fichier. Si vous êtes à l'aise avec les formules (SOMME.SI, TCD, mise en forme conditionnelle), vous pouvez construire un tableau de bord budgétaire très puissant. Pour un célibataire méthodique avec 1 seul compte et 20 transactions par mois, Excel suffit largement.",
+        "Excel : les limites qui rattrapent tout le monde. Saisie 100 % manuelle — chaque dépense mobile money, chaque retrait ATM doit être recopié à la main. Aucune notification quand un budget dépasse. Pas de multi-devises propre (XOF, EUR, USD dans le même fichier = casse-tête). Le partage familial fonctionne mal : soit tout le monde édite le même fichier et écrase les modifs, soit chacun a sa copie et plus rien n'est cohérent. Sur mobile, la lecture est acceptable, la saisie est douloureuse. Et le jour où une formule est supprimée par erreur, tout le tableau de bord s'effondre.",
+        "Budget Planner Pro : ce qu'Excel ne peut pas faire. 1) Saisie en 3 secondes depuis mobile, avec catégorisation intelligente basée sur l'historique. 2) 35+ comptes préconfigurés pour l'Afrique de l'Ouest (SGCI, Ecobank, Wave, Orange Money, MTN MoMo, espèces…) qui se soldent tout seuls. 3) Partage familial natif : conjoint et enfants majeurs voient le budget en temps réel, avec droits par rôle. 4) Alertes automatiques quand un budget approche de son plafond ou quand une échéance récurrente arrive. 5) Rapports PDF exportables pour la déclaration fiscale ou une demande de crédit. 6) Fonctionne hors ligne (PWA + APK Android), la synchronisation se fait dès la reconnexion.",
+        "Le vrai coût d'Excel. Excel est gratuit à télécharger, mais coûte cher en temps : comptez 30 à 45 minutes par semaine pour maintenir un tableau familial sérieux (saisie, réconciliation, correction de formules). Sur un an, c'est 25 à 40 heures. Budget Planner Pro est gratuit jusqu'à 20 opérations / mois — largement suffisant pour tester — et à partir de 990 FCFA / mois pour les usages intensifs, avec une saisie moyenne de 5 secondes par transaction.",
+        "Quand Excel reste le bon choix. Vous êtes seul(e), vous avez 1 compte, vous adorez bricoler des formules, et vous voulez un contrôle absolu du format. Aucun outil ne battra votre tableau sur-mesure. Utilisez plutôt un template Google Sheets partagé — plus robuste qu'Excel local pour le multi-appareils.",
+        "Quand passer à Budget Planner Pro. Vous êtes en famille, vous jonglez avec plusieurs wallets mobile money, vous voulez des alertes automatiques et un tableau de bord lisible sur téléphone, ou vous en avez marre de recommencer un fichier tous les 6 mois. La version gratuite permet de migrer votre historique Excel via import CSV en moins de 5 minutes.",
+        "Verdict. Excel est un excellent outil de calcul, pas un vrai outil de gestion budgétaire familiale. Budget Planner Pro n'essaie pas de remplacer Excel pour tout — il élimine simplement la friction qui fait abandonner 8 familles sur 10 après 3 mois de tableur. Le meilleur budget est celui que vous tenez vraiment sur la durée.",
+      ],
+    },
+    en: {
+      title: 'Free Family Budget Excel Template vs Budget Planner Pro: 2026 Comparison',
+      summary: 'Excel is still the go-to free tool for family budgeting. But between manual entry, fragile formulas and clunky sharing, a dedicated app like Budget Planner Pro changes the game. Honest comparison, use cases and verdict.',
+      body: [
+        "Every month, thousands of families search for a free Excel budget template. Good reflex: Excel (or Google Sheets) is free, familiar and flexible enough to model almost anything. But after a few weeks, the same pain points come back: missed entries, broken formulas, no real sharing with your partner, unreadable on mobile. That's exactly the gap Budget Planner Pro fills — without charging for what Excel already gives you for free.",
+        "Excel / Google Sheets: the real strengths. It's free, 100% customizable and you own the file. If you're comfortable with formulas (SUMIF, pivot tables, conditional formatting), you can build a very powerful budgeting dashboard. For a methodical single user with one account and ~20 transactions a month, Excel is more than enough.",
+        "Excel: the limits everyone eventually hits. 100% manual entry — every mobile-money payment, every ATM withdrawal has to be typed by hand. No alerts when a budget overshoots. Multi-currency (XOF, EUR, USD in the same file) is painful. Family sharing is broken: either everyone edits the same file and overwrites changes, or each person keeps a copy and nothing stays consistent. On mobile, reading is OK, entry is miserable. And the day a formula is accidentally deleted, the whole dashboard collapses.",
+        "Budget Planner Pro: what Excel can't do. 1) 3-second entry from mobile with smart categorization based on your history. 2) 35+ pre-configured accounts for West Africa (SGCI, Ecobank, Wave, Orange Money, MTN MoMo, cash…) that reconcile automatically. 3) Native family sharing: partner and adult kids see the budget in real time, with role-based rights. 4) Automatic alerts when a budget nears its cap or a recurring bill is due. 5) PDF reports exportable for taxes or a loan application. 6) Works offline (PWA + Android APK), syncs the moment you're back online.",
+        "The real cost of Excel. Excel is free to download but expensive in time: expect 30–45 minutes a week to maintain a serious family sheet (entry, reconciliation, formula fixes). That's 25–40 hours a year. Budget Planner Pro is free up to 20 operations / month — more than enough to try — and starts at 990 XOF / month for heavy usage, with an average entry time of 5 seconds per transaction.",
+        "When Excel is still the right pick. You're solo, you have one account, you love tinkering with formulas, and you want absolute control over the format. No app will beat your custom sheet. Prefer a shared Google Sheets template — more robust than local Excel for multi-device use.",
+        "When to move to Budget Planner Pro. You're managing a family budget, juggling multiple mobile-money wallets, you want automatic alerts and a mobile-first dashboard, or you're tired of restarting a spreadsheet every 6 months. The free tier lets you migrate your Excel history via CSV import in under 5 minutes.",
+        "Verdict. Excel is a great calculation tool, not a real family budgeting tool. Budget Planner Pro isn't trying to replace Excel for everything — it just removes the friction that makes 8 out of 10 families give up after 3 months of spreadsheets. The best budget is the one you actually stick to.",
+      ],
+    },
+  },
 ];
 
 export const getPost = (slug: string): BlogPost | undefined =>
