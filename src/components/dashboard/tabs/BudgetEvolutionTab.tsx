@@ -16,8 +16,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CHART_PALETTE, CHART_TOOLTIP_BG, CHART_GRID } from '@/lib/chartColors';
+import { CHART_PALETTE, CHART_GRID, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE } from '@/lib/chartColors';
 import { Badge } from '@/components/ui/badge';
+import { chartA11yProps } from '@/lib/a11y';
 
 // Convert any budget-period amount into a monthly equivalent so weekly,
 // quarterly or yearly limits are directly comparable to the monthly
@@ -37,10 +38,7 @@ type PeriodKey = '3m' | '6m' | '1y' | 'all' | 'custom';
 type TypeFilter = 'expense' | 'income' | 'all';
 type ViewMode = 'grouped' | 'overlay';
 
-const TOOLTIP_STYLE = {
-  borderRadius: '12px', border: 'none', background: CHART_TOOLTIP_BG,
-  boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontSize: '12px', padding: '8px 12px',
-};
+const TOOLTIP_STYLE = CHART_TOOLTIP_STYLE;
 
 const COLORS = CHART_PALETTE;
 
@@ -324,15 +322,26 @@ const BudgetEvolutionTab = () => {
             </div>
           ) : (
             <>
-              <div className="h-[420px]">
+              <div
+                className="h-[420px]"
+                {...chartA11yProps(
+                  isFr ? 'Évolution mensuelle des budgets' : 'Monthly budget evolution',
+                  isFr
+                    ? `${activeBudgets.length} budget(s) suivis sur ${chartData.length} mois. Mode ${viewMode === 'grouped' ? 'barres' : 'réel + limite'}.`
+                    : `${activeBudgets.length} budget(s) tracked across ${chartData.length} months. ${viewMode === 'grouped' ? 'Bars' : 'Actual + limit'} view.`,
+                )}
+              >
                 <ResponsiveContainer width="100%" height="100%">
                   {viewMode === 'grouped' ? (
                     <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} opacity={0.4} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => abbreviateNumber(v, locale)} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={v => abbreviateNumber(v, locale)} />
                       <Tooltip
                         contentStyle={TOOLTIP_STYLE}
+                        labelStyle={CHART_TOOLTIP_LABEL_STYLE}
+                        itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                        cursor={{ fill: 'hsl(var(--muted) / 0.4)' }}
                         formatter={(v: number, name: string) => {
                           const isLimit = name.startsWith('limit_');
                           const bId = name.replace('spent_', '').replace('limit_', '');
@@ -367,10 +376,13 @@ const BudgetEvolutionTab = () => {
                   ) : (
                     <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} opacity={0.4} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => abbreviateNumber(v, locale)} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={v => abbreviateNumber(v, locale)} />
                       <Tooltip
                         contentStyle={TOOLTIP_STYLE}
+                        labelStyle={CHART_TOOLTIP_LABEL_STYLE}
+                        itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                        cursor={{ fill: 'hsl(var(--muted) / 0.4)' }}
                         formatter={(v: number, name: string) => {
                           const isLimit = name.startsWith('limit_');
                           const bId = name.replace('spent_', '').replace('limit_', '');
@@ -417,23 +429,32 @@ const BudgetEvolutionTab = () => {
                 </ResponsiveContainer>
               </div>
               {/* Legend */}
-              <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4 pt-4 border-t border-border/50">
+              <ul
+                aria-label={isFr ? 'Légende du graphique' : 'Chart legend'}
+                className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4 pt-4 border-t border-border/50 list-none"
+              >
                 {activeBudgets.map((b, i) => {
                   const cat = categories.find(c => c.id === b.category_id);
                   return (
-                    <div key={b.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="w-3 h-1.5 rounded-full" style={{ background: cat?.color || COLORS[i % COLORS.length] }} />
+                    <li key={b.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span aria-hidden="true" className="w-3 h-1.5 rounded-full" style={{ background: cat?.color || COLORS[i % COLORS.length] }} />
                       <span>{cat?.icon || '📊'} {b.name}</span>
                       {sharedCategoryIds.has(b.id) && (
-                        <AlertTriangle className="w-3 h-3 text-accent" />
+                        <AlertTriangle
+                          className="w-3 h-3 text-accent"
+                          aria-label={isFr ? 'Catégorie partagée entre plusieurs budgets' : 'Category shared across budgets'}
+                        />
                       )}
                       {savingsLinkedIds.has(b.id) && (
-                        <Target className="w-3 h-3 text-primary" />
+                        <Target
+                          className="w-3 h-3 text-primary"
+                          aria-label={isFr ? 'Budget lié à une épargne' : 'Budget linked to a savings goal'}
+                        />
                       )}
-                    </div>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             </>
           )}
         </CardContent>
