@@ -932,6 +932,7 @@ export type Database = {
           quiet_hours_start: number
           recurring_reminders: boolean
           reminder_delivery_mode: string
+          savings_deadline_alerts: boolean
           savings_reminders: boolean
           smart_grouping_enabled: boolean
           status_reminder_frequency: string
@@ -976,6 +977,7 @@ export type Database = {
           quiet_hours_start?: number
           recurring_reminders?: boolean
           reminder_delivery_mode?: string
+          savings_deadline_alerts?: boolean
           savings_reminders?: boolean
           smart_grouping_enabled?: boolean
           status_reminder_frequency?: string
@@ -1020,6 +1022,7 @@ export type Database = {
           quiet_hours_start?: number
           recurring_reminders?: boolean
           reminder_delivery_mode?: string
+          savings_deadline_alerts?: boolean
           savings_reminders?: boolean
           smart_grouping_enabled?: boolean
           status_reminder_frequency?: string
