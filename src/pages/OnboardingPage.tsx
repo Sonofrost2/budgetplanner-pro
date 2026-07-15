@@ -77,6 +77,17 @@ const OnboardingPage = () => {
       .then(({ data }) => setPlans(data || []));
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('categories')
+      .select('id, name, icon, type')
+      .eq('user_id', user.id)
+      .eq('type', 'expense')
+      .order('name')
+      .then(({ data }) => setExpenseCategories((data || []) as any));
+  }, [user]);
+
   // Handle Paystack callback (?reference=...&paystack=1)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
