@@ -17,15 +17,10 @@ import { getBudgetPeriodBounds, formatDateStr, normalizeAmountToDays } from '@/l
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { chartA11yProps } from '@/lib/a11y';
+import { CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE } from '@/lib/chartColors';
 
-const TOOLTIP_STYLE = {
-  borderRadius: '12px',
-  border: 'none',
-  background: 'hsl(var(--card))',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-  fontSize: '12px',
-  padding: '8px 12px',
-};
+const TOOLTIP_STYLE = CHART_TOOLTIP_STYLE;
 
 type AnalysisPeriod = 'current' | 'last_month' | 'last_3' | 'last_6' | 'last_year' | 'custom';
 type SortMode = 'name' | 'consumed_desc' | 'variance_desc' | 'variance_asc';
@@ -527,28 +522,65 @@ const BudgetAnalysisTab = () => {
             )}
           </CardHeader>
           <CardContent>
-            <div style={{ height: Math.max(288, displayedAnalysis.length * 44 + 40) }} ref={chartRef}>
+            <div
+              style={{ height: Math.max(288, displayedAnalysis.length * 44 + 40) }}
+              ref={chartRef}
+              {...chartA11yProps(
+                t.budgetVsActual,
+                isFr
+                  ? `${displayedAnalysis.length} budget(s) affichés, budget total ${fmt(summary.totalBudgeted)}, consommé ${fmt(summary.totalConsumed)} (${summary.consumptionRate}%).`
+                  : `${displayedAnalysis.length} budget(s) shown, total budgeted ${fmt(summary.totalBudgeted)}, consumed ${fmt(summary.totalConsumed)} (${summary.consumptionRate}%).`,
+              )}
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical" barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                  <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => abbreviateNumber(v, locale)} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={100} />
-                  <Tooltip formatter={(v: number) => fmt(v)} contentStyle={TOOLTIP_STYLE} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => abbreviateNumber(v, locale)} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} width={100} />
+                  <Tooltip
+                    formatter={(v: number) => fmt(v)}
+                    contentStyle={TOOLTIP_STYLE}
+                    labelStyle={CHART_TOOLTIP_LABEL_STYLE}
+                    itemStyle={CHART_TOOLTIP_ITEM_STYLE}
+                    cursor={{ fill: 'hsl(var(--muted) / 0.4)' }}
+                  />
                   <Bar dataKey="budget" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name={t.budgetAmount} />
                   <Bar dataKey="actual" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} name={t.spent} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex items-center justify-center gap-6 mt-2">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="w-3 h-1 rounded-full bg-primary" />
+            <ul className="flex items-center justify-center gap-6 mt-2 list-none" aria-label={isFr ? 'Légende du graphique' : 'Chart legend'}>
+              <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span aria-hidden="true" className="w-3 h-1 rounded-full bg-primary" />
                 {t.budgetAmount}
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="w-3 h-1 rounded-full bg-destructive" />
+              </li>
+              <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span aria-hidden="true" className="w-3 h-1 rounded-full bg-destructive" />
                 {t.spent}
-              </div>
-            </div>
+              </li>
+            </ul>
+            {/* Screen-reader accessible table alternative for the chart. */}
+            <table className="sr-only">
+              <caption>{isFr ? 'Détail Budget vs Réel' : 'Budget vs Actual details'}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">{t.category}</th>
+                  <th scope="col">{t.budgetAmount}</th>
+                  <th scope="col">{t.spent}</th>
+                  <th scope="col">{t.variance}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedAnalysis.map(a => (
+                  <tr key={a.budget.id}>
+                    <th scope="row">{a.budget.name}</th>
+                    <td>{fmt(a.amount)}</td>
+                    <td>{fmt(a.actual)}</td>
+                    <td>{fmt(a.variance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       )}
