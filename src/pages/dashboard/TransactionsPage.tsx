@@ -1084,6 +1084,25 @@ const TransactionsPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.35 }}
       >
+        {/* Unified results + net summary bar (page slice) */}
+        {transactions.length > 0 && (
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-primary/[0.04] border border-primary/15 backdrop-blur-sm">
+            <p className="text-[11px] text-muted-foreground font-medium tabular-nums">
+              <span className="text-foreground font-bold">{totalCount}</span> {t.results}
+              <span className="text-muted-foreground/50 mx-2">·</span>
+              <span className="text-muted-foreground/70">
+                {locale === 'fr' ? 'Page' : 'Page'} {page + 1}/{totalPages}
+              </span>
+            </p>
+            <div className="flex items-center gap-4 text-[11px] font-bold tabular-nums">
+              <span className="text-secondary">+{fmt(pageTotals.income)}</span>
+              <span className="text-destructive">-{fmt(pageTotals.expense)}</span>
+              <span className={`pl-4 border-l border-border/40 ${pageTotals.net >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                {locale === 'fr' ? 'Solde' : 'Net'}: {pageTotals.net >= 0 ? '+' : '-'}{fmt(Math.abs(pageTotals.net))}
+              </span>
+            </div>
+          </div>
+        )}
         <TransactionList
           transactions={transactions}
           totalCount={totalCount}
