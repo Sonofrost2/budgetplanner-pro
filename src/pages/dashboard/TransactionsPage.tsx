@@ -101,6 +101,15 @@ const TransactionsPage = () => {
   const totalCount = paginatedResult?.totalCount ?? 0;
   const totalPages = paginatedResult?.totalPages ?? 1;
 
+  const pageTotals = useMemo(() => {
+    let inc = 0, exp = 0;
+    for (const tx of transactions) {
+      if (tx.type === 'income') inc += Number(tx.amount);
+      else exp += Number(tx.amount);
+    }
+    return { income: inc, expense: exp, net: inc - exp };
+  }, [transactions]);
+
   const { data: categories = [], isLoading: catLoading } = useCategories();
   const { data: accounts = [], isLoading: accLoading } = useAccounts();
   const { data: budgets = [] } = useBudgets();
@@ -590,9 +599,19 @@ const TransactionsPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.3 }}
         >
-          <TabsList className="rounded-xl mb-4 bg-muted/50 p-1">
-            <TabsTrigger value="manage" className="rounded-lg gap-1.5 data-[state=active]:shadow-sm transition-all"><ArrowUpDown className="w-4 h-4" />{t.management}</TabsTrigger>
-            <TabsTrigger value="stats" className="rounded-lg gap-1.5 data-[state=active]:shadow-sm transition-all"><BarChart3 className="w-4 h-4" />{t.transactionsStats}</TabsTrigger>
+          <TabsList className="inline-flex mb-4 p-1 h-auto rounded-xl bg-[hsl(var(--glass))] backdrop-blur-xl border border-[hsl(var(--glass-border))] shadow-sm">
+            <TabsTrigger
+              value="manage"
+              className="rounded-lg gap-1.5 px-4 py-1.5 text-xs font-semibold text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-background/80 data-[state=active]:shadow-sm transition-all"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5" />{t.management}
+            </TabsTrigger>
+            <TabsTrigger
+              value="stats"
+              className="rounded-lg gap-1.5 px-4 py-1.5 text-xs font-semibold text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-background/80 data-[state=active]:shadow-sm transition-all"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />{t.transactionsStats}
+            </TabsTrigger>
           </TabsList>
         </motion.div>
 
@@ -678,13 +697,6 @@ const TransactionsPage = () => {
         locale={locale as 'fr' | 'en'}
         categories={categories as any}
       />
-
-      {/* Result count */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground tabular-nums">
-          <span className="font-bold text-foreground">{totalCount}</span> {t.results}
-        </p>
-      </div>
 
       {/* Filters */}
       <motion.div
@@ -1072,6 +1084,25 @@ const TransactionsPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.35 }}
       >
+        {/* Unified results + net summary bar (page slice) */}
+        {transactions.length > 0 && (
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-primary/[0.04] border border-primary/15 backdrop-blur-sm">
+            <p className="text-[11px] text-muted-foreground font-medium tabular-nums">
+              <span className="text-foreground font-bold">{totalCount}</span> {t.results}
+              <span className="text-muted-foreground/50 mx-2">·</span>
+              <span className="text-muted-foreground/70">
+                {locale === 'fr' ? 'Page' : 'Page'} {page + 1}/{totalPages}
+              </span>
+            </p>
+            <div className="flex items-center gap-4 text-[11px] font-bold tabular-nums">
+              <span className="text-secondary">+{fmt(pageTotals.income)}</span>
+              <span className="text-destructive">-{fmt(pageTotals.expense)}</span>
+              <span className={`pl-4 border-l border-border/40 ${pageTotals.net >= 0 ? 'text-secondary' : 'text-destructive'}`}>
+                {locale === 'fr' ? 'Solde' : 'Net'}: {pageTotals.net >= 0 ? '+' : '-'}{fmt(Math.abs(pageTotals.net))}
+              </span>
+            </div>
+          </div>
+        )}
         <TransactionList
           transactions={transactions}
           totalCount={totalCount}
