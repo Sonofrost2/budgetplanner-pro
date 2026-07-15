@@ -21,7 +21,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { ScrollReveal } from '@/hooks/useScrollReveal';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat, BarChart3, Target } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat, BarChart3, Target, Archive, ArchiveRestore } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { toast } from 'sonner';
@@ -56,7 +56,7 @@ const BudgetsPage = () => {
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get('q') || '';
 
-  const { data: budgets = [], isLoading: budLoading } = useBudgets();
+  const { data: budgets = [], isLoading: budLoading } = useBudgets({ includeArchived: true });
   const { data: allCategories = [], isLoading: catLoading } = useCategories();
   const { data: savingsGoals = [] } = useSavingsGoals();
   const loading = budLoading || catLoading;
@@ -76,6 +76,9 @@ const BudgetsPage = () => {
   const [sortField, setSortField] = useState<'name' | 'amount' | 'spent'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterPeriod, setFilterPeriod] = useState('');
+  // Archived budgets are hidden by default and excluded from every stat.
+  // The toggle exposes them so the user can restore or delete them.
+  const [showArchived, setShowArchived] = useState(false);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -147,8 +150,20 @@ const BudgetsPage = () => {
     staleTime: 30_000,
   });
 
+  // Base list every stat/section works from: excludes archived unless the
+  // user explicitly toggled "Afficher archivés". Keeps global KPIs,
+  // coach insights and analysis tabs in agreement with the visible cards.
+  const activeBudgets = useMemo(
+    () => budgets.filter(b => showArchived ? true : !(b as any).archived_at),
+    [budgets, showArchived],
+  );
+  const archivedCount = useMemo(
+    () => budgets.filter(b => !!(b as any).archived_at).length,
+    [budgets],
+  );
+
   const expenseBudgets = useMemo(() => {
-    let result = budgets.filter(b => (b as any).budget_type !== 'income');
+    let result = activeBudgets.filter(b => (b as any).budget_type !== 'income');
     if (searchQuery) { const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean); result = result.filter(b => terms.some(q => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q))); }
     if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
     result = [...result].sort((a, b) => {
@@ -159,10 +174,10 @@ const BudgetsPage = () => {
       return sortOrder === 'desc' ? -cmp : cmp;
     });
     return result;
-  }, [budgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
+  }, [activeBudgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
 
   const incomeBudgets = useMemo(() => {
-    let result = budgets.filter(b => (b as any).budget_type === 'income');
+    let result = activeBudgets.filter(b => (b as any).budget_type === 'income');
     if (searchQuery) { const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean); result = result.filter(b => terms.some(q => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q))); }
     if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
     result = [...result].sort((a, b) => {
@@ -173,7 +188,7 @@ const BudgetsPage = () => {
       return sortOrder === 'desc' ? -cmp : cmp;
     });
     return result;
-  }, [budgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
+  }, [activeBudgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
 
   const currentBudgets = activeTab === 'expense' ? expenseBudgets : incomeBudgets;
 
@@ -184,7 +199,9 @@ const BudgetsPage = () => {
     bulk.clear();
   };
 
-  const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
+  // Archived budgets don't consume the free-plan quota — only active ones.
+  const budgetLimitReached =
+    !isPremium && budgets.filter(b => !(b as any).archived_at).length >= limits.budgets;
 
   const validate = () => {
     const result = validateForm(budgetSchema(t, locale), form);
@@ -246,6 +263,22 @@ const BudgetsPage = () => {
     if (error) { coachToast.fail(error.message); return; }
     setDeleteId(null); refreshData();
     coachToast.warn(isFr ? 'Cadre supprimé 🗑️' : 'Budget deleted 🗑️');
+  };
+
+  const handleToggleArchive = async (b: any) => {
+    const isArchived = !!b.archived_at;
+    // Soft archive: keep the row (with history) but hide it from stats.
+    const { error } = await supabase
+      .from('budgets')
+      .update({ archived_at: isArchived ? null : new Date().toISOString() } as any)
+      .eq('id', b.id);
+    if (error) { coachToast.fail(error.message); return; }
+    refreshData();
+    if (isArchived) {
+      coachToast.saved(isFr ? 'Cadre restauré ♻️' : 'Budget restored ♻️');
+    } else {
+      coachToast.warn(isFr ? 'Cadre archivé 📦' : 'Budget archived 📦');
+    }
   };
 
   const handleBulkDelete = async () => {
@@ -382,10 +415,13 @@ const BudgetsPage = () => {
     const remaining = isMax ? amount - actual : actual - amount;
     const isSelected = bulk.selectedIds.has(b.id);
 
-    // Annualized calculation
+    // Annualized calculation — cap both bars at 100% so the visual scale is
+    // consistent with the period progress bar above. Overrun is signalled via
+    // color + numeric % label, not a longer bar.
     const annualized = computeAnnualizedAmount(amount, b.period, b.active_days);
     const annualActual = annualSpending[b.category_id || ''] || 0;
-    const annualPct = annualized > 0 ? Math.min((annualActual / annualized) * 100, 150) : 0;
+    const annualPctRaw = annualized > 0 ? (annualActual / annualized) * 100 : 0;
+    const annualPct = Math.min(annualPctRaw, 100);
 
     // Period calculations — smart days remaining
     const range = budgetPeriodRanges.find(r => r.id === b.id);
@@ -405,14 +441,21 @@ const BudgetsPage = () => {
 
     return (
       <ScrollReveal key={b.id}>
-      <Card className={`card-interactive hover:-translate-y-1 glow-primary ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
+      <Card className={`card-interactive hover:-translate-y-1 glow-primary ${(b as any).archived_at ? 'opacity-60' : ''} ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-bold flex items-center gap-2.5">
               <Checkbox checked={isSelected} onCheckedChange={() => bulk.toggle(b.id)} className="mr-1" />
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: (b.categories?.color || '#6C63FF') + '20' }}>{b.categories?.icon || '📁'}</div>
               <div>
-                <span>{b.name}</span>
+                <span className="flex items-center gap-1.5">
+                  {b.name}
+                  {(b as any).archived_at && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      <Archive className="w-2.5 h-2.5" />{isFr ? 'Archivé' : 'Archived'}
+                    </span>
+                  )}
+                </span>
                 <p className="text-[11px] font-normal text-muted-foreground">
                   {b.categories?.name || '-'} · {periodLabels[b.period] || b.period}
                   {isIncome && <span className="ml-1 text-secondary">↗</span>}
@@ -422,6 +465,15 @@ const BudgetsPage = () => {
             </CardTitle>
             <div className="flex gap-1">
               <Button aria-label="Modifier" variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(b)}><Pencil className="w-3.5 h-3.5" /></Button>
+              <Button
+                aria-label={(b as any).archived_at ? (isFr ? 'Restaurer' : 'Restore') : (isFr ? 'Archiver' : 'Archive')}
+                title={(b as any).archived_at ? (isFr ? 'Restaurer' : 'Restore') : (isFr ? 'Archiver' : 'Archive')}
+                variant="ghost" size="icon"
+                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-accent"
+                onClick={() => handleToggleArchive(b)}
+              >
+                {(b as any).archived_at ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+              </Button>
               <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(b.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
             </div>
           </div>
@@ -455,7 +507,7 @@ const BudgetsPage = () => {
             </div>
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-muted-foreground">{isFr ? 'Consommé cette année' : 'Consumed this year'}</span>
-              <span className="font-semibold amount-display">{fmt(annualActual)} <span className={`${annualPct > 100 ? 'text-destructive' : annualPct > 75 ? 'text-accent' : 'text-secondary'}`}>({Math.round(annualPct)}%)</span></span>
+              <span className="font-semibold amount-display">{fmt(annualActual)} <span className={`${annualPctRaw > 100 ? 'text-destructive' : annualPctRaw > 75 ? 'text-accent' : 'text-secondary'}`}>({Math.round(annualPctRaw)}%)</span></span>
             </div>
             <Progress value={Math.min(annualPct, 100)} className="h-1.5 rounded-full" />
           </div>
@@ -607,7 +659,7 @@ const BudgetsPage = () => {
       {budgetLimitReached && <UpgradeBanner message={t.limitBudgetsReached(limits.budgets)} />}
 
       <BudgetsHeroHeader
-        budgets={budgets}
+        budgets={activeBudgets}
         spending={spending}
         fmt={fmt}
         locale={locale as 'fr' | 'en'}
@@ -618,11 +670,11 @@ const BudgetsPage = () => {
         onAlertClick={() => setActiveMainTab('analysis')}
       />
 
-      {budgets.length > 0 && (
-        <BudgetCoachInsights budgets={budgets} spending={spending} fmt={fmt} locale={locale as 'fr' | 'en'} />
+      {activeBudgets.length > 0 && (
+        <BudgetCoachInsights budgets={activeBudgets} spending={spending} fmt={fmt} locale={locale as 'fr' | 'en'} />
       )}
 
-      {budgets.length > 0 && <BudgetGlobalStats budgets={budgets} spending={spending} fmt={fmt} onCardClick={(action) => {
+      {activeBudgets.length > 0 && <BudgetGlobalStats budgets={activeBudgets} spending={spending} fmt={fmt} onCardClick={(action) => {
         if (action === 'evolution') setActiveMainTab('evolution');
         else if (action === 'analysis') setActiveMainTab('analysis');
       }} />}
@@ -666,9 +718,25 @@ const BudgetsPage = () => {
               <TrendingUp className="w-3.5 h-3.5" />{t.incomeBudgets}
             </TabsTrigger>
           </TabsList>
-          <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => openNew(activeTab)} disabled={budgetLimitReached}>
-            <Plus className="w-4 h-4 mr-1" />{t.addBudget}
-          </Button>
+          <div className="flex items-center gap-2">
+            {archivedCount > 0 && (
+              <Button
+                size="sm"
+                variant={showArchived ? 'default' : 'outline'}
+                className="rounded-xl gap-1.5"
+                onClick={() => setShowArchived(v => !v)}
+                title={isFr ? 'Afficher les cadres archivés' : 'Show archived budgets'}
+              >
+                <Archive className="w-3.5 h-3.5" />
+                {showArchived
+                  ? (isFr ? 'Masquer archivés' : 'Hide archived')
+                  : (isFr ? `Archivés (${archivedCount})` : `Archived (${archivedCount})`)}
+              </Button>
+            )}
+            <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => openNew(activeTab)} disabled={budgetLimitReached}>
+              <Plus className="w-4 h-4 mr-1" />{t.addBudget}
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="expense" className="mt-4">

@@ -170,3 +170,51 @@ export function computeAnnualizedAmount(
   };
   return Math.round(amount * (multipliers[period] || 12));
 }
+
+/**
+ * Return the effective duration in days that ONE occurrence of a budget
+ * `amount` covers. Derived from the same constants as
+ * `computeAnnualizedAmount` so the two helpers stay perfectly consistent —
+ * i.e. `normalizeAmountToDays(amount, period, ad, DAYS_PER_YEAR)` always
+ * equals `computeAnnualizedAmount(amount, period, ad)`.
+ *
+ * For `daily` with `active_days` set to n<7, one weekly cycle contains
+ * n active days, so a single "amount" covers 7/n calendar days on average.
+ */
+export function getBudgetPeriodDays(
+  period: string,
+  activeDays?: string | null,
+): number {
+  if (period === 'daily') {
+    const activeDaysArr = activeDays ? String(activeDays).split(',').filter(Boolean) : [];
+    if (activeDaysArr.length > 0 && activeDaysArr.length < 7) {
+      return 7 / activeDaysArr.length;
+    }
+    return 1;
+  }
+  const daysMap: Record<string, number> = {
+    weekly: 7,
+    monthly: DAYS_PER_YEAR / 12,       // ≈ 30.4375
+    quarterly: DAYS_PER_YEAR / 4,      // ≈ 91.3125
+    semi_annual: DAYS_PER_YEAR / 2,    // ≈ 182.625
+    yearly: DAYS_PER_YEAR,             // 365.25
+  };
+  return daysMap[period] || daysMap.monthly;
+}
+
+/**
+ * Normalize a budget `amount` (expressed in its own period) to an arbitrary
+ * duration in days. Single source of truth for any temporal projection —
+ * the analysis tab, weekly planner, reports, etc. must call this helper
+ * rather than reimplementing their own period tables.
+ */
+export function normalizeAmountToDays(
+  amount: number,
+  period: string,
+  activeDays: string | null | undefined,
+  targetDays: number,
+): number {
+  const budgetPeriodDays = getBudgetPeriodDays(period, activeDays);
+  if (budgetPeriodDays <= 0) return amount;
+  return amount * (targetDays / budgetPeriodDays);
+}
