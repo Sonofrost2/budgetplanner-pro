@@ -66,7 +66,7 @@ var list_transactions_default = defineTool2({
   handler: async ({ type, start_date, end_date, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return errorResult("Not authenticated");
     const supabase = supabaseForUser(ctx);
-    let query = supabase.from("transactions").select("id, date, description, amount, type, notes, tags, category_id, account_id, is_transfer, created_at").is("deleted_at", null).order("date", { ascending: false }).order("created_at", { ascending: false }).limit(Math.min(limit ?? 50, 200));
+    let query = supabase.from("transactions").select("id, date, description, amount, type, notes, tags, category_id, account_id, linked_transfer_id, created_at").is("deleted_at", null).order("date", { ascending: false }).order("created_at", { ascending: false }).limit(Math.min(limit ?? 50, 200));
     if (type) query = query.eq("type", type);
     if (start_date) query = query.gte("date", start_date);
     if (end_date) query = query.lte("date", end_date);

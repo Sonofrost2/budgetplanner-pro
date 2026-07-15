@@ -19,7 +19,7 @@ export default defineTool({
     const supabase = supabaseForUser(ctx);
     let query = supabase
       .from("transactions")
-      .select("id, date, description, amount, type, notes, tags, category_id, account_id, is_transfer, created_at")
+      .select("id, date, description, amount, type, notes, tags, category_id, account_id, linked_transfer_id, created_at")
       .is("deleted_at", null)
       .order("date", { ascending: false })
       .order("created_at", { ascending: false })
