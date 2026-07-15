@@ -331,6 +331,7 @@ export const WeeklyPlannerWidget = ({
 }: WeeklyPlannerWidgetProps) => {
   const navigate = useNavigate();
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
+  const [showAllExpenses, setShowAllExpenses] = useState(false);
   const [showIncomeDetails, setShowIncomeDetails] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
