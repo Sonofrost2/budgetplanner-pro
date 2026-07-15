@@ -343,7 +343,14 @@ const OnboardingPage = () => {
             <div className="text-center space-y-4">
               <Sparkles className="w-12 h-12 text-primary mx-auto" />
               <h2 className="text-2xl font-bold font-display">{isFr ? 'Bienvenue sur Budget Planner !' : 'Welcome to Budget Planner!'}</h2>
-              <p className="text-muted-foreground">{isFr ? 'Configurons votre espace en quelques étapes simples.' : "Let's set up your space in a few simple steps."}</p>
+              <p className="text-muted-foreground">
+                {isFr
+                  ? 'Configurons votre premier objectif et votre premier budget en moins de 5 minutes.'
+                  : "Let's set up your first goal and first budget in under 5 minutes."}
+              </p>
+              <div className="inline-flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-full px-3 py-1">
+                <Timer className="w-3.5 h-3.5" /> {isFr ? '≈ 4 min · 7 étapes' : '≈ 4 min · 7 steps'}
+              </div>
               <Button className="text-primary-foreground mt-4" style={{ background: 'var(--gradient-primary)' }} onClick={() => setStep(1)}>
                 {isFr ? 'Commencer' : 'Get Started'} <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
