@@ -1446,6 +1446,7 @@ export type Database = {
           account_id: string | null
           bank_name: string | null
           contribution_day: number | null
+          contribution_frequency: string
           created_at: string
           current_amount: number
           deadline: string | null
@@ -1473,6 +1474,7 @@ export type Database = {
           account_id?: string | null
           bank_name?: string | null
           contribution_day?: number | null
+          contribution_frequency?: string
           created_at?: string
           current_amount?: number
           deadline?: string | null
@@ -1500,6 +1502,7 @@ export type Database = {
           account_id?: string | null
           bank_name?: string | null
           contribution_day?: number | null
+          contribution_frequency?: string
           created_at?: string
           current_amount?: number
           deadline?: string | null

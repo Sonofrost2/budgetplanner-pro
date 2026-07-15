@@ -33,6 +33,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, PiggyBank, RefreshCw, Sparkles, Lock, Unlock, TrendingUp, Lightbulb, BarChart3, Download, Calculator, Target, CalendarDays, Building2, Percent, CheckCircle2, Search, X, Link2, Flag, Tag, StickyNote } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Textarea } from '@/components/ui/textarea';
+import { computeGoalEstimation, formatMonthsHuman, type ContributionFrequency } from '@/lib/savingsEstimation';
+import { AlertCircle, CheckCircle, Info, Zap, Repeat } from 'lucide-react';
 import { AddContributionDialog, WithdrawDialog, SimulationDialog } from '@/components/dashboard/savings/SavingsDialogs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SavingsProjectionsTab from '@/components/dashboard/tabs/SavingsProjectionsTab';
@@ -78,6 +80,7 @@ const EMPTY_GOAL_FORM = {
   is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
   linked_budget_id: '',
   priority: '2', purpose: 'other', notes: '',
+  contribution_frequency: 'monthly' as ContributionFrequency,
 };
 
 const SavingsPage = () => {
@@ -412,6 +415,21 @@ const SavingsPage = () => {
       if (firstErr) toast.error(firstErr);
       return;
     }
+    // Block save when coherence estimation returns a blocking error
+    const estimation = computeGoalEstimation({
+      target: Number(form.target_amount) || 0,
+      current: editGoalId ? Number(goals.find(g => g.id === editGoalId)?.current_amount) || 0 : 0,
+      contribution: Number(form.monthly_contribution) || 0,
+      frequency: form.contribution_frequency,
+      startDate: form.start_date || null,
+      deadline: form.deadline || null,
+      interestRatePct: Number(form.interest_rate) || 0,
+    });
+    const blocking = estimation.warnings.find(w => w.level === 'error');
+    if (blocking) {
+      toast.error(locale === 'fr' ? blocking.fr : blocking.en);
+      return;
+    }
     setSaving(true);
     try {
       let accountId = form.account_id || null;
@@ -453,6 +471,7 @@ const SavingsPage = () => {
         priority: form.priority ? Number(form.priority) : 2,
         purpose: form.purpose || 'other',
         notes: form.notes?.trim() || null,
+        contribution_frequency: form.contribution_frequency || 'monthly',
       };
 
       if (editGoalId) {
@@ -1115,6 +1134,7 @@ const SavingsPage = () => {
                   priority: String((g as any).priority ?? 2),
                   purpose: (g as any).purpose || 'other',
                   notes: (g as any).notes || '',
+                  contribution_frequency: ((g as any).contribution_frequency || 'monthly') as ContributionFrequency,
                 });
                 setCustomBankMode(false);
                 setDialogOpen(true);
@@ -1237,6 +1257,99 @@ const SavingsPage = () => {
                 placeholder={exampleAmount(currency, locale)}
               />
             </div>
+
+            {/* Rythme de versement */}
+            <div className="space-y-1.5">
+              <Label className="form-label flex items-center gap-1.5">
+                <Repeat className="w-3.5 h-3.5" />
+                {locale === 'fr' ? 'Rythme de versement' : 'Contribution rhythm'}
+              </Label>
+              <div className="grid grid-cols-4 gap-2">
+                {(['weekly','biweekly','monthly','quarterly'] as ContributionFrequency[]).map(freq => {
+                  const labels: Record<ContributionFrequency, { fr: string; en: string }> = {
+                    weekly: { fr: 'Hebdo', en: 'Weekly' },
+                    biweekly: { fr: 'Quinzaine', en: 'Biweekly' },
+                    monthly: { fr: 'Mensuel', en: 'Monthly' },
+                    quarterly: { fr: 'Trimestre', en: 'Quarterly' },
+                  };
+                  const selected = form.contribution_frequency === freq;
+                  return (
+                    <button
+                      key={freq}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, contribution_frequency: freq }))}
+                      className={`text-xs py-2 rounded-xl border-2 transition-all font-medium ${selected ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-muted text-muted-foreground'}`}
+                      aria-pressed={selected}
+                    >
+                      {labels[freq][locale]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Estimation live */}
+            {(() => {
+              const est = computeGoalEstimation({
+                target: Number(form.target_amount) || 0,
+                current: editGoalId ? Number(goals.find(g => g.id === editGoalId)?.current_amount) || 0 : 0,
+                contribution: Number(form.monthly_contribution) || 0,
+                frequency: form.contribution_frequency,
+                startDate: form.start_date || null,
+                deadline: form.deadline || null,
+                interestRatePct: Number(form.interest_rate) || 0,
+              });
+              if (!est.hasEnoughData && est.warnings.length === 0) return null;
+              const dateFmt = (d: Date) => d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+              return (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                    <Zap className="w-3.5 h-3.5" />
+                    {locale === 'fr' ? 'Estimation automatique' : 'Live estimation'}
+                  </div>
+                  {est.hasEnoughData && (
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {est.estimatedDeadline && (
+                        <div className="bg-background/60 rounded-lg p-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{locale === 'fr' ? 'Atteint le' : 'Reached on'}</p>
+                          <p className="font-bold text-foreground">{dateFmt(est.estimatedDeadline)}</p>
+                          {est.monthsToTarget !== null && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{locale === 'fr' ? `dans ${formatMonthsHuman(est.monthsToTarget, locale)}` : `in ${formatMonthsHuman(est.monthsToTarget, locale)}`}</p>
+                          )}
+                        </div>
+                      )}
+                      {est.requiredContribution !== null && (
+                        <div className="bg-background/60 rounded-lg p-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{locale === 'fr' ? 'Requis pour échéance' : 'Required for deadline'}</p>
+                          <p className="font-bold text-foreground">{fmt(Math.ceil(est.requiredContribution))}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{locale === 'fr' ? `par versement (${form.contribution_frequency === 'weekly' ? 'hebdo' : form.contribution_frequency === 'biweekly' ? 'quinzaine' : form.contribution_frequency === 'quarterly' ? 'trimestre' : 'mois'})` : 'per contribution'}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {est.warnings.map((w, idx) => {
+                    const iconMap = {
+                      error: <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />,
+                      warn: <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />,
+                      info: <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />,
+                      success: <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />,
+                    };
+                    const cls = {
+                      error: 'bg-destructive/10 text-destructive border-destructive/30',
+                      warn: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
+                      info: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30',
+                      success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+                    };
+                    return (
+                      <div key={idx} className={`flex items-start gap-1.5 text-[11px] rounded-lg border px-2 py-1.5 ${cls[w.level]}`}>
+                        {iconMap[w.level]}
+                        <span>{locale === 'fr' ? w.fr : w.en}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </FormSection>
 
           <FormSection
