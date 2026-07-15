@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { getTransferQuotaState, useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
