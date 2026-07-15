@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import { compression } from "vite-plugin-compression2";
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
 export default defineConfig(({ mode }) => ({
   server: {
@@ -28,6 +29,10 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    // Bundles src/lib/mcp/index.ts (and its tools) into
+    // supabase/functions/mcp/index.ts on every build so external AI clients
+    // (ChatGPT, Claude, Cursor…) can call Budget Planner Pro over MCP.
+    mcpPlugin(),
     // Precompress assets at build time so hosting can serve .br / .gz sidecars
     // when its origin does not compress large JS bundles (Supabase chunk was
     // shipping uncompressed at ~193 KB). Only files > 1 KB are worth it.

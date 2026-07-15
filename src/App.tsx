@@ -35,6 +35,7 @@ const BlogPage = lazyWithRetry(() => import("./pages/BlogPage"), "blog-page");
 const BlogPostPage = lazyWithRetry(() => import("./pages/BlogPostPage"), "blog-post-page");
 const AccountDeletionPage = lazyWithRetry(() => import("./pages/AccountDeletionPage"), "account-deletion-page");
 const ContactPage = lazyWithRetry(() => import("./pages/ContactPage"), "contact-page");
+const OAuthConsent = lazyWithRetry(() => import("./pages/OAuthConsent"), "oauth-consent-page");
 
 // Dashboard (lazy)
 const DashboardLayout = lazyWithRetry(() => import("./components/dashboard/DashboardLayout"), "dashboard-layout");
@@ -96,6 +97,8 @@ const AnimatedRoutes = () => {
           <Route path="/blog/:slug" element={<PageTransition><BlogPostPage /></PageTransition>} />
           <Route path="/account-deletion" element={<PageTransition><AccountDeletionPage /></PageTransition>} />
           <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
+          {/* MCP / external OAuth clients consent page — do NOT rename. */}
+          <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
           <Route path="/family/accept/:token" element={<PageTransition><FamilyAcceptPage /></PageTransition>} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardHome />} />
