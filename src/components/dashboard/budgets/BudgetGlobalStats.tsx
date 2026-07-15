@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { Card, CardContent } from '@/components/ui/card';
-import { TrendingUp, AlertTriangle, PieChart, Calendar, ChevronRight, TrendingDown, ArrowUpRight } from 'lucide-react';
+import { TrendingUp, AlertTriangle, PieChart, Calendar, ChevronRight, ArrowUpRight } from 'lucide-react';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { computeAnnualizedAmount } from '@/lib/budgetProjection';
 
