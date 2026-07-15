@@ -687,6 +687,7 @@ const SavingsPage = () => {
     setReinvestSourceGoalId(goalId);
     setEditGoalId(null);
     setForm({
+      ...EMPTY_GOAL_FORM,
       name: '', target_amount: '', icon: '🎯', deadline: '',
       account_id: goal.account_id || '',
       monthly_contribution: goal.monthly_contribution ? String(goal.monthly_contribution) : '',
@@ -697,6 +698,9 @@ const SavingsPage = () => {
       interest_frequency: (goal as any).interest_frequency || 'yearly',
       bank_name: (goal as any).bank_name || '',
       linked_budget_id: '',
+      priority: String((goal as any).priority ?? 2),
+      purpose: (goal as any).purpose || 'other',
+      notes: (goal as any).notes || '',
     });
     setCustomBankMode(false);
     setDialogOpen(true);
@@ -946,7 +950,7 @@ const SavingsPage = () => {
         onViewChange={setSavingsView}
         onNewGoal={() => {
           setEditGoalId(null);
-          setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '', linked_budget_id: '' });
+          setForm(EMPTY_GOAL_FORM);
           setCustomBankMode(false);
           setDialogOpen(true);
         }}
@@ -1105,6 +1109,9 @@ const SavingsPage = () => {
                   interest_frequency: (g as any).interest_frequency || 'yearly',
                   bank_name: (g as any).bank_name || '',
                   linked_budget_id: (g as any).linked_budget_id || '',
+                  priority: String((g as any).priority ?? 2),
+                  purpose: (g as any).purpose || 'other',
+                  notes: (g as any).notes || '',
                 });
                 setCustomBankMode(false);
                 setDialogOpen(true);
@@ -1139,7 +1146,7 @@ const SavingsPage = () => {
                   </p>
                   <Button size="sm" className="text-primary-foreground rounded-xl" style={{ background: 'var(--gradient-primary)' }} onClick={() => {
                     setEditGoalId(null);
-                    setForm({ name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '', monthly_contribution: '', start_date: '', contribution_day: '', is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '', linked_budget_id: '' });
+                    setForm(EMPTY_GOAL_FORM);
                     setCustomBankMode(false);
                     setDialogOpen(true);
                   }}>
