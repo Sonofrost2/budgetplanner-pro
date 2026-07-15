@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Wifi, WifiOff, CircleAlert, Loader2, RefreshCw, FlaskConical } from 'lucide-react';
+import { Wifi, WifiOff, CircleAlert, Loader2, RefreshCw, FlaskConical, CheckCircle2 } from 'lucide-react';
 import { useSyncStatus, retrySync } from '@/hooks/useRealtimeSync';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
@@ -28,60 +28,87 @@ export const SyncStatusIndicator = () => {
 
   type View = {
     label: string;
+    short: string;
+    hint?: string;
     dot: string;
     icon: JSX.Element;
     pulse?: boolean;
-    tone: 'live' | 'warn' | 'off' | 'idle';
+    tone: 'live' | 'warn' | 'off' | 'idle' | 'demo';
+    classes: string;
+  };
+
+  const toneClasses: Record<View['tone'], string> = {
+    live: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/15',
+    warn: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15',
+    off: 'border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15',
+    idle: 'border-border/50 bg-background/60 text-muted-foreground hover:bg-background',
+    demo: 'border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/15',
   };
 
   let view: View;
   if (demo) {
     view = {
       label: locale === 'fr' ? 'Mode démo' : 'Demo mode',
+      short: locale === 'fr' ? 'Démo' : 'Demo',
       dot: 'bg-sky-500',
-      icon: <FlaskConical className="w-3.5 h-3.5" />,
-      tone: 'idle',
+      icon: <FlaskConical className="w-4 h-4" />,
+      tone: 'demo',
+      classes: toneClasses.demo,
     };
   } else if (!online) {
     view = {
       label: locale === 'fr' ? 'Hors-ligne' : 'Offline',
+      short: locale === 'fr' ? 'Hors-ligne' : 'Offline',
+      hint: locale === 'fr' ? 'Aucune connexion internet' : 'No internet connection',
       dot: 'bg-destructive',
-      icon: <WifiOff className="w-3.5 h-3.5" />,
+      icon: <WifiOff className="w-4 h-4" />,
       tone: 'off',
+      classes: toneClasses.off,
     };
   } else if (channel === 'live') {
     view = {
       label: locale === 'fr' ? 'Synchro en direct' : 'Live sync',
+      short: locale === 'fr' ? 'En direct' : 'Live',
       dot: 'bg-emerald-500',
-      icon: <Wifi className="w-3.5 h-3.5" />,
+      icon: <CheckCircle2 className="w-4 h-4" />,
       pulse: true,
       tone: 'live',
+      classes: toneClasses.live,
     };
   } else if (channel === 'connecting') {
     view = {
       label: locale === 'fr' ? 'Connexion…' : 'Connecting…',
+      short: locale === 'fr' ? 'Connexion' : 'Connecting',
       dot: 'bg-amber-500',
-      icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
+      icon: <Loader2 className="w-4 h-4 animate-spin" />,
       tone: 'warn',
+      classes: toneClasses.warn,
     };
   } else if (channel === 'error') {
     view = {
-      label: locale === 'fr' ? 'Erreur de synchro' : 'Sync error',
+      label: locale === 'fr' ? 'Synchro interrompue' : 'Sync failed',
+      short: locale === 'fr' ? 'Erreur' : 'Error',
+      hint: locale === 'fr' ? 'Impossible de joindre le serveur' : 'Cannot reach server',
       dot: 'bg-destructive',
-      icon: <CircleAlert className="w-3.5 h-3.5" />,
-      tone: 'warn',
+      icon: <CircleAlert className="w-4 h-4" />,
+      tone: 'off',
+      classes: toneClasses.off,
     };
   } else {
     view = {
       label: locale === 'fr' ? 'Inactif' : 'Idle',
+      short: locale === 'fr' ? 'Inactif' : 'Idle',
       dot: 'bg-muted-foreground',
-      icon: <Wifi className="w-3.5 h-3.5 opacity-60" />,
+      icon: <Wifi className="w-4 h-4 opacity-70" />,
       tone: 'idle',
+      classes: toneClasses.idle,
     };
   }
 
   const refetchTxt = locale === 'fr' ? 'Dernière mise à jour' : 'Last refresh';
   const changeTxt = locale === 'fr' ? 'Dernier changement' : 'Last change';
+
+  const showRetry = channel === 'error' && !demo;
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -90,20 +117,20 @@ export const SyncStatusIndicator = () => {
           <button
             type="button"
             aria-label={view.label}
+            onClick={showRetry ? () => retrySync() : undefined}
             className={cn(
-              'inline-flex items-center gap-1.5 h-8 px-2 sm:px-2.5 rounded-xl shrink-0 whitespace-nowrap',
-              'border border-border/50 bg-background/50 hover:bg-background transition-colors',
-              'text-[11px] font-medium text-muted-foreground',
+              'inline-flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-full shrink-0 whitespace-nowrap',
+              'border transition-colors text-xs font-semibold',
+              view.classes,
             )}
           >
-            <span className="relative inline-flex w-2 h-2">
+            <span className="relative inline-flex items-center justify-center">
               {view.pulse && (
-                <span className={cn('absolute inset-0 rounded-full opacity-60 animate-ping', view.dot)} />
+                <span className={cn('absolute inset-0 rounded-full opacity-40 animate-ping', view.dot)} />
               )}
-              <span className={cn('relative inline-block w-2 h-2 rounded-full', view.dot)} />
+              <span className="relative inline-flex">{view.icon}</span>
             </span>
-            <span className="hidden md:inline">{view.label}</span>
-            <span className="md:hidden inline-flex items-center">{view.icon}</span>
+            <span className="hidden sm:inline">{view.short}</span>
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="text-xs">
@@ -112,6 +139,9 @@ export const SyncStatusIndicator = () => {
               {view.icon}
               <span>{view.label}</span>
             </div>
+            {view.hint && (
+              <div className="text-muted-foreground">{view.hint}</div>
+            )}
             {!demo && (
               <>
                 <div className="flex justify-between gap-4 text-muted-foreground">
@@ -131,7 +161,7 @@ export const SyncStatusIndicator = () => {
                   : 'No server sync in demo mode.'}
               </div>
             )}
-            {channel === 'error' && !demo && (
+            {showRetry && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); retrySync(); }}
