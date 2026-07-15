@@ -305,7 +305,7 @@ const AccountsPage = () => {
               ← {at.backToAllAccounts}
             </button>
           )}
-          <h2 className="text-2xl font-bold font-display">{t.accounts}</h2>
+          <h2 className="text-lg font-semibold font-display tracking-tight text-foreground">{t.accounts}</h2>
         </div>
         <div className="flex gap-2 items-center flex-wrap">
           <ViewModeToggle value={viewMode} onChange={setViewMode} isFr={isFr} />
