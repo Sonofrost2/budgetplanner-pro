@@ -278,6 +278,13 @@ const TransferBadge = ({ locale, compact = false }: { locale: string; compact?: 
   </span>
 );
 
+/** Detect transfer transactions robustly (linked id OR legacy "Transfert:" description prefix). */
+const isTransferTx = (tx: any): boolean => {
+  if (tx?.linked_transfer_id) return true;
+  const d = (tx?.description || '').trim().toLowerCase();
+  return d.startsWith('transfert:') || d.startsWith('transfer:');
+};
+
 /** Privacy indicator — shared (family) vs private (lock). Tiny, accessible, glassy. */
 const PrivacyIndicator = ({ shared, locale, compact = false }: { shared: boolean; locale: string; compact?: boolean }) => {
   const size = compact ? 'w-2.5 h-2.5' : 'w-3 h-3';
