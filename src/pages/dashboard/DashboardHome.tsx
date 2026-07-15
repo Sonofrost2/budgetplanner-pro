@@ -292,7 +292,7 @@ const DashboardHome = () => {
     />,
     accounts: <AccountsSummaryWidget accounts={accounts} fmt={fmt} t={t} locale={locale} />,
     charts: <ChartsSection monthlyData={monthlyData} categoryData={categoryData} fmt={fmt} t={t} locale={locale} />,
-    budgets: <BudgetsWidget budgets={budgets} fmt={fmt} t={t} />,
+    budgets: <BudgetsWidget budgets={budgets} totalCount={budgetsRaw.filter(b => (b as any).budget_type !== 'income' && !(b as any).archived_at).length} fmt={fmt} t={t} />,
     savings: <SavingsWidget goals={savingsGoals.slice(0, 5)} fmt={fmt} t={t} locale={locale} />,
     forecast: <ForecastWidget monthlyData={monthlyData} fmt={fmt} t={t} />,
     transactions: <RecentTransactions transactions={transactions.slice(0, 10)} fmt={fmt} t={t} locale={locale} />,
