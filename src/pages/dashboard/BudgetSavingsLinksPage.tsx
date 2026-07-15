@@ -10,11 +10,24 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { Input } from '@/components/ui/input';
-import { Link2, Unlink, Search, PiggyBank, Target, ArrowRight, AlertTriangle, Pencil } from 'lucide-react';
+import { Link2, Unlink, Search, PiggyBank, Target, ArrowRight, AlertTriangle, Pencil, TrendingUp } from 'lucide-react';
 import { coachToast } from '@/lib/coachToast';
 import { formatNumber, currencySymbol } from '@/lib/currency';
 import { useProfile } from '@/hooks/useProfile';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
+
+// Normalize any budget period to a monthly equivalent so we can compare it
+// with `savings_goals.monthly_contribution` without ambiguity.
+const MONTHLY_FACTOR: Record<string, number> = {
+  daily: 365 / 12,
+  weekly: 52 / 12,
+  monthly: 1,
+  quarterly: 1 / 3,
+  semi_annual: 1 / 6,
+  yearly: 1 / 12,
+};
+const toMonthly = (amount: number, period: string) =>
+  amount * (MONTHLY_FACTOR[period] ?? 1);
 
 interface LinkRow {
   budgetId: string;
@@ -30,6 +43,8 @@ interface LinkRow {
   goalMonthly: number | null;
   goalContributionDay: number | null;
   mismatch: string[];
+  monthlyEquivalent: number;
+  currentPeriodContribution: number;
 }
 
 export default function BudgetSavingsLinksPage() {
@@ -58,16 +73,35 @@ export default function BudgetSavingsLinksPage() {
     ]);
     const goalById = new Map((goals || []).map((g: any) => [g.id, g]));
     const result: LinkRow[] = [];
-    (budgets || []).forEach((b: any) => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+    await Promise.all((budgets || []).map(async (b: any) => {
       const g = goalById.get(b.linked_savings_goal_id);
       if (!g) return;
+      const monthlyEquivalent = Math.round(toMonthly(Number(b.amount), b.period || 'monthly'));
       const mismatch: string[] = [];
-      if (b.period === 'monthly' && Math.abs(Number(b.amount) - Number(g.monthly_contribution || 0)) > 1) {
+      // Compare monthly-equivalent to goal's monthly_contribution (works for any period).
+      if (g.monthly_contribution && Math.abs(monthlyEquivalent - Number(g.monthly_contribution)) > Math.max(1, monthlyEquivalent * 0.02)) {
         mismatch.push(t('Montant', 'Amount'));
       }
       if (b.expected_day && g.contribution_day && b.expected_day !== g.contribution_day) {
         mismatch.push(t('Jour', 'Day'));
       }
+
+      // Fetch actual contribution to the goal for the current calendar month.
+      let currentPeriodContribution = 0;
+      try {
+        const { data } = await (supabase.rpc as any)('get_savings_contribution', {
+          p_user_id: user!.id,
+          p_goal_id: g.id,
+          p_start_date: monthStart,
+          p_end_date: monthEnd,
+        });
+        if (data !== null) currentPeriodContribution = Number(data);
+      } catch {}
+
       result.push({
         budgetId: b.id,
         budgetName: b.name,
@@ -82,8 +116,10 @@ export default function BudgetSavingsLinksPage() {
         goalMonthly: g.monthly_contribution ? Number(g.monthly_contribution) : null,
         goalContributionDay: g.contribution_day,
         mismatch,
+        monthlyEquivalent,
+        currentPeriodContribution,
       });
-    });
+    }));
     setRows(result);
     setLoading(false);
   };
@@ -189,6 +225,11 @@ export default function BudgetSavingsLinksPage() {
                       {money(row.budgetAmount)} · {row.budgetPeriod}
                       {row.budgetExpectedDay ? ` · J${row.budgetExpectedDay}` : ''}
                     </p>
+                    {row.budgetPeriod !== 'monthly' && (
+                      <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                        ≈ {money(row.monthlyEquivalent)}/{t('mois', 'mo')}
+                      </p>
+                    )}
                   </div>
 
                   <ArrowRight className="hidden md:block w-5 h-5 text-primary/60 shrink-0" />
@@ -205,6 +246,13 @@ export default function BudgetSavingsLinksPage() {
                     <p className="text-sm text-muted-foreground">
                       {money(row.goalCurrent)} / {money(row.goalTarget)}
                       {row.goalMonthly ? ` · ${money(row.goalMonthly)}/${t('mois', 'mo')}` : ''}
+                    </p>
+                    <p className="text-[11px] mt-0.5 flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3 text-secondary" />
+                      <span className="text-muted-foreground">{t('Ce mois-ci', 'This month')}:</span>
+                      <span className={`font-semibold ${row.currentPeriodContribution > 0 ? 'text-secondary' : 'text-muted-foreground/70'}`}>
+                        {money(row.currentPeriodContribution)}
+                      </span>
                     </p>
                   </div>
 
