@@ -106,7 +106,13 @@ const BudgetsPage = () => {
       const start = periodStart.toISOString().split('T')[0];
       const end = periodEnd.toISOString().split('T')[0];
       const bType = (b as any).budget_type || 'expense';
-      return { id: b.id, category_id: b.category_id, type: bType === 'income' ? 'income' : 'expense', start, end };
+      return {
+        id: b.id,
+        category_id: b.category_id,
+        type: bType === 'income' ? 'income' : 'expense',
+        start, end,
+        linked_savings_goal_id: (b as any).linked_savings_goal_id || null,
+      };
     });
   }, [budgets]);
 
@@ -114,23 +120,33 @@ const BudgetsPage = () => {
   const yearEnd = `${new Date().getFullYear()}-12-31`;
 
   const { data: spending = {} } = useQuery({
-    queryKey: ['budget-spending', user?.id, budgetPeriodRanges.map(r => `${r.id}-${r.start}-${r.end}`).join(',')],
+    queryKey: ['budget-spending', user?.id, budgetPeriodRanges.map(r => `${r.id}-${r.start}-${r.end}-${r.linked_savings_goal_id ?? ''}`).join(',')],
     queryFn: async () => {
       const spendMap: Record<string, number> = {};
-      const promises = budgetPeriodRanges
-        .filter(r => r.category_id)
-        .map(async (r) => {
-          const { data, error } = await supabase.rpc('get_budget_spending', {
+      // Keyed by BUDGET id (not category) to avoid double-counting when two
+      // budgets share the same category. Savings-linked budgets derive their
+      // consumption from incoming transfers to the linked goal.
+      const promises = budgetPeriodRanges.map(async (r) => {
+        if (r.linked_savings_goal_id) {
+          const { data, error } = await (supabase.rpc as any)('get_savings_contribution', {
             p_user_id: user!.id,
-            p_category_id: r.category_id!,
-            p_type: r.type,
+            p_goal_id: r.linked_savings_goal_id,
             p_start_date: r.start,
             p_end_date: r.end,
           });
-          if (!error && data !== null) {
-            spendMap[r.category_id!] = Number(data);
-          }
+          if (!error && data !== null) spendMap[r.id] = Number(data);
+          return;
+        }
+        if (!r.category_id) return;
+        const { data, error } = await supabase.rpc('get_budget_spending', {
+          p_user_id: user!.id,
+          p_category_id: r.category_id,
+          p_type: r.type,
+          p_start_date: r.start,
+          p_end_date: r.end,
         });
+        if (!error && data !== null) spendMap[r.id] = Number(data);
+      });
       await Promise.all(promises);
       return spendMap;
     },
