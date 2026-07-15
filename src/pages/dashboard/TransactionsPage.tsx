@@ -698,13 +698,6 @@ const TransactionsPage = () => {
         categories={categories as any}
       />
 
-      {/* Result count */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground tabular-nums">
-          <span className="font-bold text-foreground">{totalCount}</span> {t.results}
-        </p>
-      </div>
-
       {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
