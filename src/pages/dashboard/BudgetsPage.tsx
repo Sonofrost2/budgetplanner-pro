@@ -541,6 +541,16 @@ const BudgetsPage = () => {
                 <span className="flex items-center gap-1.5">
                   {b.name}
                   {onceBadge}
+                  {b.priority === 'high' && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive text-[9px] font-semibold uppercase tracking-wide">
+                      ⚑ {isFr ? 'Haute' : 'High'}
+                    </span>
+                  )}
+                  {b.linked_savings_goal_id && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-secondary/15 text-secondary text-[9px] font-semibold uppercase tracking-wide" title={isFr ? 'Lié à une épargne' : 'Linked to a savings goal'}>
+                      🎯 {isFr ? 'Épargne' : 'Savings'}
+                    </span>
+                  )}
                   {(b as any).archived_at && (
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
                       <Archive className="w-2.5 h-2.5" />{isFr ? 'Archivé' : 'Archived'}
@@ -551,7 +561,20 @@ const BudgetsPage = () => {
                   {b.categories?.name || '-'} · {periodLabels[b.period] || b.period}
                   {isIncome && <span className="ml-1 text-secondary">↗</span>}
                   {' · '}{isMax ? (isFr ? 'Plafond' : 'Cap') : (isFr ? 'Objectif' : 'Target')}
+                  {b.is_renewable === false && (
+                    <span className="ml-1" title={isFr ? 'Non reconductible' : 'Not renewable'}>· ⏹</span>
+                  )}
+                  {b.carry_over && (
+                    <span className="ml-1" title={isFr ? 'Solde reporté' : 'Carry-over'}>· ↻</span>
+                  )}
                 </p>
+                {Array.isArray(b.tags) && b.tags.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {b.tags.slice(0, 4).map((tag: string) => (
+                      <span key={tag} className="px-1.5 py-0.5 rounded-full bg-muted/60 text-[9px] text-muted-foreground">#{tag}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardTitle>
             <div className="flex gap-1">
