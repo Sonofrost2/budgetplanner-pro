@@ -294,6 +294,56 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_cycle_history: {
+        Row: {
+          amount_budgeted: number
+          amount_spent: number
+          budget_id: string
+          carry_over_amount: number
+          closed_at: string
+          created_at: string
+          cycle_end: string
+          cycle_start: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_budgeted: number
+          amount_spent?: number
+          budget_id: string
+          carry_over_amount?: number
+          closed_at?: string
+          created_at?: string
+          cycle_end: string
+          cycle_start: string
+          id?: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          amount_budgeted?: number
+          amount_spent?: number
+          budget_id?: string
+          carry_over_amount?: number
+          closed_at?: string
+          created_at?: string
+          cycle_end?: string
+          cycle_start?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_cycle_history_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budgets: {
         Row: {
           active_days: string | null
@@ -309,12 +359,17 @@ export type Database = {
           deleted_at: string | null
           expected_day: number | null
           id: string
+          is_renewable: boolean
           linked_savings_goal_id: string | null
           name: string
+          notes: string | null
           occurrence_frequency: string | null
           paused_at: string | null
+          payment_account_id: string | null
           period: string
+          priority: string
           reference_date: string | null
+          tags: string[]
           updated_at: string
           user_id: string
         }
@@ -332,12 +387,17 @@ export type Database = {
           deleted_at?: string | null
           expected_day?: number | null
           id?: string
+          is_renewable?: boolean
           linked_savings_goal_id?: string | null
           name: string
+          notes?: string | null
           occurrence_frequency?: string | null
           paused_at?: string | null
+          payment_account_id?: string | null
           period?: string
+          priority?: string
           reference_date?: string | null
+          tags?: string[]
           updated_at?: string
           user_id: string
         }
@@ -355,12 +415,17 @@ export type Database = {
           deleted_at?: string | null
           expected_day?: number | null
           id?: string
+          is_renewable?: boolean
           linked_savings_goal_id?: string | null
           name?: string
+          notes?: string | null
           occurrence_frequency?: string | null
           paused_at?: string | null
+          payment_account_id?: string | null
           period?: string
+          priority?: string
           reference_date?: string | null
+          tags?: string[]
           updated_at?: string
           user_id?: string
         }
@@ -377,6 +442,13 @@ export type Database = {
             columns: ["linked_savings_goal_id"]
             isOneToOne: false
             referencedRelation: "savings_goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_payment_account_id_fkey"
+            columns: ["payment_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -2240,6 +2312,15 @@ export type Database = {
           sent_count: number
         }[]
       }
+      get_savings_contribution: {
+        Args: {
+          p_end_date: string
+          p_goal_id: string
+          p_start_date: string
+          p_user_id: string
+        }
+        Returns: number
+      }
       has_active_subscription: {
         Args: { _user_id: string }
         Returns: {
@@ -2319,6 +2400,7 @@ export type Database = {
         }
         Returns: number
       }
+      rollover_once_budgets: { Args: { p_user_id?: string }; Returns: Json }
       seed_default_family_group_categories: {
         Args: { p_creator: string; p_group_id: string }
         Returns: undefined
