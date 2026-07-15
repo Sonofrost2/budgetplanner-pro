@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount, computeDaysRemaining, computeOnceStatus } from '@/lib/budgetProjection';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
@@ -75,7 +76,7 @@ const BudgetsPage = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('expense');
+  const [activeTab, setActiveTab] = usePersistedState<string>('budgets:activeTab', 'expense');
   const [activeMainTab, setActiveMainTab] = useState('manage');
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkModifyOpen, setBulkModifyOpen] = useState(false);

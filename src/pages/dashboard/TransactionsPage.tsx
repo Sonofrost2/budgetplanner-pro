@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { getTransferQuotaState, useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
@@ -49,14 +50,14 @@ const TransactionsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { invalidate } = useInvalidate();
 
-  // Local UI state
-  const [filterType, setFilterType] = useState<string>(searchParams.get('type') || 'all');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [filterAccount, setFilterAccount] = useState<string>('all');
+  // Local UI state — persisted per user so filters survive navigation.
+  const [filterType, setFilterType] = usePersistedState<string>('tx:filterType', searchParams.get('type') || 'all');
+  const [filterCategory, setFilterCategory] = usePersistedState<string>('tx:filterCategory', 'all');
+  const [filterAccount, setFilterAccount] = usePersistedState<string>('tx:filterAccount', 'all');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = usePersistedState<string>('tx:startDate', '');
+  const [endDate, setEndDate] = usePersistedState<string>('tx:endDate', '');
   const [page, setPage] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -67,13 +68,13 @@ const TransactionsPage = () => {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '', from_account_id: '', to_account_id: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [sortField, setSortField] = useState<SortField>('date');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [sortField, setSortField] = usePersistedState<SortField>('tx:sortField', 'date');
+  const [sortOrder, setSortOrder] = usePersistedState<SortOrder>('tx:sortOrder', 'desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [budgetOverspendOpen, setBudgetOverspendOpen] = useState(false);
   const [overspendBudgetName, setOverspendBudgetName] = useState('');
-  const [hideTransfers, setHideTransfers] = useState(false);
+  const [hideTransfers, setHideTransfers] = usePersistedState<boolean>('tx:hideTransfers', false);
   const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
 
   // Server-side paginated transactions
@@ -90,7 +91,7 @@ const TransactionsPage = () => {
     sortOrder,
   });
 
-  const [privacyFilter, setPrivacyFilter] = useState<'all' | 'family' | 'private'>('all');
+  const [privacyFilter, setPrivacyFilter] = usePersistedState<'all' | 'family' | 'private'>('tx:privacy', 'all');
   const rawTransactions = paginatedResult?.data ?? [];
   const transactions = useMemo(() => {
     let list = rawTransactions;

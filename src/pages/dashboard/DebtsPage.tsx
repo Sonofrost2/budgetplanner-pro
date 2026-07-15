@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
@@ -55,7 +56,7 @@ const DebtsPage = () => {
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const [aiPlanOpen, setAiPlanOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paid' | 'overdue'>('all');
+  const [statusFilter, setStatusFilter] = usePersistedState<'all' | 'active' | 'paid' | 'overdue'>('debts:statusFilter', 'all');
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const fmt = (n: number) => fmtCurrency(n, locale);

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useProfile } from '@/hooks/useProfile';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { dashT } from '@/i18n/dashTranslations';
@@ -33,7 +34,7 @@ const ReportsPage = () => {
   const t = dashT[locale];
   const fmt = (n: number) => fmtCurrency(n, locale);
 
-  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('all');
+  const [periodPreset, setPeriodPreset] = usePersistedState<PeriodPreset>('reports:periodPreset', 'all');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
 

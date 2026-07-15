@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
@@ -92,7 +93,7 @@ const CategoriesPage = () => {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeTab, setTypeTab] = useState<'expense' | 'income'>('expense');
+  const [typeTab, setTypeTab] = usePersistedState<'expense' | 'income'>('categories:typeTab', 'expense');
   const [showArchived, setShowArchived] = useState(false);
 
   const { data: archivedCategories = [] } = useQuery({
