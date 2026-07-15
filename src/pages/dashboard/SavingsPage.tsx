@@ -51,6 +51,7 @@ import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
 import { LinkPicker } from '@/components/dashboard/LinkPicker';
 import { recalculateAccountBalance } from '@/hooks/useAccountBalance';
 import { SavingsGoalCard } from '@/components/dashboard/savings/SavingsGoalCard';
+import { SAVINGS_TEMPLATES, monthsFromNowISO } from '@/lib/savingsTemplates';
 import { PartialWithdrawDialog } from '@/components/dashboard/savings/PartialWithdrawDialog';
 import { SavingsSummaryTable } from '@/components/dashboard/savings/SavingsSummaryTable';
 import { SavingsControlTable } from '@/components/dashboard/savings/SavingsControlTable';
@@ -1248,6 +1249,36 @@ const SavingsPage = () => {
       >
         <div className="space-y-5 form-animate">
           <FormSection title={locale === 'fr' ? 'Objectif' : 'Goal'} icon={<Target className="w-3.5 h-3.5" />}>
+            {!editGoalId && (
+              <div className="space-y-1.5">
+                <Label className="form-label">{locale === 'fr' ? 'Modèles rapides' : 'Quick templates'}</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {SAVINGS_TEMPLATES.map(tpl => (
+                    <button
+                      key={tpl.key}
+                      type="button"
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        name: locale === 'fr' ? tpl.labelFr : tpl.labelEn,
+                        icon: tpl.icon,
+                        target_amount: String(tpl.target),
+                        deadline: monthsFromNowISO(tpl.months),
+                        priority: tpl.priority,
+                        purpose: tpl.purpose,
+                      }))}
+                      className="text-[11px] px-2.5 py-1 rounded-full border border-border bg-muted/40 hover:bg-primary/10 hover:border-primary/40 transition-colors flex items-center gap-1"
+                      aria-label={locale === 'fr' ? `Utiliser le modèle ${tpl.labelFr}` : `Use ${tpl.labelEn} template`}
+                    >
+                      <span>{tpl.icon}</span>
+                      <span className="font-medium">{locale === 'fr' ? tpl.labelFr : tpl.labelEn}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {locale === 'fr' ? 'Cliquez pour pré-remplir. Vous pouvez ensuite tout personnaliser.' : 'Click to prefill. You can still customise everything.'}
+                </p>
+              </div>
+            )}
             <InputField
               label={t.goalName}
               icon={<Target className="w-3.5 h-3.5" />}
