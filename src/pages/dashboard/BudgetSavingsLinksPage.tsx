@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { Input } from '@/components/ui/input';
 import { Link2, Unlink, Search, PiggyBank, Target, ArrowRight, AlertTriangle, Pencil } from 'lucide-react';
 import { coachToast } from '@/lib/coachToast';
