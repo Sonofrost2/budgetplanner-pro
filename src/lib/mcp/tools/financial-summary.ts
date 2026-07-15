@@ -23,7 +23,7 @@ export default defineTool({
 
     const { data, error } = await supabase
       .from("transactions")
-      .select("amount, type, is_transfer")
+      .select("amount, type, linked_transfer_id")
       .is("deleted_at", null)
       .gte("date", from)
       .lte("date", to);
@@ -32,7 +32,7 @@ export default defineTool({
     let income = 0;
     let expense = 0;
     for (const row of data ?? []) {
-      if (row.is_transfer) continue;
+      if (row.linked_transfer_id) continue;
       const amount = Number(row.amount) || 0;
       if (row.type === "income") income += amount;
       else if (row.type === "expense") expense += amount;

@@ -197,12 +197,12 @@ var financial_summary_default = defineTool7({
     const defaultEnd = today.toISOString().slice(0, 10);
     const from = start_date ?? defaultStart;
     const to = end_date ?? defaultEnd;
-    const { data, error } = await supabase.from("transactions").select("amount, type, is_transfer").is("deleted_at", null).gte("date", from).lte("date", to);
+    const { data, error } = await supabase.from("transactions").select("amount, type, linked_transfer_id").is("deleted_at", null).gte("date", from).lte("date", to);
     if (error) return errorResult(error.message);
     let income = 0;
     let expense = 0;
     for (const row of data ?? []) {
-      if (row.is_transfer) continue;
+      if (row.linked_transfer_id) continue;
       const amount = Number(row.amount) || 0;
       if (row.type === "income") income += amount;
       else if (row.type === "expense") expense += amount;
