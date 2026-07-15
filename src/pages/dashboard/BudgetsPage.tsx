@@ -497,6 +497,7 @@ const BudgetsPage = () => {
               <div>
                 <span className="flex items-center gap-1.5">
                   {b.name}
+                  {onceBadge}
                   {(b as any).archived_at && (
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
                       <Archive className="w-2.5 h-2.5" />{isFr ? 'Archivé' : 'Archived'}
@@ -536,7 +537,8 @@ const BudgetsPage = () => {
           <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
             <span className="font-semibold">{Math.round(pct)}% {isMax ? (isFr ? 'consommé' : 'consumed') : (isFr ? 'atteint' : 'reached')}</span>
             <span>
-              {daysLabel === 'today' ? (isFr ? "📍 Aujourd'hui" : '📍 Today')
+              {onceCountdown ? onceCountdown
+                : daysLabel === 'today' ? (isFr ? "📍 Aujourd'hui" : '📍 Today')
                 : daysLabel === 'passed' ? (isFr ? '✅ Échéance passée' : '✅ Due date passed')
                 : daysLabel === 'thisWeek' ? (isFr ? '📅 Cette semaine' : '📅 This week')
                 : targetDateStr
