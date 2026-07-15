@@ -382,10 +382,13 @@ const BudgetsPage = () => {
     const remaining = isMax ? amount - actual : actual - amount;
     const isSelected = bulk.selectedIds.has(b.id);
 
-    // Annualized calculation
+    // Annualized calculation — cap both bars at 100% so the visual scale is
+    // consistent with the period progress bar above. Overrun is signalled via
+    // color + numeric % label, not a longer bar.
     const annualized = computeAnnualizedAmount(amount, b.period, b.active_days);
     const annualActual = annualSpending[b.category_id || ''] || 0;
-    const annualPct = annualized > 0 ? Math.min((annualActual / annualized) * 100, 150) : 0;
+    const annualPctRaw = annualized > 0 ? (annualActual / annualized) * 100 : 0;
+    const annualPct = Math.min(annualPctRaw, 100);
 
     // Period calculations — smart days remaining
     const range = budgetPeriodRanges.find(r => r.id === b.id);
