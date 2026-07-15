@@ -21,7 +21,7 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { ScrollReveal } from '@/hooks/useScrollReveal';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat, BarChart3, Target } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, PieChart, Calendar, Tag, Pencil, TrendingUp, TrendingDown, CheckCircle, Search, Sparkles, Loader2, Clock, Repeat, BarChart3, Target, Archive, ArchiveRestore } from 'lucide-react';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { toast } from 'sonner';
@@ -76,6 +76,9 @@ const BudgetsPage = () => {
   const [sortField, setSortField] = useState<'name' | 'amount' | 'spent'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterPeriod, setFilterPeriod] = useState('');
+  // Archived budgets are hidden by default and excluded from every stat.
+  // The toggle exposes them so the user can restore or delete them.
+  const [showArchived, setShowArchived] = useState(false);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -147,8 +150,20 @@ const BudgetsPage = () => {
     staleTime: 30_000,
   });
 
+  // Base list every stat/section works from: excludes archived unless the
+  // user explicitly toggled "Afficher archivés". Keeps global KPIs,
+  // coach insights and analysis tabs in agreement with the visible cards.
+  const activeBudgets = useMemo(
+    () => budgets.filter(b => showArchived ? true : !(b as any).archived_at),
+    [budgets, showArchived],
+  );
+  const archivedCount = useMemo(
+    () => budgets.filter(b => !!(b as any).archived_at).length,
+    [budgets],
+  );
+
   const expenseBudgets = useMemo(() => {
-    let result = budgets.filter(b => (b as any).budget_type !== 'income');
+    let result = activeBudgets.filter(b => (b as any).budget_type !== 'income');
     if (searchQuery) { const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean); result = result.filter(b => terms.some(q => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q))); }
     if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
     result = [...result].sort((a, b) => {
@@ -159,10 +174,10 @@ const BudgetsPage = () => {
       return sortOrder === 'desc' ? -cmp : cmp;
     });
     return result;
-  }, [budgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
+  }, [activeBudgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
 
   const incomeBudgets = useMemo(() => {
-    let result = budgets.filter(b => (b as any).budget_type === 'income');
+    let result = activeBudgets.filter(b => (b as any).budget_type === 'income');
     if (searchQuery) { const terms = searchQuery.split(';').map(s => s.trim().toLowerCase()).filter(Boolean); result = result.filter(b => terms.some(q => b.name.toLowerCase().includes(q) || b.categories?.name?.toLowerCase().includes(q))); }
     if (filterPeriod) result = result.filter(b => b.period === filterPeriod);
     result = [...result].sort((a, b) => {
@@ -173,7 +188,7 @@ const BudgetsPage = () => {
       return sortOrder === 'desc' ? -cmp : cmp;
     });
     return result;
-  }, [budgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
+  }, [activeBudgets, searchQuery, filterPeriod, sortField, sortOrder, spending]);
 
   const currentBudgets = activeTab === 'expense' ? expenseBudgets : incomeBudgets;
 
