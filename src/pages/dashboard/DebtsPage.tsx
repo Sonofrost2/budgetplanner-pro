@@ -55,7 +55,7 @@ const DebtsPage = () => {
   const [aiPlan, setAiPlan] = useState<any>(null);
   const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const [aiPlanOpen, setAiPlanOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = usePersistedState<string>('debts:search', '');
   const [statusFilter, setStatusFilter] = usePersistedState<'all' | 'active' | 'paid' | 'overdue'>('debts:statusFilter', 'all');
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
