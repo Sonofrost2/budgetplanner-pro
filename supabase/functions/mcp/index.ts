@@ -7,7 +7,7 @@ import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.22.0";
 
 // src/lib/mcp/tools/list-accounts.ts
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.22.0";
-import { z } from "npm:zod@^3.25.76";
+import { z } from "npm:zod@^4.4.3";
 
 // src/lib/mcp/supabase.ts
 import { createClient } from "npm:@supabase/supabase-js@^2.98.0";
@@ -51,7 +51,7 @@ var list_accounts_default = defineTool({
 
 // src/lib/mcp/tools/list-transactions.ts
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.22.0";
-import { z as z2 } from "npm:zod@^3.25.76";
+import { z as z2 } from "npm:zod@^4.4.3";
 var list_transactions_default = defineTool2({
   name: "list_transactions",
   title: "List transactions",
@@ -78,7 +78,7 @@ var list_transactions_default = defineTool2({
 
 // src/lib/mcp/tools/create-transaction.ts
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.22.0";
-import { z as z3 } from "npm:zod@^3.25.76";
+import { z as z3 } from "npm:zod@^4.4.3";
 var create_transaction_default = defineTool3({
   name: "create_transaction",
   title: "Create transaction",
@@ -113,7 +113,7 @@ var create_transaction_default = defineTool3({
 
 // src/lib/mcp/tools/list-categories.ts
 import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.22.0";
-import { z as z4 } from "npm:zod@^3.25.76";
+import { z as z4 } from "npm:zod@^4.4.3";
 var list_categories_default = defineTool4({
   name: "list_categories",
   title: "List categories",
@@ -135,7 +135,7 @@ var list_categories_default = defineTool4({
 
 // src/lib/mcp/tools/list-budgets.ts
 import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.22.0";
-import { z as z5 } from "npm:zod@^3.25.76";
+import { z as z5 } from "npm:zod@^4.4.3";
 var list_budgets_default = defineTool5({
   name: "list_budgets",
   title: "List budgets",
@@ -157,7 +157,7 @@ var list_budgets_default = defineTool5({
 
 // src/lib/mcp/tools/list-savings-goals.ts
 import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.22.0";
-import { z as z6 } from "npm:zod@^3.25.76";
+import { z as z6 } from "npm:zod@^4.4.3";
 var list_savings_goals_default = defineTool6({
   name: "list_savings_goals",
   title: "List savings goals",
@@ -179,7 +179,7 @@ var list_savings_goals_default = defineTool6({
 
 // src/lib/mcp/tools/financial-summary.ts
 import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.22.0";
-import { z as z7 } from "npm:zod@^3.25.76";
+import { z as z7 } from "npm:zod@^4.4.3";
 var financial_summary_default = defineTool7({
   name: "financial_summary",
   title: "Financial summary",
