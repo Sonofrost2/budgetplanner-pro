@@ -471,6 +471,7 @@ const SavingsPage = () => {
         priority: form.priority ? Number(form.priority) : 2,
         purpose: form.purpose || 'other',
         notes: form.notes?.trim() || null,
+        contribution_frequency: form.contribution_frequency || 'monthly',
       };
 
       if (editGoalId) {
