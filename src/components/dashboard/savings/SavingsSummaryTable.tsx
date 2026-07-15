@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
 import type { SavingsGoal } from '@/hooks/useDashboardData';
+import { isLiveGoal } from '@/lib/savingsLogic';
 
 interface SavingsContribution {
   id: string;
@@ -30,23 +31,35 @@ const getStatus = (goal: SavingsGoal): 'completed' | 'late' | 'inProgress' => {
   return 'inProgress';
 };
 
+/**
+ * E2 — Mensualité nécessaire pour atteindre la cible :
+ * on part TOUJOURS de "maintenant" (pas de start_date), sinon la valeur
+ * ne diminue jamais au fil du temps. Si une mensualité explicite est
+ * définie ET est suffisante, on l'affiche telle quelle ; sinon on
+ * affiche la mensualité réellement requise pour tenir la deadline.
+ */
 const getMonthlyNeeded = (goal: any): number | null => {
-  // Use explicit monthly_contribution if set
-  if (Number(goal.monthly_contribution) > 0) return Number(goal.monthly_contribution);
-  if (!goal.deadline) return null;
   const remaining = Number(goal.target_amount) - Number(goal.current_amount);
   if (remaining <= 0) return 0;
-  const start = goal.start_date ? new Date(goal.start_date) : new Date();
+  if (!goal.deadline) {
+    return Number(goal.monthly_contribution) > 0 ? Number(goal.monthly_contribution) : null;
+  }
+  const now = new Date();
   const dl = new Date(goal.deadline);
-  const monthsLeft = Math.max(1, (dl.getFullYear() - start.getFullYear()) * 12 + dl.getMonth() - start.getMonth());
+  const monthsLeft = Math.max(
+    1,
+    (dl.getFullYear() - now.getFullYear()) * 12 + (dl.getMonth() - now.getMonth()),
+  );
   return remaining / monthsLeft;
 };
 
 export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: SavingsSummaryTableProps) => {
-  if (goals.length === 0) return null;
+  // E1 — même base que le hero et les 4 KPI cards
+  const liveGoals = goals.filter(isLiveGoal);
+  if (liveGoals.length === 0) return null;
 
-  const totalCurrent = goals.reduce((s, g) => s + Number(g.current_amount), 0);
-  const totalTarget = goals.reduce((s, g) => s + Number(g.target_amount), 0);
+  const totalCurrent = liveGoals.reduce((s, g) => s + Number(g.current_amount), 0);
+  const totalTarget = liveGoals.reduce((s, g) => s + Number(g.target_amount), 0);
   const totalPct = totalTarget > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0;
 
   const statusConfig = {
@@ -77,7 +90,7 @@ export const SavingsSummaryTable = ({ goals, contributions, fmt, t, locale }: Sa
             </TableRow>
           </TableHeader>
           <TableBody>
-            {goals.map(g => {
+            {liveGoals.map(g => {
               const pct = Number(g.target_amount) > 0 ? Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100) : 0;
               const status = getStatus(g);
               const monthly = getMonthlyNeeded(g);
