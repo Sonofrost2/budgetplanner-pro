@@ -13,17 +13,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sparkles, Wallet, Globe, CreditCard, ArrowRight, ArrowLeft, Plus, Trash2, Loader2, XCircle, Bell, Mail, MessageSquare, Smartphone } from 'lucide-react';
+import { CheckCircle2, Sparkles, Wallet, Globe, CreditCard, ArrowRight, ArrowLeft, Plus, Trash2, Loader2, XCircle, Bell, Mail, MessageSquare, Smartphone, Target, PiggyBank, Timer } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
-const STEPS = ['welcome', 'plan', 'preferences', 'notifications', 'accounts', 'payment', 'done'] as const;
+const STEPS = ['welcome', 'plan', 'preferences', 'notifications', 'accounts', 'goal', 'budget', 'payment', 'done'] as const;
 
 const ACCOUNT_TYPES = [
   { value: 'mobile_money', label: '📱 Mobile Money' },
   { value: 'bank', label: '🏦 Banque' },
   { value: 'cash', label: '💵 Espèces' },
   { value: 'card', label: '💳 Carte' },
+];
+
+const GOAL_PRESETS = [
+  { icon: '🛟', fr: "Fonds d'urgence", en: 'Emergency fund' },
+  { icon: '✈️', fr: 'Voyage', en: 'Trip' },
+  { icon: '🏠', fr: 'Logement', en: 'Home' },
+  { icon: '🎓', fr: 'Éducation', en: 'Education' },
+  { icon: '🚗', fr: 'Véhicule', en: 'Vehicle' },
+  { icon: '💍', fr: 'Événement', en: 'Event' },
 ];
 
 const OnboardingPage = () => {
@@ -44,6 +53,15 @@ const OnboardingPage = () => {
   const [accounts, setAccounts] = useState<{ name: string; type: string; icon: string; opening_balance: string }[]>([
     { name: '', type: 'mobile_money', icon: '📱', opening_balance: '0' },
   ]);
+  // Goal & Budget quick-start
+  const [goalName, setGoalName] = useState('');
+  const [goalIcon, setGoalIcon] = useState('🎯');
+  const [goalTarget, setGoalTarget] = useState('');
+  const [goalMonths, setGoalMonths] = useState('6');
+  const [budgetCategoryId, setBudgetCategoryId] = useState('');
+  const [budgetAmount, setBudgetAmount] = useState('');
+  const [budgetPeriod, setBudgetPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [expenseCategories, setExpenseCategories] = useState<{ id: string; name: string; icon: string | null }[]>([]);
   // Payment state
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentToken, setPaymentToken] = useState('');
@@ -58,6 +76,17 @@ const OnboardingPage = () => {
     supabase.from('subscription_plans').select('*').eq('active', true)
       .then(({ data }) => setPlans(data || []));
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('categories')
+      .select('id, name, icon, type')
+      .eq('user_id', user.id)
+      .eq('type', 'expense')
+      .order('name')
+      .then(({ data }) => setExpenseCategories((data || []) as any));
+  }, [user]);
 
   // Handle Paystack callback (?reference=...&paystack=1)
   useEffect(() => {
@@ -228,6 +257,43 @@ const OnboardingPage = () => {
         }))
       );
     }
+
+    // Optional: first savings goal
+    const targetAmt = Number(goalTarget);
+    const months = Math.max(1, Number(goalMonths) || 6);
+    if (goalName.trim() && targetAmt > 0) {
+      const deadline = new Date();
+      deadline.setMonth(deadline.getMonth() + months);
+      await supabase.from('savings_goals').insert({
+        user_id: user.id,
+        name: goalName.trim(),
+        icon: goalIcon || '🎯',
+        target_amount: targetAmt,
+        current_amount: 0,
+        deadline: deadline.toISOString().slice(0, 10),
+        monthly_contribution: Math.round(targetAmt / months),
+        priority: 'high',
+      } as any);
+    }
+
+    // Optional: first budget
+    const budgetAmt = Number(budgetAmount);
+    if (budgetCategoryId && budgetAmt > 0) {
+      const cat = expenseCategories.find(c => c.id === budgetCategoryId);
+      await supabase.from('budgets').insert({
+        user_id: user.id,
+        name: cat?.name || (isFr ? 'Mon premier budget' : 'My first budget'),
+        amount: budgetAmt,
+        category_id: budgetCategoryId,
+        period: budgetPeriod,
+        alert_threshold: 80,
+        budget_type: 'expense',
+        control_type: 'limit',
+        priority: 'medium',
+        is_renewable: true,
+      } as any);
+    }
+
     toast.success(isFr ? 'Configuration terminée !' : 'Setup complete!');
     navigate('/dashboard');
   };
@@ -277,7 +343,14 @@ const OnboardingPage = () => {
             <div className="text-center space-y-4">
               <Sparkles className="w-12 h-12 text-primary mx-auto" />
               <h2 className="text-2xl font-bold font-display">{isFr ? 'Bienvenue sur Budget Planner !' : 'Welcome to Budget Planner!'}</h2>
-              <p className="text-muted-foreground">{isFr ? 'Configurons votre espace en quelques étapes simples.' : "Let's set up your space in a few simple steps."}</p>
+              <p className="text-muted-foreground">
+                {isFr
+                  ? 'Configurons votre premier objectif et votre premier budget en moins de 5 minutes.'
+                  : "Let's set up your first goal and first budget in under 5 minutes."}
+              </p>
+              <div className="inline-flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-full px-3 py-1">
+                <Timer className="w-3.5 h-3.5" /> {isFr ? '≈ 4 min · 7 étapes' : '≈ 4 min · 7 steps'}
+              </div>
               <Button className="text-primary-foreground mt-4" style={{ background: 'var(--gradient-primary)' }} onClick={() => setStep(1)}>
                 {isFr ? 'Commencer' : 'Get Started'} <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -460,6 +533,110 @@ const OnboardingPage = () => {
                 ))}
               </div>
               <Button variant="outline" size="sm" onClick={addAccount}><Plus className="w-4 h-4 mr-1" />{isFr ? 'Ajouter un compte' : 'Add account'}</Button>
+            </div>
+          )}
+
+          {currentStep === 'goal' && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-bold font-display flex items-center gap-2">
+                  <PiggyBank className="w-5 h-5 text-primary" />
+                  {isFr ? 'Votre premier objectif d\'épargne' : 'Your first savings goal'}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isFr
+                    ? 'Facultatif — vous pouvez le créer plus tard. Choisissez un modèle ou personnalisez.'
+                    : 'Optional — you can create it later. Pick a template or customize.'}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {GOAL_PRESETS.map(p => {
+                  const active = goalName === (isFr ? p.fr : p.en);
+                  return (
+                    <button
+                      key={p.icon}
+                      type="button"
+                      onClick={() => { setGoalName(isFr ? p.fr : p.en); setGoalIcon(p.icon); }}
+                      className={`text-xs rounded-full px-3 py-1.5 border transition-colors ${active ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/30'}`}
+                    >
+                      {p.icon} {isFr ? p.fr : p.en}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-3 space-y-1">
+                  <Label>{isFr ? 'Nom de l\'objectif' : 'Goal name'}</Label>
+                  <Input value={goalName} onChange={e => setGoalName(e.target.value)} placeholder={isFr ? "Ex. Fonds d'urgence" : 'e.g. Emergency fund'} />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label>{isFr ? 'Montant cible' : 'Target amount'}</Label>
+                  <Input type="number" inputMode="numeric" value={goalTarget} onChange={e => setGoalTarget(e.target.value)} placeholder="500000" />
+                </div>
+                <div className="space-y-1">
+                  <Label>{isFr ? 'En (mois)' : 'In (months)'}</Label>
+                  <Input type="number" inputMode="numeric" value={goalMonths} onChange={e => setGoalMonths(e.target.value)} placeholder="6" />
+                </div>
+              </div>
+              {Number(goalTarget) > 0 && Number(goalMonths) > 0 && (
+                <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-2">
+                  {isFr ? 'Cotisation mensuelle suggérée : ' : 'Suggested monthly contribution: '}
+                  <span className="font-semibold text-foreground">
+                    {Math.round(Number(goalTarget) / Math.max(1, Number(goalMonths))).toLocaleString()} {currency}
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {currentStep === 'budget' && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-bold font-display flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  {isFr ? 'Votre premier budget' : 'Your first budget'}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isFr
+                    ? 'Facultatif — définissez une enveloppe pour une catégorie de dépense.'
+                    : 'Optional — set an envelope for one expense category.'}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>{isFr ? 'Catégorie' : 'Category'}</Label>
+                <Select value={budgetCategoryId} onValueChange={setBudgetCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isFr ? 'Choisir une catégorie…' : 'Pick a category…'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {expenseCategories.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.icon || '🏷️'} {c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>{isFr ? 'Montant plafond' : 'Cap amount'}</Label>
+                  <Input type="number" inputMode="numeric" value={budgetAmount} onChange={e => setBudgetAmount(e.target.value)} placeholder="50000" />
+                </div>
+                <div className="space-y-1">
+                  <Label>{isFr ? 'Période' : 'Period'}</Label>
+                  <Select value={budgetPeriod} onValueChange={v => setBudgetPeriod(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">{isFr ? 'Hebdomadaire' : 'Weekly'}</SelectItem>
+                      <SelectItem value="monthly">{isFr ? 'Mensuel' : 'Monthly'}</SelectItem>
+                      <SelectItem value="yearly">{isFr ? 'Annuel' : 'Yearly'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {isFr
+                  ? 'Vous recevrez une alerte à 80% et 100% du plafond.'
+                  : "You'll receive an alert at 80% and 100% of the cap."}
+              </p>
             </div>
           )}
 
