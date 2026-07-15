@@ -15,6 +15,7 @@ import { Plus, Search, TrendingUp, TrendingDown, Calendar, CreditCard, Tag, Arro
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet';
 import TransactionsStatsTab from '@/components/dashboard/tabs/TransactionsStatsTab';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
