@@ -1301,38 +1301,74 @@ const SavingsPage = () => {
               });
               if (!est.hasEnoughData && est.warnings.length === 0) return null;
               const dateFmt = (d: Date) => d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+              const regionLabel = locale === 'fr' ? 'Estimation automatique de l\'objectif' : 'Live goal estimation';
+              // Screen-reader summary announced whenever numbers change
+              const srSummary = (() => {
+                const parts: string[] = [];
+                if (est.hasEnoughData) {
+                  if (est.estimatedDeadline) {
+                    parts.push(locale === 'fr'
+                      ? `Objectif atteint le ${dateFmt(est.estimatedDeadline)}${est.monthsToTarget !== null ? `, dans ${formatMonthsHuman(est.monthsToTarget, locale)}` : ''}.`
+                      : `Goal reached on ${dateFmt(est.estimatedDeadline)}${est.monthsToTarget !== null ? `, in ${formatMonthsHuman(est.monthsToTarget, locale)}` : ''}.`);
+                  }
+                  if (est.requiredContribution !== null) {
+                    parts.push(locale === 'fr'
+                      ? `Versement requis pour tenir l'échéance : ${fmt(Math.ceil(est.requiredContribution))} par versement.`
+                      : `Required contribution to meet deadline: ${fmt(Math.ceil(est.requiredContribution))} per contribution.`);
+                  }
+                }
+                est.warnings.forEach(w => parts.push(locale === 'fr' ? w.fr : w.en));
+                return parts.join(' ');
+              })();
+              const hasBlocking = est.warnings.some(w => w.level === 'error');
               return (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                    <Zap className="w-3.5 h-3.5" />
+                <section
+                  role="region"
+                  aria-label={regionLabel}
+                  className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2 focus-within:ring-2 focus-within:ring-primary/40 focus:outline-none"
+                  tabIndex={-1}
+                >
+                  <h3 className="flex items-center gap-1.5 text-xs font-semibold text-primary m-0">
+                    <Zap className="w-3.5 h-3.5" aria-hidden="true" focusable="false" />
                     {locale === 'fr' ? 'Estimation automatique' : 'Live estimation'}
-                  </div>
+                  </h3>
+                  {/* Screen-reader live announcement — polite for numbers, assertive when a blocking error is present */}
+                  <p
+                    className="sr-only"
+                    role="status"
+                    aria-live={hasBlocking ? 'assertive' : 'polite'}
+                    aria-atomic="true"
+                  >
+                    {srSummary}
+                  </p>
                   {est.hasEnoughData && (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
+                    <dl className="grid grid-cols-2 gap-2 text-xs m-0" aria-label={locale === 'fr' ? 'Résultats de l\'estimation' : 'Estimation results'}>
                       {est.estimatedDeadline && (
                         <div className="bg-background/60 rounded-lg p-2">
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{locale === 'fr' ? 'Atteint le' : 'Reached on'}</p>
-                          <p className="font-bold text-foreground">{dateFmt(est.estimatedDeadline)}</p>
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{locale === 'fr' ? 'Atteint le' : 'Reached on'}</dt>
+                          <dd className="font-bold text-foreground m-0">{dateFmt(est.estimatedDeadline)}</dd>
                           {est.monthsToTarget !== null && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{locale === 'fr' ? `dans ${formatMonthsHuman(est.monthsToTarget, locale)}` : `in ${formatMonthsHuman(est.monthsToTarget, locale)}`}</p>
+                            <dd className="text-[10px] text-muted-foreground mt-0.5 m-0">{locale === 'fr' ? `dans ${formatMonthsHuman(est.monthsToTarget, locale)}` : `in ${formatMonthsHuman(est.monthsToTarget, locale)}`}</dd>
                           )}
                         </div>
                       )}
                       {est.requiredContribution !== null && (
                         <div className="bg-background/60 rounded-lg p-2">
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{locale === 'fr' ? 'Requis pour échéance' : 'Required for deadline'}</p>
-                          <p className="font-bold text-foreground">{fmt(Math.ceil(est.requiredContribution))}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{locale === 'fr' ? `par versement (${form.contribution_frequency === 'weekly' ? 'hebdo' : form.contribution_frequency === 'biweekly' ? 'quinzaine' : form.contribution_frequency === 'quarterly' ? 'trimestre' : 'mois'})` : 'per contribution'}</p>
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{locale === 'fr' ? 'Requis pour échéance' : 'Required for deadline'}</dt>
+                          <dd className="font-bold text-foreground m-0">{fmt(Math.ceil(est.requiredContribution))}</dd>
+                          <dd className="text-[10px] text-muted-foreground mt-0.5 m-0">{locale === 'fr' ? `par versement (${form.contribution_frequency === 'weekly' ? 'hebdo' : form.contribution_frequency === 'biweekly' ? 'quinzaine' : form.contribution_frequency === 'quarterly' ? 'trimestre' : 'mois'})` : 'per contribution'}</dd>
                         </div>
                       )}
-                    </div>
+                    </dl>
                   )}
+                  {est.warnings.length > 0 && (
+                  <ul className="space-y-1 list-none m-0 p-0" aria-label={locale === 'fr' ? 'Alertes de cohérence' : 'Coherence alerts'}>
                   {est.warnings.map((w, idx) => {
                     const iconMap = {
-                      error: <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />,
-                      warn: <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />,
-                      info: <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />,
-                      success: <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />,
+                      error: <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" focusable="false" />,
+                      warn: <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" focusable="false" />,
+                      info: <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" focusable="false" />,
+                      success: <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" focusable="false" />,
                     };
                     const cls = {
                       error: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -1340,14 +1376,25 @@ const SavingsPage = () => {
                       info: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30',
                       success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
                     };
+                    const srPrefix = {
+                      error: locale === 'fr' ? 'Erreur : ' : 'Error: ',
+                      warn: locale === 'fr' ? 'Avertissement : ' : 'Warning: ',
+                      info: locale === 'fr' ? 'Info : ' : 'Info: ',
+                      success: locale === 'fr' ? 'Succès : ' : 'Success: ',
+                    };
                     return (
-                      <div key={idx} className={`flex items-start gap-1.5 text-[11px] rounded-lg border px-2 py-1.5 ${cls[w.level]}`}>
+                      <li
+                        key={idx}
+                        className={`flex items-start gap-1.5 text-[11px] rounded-lg border px-2 py-1.5 ${cls[w.level]}`}
+                      >
                         {iconMap[w.level]}
-                        <span>{locale === 'fr' ? w.fr : w.en}</span>
-                      </div>
+                        <span><span className="sr-only">{srPrefix[w.level]}</span>{locale === 'fr' ? w.fr : w.en}</span>
+                      </li>
                     );
                   })}
-                </div>
+                  </ul>
+                  )}
+                </section>
               );
             })()}
           </FormSection>
