@@ -10,6 +10,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFoo
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { ArrowUp, ArrowDown, ArrowUpDown, Target } from 'lucide-react';
+import { ariaSortValue } from '@/lib/a11y';
 
 interface Row {
   id: string;
@@ -164,11 +165,25 @@ const BudgetVsActualReport = () => {
 
   const SortableHead = ({ k, children, align = 'right' }: { k: SortKey; children: React.ReactNode; align?: 'left' | 'right' }) => {
     const active = sortKey === k;
+    const nextDir: 'asc' | 'desc' = active ? (sortDir === 'asc' ? 'desc' : 'asc') : (k === 'name' ? 'asc' : 'desc');
+    const dirLabel = (d: 'asc' | 'desc') => (isFr
+      ? (d === 'asc' ? 'croissant' : 'décroissant')
+      : (d === 'asc' ? 'ascending' : 'descending'));
+    const label = typeof children === 'string' ? children : k;
     return (
-      <TableHead className={align === 'right' ? 'text-right' : ''}>
+      <TableHead
+        scope="col"
+        aria-sort={ariaSortValue(active, sortDir)}
+        className={align === 'right' ? 'text-right' : ''}
+      >
         <button
           type="button"
-          className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${active ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}
+          className={`inline-flex items-center gap-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm transition-colors ${active ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}
+          aria-label={
+            isFr
+              ? `Trier par ${label}, ${active ? `actuellement ${dirLabel(sortDir)}, cliquer pour trier en ${dirLabel(nextDir)}` : `cliquer pour trier en ${dirLabel(nextDir)}`}`
+              : `Sort by ${label}, ${active ? `currently ${dirLabel(sortDir)}, click to sort ${dirLabel(nextDir)}` : `click to sort ${dirLabel(nextDir)}`}`
+          }
           onClick={() => {
             if (active) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
             else { setSortKey(k); setSortDir(k === 'name' ? 'asc' : 'desc'); }
@@ -176,8 +191,8 @@ const BudgetVsActualReport = () => {
         >
           {children}
           {active
-            ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)
-            : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+            ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" aria-hidden="true" /> : <ArrowDown className="w-3 h-3" aria-hidden="true" />)
+            : <ArrowUpDown className="w-3 h-3 opacity-40" aria-hidden="true" />}
         </button>
       </TableHead>
     );
@@ -209,7 +224,11 @@ const BudgetVsActualReport = () => {
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
-          <Progress value={Math.min(r.pct, 100)} className={`h-2 flex-1 rounded-full ${getBarClass(r.pct)}`} />
+          <Progress
+            value={Math.min(r.pct, 100)}
+            aria-label={isFr ? `${r.name} : ${r.pct}% consommé` : `${r.name}: ${r.pct}% consumed`}
+            className={`h-2 flex-1 rounded-full ${getBarClass(r.pct)}`}
+          />
           <span className={`text-xs font-bold w-10 text-right ${getPctColor(r.pct)}`}>{r.pct}%</span>
         </div>
       </TableCell>
@@ -227,25 +246,39 @@ const BudgetVsActualReport = () => {
         ) : (
           <div className="overflow-x-auto">
             <Table>
+              <caption className="sr-only">
+                {isFr
+                  ? `Comparaison budget vs réel pour ${activeBudgets.length} budget(s), triée par ${sortKey} en ordre ${sortDir === 'asc' ? 'croissant' : 'décroissant'}.`
+                  : `Budget vs actual comparison for ${activeBudgets.length} budget(s), sorted by ${sortKey} in ${sortDir === 'asc' ? 'ascending' : 'descending'} order.`}
+              </caption>
               <TableHeader>
                 <TableRow>
                   <SortableHead k="name" align="left">{t.category}</SortableHead>
-                  <TableHead className="text-right">{t.period}</TableHead>
+                  <TableHead scope="col" className="text-right">{t.period}</TableHead>
                   <SortableHead k="budget">Budget</SortableHead>
                   <SortableHead k="actual">{isFr ? 'Réel' : 'Actual'}</SortableHead>
                   <SortableHead k="projection">{t.projection}</SortableHead>
                   <SortableHead k="annualized">{t.annualized}</SortableHead>
                   <SortableHead k="variance">{t.variance}</SortableHead>
-                  <TableHead className="min-w-[120px]">
+                  <TableHead
+                    scope="col"
+                    aria-sort={ariaSortValue(sortKey === 'pct', sortDir)}
+                    className="min-w-[120px]"
+                  >
                     <button
                       type="button"
-                      className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${sortKey === 'pct' ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}
+                      className={`inline-flex items-center gap-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm transition-colors ${sortKey === 'pct' ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}
+                      aria-label={
+                        isFr
+                          ? `Trier par ${t.consumptionPct}${sortKey === 'pct' ? `, actuellement ${sortDir === 'asc' ? 'croissant' : 'décroissant'}` : ''}`
+                          : `Sort by ${t.consumptionPct}${sortKey === 'pct' ? `, currently ${sortDir === 'asc' ? 'ascending' : 'descending'}` : ''}`
+                      }
                       onClick={() => { if (sortKey === 'pct') setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else { setSortKey('pct'); setSortDir('desc'); } }}
                     >
                       {t.consumptionPct}
                       {sortKey === 'pct'
-                        ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)
-                        : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                        ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" aria-hidden="true" /> : <ArrowDown className="w-3 h-3" aria-hidden="true" />)
+                        : <ArrowUpDown className="w-3 h-3 opacity-40" aria-hidden="true" />}
                     </button>
                   </TableHead>
                 </TableRow>
@@ -282,7 +315,11 @@ const BudgetVsActualReport = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Progress value={Math.min(expPct, 100)} className={`h-2 flex-1 rounded-full ${getBarClass(expPct)}`} />
+                        <Progress
+                          value={Math.min(expPct, 100)}
+                          aria-label={isFr ? `Total dépenses : ${expPct}% consommé` : `Total expenses: ${expPct}% consumed`}
+                          className={`h-2 flex-1 rounded-full ${getBarClass(expPct)}`}
+                        />
                         <span className={`text-xs font-bold w-10 text-right ${getPctColor(expPct)}`}>{expPct}%</span>
                       </div>
                     </TableCell>
@@ -301,7 +338,11 @@ const BudgetVsActualReport = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Progress value={Math.min(incPct, 100)} className={`h-2 flex-1 rounded-full ${getBarClass(incPct)}`} />
+                        <Progress
+                          value={Math.min(incPct, 100)}
+                          aria-label={isFr ? `Total revenus : ${incPct}% atteint` : `Total income: ${incPct}% achieved`}
+                          className={`h-2 flex-1 rounded-full ${getBarClass(incPct)}`}
+                        />
                         <span className={`text-xs font-bold w-10 text-right ${getPctColor(incPct)}`}>{incPct}%</span>
                       </div>
                     </TableCell>
