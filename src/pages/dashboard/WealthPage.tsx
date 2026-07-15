@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import WealthAnalysisTab from '@/components/dashboard/wealth/WealthAnalysisTab';
 import { WealthHeroHeader } from '@/components/dashboard/wealth/WealthHeroHeader';
 import { useAuth } from '@/hooks/useAuth';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
@@ -85,7 +86,7 @@ const WealthPage = () => {
   const [valuationNotes, setValuationNotes] = useState('');
   const [valuationDate, setValuationDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all');
+  const [filterType, setFilterType] = usePersistedState<string>('wealth:filterType', 'all');
   const [activeTab, setActiveTab] = useState('overview');
   const [historyAssetId, setHistoryAssetId] = useState<string | null>(null);
   const [aiValuing, setAiValuing] = useState(false);
