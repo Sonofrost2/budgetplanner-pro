@@ -600,6 +600,29 @@ const RecurringPage = () => {
                 <Label className="form-label flex items-center gap-1.5"><CreditCard className="w-3.5 h-3.5 text-muted-foreground" />{t.account} ({t.optional})</Label>
                 <AccountCombobox accounts={accounts} value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))} placeholder={t.selectAccount} />
               </div>
+              {form.type === 'expense' && savingsGoals.filter((g: any) => !g.deleted_at && !g.paused_at && (g.status || 'active') === 'active').length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="form-label">
+                    {locale === 'fr' ? 'Objectif d\'épargne à créditer' : 'Savings goal to credit'} ({t.optional})
+                  </Label>
+                  <Select value={form.savings_goal_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, savings_goal_id: v === '__none__' ? '' : v }))}>
+                    <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">{locale === 'fr' ? '— Aucun —' : '— None —'}</SelectItem>
+                      {savingsGoals
+                        .filter((g: any) => !g.deleted_at && !g.paused_at && (g.status || 'active') === 'active')
+                        .map((g: any) => (
+                          <SelectItem key={g.id} value={g.id}>{g.icon} {g.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">
+                    {locale === 'fr'
+                      ? 'À chaque échéance, l\'objectif sera crédité automatiquement du montant.'
+                      : 'On each due date, the goal will be automatically credited by this amount.'}
+                  </p>
+                </div>
+              )}
             </FormSection>
           </div>
       </ResponsiveFormDialog>
