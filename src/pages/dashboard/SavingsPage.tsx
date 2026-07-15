@@ -731,6 +731,9 @@ const SavingsPage = () => {
       priority: String((goal as any).priority ?? 2),
       purpose: (goal as any).purpose || 'other',
       notes: (goal as any).notes || '',
+      opening_balance: '',
+      is_renewable: !!(goal as any).is_renewable,
+      renewal_frequency: (goal as any).renewal_frequency || 'yearly',
     });
     setCustomBankMode(false);
     setDialogOpen(true);
