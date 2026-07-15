@@ -1685,7 +1685,7 @@ const SavingsPage = () => {
           <PartialWithdrawDialog
             open={!!partialWithdrawId}
             onOpenChange={(v) => { if (!v) setPartialWithdrawId(null); }}
-            goal={{ id: g.id, name: g.name, current_amount: Number(g.current_amount), user_id: user.id }}
+            goal={{ id: g.id, name: g.name, current_amount: Number(g.current_amount), user_id: user.id, is_locked: !!(g as any).is_locked }}
             accounts={accounts}
             onWithdrawn={() => { setPartialWithdrawId(null); refreshData(); }}
             locale={locale}
