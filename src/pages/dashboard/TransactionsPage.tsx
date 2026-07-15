@@ -11,10 +11,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Search, TrendingUp, TrendingDown, Calendar, CreditCard, Tag, ArrowUpDown, X, ArrowLeftRight, BarChart3, Filter, Scale, Lock, Users } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Calendar, CreditCard, Tag, ArrowUpDown, X, ArrowLeftRight, BarChart3, Filter, Scale, Lock, Users, SlidersHorizontal } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet';
 import TransactionsStatsTab from '@/components/dashboard/tabs/TransactionsStatsTab';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -72,6 +73,7 @@ const TransactionsPage = () => {
   const [budgetOverspendOpen, setBudgetOverspendOpen] = useState(false);
   const [overspendBudgetName, setOverspendBudgetName] = useState('');
   const [hideTransfers, setHideTransfers] = useState(false);
+  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
 
   // Server-side paginated transactions
   const { data: paginatedResult, isLoading: txLoading, isFetching: txFetching } = usePaginatedTransactions({
@@ -549,6 +551,18 @@ const TransactionsPage = () => {
     filterAccount !== 'all',
     !!startDate,
     !!endDate,
+    hideTransfers,
+    privacyFilter !== 'all',
+  ].filter(Boolean).length;
+
+  const advancedActiveCount = [
+    filterCategory !== 'all',
+    filterAccount !== 'all',
+    !!startDate,
+    !!endDate,
+    hideTransfers,
+    privacyFilter !== 'all',
+    isRegularizationActive,
   ].filter(Boolean).length;
 
   return (
@@ -668,8 +682,7 @@ const TransactionsPage = () => {
       >
         <Card className="border border-border/40 rounded-2xl bg-card/80 backdrop-blur-sm overflow-hidden">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                 {/* Search with enhanced animation */}
                 <div className="relative flex-1 min-w-[200px] group">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors duration-300" />
@@ -725,86 +738,50 @@ const TransactionsPage = () => {
                   ))}
                 </div>
 
-                {/* Régularisations quick toggle */}
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={toggleRegularization}
-                  title={locale === 'fr' ? 'Voir uniquement les écarts de régularisation' : 'View only adjustment discrepancies'}
-                  className={`relative flex items-center gap-1.5 px-3 h-10 rounded-xl text-xs font-semibold border transition-all duration-200 ${
-                    isRegularizationActive
-                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-[0_2px_10px_-2px_hsl(var(--primary)/0.25)]'
-                      : 'bg-background/60 text-muted-foreground border-border/40 hover:bg-background/80 hover:border-amber-500/30 hover:text-amber-600 dark:hover:text-amber-400'
-                  }`}
-                >
-                  <Scale className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">{locale === 'fr' ? 'Régularisations' : 'Adjustments'}</span>
-                  {isRegularizationActive && <X className="w-3 h-3 ml-0.5 opacity-70" />}
-                </motion.button>
-
-                {/* Hide/Show transfers toggle */}
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setHideTransfers(v => !v)}
-                  title={hideTransfers
-                    ? (locale === 'fr' ? 'Afficher les transferts entre comptes' : 'Show transfers between accounts')
-                    : (locale === 'fr' ? 'Masquer les transferts entre comptes' : 'Hide transfers between accounts')
-                  }
-                  className={`relative flex items-center gap-1.5 px-3 h-10 rounded-xl text-xs font-semibold border transition-all duration-200 ${
-                    hideTransfers
-                      ? 'bg-primary/15 text-primary border-primary/40 shadow-[0_2px_10px_-2px_hsl(var(--primary)/0.25)]'
-                      : 'bg-background/60 text-muted-foreground border-border/40 hover:bg-background/80 hover:border-primary/30 hover:text-primary'
-                  }`}
-                >
-                  <ArrowLeftRight className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">
-                    {hideTransfers
-                      ? (locale === 'fr' ? 'Transferts masqués' : 'Transfers hidden')
-                      : (locale === 'fr' ? 'Transferts' : 'Transfers')}
-                  </span>
-                  {hideTransfers && <X className="w-3 h-3 ml-0.5 opacity-70" />}
-                </motion.button>
-
-                {/* Privacy filter (Family / Private) */}
-                <div className="flex gap-1 p-0.5 bg-muted/40 rounded-xl">
-                  {[
-                    { value: 'all' as const, label: t.all, icon: null },
-                    { value: 'family' as const, label: locale === 'fr' ? 'Famille' : 'Family', icon: <Users className="w-3.5 h-3.5" />, title: locale === 'fr' ? 'Voir uniquement les transactions partagées avec la famille' : 'Show only family-shared transactions' },
-                    { value: 'private' as const, label: locale === 'fr' ? 'Privées' : 'Private', icon: <Lock className="w-3.5 h-3.5" />, title: locale === 'fr' ? 'Voir uniquement les transactions privées' : 'Show only private transactions' },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setPrivacyFilter(opt.value)}
-                      title={opt.title}
-                      className={`relative flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                        privacyFilter === opt.value ? 'text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                      }`}
+                {/* Advanced filters trigger */}
+                <Sheet open={filtersSheetOpen} onOpenChange={setFiltersSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-all duration-200 font-medium ${advancedActiveCount > 0 ? 'border-primary/40 bg-primary/5 text-primary' : ''}`}
                     >
-                      {privacyFilter === opt.value && (
-                        <motion.div
-                          layoutId="privacyFilter"
-                          className="absolute inset-0 bg-background rounded-lg shadow-sm border border-border/50"
-                          transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
-                        />
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{locale === 'fr' ? 'Filtres avancés' : 'Advanced filters'}</span>
+                      {advancedActiveCount > 0 && (
+                        <span className="ml-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-primary text-primary-foreground inline-flex items-center justify-center">
+                          {advancedActiveCount}
+                        </span>
                       )}
-                      <span className="relative flex items-center gap-1">
-                        {opt.icon}
-                        <span className="hidden sm:inline">{opt.label}</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle>{locale === 'fr' ? 'Filtres avancés' : 'Advanced filters'}</SheetTitle>
+                      <SheetDescription>
+                        {locale === 'fr' ? 'Affinez la liste avec des filtres additionnels.' : 'Refine the list with additional filters.'}
+                      </SheetDescription>
+                    </SheetHeader>
 
-
-                {/* Category popover */}
-                <Popover>
+                    <div className="mt-6 space-y-6">
+                      {/* Category */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                            <Tag className="w-3 h-3" /> {t.category}
+                          </label>
+                          {filterCategory !== 'all' && (
+                            <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive" onClick={() => setFilterCategory('all')}>
+                              <X className="w-3 h-3 mr-0.5" />{locale === 'fr' ? 'Réinitialiser' : 'Reset'}
+                            </Button>
+                          )}
+                        </div>
+                        <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={`h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-all duration-200 min-w-[140px] justify-start font-medium ${filterCategory !== 'all' ? 'border-primary/30 bg-primary/5 text-primary' : ''}`}>
+                    <Button variant="outline" className={`w-full h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-all duration-200 justify-start font-medium ${filterCategory !== 'all' ? 'border-primary/30 bg-primary/5 text-primary' : ''}`}>
                       <Tag className="w-3.5 h-3.5" />
                       {filterCategory !== 'all'
                         ? (() => { const cat = categories.find(c => c.id === filterCategory); return cat ? `${cat.icon} ${cat.name}` : t.category; })()
-                        : t.category
+                        : (locale === 'fr' ? 'Toutes les catégories' : 'All categories')
                       }
                     </Button>
                   </PopoverTrigger>
@@ -868,11 +845,38 @@ const TransactionsPage = () => {
                     </ScrollArea>
                   </PopoverContent>
                 </Popover>
+                        <button
+                          type="button"
+                          onClick={toggleRegularization}
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs border transition-all duration-200 ${
+                            isRegularizationActive
+                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
+                              : 'bg-background/60 text-muted-foreground border-border/40 hover:border-amber-500/30 hover:text-amber-600 dark:hover:text-amber-400'
+                          }`}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Scale className="w-3.5 h-3.5" />
+                            {locale === 'fr' ? 'Uniquement les régularisations' : 'Only adjustments'}
+                          </span>
+                          {isRegularizationActive && <X className="w-3 h-3 opacity-70" />}
+                        </button>
+                      </div>
 
-                {/* Account popover */}
-                <Popover>
+                      {/* Account */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                            <CreditCard className="w-3 h-3" /> {t.account}
+                          </label>
+                          {filterAccount !== 'all' && (
+                            <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive" onClick={() => setFilterAccount('all')}>
+                              <X className="w-3 h-3 mr-0.5" />{locale === 'fr' ? 'Réinitialiser' : 'Reset'}
+                            </Button>
+                          )}
+                        </div>
+                        <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={`h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-all duration-200 min-w-[140px] justify-start font-medium ${filterAccount !== 'all' ? 'border-primary/30 bg-primary/5 text-primary' : ''}`}>
+                    <Button variant="outline" className={`w-full h-10 rounded-xl text-xs gap-1.5 border-border/40 bg-background/60 hover:bg-background/80 transition-all duration-200 justify-start font-medium ${filterAccount !== 'all' ? 'border-primary/30 bg-primary/5 text-primary' : ''}`}>
                       <CreditCard className="w-3.5 h-3.5" />
                       {filterAccount !== 'all'
                         ? (() => { const acc = accounts.find(a => a.id === filterAccount); return acc ? `${acc.icon} ${acc.name}` : t.allAccounts; })()
@@ -907,15 +911,57 @@ const TransactionsPage = () => {
                     </ScrollArea>
                   </PopoverContent>
                 </Popover>
-              </div>
+                      </div>
 
-              {/* Date range + active filter badge + clear */}
-              <div className="flex flex-wrap gap-2 items-center">
+                      {/* Visibility toggles */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          {locale === 'fr' ? 'Visibilité' : 'Visibility'}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setHideTransfers(v => !v)}
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs border transition-all duration-200 ${
+                            hideTransfers
+                              ? 'bg-primary/15 text-primary border-primary/40'
+                              : 'bg-background/60 text-muted-foreground border-border/40 hover:border-primary/30 hover:text-primary'
+                          }`}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <ArrowLeftRight className="w-3.5 h-3.5" />
+                            {locale === 'fr' ? 'Masquer les transferts' : 'Hide transfers'}
+                          </span>
+                          {hideTransfers && <X className="w-3 h-3 opacity-70" />}
+                        </button>
+
+                        <div className="grid grid-cols-3 gap-1 p-0.5 bg-muted/40 rounded-xl">
+                          {[
+                            { value: 'all' as const, label: t.all, icon: null },
+                            { value: 'family' as const, label: locale === 'fr' ? 'Famille' : 'Family', icon: <Users className="w-3.5 h-3.5" /> },
+                            { value: 'private' as const, label: locale === 'fr' ? 'Privées' : 'Private', icon: <Lock className="w-3.5 h-3.5" /> },
+                          ].map(opt => (
+                            <button
+                              key={opt.value}
+                              onClick={() => setPrivacyFilter(opt.value)}
+                              className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                privacyFilter === opt.value ? 'bg-background text-foreground shadow-sm border border-border/50' : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                            >
+                              {opt.icon}<span>{opt.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Date range */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                          <Calendar className="w-3 h-3" /> {locale === 'fr' ? 'Période' : 'Period'}
+                        </label>
                 <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
+                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="flex-1 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
                   <span className="text-xs text-muted-foreground">→</span>
-                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
+                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="flex-1 rounded-xl h-9 border-border/40 bg-background/60 hover:bg-background/80 text-xs transition-colors" />
                 </div>
                 <div className="flex gap-1">
                   <Button
@@ -945,27 +991,43 @@ const TransactionsPage = () => {
                   >
                     {t.lastMonth}
                   </Button>
+                  {(startDate || endDate) && (
+                    <Button variant="ghost" size="sm" className="h-7 rounded-lg text-[10px] px-2 text-muted-foreground hover:text-destructive" onClick={() => { setStartDate(''); setEndDate(''); }}>
+                      <X className="w-3 h-3 mr-0.5" />{locale === 'fr' ? 'Effacer' : 'Clear'}
+                    </Button>
+                  )}
                 </div>
+                      </div>
+                    </div>
+
+                    <SheetFooter className="mt-8 flex-row gap-2 sm:justify-between">
+                      <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive gap-1" onClick={clearFilters}>
+                        <X className="w-4 h-4" />{t.clearFilters}
+                      </Button>
+                      <SheetClose asChild>
+                        <Button size="sm" className="rounded-xl">
+                          {locale === 'fr' ? 'Appliquer' : 'Apply'}
+                        </Button>
+                      </SheetClose>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
+
+                {/* Clear all (only when filters active) */}
                 <AnimatePresence>
                   {hasActiveFilters && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.8, x: -8 }}
                       animate={{ opacity: 1, scale: 1, x: 0 }}
                       exit={{ opacity: 0, scale: 0.8, x: -8 }}
-                      className="flex items-center gap-2"
                     >
-                      {activeFilterCount > 0 && (
-                        <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                          {activeFilterCount} {locale === 'fr' ? 'filtre(s)' : 'filter(s)'}
-                        </span>
-                      )}
-                      <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-destructive gap-1 transition-all h-7 text-xs" onClick={clearFilters}>
-                        <X className="w-3.5 h-3.5" />{t.clearFilters}
+                      <Button variant="ghost" size="sm" className="h-10 rounded-xl text-muted-foreground hover:text-destructive gap-1 transition-all text-xs" onClick={clearFilters} title={t.clearFilters}>
+                        <X className="w-3.5 h-3.5" />
+                        <span className="hidden md:inline">{t.clearFilters}</span>
                       </Button>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
             </div>
           </CardContent>
         </Card>
