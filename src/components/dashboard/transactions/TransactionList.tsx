@@ -453,7 +453,7 @@ export const TransactionList = ({
                           <span className="text-sm flex-shrink-0">{tx.categories?.icon || '📁'}</span>
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
                           <span className="text-xs font-semibold truncate flex-1 text-foreground/85 flex items-center gap-1.5 min-w-0">
-                            <span className="truncate">{tx.description}</span>
+                            <span className="truncate" title={tx.description}>{tx.description}</span>
                             {isTransferTx(tx) && <TransferBadge locale={locale} compact />}
                           </span>
                           {tx.categories?.name ? (
@@ -547,7 +547,7 @@ export const TransactionList = ({
                             <div className="min-w-0">
                               <p className="text-sm font-bold truncate leading-tight text-foreground/90 flex items-center gap-1.5">
                                 <PrivacyIndicator shared={!!tx.family_category_id} locale={locale} />
-                                <span className="truncate">{tx.description}</span>
+                                <span className="truncate" title={tx.description}>{tx.description}</span>
                                 {isTransferTx(tx) && <TransferBadge locale={locale} />}
                               </p>
                               <p className="text-[11px] text-muted-foreground/70 mt-0.5 flex items-center gap-1 flex-wrap">
