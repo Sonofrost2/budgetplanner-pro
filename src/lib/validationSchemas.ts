@@ -42,18 +42,52 @@ export const budgetSchema = (t: { nameRequired: string; invalidAmount: string; a
 export const savingsGoalSchema = (locale: string) => {
   const fr = locale === 'fr';
   return z.object({
-    name: z.string().trim().min(1, fr ? 'Nom requis' : 'Name required').max(100),
-    target_amount: z.string().refine(v => Number(v) > 0, fr ? 'Montant cible > 0' : 'Target > 0'),
+    name: z.string().trim().min(1, fr ? 'Nom requis' : 'Name required').max(100, fr ? 'Nom max 100 car.' : 'Max 100 chars'),
+    target_amount: z.string()
+      .refine(v => Number(v) > 0, fr ? 'Montant cible > 0' : 'Target > 0')
+      .refine(v => Number(v) <= 999_999_999, fr ? 'Montant trop élevé' : 'Amount too high'),
     icon: z.string().default('🎯'),
     deadline: z.string().optional().or(z.literal('')),
     account_id: z.string().optional().or(z.literal('')),
-    monthly_contribution: z.string().optional().or(z.literal('')).refine(v => !v || Number(v) >= 0, fr ? 'Cotisation ≥ 0' : 'Contribution ≥ 0'),
+    monthly_contribution: z.string().optional().or(z.literal(''))
+      .refine(v => !v || Number(v) >= 0, fr ? 'Cotisation ≥ 0' : 'Contribution ≥ 0')
+      .refine(v => !v || Number(v) <= 999_999_999, fr ? 'Cotisation trop élevée' : 'Contribution too high'),
     start_date: z.string().optional().or(z.literal('')),
-    contribution_day: z.string().optional().or(z.literal('')).refine(v => !v || (Number(v) >= 1 && Number(v) <= 31), fr ? 'Jour entre 1 et 31' : 'Day 1–31'),
+    contribution_day: z.string().optional().or(z.literal(''))
+      .refine(v => !v || (Number(v) >= 1 && Number(v) <= 31), fr ? 'Jour entre 1 et 31' : 'Day 1–31'),
     is_locked: z.boolean(),
-    interest_rate: z.string().optional().or(z.literal('')).refine(v => !v || (Number(v) >= 0 && Number(v) <= 100), fr ? 'Taux entre 0 et 100' : 'Rate 0–100'),
-    interest_frequency: z.string().default('yearly'),
-    bank_name: z.string().optional().or(z.literal('')),
+    interest_rate: z.string().optional().or(z.literal(''))
+      .refine(v => !v || (Number(v) >= 0 && Number(v) <= 100), fr ? 'Taux entre 0 et 100' : 'Rate 0–100'),
+    interest_frequency: z.enum(['daily','weekly','monthly','quarterly','semi_annual','yearly']).default('yearly'),
+    bank_name: z.string().max(100).optional().or(z.literal('')),
+    opening_balance: z.string().optional().or(z.literal(''))
+      .refine(v => !v || Number(v) >= 0, fr ? 'Solde initial ≥ 0' : 'Opening balance ≥ 0'),
+    is_renewable: z.boolean().optional(),
+    renewal_frequency: z.enum(['monthly','quarterly','semi_annual','yearly']).optional(),
+    priority: z.string().optional(),
+    purpose: z.string().optional(),
+    notes: z.string().max(500, fr ? 'Notes max 500 car.' : 'Notes max 500 chars').optional().or(z.literal('')),
+  }).superRefine((data, ctx) => {
+    // Cohérence : deadline > start_date
+    if (data.start_date && data.deadline) {
+      if (new Date(data.deadline) <= new Date(data.start_date)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['deadline'],
+          message: fr ? 'La date de fin doit être postérieure au début' : 'End date must be after start date',
+        });
+      }
+    }
+    // Cohérence : opening_balance ≤ target_amount
+    if (data.opening_balance && data.target_amount) {
+      if (Number(data.opening_balance) > Number(data.target_amount)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['opening_balance'],
+          message: fr ? 'Le solde initial dépasse la cible' : 'Opening balance exceeds target',
+        });
+      }
+    }
   });
 };
 
