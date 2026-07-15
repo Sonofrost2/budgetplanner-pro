@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import PlanLockedView from '@/components/dashboard/PlanLockedView';
+import { PageHeader } from '@/components/ui/page-header';
 
 const LOADING_STEPS_FR = [
   '🔍 Analyse des revenus…',
@@ -187,26 +188,26 @@ const ForecastsPage = () => {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold font-display">{t.forecastTitle}</h2>
-          <p className="text-muted-foreground mt-1 text-sm">{t.forecastSubtitle}</p>
-        </div>
-        <Button
-          size="sm"
-          className="text-primary-foreground relative overflow-hidden"
-          style={{ background: 'var(--gradient-primary)' }}
-          onClick={generateForecast}
-          disabled={loading || !hasData || !canUseForecast}
-        >
-          {!canUseForecast ? <Lock className="w-4 h-4 mr-1" /> : loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
-          {loading ? t.generating : t.generateForecast}
-          {!forecast && !loading && canUseForecast && hasData && (
-            <span className="absolute inset-0 rounded-md animate-pulse bg-white/10" />
-          )}
-        </Button>
-      </div>
+      <PageHeader
+        title={t.forecastTitle}
+        icon={TrendingUp}
+        description={t.forecastSubtitle}
+        actions={
+          <Button
+            size="sm"
+            className="text-primary-foreground rounded-xl relative overflow-hidden"
+            style={{ background: 'var(--gradient-primary)' }}
+            onClick={generateForecast}
+            disabled={loading || !hasData || !canUseForecast}
+          >
+            {!canUseForecast ? <Lock className="w-4 h-4 mr-1" /> : loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+            {loading ? t.generating : t.generateForecast}
+            {!forecast && !loading && canUseForecast && hasData && (
+              <span className="absolute inset-0 rounded-md animate-pulse bg-white/10" />
+            )}
+          </Button>
+        }
+      />
 
       {/* Loading state */}
       <AnimatePresence>
