@@ -513,6 +513,20 @@ const PaymentPage = () => {
           const planId = params.get('plan');
           const confirmedPlan = plans.find(p => p.id === planId);
           if (confirmedPlan) {
+            // GA4/GTM conversion — payment confirmed server-side
+            import('@/lib/analytics').then(({ trackEvent }) => {
+              trackEvent('purchase', {
+                transaction_id: reference || activeSubs[0].id,
+                value: getPrice(confirmedPlan),
+                currency,
+                items: [{
+                  item_id: confirmedPlan.id,
+                  item_name: confirmedPlan.name,
+                  price: getPrice(confirmedPlan),
+                  quantity: 1,
+                }],
+              });
+            });
             const { data: profile } = await supabase.from('profiles').select('display_name').eq('user_id', user.id).single();
             supabase.functions.invoke('send-email', {
               body: {
