@@ -599,9 +599,19 @@ const TransactionsPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.3 }}
         >
-          <TabsList className="rounded-xl mb-4 bg-muted/50 p-1">
-            <TabsTrigger value="manage" className="rounded-lg gap-1.5 data-[state=active]:shadow-sm transition-all"><ArrowUpDown className="w-4 h-4" />{t.management}</TabsTrigger>
-            <TabsTrigger value="stats" className="rounded-lg gap-1.5 data-[state=active]:shadow-sm transition-all"><BarChart3 className="w-4 h-4" />{t.transactionsStats}</TabsTrigger>
+          <TabsList className="inline-flex mb-4 p-1 h-auto rounded-xl bg-[hsl(var(--glass))] backdrop-blur-xl border border-[hsl(var(--glass-border))] shadow-sm">
+            <TabsTrigger
+              value="manage"
+              className="rounded-lg gap-1.5 px-4 py-1.5 text-xs font-semibold text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-background/80 data-[state=active]:shadow-sm transition-all"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5" />{t.management}
+            </TabsTrigger>
+            <TabsTrigger
+              value="stats"
+              className="rounded-lg gap-1.5 px-4 py-1.5 text-xs font-semibold text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-background/80 data-[state=active]:shadow-sm transition-all"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />{t.transactionsStats}
+            </TabsTrigger>
           </TabsList>
         </motion.div>
 
