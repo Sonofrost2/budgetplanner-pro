@@ -65,6 +65,38 @@ Deno.serve(async (req) => {
 
       // real_balance is no longer auto-updated
 
+      // Auto-deposit into a linked savings goal (if set and expense-type).
+      // We only credit the goal when money is actually leaving an account.
+      if (item.savings_goal_id && item.type === "expense") {
+        try {
+          const { data: goal } = await supabase
+            .from("savings_goals")
+            .select("id, current_amount, deleted_at, paused_at, status")
+            .eq("id", item.savings_goal_id)
+            .maybeSingle();
+          if (goal && !goal.deleted_at && !goal.paused_at && goal.status === "active") {
+            const newAmount = Number(goal.current_amount || 0) + Number(item.amount);
+            const { error: goalErr } = await supabase
+              .from("savings_goals")
+              .update({ current_amount: newAmount })
+              .eq("id", goal.id);
+            if (!goalErr) {
+              await supabase.from("savings_goal_transactions").insert({
+                user_id: item.user_id,
+                goal_id: goal.id,
+                kind: "deposit",
+                amount: Number(item.amount),
+                note: "🔄 Versement récurrent auto",
+              });
+            } else {
+              console.error(`Auto-deposit failed for goal ${goal.id}:`, goalErr);
+            }
+          }
+        } catch (e) {
+          console.error(`Auto-deposit exception for recurring ${item.id}:`, e);
+        }
+      }
+
       // Advance next_date
       const nextDate = computeNextDate(item.next_date, item.frequency || "monthly");
       await supabase
