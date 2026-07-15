@@ -109,6 +109,32 @@ const BlogPostPage = () => {
 
         <hr className="my-12 border-border" />
 
+        {/* Internal linking CTA — connects blog readers to the app's key entry points */}
+        <section className="rounded-2xl border border-primary/20 bg-primary/5 p-6 mb-12">
+          <h2 className="text-lg font-semibold mb-2">
+            {locale === 'en' ? 'Try Budget Planner Pro' : 'Essayez Budget Planner Pro'}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            {locale === 'en'
+              ? 'Put these ideas into practice with the app trusted by West African households.'
+              : 'Mettez ces conseils en pratique avec l\'app plébiscitée par les foyers ouest-africains.'}
+          </p>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <Link to="/signup" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium">
+              {locale === 'en' ? 'Get started free' : 'Commencer gratuitement'}
+            </Link>
+            <Link to="/#features" className="px-4 py-2 rounded-lg border border-glass-border hover:bg-muted/40 transition-colors">
+              {locale === 'en' ? 'See features' : 'Voir les fonctionnalités'}
+            </Link>
+            <Link to="/#pricing" className="px-4 py-2 rounded-lg border border-glass-border hover:bg-muted/40 transition-colors">
+              {locale === 'en' ? 'View pricing' : 'Voir les tarifs'}
+            </Link>
+            <Link to="/demo" className="px-4 py-2 rounded-lg border border-glass-border hover:bg-muted/40 transition-colors">
+              {locale === 'en' ? 'Try the demo' : 'Essayer la démo'}
+            </Link>
+          </div>
+        </section>
+
         <section>
           <h2 className="text-xl font-semibold mb-4">{locale === 'en' ? 'Keep reading' : 'À lire ensuite'}</h2>
           <div className="grid gap-4 sm:grid-cols-3">
