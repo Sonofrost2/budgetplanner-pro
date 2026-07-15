@@ -257,6 +257,43 @@ const OnboardingPage = () => {
         }))
       );
     }
+
+    // Optional: first savings goal
+    const targetAmt = Number(goalTarget);
+    const months = Math.max(1, Number(goalMonths) || 6);
+    if (goalName.trim() && targetAmt > 0) {
+      const deadline = new Date();
+      deadline.setMonth(deadline.getMonth() + months);
+      await supabase.from('savings_goals').insert({
+        user_id: user.id,
+        name: goalName.trim(),
+        icon: goalIcon || '🎯',
+        target_amount: targetAmt,
+        current_amount: 0,
+        deadline: deadline.toISOString().slice(0, 10),
+        monthly_contribution: Math.round(targetAmt / months),
+        priority: 'high',
+      } as any);
+    }
+
+    // Optional: first budget
+    const budgetAmt = Number(budgetAmount);
+    if (budgetCategoryId && budgetAmt > 0) {
+      const cat = expenseCategories.find(c => c.id === budgetCategoryId);
+      await supabase.from('budgets').insert({
+        user_id: user.id,
+        name: cat?.name || (isFr ? 'Mon premier budget' : 'My first budget'),
+        amount: budgetAmt,
+        category_id: budgetCategoryId,
+        period: budgetPeriod,
+        alert_threshold: 80,
+        budget_type: 'expense',
+        control_type: 'limit',
+        priority: 'medium',
+        is_renewable: true,
+      } as any);
+    }
+
     toast.success(isFr ? 'Configuration terminée !' : 'Setup complete!');
     navigate('/dashboard');
   };
