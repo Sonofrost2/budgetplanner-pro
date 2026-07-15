@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock, Lock, Unlock, Landmark, Sparkles, Coins, Archive, RotateCcw, ArrowRight } from 'lucide-react';
+import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock, Lock, Unlock, Landmark, Sparkles, Coins, Archive, RotateCcw, ArrowRight, Pause, Play, Repeat } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { SavingsRingProgress } from './SavingsRingProgress';
@@ -34,13 +34,17 @@ interface SavingsGoalCardProps {
   onArchive?: () => void;
   onReinvest?: () => void;
   onReactivate?: () => void;
+  onTogglePause?: () => void;
 }
 
-export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onPartialWithdraw, onEdit, onDelete, onSimulate, onCapitalizeInterest, isCapitalizing, onArchive, onReinvest, onReactivate }: SavingsGoalCardProps) => {
+export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onPartialWithdraw, onEdit, onDelete, onSimulate, onCapitalizeInterest, isCapitalizing, onArchive, onReinvest, onReactivate, onTogglePause }: SavingsGoalCardProps) => {
   const pct = goal.target_amount > 0 ? Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100) : 0;
   const done = pct >= 100;
   const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.current_amount));
   const dateFmt = locale === 'fr' ? 'fr-FR' : 'en-US';
+  const isPaused = !!(goal as any).paused_at;
+  const isRenewable = !!(goal as any).is_renewable;
+  const milestone = pct >= 100 ? 100 : pct >= 75 ? 75 : pct >= 50 ? 50 : pct >= 25 ? 25 : 0;
 
   const deposits = contributions.filter(c => c.type === 'deposit');
 
