@@ -26,8 +26,8 @@ describe('transactionSchema', () => {
       description: '', amount: '10', type: 'expense', date: today, notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) { throw new Error('expected failure'); }
-    expect(r.errors.description).toBe(tFr.descriptionRequired);
+    if (r.success) throw new Error("expected failure"); const errors = r.errors;
+    expect(errors.description).toBe(tFr.descriptionRequired);
   });
 
   it('rejects zero amount with shared message', () => {
@@ -35,8 +35,8 @@ describe('transactionSchema', () => {
       description: 'x', amount: '0', type: 'expense', date: today, notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) { throw new Error('expected failure'); }
-    expect(r.errors.amount).toBe(tFr.invalidAmount);
+    if (r.success) throw new Error("expected failure"); const errors = r.errors;
+    expect(errors.amount).toBe(tFr.invalidAmount);
   });
 
   it('rejects amount above cap', () => {
@@ -44,8 +44,8 @@ describe('transactionSchema', () => {
       description: 'x', amount: '9999999999', type: 'expense', date: today, notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) { throw new Error('expected failure'); }
-    expect(r.errors.amount).toBe(tFr.amountTooHigh);
+    if (r.success) throw new Error("expected failure"); const errors = r.errors;
+    expect(errors.amount).toBe(tFr.amountTooHigh);
   });
 });
 
@@ -64,8 +64,8 @@ describe('transferSchema', () => {
       from_account_id: 'a', to_account_id: 'b', notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) { throw new Error('expected failure'); }
-    expect(r.errors.amount).toBe(tFr.invalidAmount);
+    if (r.success) throw new Error("expected failure"); const errors = r.errors;
+    expect(errors.amount).toBe(tFr.invalidAmount);
   });
 
   it('requires distinct source and destination accounts', () => {
@@ -74,8 +74,8 @@ describe('transferSchema', () => {
       from_account_id: 'a', to_account_id: 'a', notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) { throw new Error('expected failure'); }
-    expect(r.errors.to_account_id).toBe(tFr.transferSameAccount);
+    if (r.success) throw new Error("expected failure"); const errors = r.errors;
+    expect(errors.to_account_id).toBe(tFr.transferSameAccount);
   });
 
   it('requires source account', () => {
@@ -84,7 +84,7 @@ describe('transferSchema', () => {
       from_account_id: '', to_account_id: 'b', notes: '',
     });
     expect(r.success).toBe(false);
-    if (r.success) { throw new Error('expected failure'); }
-    expect(r.errors.from_account_id).toBe('Compte source requis');
+    if (r.success) throw new Error("expected failure"); const errors = r.errors;
+    expect(errors.from_account_id).toBe('Compte source requis');
   });
 });
