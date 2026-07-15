@@ -269,14 +269,16 @@ export const TransactionsHeroHeader = ({
           )}
         </div>
 
-        {/* Right: actions */}
-        <div className="flex lg:flex-col gap-2 lg:items-stretch">
+        {/* Right: actions — 2 CTAs seulement. Le transfert est un onglet du formulaire. */}
+        <div className="flex lg:flex-col gap-2 lg:items-stretch lg:min-w-[180px]">
           {(() => {
             const addTooltip = limitReached
               ? (isFr
                   ? `Limite du plan Gratuit atteinte : ${monthlyLimit} transactions/mois. Passez au plan Pro pour continuer.`
                   : `Free plan limit reached: ${monthlyLimit} transactions/month. Upgrade to Pro to continue.`)
-              : undefined;
+              : (isFr
+                  ? 'Dépense, revenu ou transfert — onglets dans le formulaire'
+                  : 'Expense, income or transfer — tabs inside the form');
             return (
               <motion.div
                 whileHover={limitReached ? undefined : { scale: 1.02 }}
@@ -311,19 +313,17 @@ export const TransactionsHeroHeader = ({
               </Button>
             </motion.div>
           )}
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full rounded-xl border-border/60 bg-background/40 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          {canTransfer && (
+            <button
+              type="button"
               onClick={onTransfer}
-              disabled={!canTransfer}
-              title={!canTransfer ? transferDisabledReason : undefined}
-              aria-disabled={!canTransfer}
+              className="w-full text-[11px] text-muted-foreground hover:text-primary transition-colors inline-flex items-center justify-center gap-1 py-1"
+              title={isFr ? 'Ouvre le formulaire sur l\'onglet Transfert' : 'Open form on Transfer tab'}
             >
-              <ArrowLeftRight className="w-4 h-4 mr-1" />{t.makeTransfer}
-            </Button>
-          </motion.div>
+              <ArrowLeftRight className="w-3 h-3" />
+              {isFr ? 'Ou faire un transfert' : 'Or make a transfer'}
+            </button>
+          )}
         </div>
       </div>
 
