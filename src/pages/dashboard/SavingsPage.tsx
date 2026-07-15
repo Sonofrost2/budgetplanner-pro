@@ -667,6 +667,18 @@ const SavingsPage = () => {
     refreshData();
   };
 
+  // Pause / Resume a goal (paused_at flag). Paused goals stop contributing to
+  // "monthly needed" projections and are excluded from deadline alerts.
+  const handleTogglePause = async (goalId: string, currentlyPaused: boolean) => {
+    const { error } = await supabase
+      .from('savings_goals')
+      .update({ paused_at: currentlyPaused ? null : new Date().toISOString() } as any)
+      .eq('id', goalId);
+    if (error) { coachToast.fail(error.message); return; }
+    coachToast.saved(currentlyPaused ? (locale === 'fr' ? 'Objectif repris' : 'Goal resumed') : (locale === 'fr' ? 'Objectif mis en pause' : 'Goal paused'));
+    refreshData();
+  };
+
   // Detect milestones (25/50/75%) — coach toast on threshold crossings
   useEffect(() => {
     if (!goals || goals.length === 0) return;
@@ -1165,6 +1177,7 @@ const SavingsPage = () => {
               onArchive={(g as any).status !== 'completed' && Number(g.current_amount) >= Number(g.target_amount) ? () => handleArchive(g.id) : undefined}
               onReinvest={(g as any).status === 'completed' ? () => handleReinvest(g.id) : undefined}
               onReactivate={(g as any).status === 'completed' ? () => handleReactivate(g.id) : undefined}
+              onTogglePause={(g as any).status === 'active' ? () => handleTogglePause(g.id, !!(g as any).paused_at) : undefined}
             />
         );
 

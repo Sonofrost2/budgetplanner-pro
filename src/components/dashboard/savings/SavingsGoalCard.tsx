@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock, Lock, Unlock, Landmark, Sparkles, Coins, Archive, RotateCcw, ArrowRight } from 'lucide-react';
+import { Trash2, Plus, Calendar, Wallet, TrendingUp, Clock, CheckCircle2, ArrowDownLeft, ArrowUpRight, Pencil, CalendarClock, Lock, Unlock, Landmark, Sparkles, Coins, Archive, RotateCcw, ArrowRight, Pause, Play, Repeat } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { SavingsRingProgress } from './SavingsRingProgress';
@@ -34,13 +34,17 @@ interface SavingsGoalCardProps {
   onArchive?: () => void;
   onReinvest?: () => void;
   onReactivate?: () => void;
+  onTogglePause?: () => void;
 }
 
-export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onPartialWithdraw, onEdit, onDelete, onSimulate, onCapitalizeInterest, isCapitalizing, onArchive, onReinvest, onReactivate }: SavingsGoalCardProps) => {
+export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSaving, onWithdraw, onPartialWithdraw, onEdit, onDelete, onSimulate, onCapitalizeInterest, isCapitalizing, onArchive, onReinvest, onReactivate, onTogglePause }: SavingsGoalCardProps) => {
   const pct = goal.target_amount > 0 ? Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100) : 0;
   const done = pct >= 100;
   const remaining = Math.max(0, Number(goal.target_amount) - Number(goal.current_amount));
   const dateFmt = locale === 'fr' ? 'fr-FR' : 'en-US';
+  const isPaused = !!(goal as any).paused_at;
+  const isRenewable = !!(goal as any).is_renewable;
+  const milestone = pct >= 100 ? 100 : pct >= 75 ? 75 : pct >= 50 ? 50 : pct >= 25 ? 25 : 0;
 
   const deposits = contributions.filter(c => c.type === 'deposit');
 
@@ -212,9 +216,29 @@ export const SavingsGoalCard = ({ goal, contributions, fmt, t, locale, onAddSavi
                       <CalendarClock className="w-3 h-3" />{humanCountdown}
                     </span>
                   )}
+                  {isRenewable && (
+                    <span className="flex items-center gap-1 text-primary font-medium" title="Objectif renouvelable">
+                      <Repeat className="w-3 h-3" />Renouvelable
+                    </span>
+                  )}
+                  {isPaused && (
+                    <span className="flex items-center gap-1 text-amber-500 font-medium">
+                      <Pause className="w-3 h-3" />En pause
+                    </span>
+                  )}
+                  {milestone > 0 && milestone < 100 && (
+                    <span className="flex items-center gap-1 text-secondary font-medium" title={`Étape ${milestone}% atteinte`}>
+                      🏁 {milestone}%
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                {onTogglePause && !done && (
+                  <Button aria-label={isPaused ? 'Reprendre' : 'Mettre en pause'} variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-amber-500" onClick={onTogglePause}>
+                    {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                  </Button>
+                )}
                 <Button aria-label="Modifier" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={onEdit}>
                   <Pencil className="w-3.5 h-3.5" />
                 </Button>
