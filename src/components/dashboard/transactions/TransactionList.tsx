@@ -487,6 +487,11 @@ export const TransactionList = ({
                               <Button aria-label="Modifier" variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary" onClick={() => onEdit(tx)}>
                                 <Pencil className="w-3 h-3" />
                               </Button>
+                              {onDuplicate && !tx.linked_transfer_id && (
+                                <Button aria-label={locale === 'fr' ? 'Dupliquer' : 'Duplicate'} variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary" onClick={() => onDuplicate(tx)} title={locale === 'fr' ? 'Dupliquer à la date du jour' : 'Duplicate to today'}>
+                                  <Copy className="w-3 h-3" />
+                                </Button>
+                              )}
                               <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-6 w-6 rounded-md text-destructive hover:bg-destructive/10" onClick={() => onDelete(tx.id)}>
                                 <Trash2 className="w-3 h-3" />
                               </Button>
@@ -499,6 +504,9 @@ export const TransactionList = ({
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
                                 <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg"><Pencil className="w-3.5 h-3.5" /> {t.edit}</DropdownMenuItem>
+                                {onDuplicate && !tx.linked_transfer_id && (
+                                  <DropdownMenuItem onClick={() => onDuplicate(tx)} className="gap-2 rounded-lg"><Copy className="w-3.5 h-3.5" /> {locale === 'fr' ? 'Dupliquer' : 'Duplicate'}</DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg"><Trash2 className="w-3.5 h-3.5" /> {t.delete}</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -590,6 +598,11 @@ export const TransactionList = ({
                                 <Button aria-label="Modifier" variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => onEdit(tx)}>
                                   <Pencil className="w-3.5 h-3.5" />
                                 </Button>
+                                {onDuplicate && !tx.linked_transfer_id && (
+                                  <Button aria-label={locale === 'fr' ? 'Dupliquer' : 'Duplicate'} variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => onDuplicate(tx)} title={locale === 'fr' ? 'Dupliquer à la date du jour' : 'Duplicate to today'}>
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
                                 <Button aria-label="Supprimer" variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(tx.id)}>
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
@@ -602,6 +615,9 @@ export const TransactionList = ({
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="rounded-xl backdrop-blur-xl bg-[hsl(var(--popover))] border border-[hsl(var(--glass-border))]">
                                   <DropdownMenuItem onClick={() => onEdit(tx)} className="gap-2 rounded-lg"><Pencil className="w-3.5 h-3.5" /> {t.edit}</DropdownMenuItem>
+                                  {onDuplicate && !tx.linked_transfer_id && (
+                                    <DropdownMenuItem onClick={() => onDuplicate(tx)} className="gap-2 rounded-lg"><Copy className="w-3.5 h-3.5" /> {locale === 'fr' ? 'Dupliquer' : 'Duplicate'}</DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem onClick={() => onDelete(tx.id)} className="gap-2 text-destructive focus:text-destructive rounded-lg"><Trash2 className="w-3.5 h-3.5" /> {t.delete}</DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
