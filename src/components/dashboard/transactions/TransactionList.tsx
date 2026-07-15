@@ -33,6 +33,8 @@ interface TransactionListProps {
   t: DashTranslations;
   locale: string;
   isFetching?: boolean;
+  onFilterCategory?: (categoryId: string) => void;
+  onFilterAccount?: (accountId: string) => void;
 }
 
 const containerVariants = {
