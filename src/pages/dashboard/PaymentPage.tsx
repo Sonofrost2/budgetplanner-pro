@@ -424,6 +424,25 @@ const PaymentPage = () => {
     }
     setSubscribing(plan.id);
     try {
+      // GA4/GTM conversion tracking — fired BEFORE the network call so we don't
+      // lose the event if the popup is blocked or the user closes the tab.
+      const price = getPrice(plan);
+      import('@/lib/analytics').then(({ trackEvent }) => {
+        if (plan.trial_days > 0) {
+          trackEvent('begin_trial', {
+            plan_id: plan.id,
+            plan_name: plan.name,
+            trial_days: plan.trial_days,
+            value: price,
+            currency,
+          });
+        }
+        trackEvent('begin_checkout', {
+          currency,
+          value: price,
+          items: [{ item_id: plan.id, item_name: plan.name, price, quantity: 1, item_category: annual ? 'annual' : 'monthly' }],
+        });
+      });
       // Server is the source of truth for the price.
       // Edge function will: validate user/plan, look up DB price, persist
       // pending subscription + receipt, then call Paystack.
@@ -494,6 +513,20 @@ const PaymentPage = () => {
           const planId = params.get('plan');
           const confirmedPlan = plans.find(p => p.id === planId);
           if (confirmedPlan) {
+            // GA4/GTM conversion — payment confirmed server-side
+            import('@/lib/analytics').then(({ trackEvent }) => {
+              trackEvent('purchase', {
+                transaction_id: reference || activeSubs[0].id,
+                value: getPrice(confirmedPlan),
+                currency,
+                items: [{
+                  item_id: confirmedPlan.id,
+                  item_name: confirmedPlan.name,
+                  price: getPrice(confirmedPlan),
+                  quantity: 1,
+                }],
+              });
+            });
             const { data: profile } = await supabase.from('profiles').select('display_name').eq('user_id', user.id).single();
             supabase.functions.invoke('send-email', {
               body: {

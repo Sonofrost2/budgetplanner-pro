@@ -2,12 +2,14 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initSentry } from "./lib/sentry";
+import { initAnalytics } from "./lib/analytics";
 import { RootErrorBoundary } from "./components/RootErrorBoundary";
 import { runSchemaMigration } from "./lib/safeStorage";
 
 // Purge incompatible local state from previous schema versions before any provider boots.
 runSchemaMigration();
 initSentry();
+initAnalytics();
 
 // A11y: mark Lucide/decorative SVGs inside interactive elements as aria-hidden.
 // Icons inside <button>/<a> are visual only — the accessible name comes from

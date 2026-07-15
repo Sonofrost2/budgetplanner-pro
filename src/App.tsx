@@ -80,6 +80,13 @@ const AnimatedRoutes = () => {
   const location = useLocation();
   const routeKey = location.pathname.startsWith('/dashboard') ? '/dashboard' : location.pathname;
 
+  // GA4/GTM SPA page_view tracking on every route change.
+  useEffect(() => {
+    import('@/lib/analytics').then(({ trackPageView }) => {
+      trackPageView(location.pathname + location.search);
+    });
+  }, [location.pathname, location.search]);
+
   return (
     <AnimatePresence mode="wait">
       <Suspense fallback={<PageLoader />}>
