@@ -8,6 +8,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate } from '
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { Transaction } from '@/hooks/useDashboardData';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { isTransfer as isTransferTx } from '@/lib/transactionMath';
 
 type SortField = 'date' | 'amount' | 'description';
 type SortOrder = 'asc' | 'desc';
@@ -278,7 +279,7 @@ const TransferBadge = ({ locale, compact = false }: { locale: string; compact?: 
   </span>
 );
 
-import { isTransfer as isTransferTx } from '@/lib/transactionMath';
+
 
 /** Privacy indicator — shared (family) vs private (lock). Tiny, accessible, glassy. */
 const PrivacyIndicator = ({ shared, locale, compact = false }: { shared: boolean; locale: string; compact?: boolean }) => {
