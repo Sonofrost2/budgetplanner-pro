@@ -2,7 +2,11 @@ import { useMemo, useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
-import { useSavingsGoals, useAllTransactions } from '@/hooks/useDashboardData';
+import { useSavingsGoals } from '@/hooks/useDashboardData';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { isLiveGoal } from '@/lib/savingsLogic';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -34,8 +38,10 @@ const SavingsEvolutionTab = () => {
   const fmt = (n: number) => fmtCurrency(n, locale);
   const isFr = locale === 'fr';
 
-  const { data: goals = [] } = useSavingsGoals();
-  const { data: transactions = [] } = useAllTransactions();
+  const { user } = useAuth();
+  const { data: allGoals = [] } = useSavingsGoals();
+  // E1/E3: only live goals feed the evolution chart to stay consistent with KPI cards.
+  const goals = useMemo(() => allGoals.filter(isLiveGoal), [allGoals]);
 
   const [period, setPeriod] = useState<PeriodKey>('1y');
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
@@ -70,8 +76,8 @@ const SavingsEvolutionTab = () => {
     });
   };
 
-  // Build evolution data: track cumulative savings contributions per goal over time
-  const { chartData, activeGoals } = useMemo(() => {
+  // Compute window + monthly buckets
+  const window = useMemo(() => {
     const now = new Date();
     let startDate: Date;
     if (period === 'custom' && customFrom) {
@@ -84,53 +90,78 @@ const SavingsEvolutionTab = () => {
         default: startDate = new Date(2020, 0, 1);
       }
     }
-    const endDate = (period === 'custom' && customTo) ? new Date(customTo.getFullYear(), customTo.getMonth() + 1, 0) : now;
-
-    const active = goals.filter(g => effectiveIds.has(g.id));
-
-    // For each goal with an account_id, track transactions on that account
-    // Also detect savings-tagged transactions (🎯 prefix or "Cotisation Epargne")
+    const endDate = (period === 'custom' && customTo)
+      ? new Date(customTo.getFullYear(), customTo.getMonth() + 1, 0)
+      : now;
     const months: { label: string; start: Date; end: Date }[] = [];
     const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
     while (cursor <= endDate) {
       const mEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
-      months.push({ label: cursor.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' }), start: new Date(cursor), end: mEnd });
+      months.push({
+        label: cursor.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', { month: 'short', year: '2-digit' }),
+        start: new Date(cursor),
+        end: mEnd,
+      });
       cursor.setMonth(cursor.getMonth() + 1);
     }
+    return { startDate, endDate, months };
+  }, [period, customFrom, customTo, isFr]);
 
-    const data = months.map(m => {
-      const row: Record<string, any> = { name: m.label };
-      active.forEach(g => {
-        // Cumulative: sum all income transactions on goal's account up to end of month
-        if (g.account_id) {
-          let cumulative = 0;
-          transactions.forEach(tx => {
-            if (tx.account_id !== g.account_id) return;
-            const d = new Date(tx.date);
-            if (d > m.end) return;
-            if (tx.type === 'income') cumulative += Number(tx.amount);
-            else cumulative -= Number(tx.amount);
+  const activeGoals = useMemo(
+    () => goals.filter(g => effectiveIds.has(g.id)),
+    [goals, effectiveIds],
+  );
+
+  // E3: fetch monthly contributions per goal via `get_savings_contribution` RPC.
+  // This uses the same source of truth as the Budget module (incoming transfers
+  // to the goal), so transfers/expenses on the account never distort the curve.
+  const goalIdsKey = activeGoals.map(g => g.id).join(',');
+  const windowKey = `${window.startDate.toISOString()}|${window.endDate.toISOString()}`;
+  const { data: contribByGoalMonth = {}, isLoading: contribLoading } = useQuery({
+    queryKey: ['savings-evolution-contrib', user?.id, goalIdsKey, windowKey],
+    enabled: !!user && activeGoals.length > 0 && window.months.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const toISO = (d: Date) => d.toISOString().slice(0, 10);
+      const out: Record<string, number[]> = {};
+      await Promise.all(activeGoals.map(async (g) => {
+        const monthly = await Promise.all(window.months.map(async (m) => {
+          const { data, error } = await (supabase.rpc as any)('get_savings_contribution', {
+            p_user_id: user!.id,
+            p_goal_id: g.id,
+            p_start_date: toISO(m.start),
+            p_end_date: toISO(m.end),
           });
-          row[g.id] = Math.max(0, cumulative);
-        } else {
-          // For goals without account, show projected growth based on monthly_contribution
-          const monthsElapsed = (m.end.getFullYear() - (g.start_date ? new Date(g.start_date).getFullYear() : now.getFullYear())) * 12 +
-            m.end.getMonth() - (g.start_date ? new Date(g.start_date).getMonth() : now.getMonth());
-          const contrib = Number(g.monthly_contribution || 0);
-          row[g.id] = Math.max(0, Number(g.current_amount || 0) + Math.max(0, monthsElapsed) * contrib * 0);
-          // Fallback: just show current_amount for now
-          row[g.id] = Number(g.current_amount || 0);
-        }
-        // Add target line
+          if (error || data == null) return 0;
+          return Number(data) || 0;
+        }));
+        out[g.id] = monthly;
+      }));
+      return out;
+    },
+  });
+
+  // Build chart data: cumulative baseline anchored so the final month equals
+  // `current_amount`. baseline = current_amount - sum(contribs in window).
+  const chartData = useMemo(() => {
+    if (activeGoals.length === 0 || window.months.length === 0) return [];
+    return window.months.map((m, idx) => {
+      const row: Record<string, any> = { name: m.label };
+      activeGoals.forEach(g => {
+        const monthly = contribByGoalMonth[g.id] ?? [];
+        const total = monthly.reduce((s, v) => s + v, 0);
+        const current = Number(g.current_amount || 0);
+        const baseline = current - total;
+        let cumul = baseline;
+        for (let i = 0; i <= idx; i++) cumul += monthly[i] ?? 0;
+        row[g.id] = Math.max(0, cumul);
         row[`target_${g.id}`] = Number(g.target_amount);
       });
       return row;
     });
+  }, [activeGoals, window.months, contribByGoalMonth]);
 
-    return { chartData: data, activeGoals: active };
-  }, [goals, effectiveIds, transactions, period, customFrom, customTo, isFr]);
-
-  const hasData = activeGoals.length > 0 && chartData.length > 0;
+  const hasData = activeGoals.length > 0 && chartData.length > 0 && !contribLoading;
   const selectedCount = selectedGoalIds.size;
 
   return (
