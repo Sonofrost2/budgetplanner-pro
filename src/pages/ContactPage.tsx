@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { SEOHead } from '@/components/SEOHead';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,6 +53,13 @@ const ContactPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title={locale === 'fr' ? 'Contact – Budget Planner Pro' : 'Contact – Budget Planner Pro'}
+        description={locale === 'fr'
+          ? "Contactez l'équipe Budget Planner Pro : questions, suggestions ou support. Nous répondons sous 48h."
+          : 'Get in touch with the Budget Planner Pro team for questions, suggestions or support. We reply within 48 hours.'}
+        locale={locale === 'fr' ? 'fr_FR' : 'en_US'}
+      />
       <Navbar />
       <main className="pt-24 pb-16 max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl sm:text-4xl font-bold font-display tracking-tight mb-3">{t.title}</h1>

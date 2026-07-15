@@ -4,6 +4,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { openCookieSettings } from '@/lib/cookieConsent';
+import { SEOHead } from '@/components/SEOHead';
 
 const pages: Record<string, Record<string, { title: string; content: string[] }>> = {
   privacy: {
@@ -169,8 +170,38 @@ const LegalPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const page = pages[slug || 'privacy']?.[locale] || pages.privacy[locale];
 
+  const seoDesc: Record<string, { fr: string; en: string }> = {
+    privacy: {
+      fr: 'Politique de confidentialité de Budget Planner Pro : quelles données sont collectées, comment elles sont protégées et vos droits.',
+      en: 'Budget Planner Pro privacy policy: what data we collect, how it is protected and your rights.',
+    },
+    terms: {
+      fr: "Conditions d'utilisation de Budget Planner Pro : règles d'usage du service, abonnements et responsabilités.",
+      en: 'Budget Planner Pro terms of service: usage rules, subscriptions and responsibilities.',
+    },
+    sales: {
+      fr: 'Conditions Générales de Vente (CGV) de Budget Planner Pro : souscription, facturation, rétractation et remboursement.',
+      en: 'Budget Planner Pro Terms of Sale: subscription, billing, withdrawal and refunds.',
+    },
+    mentions: {
+      fr: 'Mentions légales de Budget Planner Pro : éditeur, hébergeur et informations légales obligatoires.',
+      en: 'Budget Planner Pro legal notice: publisher, host and mandatory legal information.',
+    },
+    cookies: {
+      fr: 'Politique cookies de Budget Planner Pro : catégories utilisées et gestion de vos préférences.',
+      en: 'Budget Planner Pro cookie policy: categories used and how to manage your preferences.',
+    },
+  };
+  const key = slug && seoDesc[slug] ? slug : 'privacy';
+  const description = seoDesc[key][locale];
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title={`${page.title} – Budget Planner Pro`}
+        description={description}
+        locale={locale === 'fr' ? 'fr_FR' : 'en_US'}
+      />
       <Navbar />
       <main className="pt-24 pb-16 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-4xl font-bold mb-8">{page.title}</h1>

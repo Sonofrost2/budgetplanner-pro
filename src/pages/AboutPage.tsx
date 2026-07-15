@@ -1,6 +1,7 @@
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 import { useLanguage } from '@/i18n/LanguageContext';
+import { SEOHead } from '@/components/SEOHead';
 
 const content = {
   fr: {
@@ -29,6 +30,13 @@ const AboutPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title={locale === 'fr' ? 'À propos – Budget Planner Pro' : 'About – Budget Planner Pro'}
+        description={locale === 'fr'
+          ? "Découvrez la mission, l'équipe et les valeurs de Budget Planner Pro, l'app de gestion financière pensée pour l'Afrique de l'Ouest."
+          : 'Discover the mission, team and values behind Budget Planner Pro, the personal finance app built for West Africa.'}
+        locale={locale === 'fr' ? 'fr_FR' : 'en_US'}
+      />
       <Navbar />
       <main className="pt-24 pb-16 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-4xl font-bold mb-8">{t.title}</h1>

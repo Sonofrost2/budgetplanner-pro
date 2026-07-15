@@ -167,7 +167,7 @@ const HeroSection = () => {
       {/* Scroll indicator */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}
         className="absolute bottom-6 left-1/2 -translate-x-1/2">
-        <button onClick={handleLearnMore} className="flex flex-col items-center gap-1.5 text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+        <button onClick={handleLearnMore} aria-label="Défiler vers les fonctionnalités" className="flex flex-col items-center gap-1.5 text-muted-foreground/40 hover:text-muted-foreground transition-colors">
           <span className="text-[10px] font-medium">Scroll</span>
           <ChevronRight className="w-3.5 h-3.5 rotate-90 animate-bounce" />
         </button>
