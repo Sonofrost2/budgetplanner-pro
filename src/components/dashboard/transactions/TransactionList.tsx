@@ -33,6 +33,8 @@ interface TransactionListProps {
   t: DashTranslations;
   locale: string;
   isFetching?: boolean;
+  onFilterCategory?: (categoryId: string) => void;
+  onFilterAccount?: (accountId: string) => void;
 }
 
 const containerVariants = {
@@ -306,6 +308,7 @@ export const TransactionList = ({
   onPageChange, selectedIds, onToggleSelect, onToggleSelectAll, allPageSelected,
   sortField, sortOrder, onSort, onEdit, onDelete, onAddNew,
   isEmpty, fmt, t, locale, isFetching,
+  onFilterCategory, onFilterAccount,
 }: TransactionListProps) => {
   const groups = useMemo(() => groupByDate(transactions, locale), [transactions, locale]);
   const isMobile = useIsMobile();
@@ -447,12 +450,32 @@ export const TransactionList = ({
                             <span className="truncate">{tx.description}</span>
                             {tx.linked_transfer_id && <TransferBadge locale={locale} compact />}
                           </span>
-                          <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 tabular-nums hidden sm:inline">
-                            {tx.categories?.name || '-'}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/40 flex-shrink-0 tabular-nums hidden md:inline">
-                            {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
-                          </span>
+                          {tx.categories?.name ? (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); if (tx.category_id && onFilterCategory) onFilterCategory(tx.category_id); }}
+                              disabled={!onFilterCategory || !tx.category_id}
+                              className="text-[10px] text-muted-foreground/60 flex-shrink-0 tabular-nums hidden sm:inline hover:text-primary hover:underline underline-offset-2 disabled:hover:no-underline disabled:hover:text-muted-foreground/60"
+                              title={locale === 'fr' ? 'Filtrer par cette catégorie' : 'Filter by this category'}
+                            >
+                              {tx.categories.name}
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 hidden sm:inline">-</span>
+                          )}
+                          {tx.payment_accounts?.name ? (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); if (tx.account_id && onFilterAccount) onFilterAccount(tx.account_id); }}
+                              disabled={!onFilterAccount || !tx.account_id}
+                              className="text-[10px] text-muted-foreground/50 flex-shrink-0 tabular-nums hidden md:inline hover:text-primary hover:underline underline-offset-2 disabled:hover:no-underline disabled:hover:text-muted-foreground/50"
+                              title={locale === 'fr' ? 'Filtrer par ce compte' : 'Filter by this account'}
+                            >
+                              {tx.payment_accounts.icon} {tx.payment_accounts.name}
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/40 flex-shrink-0 hidden md:inline">-</span>
+                          )}
                           <span className={`text-xs font-bold tabular-nums flex-shrink-0 ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
                             {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
                           </span>
@@ -513,10 +536,26 @@ export const TransactionList = ({
                                 <span className="truncate">{tx.description}</span>
                                 {tx.linked_transfer_id && <TransferBadge locale={locale} />}
                               </p>
-                              <p className="text-[11px] text-muted-foreground/70 mt-0.5 flex items-center gap-1">
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-muted/30 text-[10px] font-medium">{tx.categories?.name || '-'}</span>
+                              <p className="text-[11px] text-muted-foreground/70 mt-0.5 flex items-center gap-1 flex-wrap">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); if (tx.category_id && onFilterCategory) onFilterCategory(tx.category_id); }}
+                                  disabled={!onFilterCategory || !tx.category_id}
+                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-muted/30 text-[10px] font-medium hover:bg-primary/15 hover:text-primary transition-colors disabled:hover:bg-muted/30 disabled:hover:text-inherit"
+                                  title={locale === 'fr' ? 'Filtrer par cette catégorie' : 'Filter by this category'}
+                                >
+                                  {tx.categories?.name || '-'}
+                                </button>
                                 <span className="text-muted-foreground/30">·</span>
-                                {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); if (tx.account_id && onFilterAccount) onFilterAccount(tx.account_id); }}
+                                  disabled={!onFilterAccount || !tx.account_id}
+                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] hover:bg-primary/10 hover:text-primary transition-colors disabled:hover:bg-transparent disabled:hover:text-inherit"
+                                  title={locale === 'fr' ? 'Filtrer par ce compte' : 'Filter by this account'}
+                                >
+                                  {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
+                                </button>
                               </p>
                               <p className="text-[10px] text-muted-foreground/40 flex items-center gap-1 mt-0.5">
                                 <Clock className="w-2.5 h-2.5" />

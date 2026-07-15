@@ -1081,6 +1081,8 @@ const TransactionsPage = () => {
           t={t}
           locale={locale}
           isFetching={txFetching && !txLoading}
+          onFilterCategory={(id) => { setFilterCategory(id); setPage(0); }}
+          onFilterAccount={(id) => { setFilterAccount(id); setPage(0); }}
         />
       </motion.div>
 
