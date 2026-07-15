@@ -450,6 +450,9 @@ const SavingsPage = () => {
         interest_frequency: form.interest_frequency || 'yearly',
         bank_name: form.bank_name?.trim() || null,
         linked_budget_id: form.linked_budget_id || null,
+        priority: form.priority ? Number(form.priority) : 2,
+        purpose: form.purpose || 'other',
+        notes: form.notes?.trim() || null,
       };
 
       if (editGoalId) {
