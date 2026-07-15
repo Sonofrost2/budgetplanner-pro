@@ -136,6 +136,7 @@ Deno.serve(async (req) => {
       const prefDebt = np.debt_alerts !== false;
       const prefBalance = np.balance_discrepancy !== false;
       const prefGoalReached = np.goal_reached !== false;
+      const prefSavingsDeadline = np.savings_deadline_alerts !== false;
       const prefLowBalance = np.low_balance === true; // opt-in (default false)
       const lowBalanceThreshold = Math.max(0, Number(np.low_balance_threshold) || 5000);
       const prefLargeTx = np.large_transaction !== false; // opt-out (default true)
