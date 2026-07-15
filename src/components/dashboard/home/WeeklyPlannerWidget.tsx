@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 import { buildWeekEvents, summarizeWeekEvents, type WeekEvent } from '@/lib/weeklyEvents';
+import { getBudgetPeriodBounds, WEEKS_PER_YEAR } from '@/lib/budgetProjection';
 
 interface Budget {
   id: string;
@@ -67,37 +68,18 @@ function weekLabel(startStr: string, locale: string = 'fr') {
   return d.toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', opts);
 }
 
-function getPeriodRange(period: string, refDate: Date): { start: Date; end: Date } {
-  const y = refDate.getFullYear();
-  const m = refDate.getMonth();
-  switch (period) {
-    case 'daily':
-      return { start: new Date(y, m, refDate.getDate()), end: new Date(y, m, refDate.getDate(), 23, 59, 59) };
-    case 'weekly': {
-      const day = refDate.getDay();
-      const mon = new Date(refDate);
-      mon.setDate(refDate.getDate() - (day === 0 ? 6 : day - 1));
-      mon.setHours(0, 0, 0, 0);
-      const sun = new Date(mon);
-      sun.setDate(mon.getDate() + 6);
-      sun.setHours(23, 59, 59);
-      return { start: mon, end: sun };
-    }
-    case 'monthly':
-      return { start: new Date(y, m, 1), end: new Date(y, m + 1, 0, 23, 59, 59) };
-    case 'quarterly': {
-      const q = Math.floor(m / 3);
-      return { start: new Date(y, q * 3, 1), end: new Date(y, q * 3 + 3, 0, 23, 59, 59) };
-    }
-    case 'semi_annual': {
-      const s = m < 6 ? 0 : 6;
-      return { start: new Date(y, s, 1), end: new Date(y, s + 6, 0, 23, 59, 59) };
-    }
-    case 'yearly':
-      return { start: new Date(y, 0, 1), end: new Date(y, 11, 31, 23, 59, 59) };
-    default:
-      return { start: new Date(y, m, 1), end: new Date(y, m + 1, 0, 23, 59, 59) };
-  }
+/**
+ * Return {start,end} for the containing period of `refDate`. Thin wrapper
+ * around the shared `getBudgetPeriodBounds` so the weekly planner never
+ * diverges from the Budgets page / edge-function alerts.
+ */
+function getPeriodRange(period: string, refDate: Date, referenceDate?: string | null): { start: Date; end: Date } {
+  const { periodStart, periodEnd } = getBudgetPeriodBounds(period, refDate, referenceDate ?? null, 0);
+  const start = new Date(periodStart);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(periodEnd);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
 }
 
 function dayOfMonthFallsInWeek(dayOfMonth: number, weekStart: Date, weekEnd: Date): boolean {
@@ -107,16 +89,21 @@ function dayOfMonthFallsInWeek(dayOfMonth: number, weekStart: Date, weekEnd: Dat
   return false;
 }
 
+/**
+ * Weeks in one occurrence of a budget period. Derived from the shared
+ * WEEKS_PER_YEAR constant so this matches computeAnnualizedAmount exactly.
+ */
 function weeksInPeriod(period: string): number {
-  switch (period) {
-    case 'daily': return 1 / 7;
-    case 'weekly': return 1;
-    case 'monthly': return 30.44 / 7;
-    case 'quarterly': return 91.31 / 7;
-    case 'semi_annual': return 182.62 / 7;
-    case 'yearly': return 365.25 / 7;
-    default: return 30.44 / 7;
-  }
+  const perYear: Record<string, number> = {
+    daily: 365.25,
+    weekly: WEEKS_PER_YEAR,
+    monthly: 12,
+    quarterly: 4,
+    semi_annual: 2,
+    yearly: 1,
+  };
+  const n = perYear[period] ?? 12;
+  return WEEKS_PER_YEAR / n;
 }
 
 function getOccurrencesInWeek(budget: Budget, weekStart: Date, weekEnd: Date): number {
