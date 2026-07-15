@@ -77,17 +77,17 @@ const BudgetsPage = () => {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = usePersistedState<string>('budgets:activeTab', 'expense');
-  const [activeMainTab, setActiveMainTab] = useState('manage');
+  const [activeMainTab, setActiveMainTab] = usePersistedState<string>('budgets:mainTab', 'manage');
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
   const [bulkModifyForm, setBulkModifyForm] = useState({ period: '', category_id: '' });
-  const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [sortField, setSortField] = useState<'name' | 'amount' | 'spent'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [filterPeriod, setFilterPeriod] = useState('');
+  const [searchQuery, setSearchQuery] = usePersistedState<string>('budgets:search', initialSearch);
+  const [sortField, setSortField] = usePersistedState<'name' | 'amount' | 'spent'>('budgets:sortField', 'name');
+  const [sortOrder, setSortOrder] = usePersistedState<'asc' | 'desc'>('budgets:sortOrder', 'asc');
+  const [filterPeriod, setFilterPeriod] = usePersistedState<string>('budgets:filterPeriod', '');
   // Archived budgets are hidden by default and excluded from every stat.
   // The toggle exposes them so the user can restore or delete them.
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived, setShowArchived] = usePersistedState<boolean>('budgets:showArchived', false);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
