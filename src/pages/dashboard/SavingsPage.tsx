@@ -415,6 +415,21 @@ const SavingsPage = () => {
       if (firstErr) toast.error(firstErr);
       return;
     }
+    // Block save when coherence estimation returns a blocking error
+    const estimation = computeGoalEstimation({
+      target: Number(form.target_amount) || 0,
+      current: editGoalId ? Number(goals.find(g => g.id === editGoalId)?.current_amount) || 0 : 0,
+      contribution: Number(form.monthly_contribution) || 0,
+      frequency: form.contribution_frequency,
+      startDate: form.start_date || null,
+      deadline: form.deadline || null,
+      interestRatePct: Number(form.interest_rate) || 0,
+    });
+    const blocking = estimation.warnings.find(w => w.level === 'error');
+    if (blocking) {
+      toast.error(locale === 'fr' ? blocking.fr : blocking.en);
+      return;
+    }
     setSaving(true);
     try {
       let accountId = form.account_id || null;
