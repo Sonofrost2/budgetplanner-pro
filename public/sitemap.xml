@@ -10,9 +10,15 @@
   <url><loc>https://budget-planner-pro.eurekaci.dev/blog/mobile-money-finances</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/blog/remboursement-dettes</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://budget-planner-pro.eurekaci.dev/legal</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/legal/terms</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/legal/privacy</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/legal/mentions</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/legal/cookies</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/account-deletion</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/login</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/forgot-password</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/reset-password</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
+  <url><loc>https://budget-planner-pro.eurekaci.dev/onboarding</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/signup</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
   <url><loc>https://budget-planner-pro.eurekaci.dev/demo</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
 </urlset>
