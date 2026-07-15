@@ -118,6 +118,10 @@ const Signup = () => {
         const ref = new URLSearchParams(window.location.search).get('ref');
         if (ref) localStorage.setItem('bp_referral_code', ref.toUpperCase());
       } catch {}
+      // GA4/GTM conversion: user account created
+      import('@/lib/analytics').then(({ trackEvent }) => {
+        trackEvent('sign_up', { method: 'email', marketing_consent: marketingConsent });
+      });
       setSuccess(true);
     }
   };
