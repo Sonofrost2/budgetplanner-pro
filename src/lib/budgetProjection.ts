@@ -252,3 +252,67 @@ export function normalizeAmountToDays(
   if (budgetPeriodDays <= 0) return amount;
   return amount * (targetDays / budgetPeriodDays);
 }
+
+/**
+ * Status descriptor for a one-shot budget (occurrence_frequency = 'once').
+ * Reflects binary semantics: before the ref date → 'upcoming', on J → 'today',
+ * after J → 'fulfilled' | 'partial' | 'missed' | 'exceeded'.
+ *
+ * When fulfilled/exceeded, `nextRefDate` points to the next cycle so the card
+ * can display « Prochaine échéance : JJ/MM ».
+ */
+export type OnceStatus =
+  | { kind: 'upcoming'; daysLeft: number; refDate: Date }
+  | { kind: 'today'; refDate: Date }
+  | { kind: 'fulfilled'; refDate: Date; nextRefDate?: Date; daysToNext?: number }
+  | { kind: 'partial'; refDate: Date; pct: number; daysLate: number }
+  | { kind: 'missed'; refDate: Date; daysLate: number }
+  | { kind: 'exceeded'; refDate: Date; overshoot: number; nextRefDate?: Date; daysToNext?: number };
+
+function addPeriodOnce(d: Date, period: string): Date {
+  const n = new Date(d);
+  switch (period) {
+    case 'daily': n.setDate(n.getDate() + 1); break;
+    case 'weekly': n.setDate(n.getDate() + 7); break;
+    case 'monthly': n.setMonth(n.getMonth() + 1); break;
+    case 'quarterly': n.setMonth(n.getMonth() + 3); break;
+    case 'semi_annual': n.setMonth(n.getMonth() + 6); break;
+    case 'yearly':
+    default: n.setFullYear(n.getFullYear() + 1); break;
+  }
+  return n;
+}
+
+export function computeOnceStatus(
+  now: Date,
+  period: string,
+  referenceDate: string,
+  amount: number,
+  actual: number,
+): OnceStatus {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const ref = parseLocalDateLoose(referenceDate);
+  const refDate = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+  const diff = Math.floor((refDate.getTime() - today.getTime()) / 86400000);
+
+  if (diff > 0) return { kind: 'upcoming', daysLeft: diff, refDate };
+  if (diff === 0) return { kind: 'today', refDate };
+
+  // Ref date passed
+  const daysLate = -diff;
+  const pct = amount > 0 ? (actual / amount) * 100 : 0;
+
+  const nextRefDate = addPeriodOnce(refDate, period);
+  const daysToNext = Math.floor((nextRefDate.getTime() - today.getTime()) / 86400000);
+
+  if (amount > 0 && actual > amount) {
+    return { kind: 'exceeded', refDate, overshoot: actual - amount, nextRefDate, daysToNext };
+  }
+  if (amount > 0 && actual >= amount) {
+    return { kind: 'fulfilled', refDate, nextRefDate, daysToNext };
+  }
+  if (actual > 0) {
+    return { kind: 'partial', refDate, pct, daysLate };
+  }
+  return { kind: 'missed', refDate, daysLate };
+}

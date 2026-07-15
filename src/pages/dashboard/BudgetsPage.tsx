@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount, computeDaysRemaining } from '@/lib/budgetProjection';
+import { getBudgetPeriodBounds, formatDateStr, computeAnnualizedAmount, computeDaysRemaining, computeOnceStatus } from '@/lib/budgetProjection';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useLanguage } from '@/i18n/LanguageContext';
@@ -443,6 +443,49 @@ const BudgetsPage = () => {
 
     const occFreqLabels: Record<string, string> = { once: t.occurrenceOnce, daily: t.daily, weekly: t.weekly, biweekly: t.occurrenceBiweekly, monthly: t.monthly, quarterly: t.quarterly, semi_annual: t.semiAnnual, yearly: t.yearly };
 
+    // ── One-shot budget status (P1 + P2 + P3) ──
+    const isOnce = b.occurrence_frequency === 'once' && !!b.reference_date;
+    const onceStatus = isOnce
+      ? computeOnceStatus(today, b.period || 'yearly', b.reference_date!, amount, actual)
+      : null;
+    const dateFmt = (d: Date) =>
+      d.toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' });
+    const onceBadge = (() => {
+      if (!onceStatus) return null;
+      const base = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide';
+      switch (onceStatus.kind) {
+        case 'upcoming': return <span className={`${base} bg-primary/10 text-primary`}>{isFr ? 'Prévu' : 'Planned'}</span>;
+        case 'today': return <span className={`${base} bg-accent/15 text-accent-foreground`}>{isFr ? "Aujourd'hui" : 'Today'}</span>;
+        case 'fulfilled': return <span className={`${base} bg-secondary/15 text-secondary`}>{isFr ? 'Réalisé' : 'Fulfilled'} ✓</span>;
+        case 'exceeded': return <span className={`${base} bg-destructive/15 text-destructive`}>{isFr ? 'Dépassé' : 'Exceeded'}</span>;
+        case 'partial': return <span className={`${base} bg-accent/15 text-accent`}>{isFr ? 'Partiel' : 'Partial'}</span>;
+        case 'missed': return <span className={`${base} bg-destructive/15 text-destructive`}>{isFr ? 'Manqué' : 'Missed'}</span>;
+      }
+    })();
+    const onceCountdown = (() => {
+      if (!onceStatus) return null;
+      switch (onceStatus.kind) {
+        case 'upcoming': return `${onceStatus.daysLeft} ${t.daysRemaining} · ${dateFmt(onceStatus.refDate)}`;
+        case 'today': return isFr ? `📍 Échéance aujourd'hui` : `📍 Due today`;
+        case 'fulfilled':
+          return onceStatus.nextRefDate
+            ? (isFr ? `✅ Réalisé · Prochaine : ${dateFmt(onceStatus.nextRefDate)} (J-${onceStatus.daysToNext})`
+                    : `✅ Fulfilled · Next: ${dateFmt(onceStatus.nextRefDate)} (in ${onceStatus.daysToNext}d)`)
+            : (isFr ? '✅ Réalisé' : '✅ Fulfilled');
+        case 'exceeded':
+          return onceStatus.nextRefDate
+            ? (isFr ? `🔴 Dépassé de ${fmt(onceStatus.overshoot)} · Prochaine ${dateFmt(onceStatus.nextRefDate)}`
+                    : `🔴 Over by ${fmt(onceStatus.overshoot)} · Next ${dateFmt(onceStatus.nextRefDate)}`)
+            : (isFr ? `🔴 Dépassé de ${fmt(onceStatus.overshoot)}` : `🔴 Over by ${fmt(onceStatus.overshoot)}`);
+        case 'partial':
+          return isFr ? `⚠️ Partiel (${Math.round(onceStatus.pct)}%) · Retard ${onceStatus.daysLate}j`
+                     : `⚠️ Partial (${Math.round(onceStatus.pct)}%) · ${onceStatus.daysLate}d late`;
+        case 'missed':
+          return isFr ? `❌ En retard de ${onceStatus.daysLate}j · ${dateFmt(onceStatus.refDate)}`
+                     : `❌ ${onceStatus.daysLate}d overdue · ${dateFmt(onceStatus.refDate)}`;
+      }
+    })();
+
     return (
       <ScrollReveal key={b.id}>
       <Card className={`card-interactive hover:-translate-y-1 glow-primary ${(b as any).archived_at ? 'opacity-60' : ''} ${isAlert ? 'ring-1 ring-destructive/20' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}>
@@ -454,6 +497,7 @@ const BudgetsPage = () => {
               <div>
                 <span className="flex items-center gap-1.5">
                   {b.name}
+                  {onceBadge}
                   {(b as any).archived_at && (
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
                       <Archive className="w-2.5 h-2.5" />{isFr ? 'Archivé' : 'Archived'}
@@ -493,7 +537,8 @@ const BudgetsPage = () => {
           <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
             <span className="font-semibold">{Math.round(pct)}% {isMax ? (isFr ? 'consommé' : 'consumed') : (isFr ? 'atteint' : 'reached')}</span>
             <span>
-              {daysLabel === 'today' ? (isFr ? "📍 Aujourd'hui" : '📍 Today')
+              {onceCountdown ? onceCountdown
+                : daysLabel === 'today' ? (isFr ? "📍 Aujourd'hui" : '📍 Today')
                 : daysLabel === 'passed' ? (isFr ? '✅ Échéance passée' : '✅ Due date passed')
                 : daysLabel === 'thisWeek' ? (isFr ? '📅 Cette semaine' : '📅 This week')
                 : targetDateStr
