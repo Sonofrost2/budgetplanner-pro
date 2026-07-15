@@ -615,7 +615,11 @@ const BudgetAnalysisTab = () => {
                     {fmt(a.actual)} / {fmt(a.amount)}
                   </span>
                 </div>
-                <Progress value={a.pct} className="h-2" />
+                <Progress
+                  value={a.pct}
+                  aria-label={isFr ? `${a.budget.name} : ${Math.round(a.pct)}% consommé` : `${a.budget.name}: ${Math.round(a.pct)}% consumed`}
+                  className="h-2"
+                />
 
                 <div className="flex items-center justify-between text-[11px] px-1">
                   <span className="text-muted-foreground">{Math.round(a.pct)}% {isFr ? 'consommé' : 'consumed'}</span>
