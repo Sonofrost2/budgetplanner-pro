@@ -1,0 +1,242 @@
+{
+  "version": 1,
+  "sdk_version": "0.22.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://sfcwoftgzxplbexcmzva.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "budget-planner-pro-mcp",
+      "version": "0.1.0",
+      "title": "Budget Planner Pro"
+    },
+    "tools": [
+      {
+        "name": "list_accounts",
+        "title": "List accounts",
+        "description": "List the signed-in user's payment accounts (cash, bank, mobile money, savings) with opening and real balances.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "include_archived": {
+              "type": "boolean",
+              "description": "Include archived accounts. Defaults to false."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_transactions",
+        "title": "List transactions",
+        "description": "List the signed-in user's recent transactions (income, expense, transfers). Supports date range, type and limit filters.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "income",
+                "expense"
+              ],
+              "description": "Filter by transaction type."
+            },
+            "start_date": {
+              "type": "string",
+              "description": "ISO date (YYYY-MM-DD) lower bound, inclusive."
+            },
+            "end_date": {
+              "type": "string",
+              "description": "ISO date (YYYY-MM-DD) upper bound, inclusive."
+            },
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 200,
+              "description": "Max rows to return (default 50, max 200)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_transaction",
+        "title": "Create transaction",
+        "description": "Record a new income or expense transaction for the signed-in user. Amount must be positive; the type field determines direction. Use list_accounts / list_categories to look up ids.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "income",
+                "expense"
+              ],
+              "description": "Direction of the transaction."
+            },
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Amount in the account currency (positive number)."
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Short human-readable label."
+            },
+            "date": {
+              "type": "string",
+              "description": "ISO date (YYYY-MM-DD). Defaults to today."
+            },
+            "account_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Payment account id from list_accounts."
+            },
+            "category_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Category id from list_categories."
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "amount",
+            "description"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_categories",
+        "title": "List categories",
+        "description": "List the signed-in user's transaction categories (with icon, color and type).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "income",
+                "expense"
+              ],
+              "description": "Filter by category type."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_budgets",
+        "title": "List budgets",
+        "description": "List the signed-in user's active budgets with amount, period, control type and category link.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "include_paused": {
+              "type": "boolean",
+              "description": "Include paused budgets. Defaults to false."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_savings_goals",
+        "title": "List savings goals",
+        "description": "List the signed-in user's savings goals with progress toward target amount.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "active",
+                "completed",
+                "archived"
+              ],
+              "description": "Filter by goal status."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "financial_summary",
+        "title": "Financial summary",
+        "description": "Compute total income, total expense and net balance for the signed-in user over a period. Transfers are excluded. Defaults to the current calendar month.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "start_date": {
+              "type": "string",
+              "description": "ISO date (YYYY-MM-DD). Defaults to first day of current month."
+            },
+            "end_date": {
+              "type": "string",
+              "description": "ISO date (YYYY-MM-DD). Defaults to today."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
