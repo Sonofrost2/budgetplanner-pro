@@ -81,7 +81,7 @@ const AnimatedRoutes = () => {
   const routeKey = location.pathname.startsWith('/dashboard') ? '/dashboard' : location.pathname;
 
   // GA4/GTM SPA page_view tracking on every route change.
-  React.useEffect(() => {
+  useEffect(() => {
     import('@/lib/analytics').then(({ trackPageView }) => {
       trackPageView(location.pathname + location.search);
     });
