@@ -27,7 +27,7 @@ function aggregate(budgets: any[], spending: Record<string, number>) {
     totalAnnualized += computeAnnualizedAmount(amount, b.period, b.active_days);
     totalBudgetPeriod += amount;
 
-    const actual = spending[b.category_id || ''] || 0;
+    const actual = spending[b.id] || 0;
     totalConsumed += actual;
 
     const controlType = b.control_type || 'max';
