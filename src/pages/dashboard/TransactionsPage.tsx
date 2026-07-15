@@ -551,6 +551,18 @@ const TransactionsPage = () => {
     filterAccount !== 'all',
     !!startDate,
     !!endDate,
+    hideTransfers,
+    privacyFilter !== 'all',
+  ].filter(Boolean).length;
+
+  const advancedActiveCount = [
+    filterCategory !== 'all',
+    filterAccount !== 'all',
+    !!startDate,
+    !!endDate,
+    hideTransfers,
+    privacyFilter !== 'all',
+    isRegularizationActive,
   ].filter(Boolean).length;
 
   return (
