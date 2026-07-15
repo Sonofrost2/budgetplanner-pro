@@ -350,6 +350,7 @@ const BudgetEvolutionTab = () => {
                           const label = b ? `${cat?.icon || '📊'} ${b.name}` : name;
                           return [fmt(v), isLimit ? `${label} (${isFr ? 'Limite/mois' : 'Limit/mo'})` : label];
                         }}
+                      />
                       {chartData.some(d => d.__isCurrent) && (
                         <ReferenceLine
                           x={currentMonthLabel}
@@ -388,8 +389,9 @@ const BudgetEvolutionTab = () => {
                           const cat = b ? categories.find(c => c.id === b.category_id) : null;
                           const label = b ? `${cat?.icon || '📊'} ${b.name}` : name;
                           return [fmt(v), isLimit ? `${label} (${isFr ? 'Limite/mois' : 'Limit/mo'})` : label];
-                        labelStyle={{ fontWeight: 600, fontSize: 12 }}
+                        }}
                       />
+                      {chartData.some(d => d.__isCurrent) && (
                         <ReferenceLine
                           x={currentMonthLabel}
                           stroke="hsl(var(--accent))"
