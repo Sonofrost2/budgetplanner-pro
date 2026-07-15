@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import LegalFooter from '@/components/LegalFooter';
 import { Wallet, Mail, User, CheckCircle, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,10 @@ const Signup = () => {
   const { t, locale } = useLanguage();
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const rawNext = searchParams.get('next') || '';
+  const nextPath = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '';
+  const postAuthTarget = nextPath || '/dashboard';
   const geo = useGeoCountry();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -45,8 +49,8 @@ const Signup = () => {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) navigate('/dashboard', { replace: true });
-  }, [user, navigate]);
+    if (user) navigate(postAuthTarget, { replace: true });
+  }, [user, navigate, postAuthTarget]);
 
   // Auto-pick country from geolocation on first load
   useEffect(() => {
