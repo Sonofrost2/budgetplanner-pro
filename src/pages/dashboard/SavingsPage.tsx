@@ -1323,6 +1323,19 @@ const SavingsPage = () => {
                 return parts.join(' ');
               })();
               const hasBlocking = est.warnings.some(w => w.level === 'error');
+              const freqLabel = form.contribution_frequency === 'weekly' ? (locale === 'fr' ? 'hebdomadaire' : 'weekly')
+                : form.contribution_frequency === 'biweekly' ? (locale === 'fr' ? 'bimensuel' : 'bi-weekly')
+                : form.contribution_frequency === 'quarterly' ? (locale === 'fr' ? 'trimestriel' : 'quarterly')
+                : (locale === 'fr' ? 'mensuel' : 'monthly');
+              const helpMain = locale === 'fr'
+                ? `Le moteur simule vos versements futurs à partir de l'épargne actuelle, du versement ${freqLabel} et du taux d'intérêt annuel saisi. Les intérêts sont capitalisés à chaque versement (intérêt composé) au taux périodique équivalent (taux annuel ÷ fréquence). Aucune inflation ni fiscalité n'est appliquée.`
+                : `The engine simulates future contributions from the current balance, the ${freqLabel} contribution and the annual interest rate. Interest compounds at every contribution (compound interest) at the equivalent periodic rate (annual rate ÷ frequency). Inflation and taxes are not applied.`;
+              const helpReached = locale === 'fr'
+                ? "Date à laquelle le solde atteindra la cible en gardant le versement actuel et le taux d'intérêt saisi. Chaque période, on ajoute le versement puis on capitalise les intérêts."
+                : 'Date when the balance will reach the target while keeping the current contribution and interest rate. Each period we add the contribution then compound interest.';
+              const helpRequired = locale === 'fr'
+                ? "Montant à verser chaque période pour atteindre la cible pile à l'échéance. Calculé par la formule d'annuité avec capitalisation des intérêts au taux périodique. Si le taux est nul, il s'agit d'un simple partage montant restant ÷ nombre de versements."
+                : 'Amount to contribute each period to hit the target exactly on the deadline. Computed with the annuity formula using compound interest at the periodic rate. If the rate is zero, it is simply remaining amount ÷ number of contributions.';
               return (
                 <section
                   role="region"
@@ -1330,9 +1343,24 @@ const SavingsPage = () => {
                   className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2 focus-within:ring-2 focus-within:ring-primary/40 focus:outline-none"
                   tabIndex={-1}
                 >
+                  <TooltipProvider delayDuration={150}>
                   <h3 className="flex items-center gap-1.5 text-xs font-semibold text-primary m-0">
                     <Zap className="w-3.5 h-3.5" aria-hidden="true" focusable="false" />
                     {locale === 'fr' ? 'Estimation automatique' : 'Live estimation'}
+                    <UITooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label={locale === 'fr' ? 'Comment fonctionne l\'estimation automatique' : 'How live estimation works'}
+                          className="inline-flex items-center justify-center rounded-full text-primary/70 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        >
+                          <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" focusable="false" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                        {helpMain}
+                      </TooltipContent>
+                    </UITooltip>
                   </h3>
                   {/* Screen-reader live announcement — polite for numbers, assertive when a blocking error is present */}
                   <p
@@ -1347,7 +1375,17 @@ const SavingsPage = () => {
                     <dl className="grid grid-cols-2 gap-2 text-xs m-0" aria-label={locale === 'fr' ? 'Résultats de l\'estimation' : 'Estimation results'}>
                       {est.estimatedDeadline && (
                         <div className="bg-background/60 rounded-lg p-2">
-                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{locale === 'fr' ? 'Atteint le' : 'Reached on'}</dt>
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                            {locale === 'fr' ? 'Atteint le' : 'Reached on'}
+                            <UITooltip>
+                              <TooltipTrigger asChild>
+                                <button type="button" aria-label={locale === 'fr' ? 'Comment cette date est-elle calculée ?' : 'How is this date computed?'} className="inline-flex text-muted-foreground/70 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full">
+                                  <HelpCircle className="w-3 h-3" aria-hidden="true" focusable="false" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">{helpReached}</TooltipContent>
+                            </UITooltip>
+                          </dt>
                           <dd className="font-bold text-foreground m-0">{dateFmt(est.estimatedDeadline)}</dd>
                           {est.monthsToTarget !== null && (
                             <dd className="text-[10px] text-muted-foreground mt-0.5 m-0">{locale === 'fr' ? `dans ${formatMonthsHuman(est.monthsToTarget, locale)}` : `in ${formatMonthsHuman(est.monthsToTarget, locale)}`}</dd>
@@ -1356,7 +1394,17 @@ const SavingsPage = () => {
                       )}
                       {est.requiredContribution !== null && (
                         <div className="bg-background/60 rounded-lg p-2">
-                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{locale === 'fr' ? 'Requis pour échéance' : 'Required for deadline'}</dt>
+                          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                            {locale === 'fr' ? 'Requis pour échéance' : 'Required for deadline'}
+                            <UITooltip>
+                              <TooltipTrigger asChild>
+                                <button type="button" aria-label={locale === 'fr' ? 'Comment ce versement est-il calculé ?' : 'How is this contribution computed?'} className="inline-flex text-muted-foreground/70 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-full">
+                                  <HelpCircle className="w-3 h-3" aria-hidden="true" focusable="false" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">{helpRequired}</TooltipContent>
+                            </UITooltip>
+                          </dt>
                           <dd className="font-bold text-foreground m-0">{fmt(Math.ceil(est.requiredContribution))}</dd>
                           <dd className="text-[10px] text-muted-foreground mt-0.5 m-0">{locale === 'fr' ? `par versement (${form.contribution_frequency === 'weekly' ? 'hebdo' : form.contribution_frequency === 'biweekly' ? 'quinzaine' : form.contribution_frequency === 'quarterly' ? 'trimestre' : 'mois'})` : 'per contribution'}</dd>
                         </div>
@@ -1396,6 +1444,7 @@ const SavingsPage = () => {
                   })}
                   </ul>
                   )}
+                  </TooltipProvider>
                 </section>
               );
             })()}
