@@ -1180,6 +1180,10 @@ const SavingsPage = () => {
               onReinvest={(g as any).status === 'completed' ? () => handleReinvest(g.id) : undefined}
               onReactivate={(g as any).status === 'completed' ? () => handleReactivate(g.id) : undefined}
               onTogglePause={(g as any).status === 'active' ? () => handleTogglePause(g.id, !!(g as any).paused_at) : undefined}
+              onScheduleAuto={(g as any).status === 'active' ? () => {
+                const monthly = Number((g as any).monthly_contribution) || '';
+                navigate(`/dashboard/recurring?goal=${g.id}${monthly ? `&amount=${monthly}` : ''}`);
+              } : undefined}
             />
         );
 
