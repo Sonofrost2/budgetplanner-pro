@@ -1177,6 +1177,7 @@ const SavingsPage = () => {
               onArchive={(g as any).status !== 'completed' && Number(g.current_amount) >= Number(g.target_amount) ? () => handleArchive(g.id) : undefined}
               onReinvest={(g as any).status === 'completed' ? () => handleReinvest(g.id) : undefined}
               onReactivate={(g as any).status === 'completed' ? () => handleReactivate(g.id) : undefined}
+              onTogglePause={(g as any).status === 'active' ? () => handleTogglePause(g.id, !!(g as any).paused_at) : undefined}
             />
         );
 
