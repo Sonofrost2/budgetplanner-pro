@@ -92,9 +92,9 @@ const CategoriesPage = () => {
   const [bulkModifyForm, setBulkModifyForm] = useState({ type: '' });
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = usePersistedState<string>('categories:search', '');
   const [typeTab, setTypeTab] = usePersistedState<'expense' | 'income'>('categories:typeTab', 'expense');
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived, setShowArchived] = usePersistedState<boolean>('categories:showArchived', false);
 
   const { data: archivedCategories = [] } = useQuery({
     queryKey: ['categories-archived', user?.id],

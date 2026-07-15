@@ -54,11 +54,11 @@ const TransactionsPage = () => {
   const [filterType, setFilterType] = usePersistedState<string>('tx:filterType', searchParams.get('type') || 'all');
   const [filterCategory, setFilterCategory] = usePersistedState<string>('tx:filterCategory', 'all');
   const [filterAccount, setFilterAccount] = usePersistedState<string>('tx:filterAccount', 'all');
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [searchQuery, setSearchQuery] = usePersistedState<string>('tx:search', searchParams.get('q') || '');
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
   const [startDate, setStartDate] = usePersistedState<string>('tx:startDate', '');
   const [endDate, setEndDate] = usePersistedState<string>('tx:endDate', '');
-  const [page, setPage] = useState(0);
+  const [page, setPage] = usePersistedState<number>('tx:page', 0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
