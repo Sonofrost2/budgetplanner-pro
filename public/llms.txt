@@ -1,0 +1,26 @@
+# Budget Planner Pro
+
+> Application de gestion budgétaire complète pour l'Afrique de l'Ouest : suivi des dépenses, budgets par catégorie, objectifs d'épargne, prévisions IA et gestion familiale (multi-devises, XOF par défaut).
+
+Budget Planner Pro est une PWA bilingue (FR/EN) qui aide les particuliers et familles à piloter leurs finances : comptes multiples (banques, mobile money type Wave / Orange Money / MTN), transactions, budgets, épargne, dettes, rapports et coach financier IA. Plans Free, Pro et Premium avec paiement Paystack.
+
+## Pages
+
+- [Accueil](/): présentation, fonctionnalités, tarifs et témoignages.
+- [À propos](/about): mission, équipe et vision de Budget Planner Pro.
+- [Contact](/contact): formulaire de contact et support.
+- [Blog](/blog): articles sur la gestion budgétaire et l'épargne.
+- [Suppression de compte](/account-deletion): procédure de suppression de compte utilisateur.
+
+## Légal
+
+- [Conditions d'utilisation](/legal/terms): CGU du service.
+- [Politique de confidentialité](/legal/privacy): traitement des données personnelles.
+- [Mentions légales](/legal/mentions): informations légales de l'éditeur.
+- [Politique de cookies](/legal/cookies): usage des cookies et traceurs.
+
+## Optional
+
+- [Connexion](/login): accès au tableau de bord (compte requis).
+- [Inscription](/signup): création d'un compte.
+- [Démo](/demo): accès à un compte de démonstration.
