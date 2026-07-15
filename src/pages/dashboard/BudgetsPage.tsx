@@ -836,6 +836,7 @@ const BudgetsPage = () => {
         onSave={handleSave}
         allCategories={allCategories}
         savingsGoals={savingsGoals}
+        accounts={accounts}
         fmt={fmt}
         t={t}
         locale={locale}
