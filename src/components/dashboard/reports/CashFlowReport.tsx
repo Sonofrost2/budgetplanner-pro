@@ -71,20 +71,25 @@ const CashFlowReport = () => {
       <CardContent>
         <div className="overflow-x-auto">
           <Table>
+            <caption className="sr-only">
+              {locale === 'fr'
+                ? `Cash-flow mensuel pour l'année ${year} : solde d'ouverture, revenus, dépenses, net et solde de clôture par mois.`
+                : `Monthly cash-flow for ${year}: starting balance, income, expenses, net and ending balance for each month.`}
+            </caption>
             <TableHeader>
               <TableRow>
-                <TableHead>{locale === 'fr' ? 'Mois' : 'Month'}</TableHead>
-                <TableHead className="text-right">{t.startingBalance}</TableHead>
-                <TableHead className="text-right">{t.income}</TableHead>
-                <TableHead className="text-right">{t.expenses}</TableHead>
-                <TableHead className="text-right">{t.netCashFlow}</TableHead>
-                <TableHead className="text-right">{t.endingBalance}</TableHead>
+                <TableHead scope="col">{locale === 'fr' ? 'Mois' : 'Month'}</TableHead>
+                <TableHead scope="col" className="text-right">{t.startingBalance}</TableHead>
+                <TableHead scope="col" className="text-right">{t.income}</TableHead>
+                <TableHead scope="col" className="text-right">{t.expenses}</TableHead>
+                <TableHead scope="col" className="text-right">{t.netCashFlow}</TableHead>
+                <TableHead scope="col" className="text-right">{t.endingBalance}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.map((row, i) => (
                 <TableRow key={i}>
-                  <TableCell className="font-medium capitalize">{row.label}</TableCell>
+                  <TableCell scope="row" className="font-medium capitalize">{row.label}</TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground">{fmt(row.carry)}</TableCell>
                   <TableCell className="text-right text-sm text-secondary font-medium">+{fmt(row.income)}</TableCell>
                   <TableCell className="text-right text-sm text-destructive font-medium">-{fmt(row.expenses)}</TableCell>
@@ -95,7 +100,7 @@ const CashFlowReport = () => {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell className="font-bold">{t.savingsTotal}</TableCell>
+                <TableCell scope="row" className="font-bold">{t.savingsTotal}</TableCell>
                 <TableCell></TableCell>
                 <TableCell className="text-right font-bold text-secondary">+{fmt(totalIncome)}</TableCell>
                 <TableCell className="text-right font-bold text-destructive">-{fmt(totalExpenses)}</TableCell>

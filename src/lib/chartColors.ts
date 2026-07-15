@@ -34,6 +34,31 @@ export const CHART_GRID = 'hsl(var(--border))';
 export const CHART_AXIS = 'hsl(var(--muted-foreground))';
 export const CHART_TOOLTIP_BG = 'hsl(var(--popover))';
 
+/**
+ * Shared tooltip contentStyle for Recharts. Uses semantic tokens so contrast
+ * stays WCAG AA in both light and dark themes (previously the tooltip inherited
+ * the browser default text color which failed contrast on dark popovers).
+ */
+export const CHART_TOOLTIP_STYLE = {
+  borderRadius: '12px',
+  border: '1px solid hsl(var(--border))',
+  background: CHART_TOOLTIP_BG,
+  color: 'hsl(var(--popover-foreground))',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.24)',
+  fontSize: '12px',
+  padding: '8px 12px',
+} as const;
+
+export const CHART_TOOLTIP_LABEL_STYLE = {
+  color: 'hsl(var(--popover-foreground))',
+  fontWeight: 600,
+  fontSize: 12,
+} as const;
+
+export const CHART_TOOLTIP_ITEM_STYLE = {
+  color: 'hsl(var(--popover-foreground))',
+} as const;
+
 // Couleurs par type de compte (utilisé par AccountsHeroHeader)
 export const ACCOUNT_TYPE_COLORS: Record<string, string> = {
   checking: 'hsl(var(--primary))',

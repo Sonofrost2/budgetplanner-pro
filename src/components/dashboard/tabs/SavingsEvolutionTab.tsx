@@ -20,14 +20,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CHART_PALETTE, CHART_TOOLTIP_BG, CHART_GRID } from '@/lib/chartColors';
+import { CHART_PALETTE, CHART_GRID, CHART_TOOLTIP_STYLE, CHART_TOOLTIP_LABEL_STYLE, CHART_TOOLTIP_ITEM_STYLE } from '@/lib/chartColors';
+import { chartA11yProps } from '@/lib/a11y';
 
 type PeriodKey = '3m' | '6m' | '1y' | 'all' | 'custom';
 
-const TOOLTIP_STYLE = {
-  borderRadius: '12px', border: 'none', background: CHART_TOOLTIP_BG,
-  boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontSize: '12px', padding: '8px 12px',
-};
+const TOOLTIP_STYLE = CHART_TOOLTIP_STYLE;
 
 const COLORS = CHART_PALETTE;
 
@@ -285,7 +283,15 @@ const SavingsEvolutionTab = () => {
             </div>
           ) : (
             <>
-              <div className="h-[420px]">
+              <div
+                className="h-[420px]"
+                {...chartA11yProps(
+                  isFr ? 'Évolution des objectifs d\'épargne' : 'Savings goals evolution',
+                  isFr
+                    ? `${activeGoals.length} objectif(s) suivis sur ${chartData.length} mois.`
+                    : `${activeGoals.length} goal(s) tracked across ${chartData.length} months.`,
+                )}
+              >
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
@@ -297,10 +303,12 @@ const SavingsEvolutionTab = () => {
                       ))}
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} opacity={0.4} />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => abbreviateNumber(v, locale)} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={v => abbreviateNumber(v, locale)} />
                     <Tooltip
                       contentStyle={TOOLTIP_STYLE}
+                      labelStyle={CHART_TOOLTIP_LABEL_STYLE}
+                      itemStyle={CHART_TOOLTIP_ITEM_STYLE}
                       formatter={(v: number, name: string) => {
                         const isTarget = name.startsWith('target_');
                         const gId = name.replace('target_', '');
@@ -308,7 +316,6 @@ const SavingsEvolutionTab = () => {
                         const label = g ? `${g.icon} ${g.name}` : name;
                         return [fmt(v), isTarget ? `${label} (${isFr ? 'Objectif' : 'Target'})` : label];
                       }}
-                      labelStyle={{ fontWeight: 600, fontSize: 12 }}
                     />
                     {activeGoals.map((g, i) => (
                       <Area key={g.id} type="monotone" dataKey={g.id} stroke={COLORS[i % COLORS.length]} fill={`url(#sav-${g.id})`} strokeWidth={2.5} name={g.id} animationDuration={800} />
@@ -319,15 +326,18 @@ const SavingsEvolutionTab = () => {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4 pt-4 border-t border-border/50">
+              <ul
+                aria-label={isFr ? 'Légende du graphique' : 'Chart legend'}
+                className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4 pt-4 border-t border-border/50 list-none"
+              >
                 {activeGoals.map((g, i) => (
-                  <div key={g.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="w-3 h-1.5 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+                  <li key={g.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span aria-hidden="true" className="w-3 h-1.5 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
                     <span>{g.icon} {g.name}</span>
                     <span className="text-[10px] font-semibold text-primary">{Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100)}%</span>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </>
           )}
         </CardContent>
