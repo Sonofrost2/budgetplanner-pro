@@ -83,6 +83,9 @@ const EMPTY_GOAL_FORM = {
   linked_budget_id: '',
   priority: '2', purpose: 'other', notes: '',
   contribution_frequency: 'monthly' as ContributionFrequency,
+  opening_balance: '',
+  is_renewable: false,
+  renewal_frequency: 'yearly',
 };
 
 const SavingsPage = () => {
