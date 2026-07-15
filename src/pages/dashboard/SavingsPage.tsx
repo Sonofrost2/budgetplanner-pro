@@ -477,13 +477,18 @@ const SavingsPage = () => {
         purpose: form.purpose || 'other',
         notes: form.notes?.trim() || null,
         contribution_frequency: form.contribution_frequency || 'monthly',
+        opening_balance: form.opening_balance ? Number(form.opening_balance) : 0,
+        is_renewable: !!form.is_renewable,
+        renewal_frequency: form.renewal_frequency || 'yearly',
       };
 
       if (editGoalId) {
         const { error } = await supabase.from('savings_goals').update(payload).eq('id', editGoalId);
         if (error) { showApiError(error, locale); setSaving(false); return; }
       } else {
-        const { error } = await supabase.from('savings_goals').insert({ user_id: user.id, ...payload });
+        // À la création, le solde initial devient current_amount
+        const insertPayload = { user_id: user.id, ...payload, current_amount: payload.opening_balance };
+        const { error } = await supabase.from('savings_goals').insert(insertPayload);
         if (error) { showApiError(error, locale); setSaving(false); return; }
       }
       setDialogOpen(false);
