@@ -425,13 +425,17 @@ export const WeeklyPlannerWidget = ({
         weekSpent: Math.round(weekSpent), delta: Math.round(delta), pct,
         occurrencesInWeek,
       };
-    })
-      .filter(c => c.budgetAmount > 0)
-      // Only show budgets that were actually spent this week OR that have a
-      // scheduled occurrence within the week. Hides prorata-only rows with
-      // zero activity to reduce noise in the weekly planner.
-      .filter(c => c.weekSpent > 0 || c.occurrencesInWeek > 0);
+    }).filter(c => c.budgetAmount > 0);
   }, [expenseBudgets, transactions, weekExpenseTxs, weekStartDate, customTargets]);
+
+  // Default view: only rows spent this week or with a scheduled occurrence.
+  // Toggle exposes the full planned list.
+  const visibleExpenseRows = useMemo(
+    () => showAllExpenses
+      ? expenseRows
+      : expenseRows.filter(c => c.weekSpent > 0 || c.occurrencesInWeek > 0),
+    [expenseRows, showAllExpenses],
+  );
 
   const incomeRows = useMemo(() => {
     return incomeBudgets.map(b => {
