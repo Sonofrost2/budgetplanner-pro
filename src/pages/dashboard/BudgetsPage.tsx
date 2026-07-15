@@ -199,7 +199,9 @@ const BudgetsPage = () => {
     bulk.clear();
   };
 
-  const budgetLimitReached = !isPremium && budgets.length >= limits.budgets;
+  // Archived budgets don't consume the free-plan quota — only active ones.
+  const budgetLimitReached =
+    !isPremium && budgets.filter(b => !(b as any).archived_at).length >= limits.budgets;
 
   const validate = () => {
     const result = validateForm(budgetSchema(t, locale), form);
