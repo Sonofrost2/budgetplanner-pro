@@ -864,22 +864,49 @@ export const WeeklyPlannerWidget = ({
 
         {/* ── EXPENSE details ── */}
         <div className="px-4 pb-1">
-          <button
-            onClick={() => setShowExpenseDetails(!showExpenseDetails)}
-            className="w-full flex items-center justify-between py-2.5 border-t border-border/30"
-          >
-            <span className="text-[11px] font-bold flex items-center gap-1.5 text-foreground">
-              <Target className="w-3.5 h-3.5 text-primary" />
-              {t.expenses}
-              <span className="text-[9px] font-medium text-muted-foreground bg-muted/40 rounded-full px-1.5 py-0.5">{expenseRows.length}</span>
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] tabular-nums font-semibold text-muted-foreground">
-                {fmt(totalExpenseSpent)} / {fmt(totalExpenseTarget)}
-              </span>
-              <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${showExpenseDetails ? 'rotate-90' : ''}`} />
+          <div className="w-full flex items-center justify-between py-2.5 border-t border-border/30 gap-2">
+            <button
+              onClick={() => setShowExpenseDetails(!showExpenseDetails)}
+              className="flex items-center gap-1.5 text-[11px] font-bold text-foreground min-w-0"
+            >
+              <Target className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span className="truncate">{t.expenses}</span>
+              <span className="text-[9px] font-medium text-muted-foreground bg-muted/40 rounded-full px-1.5 py-0.5 shrink-0">{visibleExpenseRows.length}</span>
+            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowAllExpenses(v => !v); setShowExpenseDetails(true); }}
+                    className={`text-[9px] font-semibold rounded-full px-2 py-0.5 border transition-colors ${
+                      showAllExpenses
+                        ? 'bg-primary/15 border-primary/30 text-primary'
+                        : 'bg-muted/40 border-border/40 text-muted-foreground hover:bg-muted/60'
+                    }`}
+                    aria-pressed={showAllExpenses}
+                  >
+                    {showAllExpenses
+                      ? (isFr ? 'Toutes' : 'All')
+                      : (isFr ? 'Semaine' : 'Week')}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-[10px] max-w-[220px]">
+                  {showAllExpenses
+                    ? (isFr ? 'Affiche tous les budgets planifiés.' : 'Showing all planned budgets.')
+                    : (isFr ? 'Affiche seulement les dépenses réalisées ou à échéance cette semaine.' : 'Showing only spent or due-this-week expenses.')}
+                </TooltipContent>
+              </Tooltip>
+              <button
+                onClick={() => setShowExpenseDetails(!showExpenseDetails)}
+                className="flex items-center gap-2"
+              >
+                <span className="text-[10px] tabular-nums font-semibold text-muted-foreground">
+                  {fmt(totalExpenseSpent)} / {fmt(totalExpenseTarget)}
+                </span>
+                <ChevronRight className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${showExpenseDetails ? 'rotate-90' : ''}`} />
+              </button>
             </div>
-          </button>
+          </div>
         </div>
 
         <AnimatePresence>
@@ -891,7 +918,14 @@ export const WeeklyPlannerWidget = ({
               className="overflow-hidden"
             >
               <div className="px-3 pb-3 space-y-0.5 max-h-[340px] overflow-y-auto scrollbar-thin">
-                {expenseRows.map((r, i) => {
+                {visibleExpenseRows.length === 0 && (
+                  <div className="text-[10px] text-muted-foreground text-center py-4">
+                    {isFr
+                      ? 'Aucune dépense réalisée ou planifiée cette semaine.'
+                      : 'No expenses spent or scheduled this week.'}
+                  </div>
+                )}
+                {visibleExpenseRows.map((r, i) => {
                   const over = r.weekSpent > r.weeklyTarget;
                   const isEditing = editingId === r.id;
                   const pctCapped = Math.min(r.pct, 100);
