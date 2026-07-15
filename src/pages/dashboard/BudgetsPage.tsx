@@ -263,6 +263,22 @@ const BudgetsPage = () => {
     coachToast.warn(isFr ? 'Cadre supprimé 🗑️' : 'Budget deleted 🗑️');
   };
 
+  const handleToggleArchive = async (b: any) => {
+    const isArchived = !!b.archived_at;
+    // Soft archive: keep the row (with history) but hide it from stats.
+    const { error } = await supabase
+      .from('budgets')
+      .update({ archived_at: isArchived ? null : new Date().toISOString() } as any)
+      .eq('id', b.id);
+    if (error) { coachToast.fail(error.message); return; }
+    refreshData();
+    if (isArchived) {
+      coachToast.saved(isFr ? 'Cadre restauré ♻️' : 'Budget restored ♻️');
+    } else {
+      coachToast.warn(isFr ? 'Cadre archivé 📦' : 'Budget archived 📦');
+    }
+  };
+
   const handleBulkDelete = async () => {
     const ids = Array.from(bulk.selectedIds);
     const { error } = await supabase.from('budgets').delete().in('id', ids);
