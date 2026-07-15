@@ -54,29 +54,57 @@ export function computeDaysRemaining(
     periodStart?: Date;
     periodEnd?: Date;
   } = {}
-): { daysLeft: number; label?: string } {
+): { daysLeft: number; label?: string; targetDate?: Date } {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const { expectedDay, occurrenceFrequency, referenceDate, periodEnd } = opts;
 
-  // ── 1. expected_day takes priority ──
-  if (expectedDay) {
+  // Long periods where "expected_day of current month" is meaningless.
+  // For these, expected_day alone MUST NOT drive the countdown — otherwise a
+  // yearly budget with expected_day=31 shows "16 days" every mid-July.
+  const isLongPeriod = period === 'yearly' || period === 'semi_annual' || period === 'quarterly';
+
+  // ── 0. Long periods: prefer reference_date (day+month) inside the current period ──
+  if (isLongPeriod && referenceDate) {
+    const ref = parseLocalDateLoose(referenceDate);
+    // Snap the reference month/day to the current period window
+    const candidates: Date[] = [];
+    if (periodEnd) {
+      const ps = opts.periodStart ?? new Date(today.getFullYear(), 0, 1);
+      // try each year that intersects the window
+      for (let y = ps.getFullYear(); y <= periodEnd.getFullYear() + 1; y++) {
+        const d = new Date(y, ref.getMonth(), ref.getDate());
+        if (d >= ps && d <= periodEnd) candidates.push(d);
+      }
+    }
+    const upcoming = candidates.find(d => d >= today);
+    if (upcoming) {
+      const diff = Math.floor((upcoming.getTime() - today.getTime()) / 86400000);
+      return { daysLeft: diff, targetDate: upcoming, label: diff === 0 ? 'today' : undefined };
+    }
+    // reference already passed inside the window → fall through to periodEnd fallback
+  }
+
+  // ── 1. expected_day (weekly / monthly only) ──
+  if (expectedDay && !isLongPeriod) {
     if (period === 'weekly') {
       // expectedDay is ISO weekday 1=Mon..7=Sun
       const todayIso = today.getDay() === 0 ? 7 : today.getDay();
       let diff = expectedDay - todayIso;
       if (diff < 0) diff += 7;
-      return { daysLeft: diff, label: diff === 0 ? 'today' : undefined };
+      const target = new Date(today);
+      target.setDate(today.getDate() + diff);
+      return { daysLeft: diff, targetDate: target, label: diff === 0 ? 'today' : undefined };
     }
-    // For monthly / quarterly / etc → expected_day is day of month
+    // monthly → expected_day is day of month
     const thisMonth = new Date(today.getFullYear(), today.getMonth(), expectedDay);
     if (thisMonth >= today) {
       const diff = Math.floor((thisMonth.getTime() - today.getTime()) / 86400000);
-      return { daysLeft: diff, label: diff === 0 ? 'today' : undefined };
+      return { daysLeft: diff, targetDate: thisMonth, label: diff === 0 ? 'today' : undefined };
     }
     // Already past this month → next month
     const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, expectedDay);
     const diff = Math.floor((nextMonth.getTime() - today.getTime()) / 86400000);
-    return { daysLeft: diff };
+    return { daysLeft: diff, targetDate: nextMonth };
   }
 
   // ── 2. occurrence_frequency ──
@@ -88,7 +116,11 @@ export function computeDaysRemaining(
       const ref = parseLocalDateLoose(referenceDate);
       const refDay = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
       const diff = Math.floor((refDay.getTime() - today.getTime()) / 86400000);
-      return { daysLeft: Math.max(0, diff), label: diff === 0 ? 'today' : diff < 0 ? 'passed' : undefined };
+      if (diff >= 0) {
+        return { daysLeft: diff, targetDate: refDay, label: diff === 0 ? 'today' : undefined };
+      }
+      // reference passed → fall through to periodEnd fallback so the card
+      // still shows a useful "N days left in the current cycle" indicator.
     }
     if (occurrenceFrequency === 'weekly') {
       return { daysLeft: 0, label: 'thisWeek' };
@@ -98,17 +130,19 @@ export function computeDaysRemaining(
       const daysSinceRef = Math.floor((today.getTime() - ref.getTime()) / 86400000);
       const daysIntoCycle = ((daysSinceRef % 14) + 14) % 14;
       const daysLeft = daysIntoCycle === 0 ? 0 : 14 - daysIntoCycle;
-      return { daysLeft, label: daysLeft === 0 ? 'today' : undefined };
+      const target = new Date(today);
+      target.setDate(today.getDate() + daysLeft);
+      return { daysLeft, targetDate: target, label: daysLeft === 0 ? 'today' : undefined };
     }
     if (occurrenceFrequency === 'monthly') {
       const refDay = referenceDate ? parseLocalDateLoose(referenceDate).getDate() : 1;
       const thisMonth = new Date(today.getFullYear(), today.getMonth(), refDay);
       if (thisMonth >= today) {
         const diff = Math.floor((thisMonth.getTime() - today.getTime()) / 86400000);
-        return { daysLeft: diff, label: diff === 0 ? 'today' : undefined };
+        return { daysLeft: diff, targetDate: thisMonth, label: diff === 0 ? 'today' : undefined };
       }
       const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, refDay);
-      return { daysLeft: Math.floor((nextMonth.getTime() - today.getTime()) / 86400000) };
+      return { daysLeft: Math.floor((nextMonth.getTime() - today.getTime()) / 86400000), targetDate: nextMonth };
     }
   }
 
@@ -116,7 +150,7 @@ export function computeDaysRemaining(
   if (periodEnd) {
     const pe = new Date(periodEnd.getFullYear(), periodEnd.getMonth(), periodEnd.getDate());
     const diff = Math.floor((pe.getTime() - today.getTime()) / 86400000);
-    return { daysLeft: Math.max(0, diff) };
+    return { daysLeft: Math.max(0, diff), targetDate: pe };
   }
 
   return { daysLeft: 0 };
