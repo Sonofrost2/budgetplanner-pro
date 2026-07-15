@@ -7,6 +7,7 @@ export const transactionSchema = (t: { descriptionRequired: string; invalidAmoun
       .min(1, t.descriptionRequired)
       .max(200, t.maxChars(200)),
     amount: z.string()
+      .min(1, t.invalidAmount)
       .refine(v => Number(v) > 0, t.invalidAmount)
       .refine(v => Number(v) <= 999_999_999, t.amountTooHigh),
     type: z.enum(['income', 'expense']),
@@ -19,6 +20,33 @@ export const transactionSchema = (t: { descriptionRequired: string; invalidAmoun
       }, locale === 'fr' ? 'Date invalide (2000–futur proche)' : 'Invalid date (2000–near future)'),
     notes: z.string().max(500, t.maxChars(500)).optional().or(z.literal('')),
   });
+
+// ─── Transfer ───
+// Shares amount/date/description/notes rules with transactions so both flows
+// speak the same validation language. Adds the two account fields specific
+// to transfers and enforces distinct source/destination.
+export const transferSchema = (
+  t: { descriptionRequired: string; invalidAmount: string; amountTooHigh: string; dateRequired: string; maxChars: (n: number) => string; transferSameAccount: string },
+  locale: string,
+) => {
+  const fr = locale === 'fr';
+  const base = transactionSchema(t, locale).innerType ? undefined : undefined; // no-op guard
+  return z.object({
+    description: z.string().trim().min(1, t.descriptionRequired).max(200, t.maxChars(200)),
+    amount: z.string()
+      .min(1, t.invalidAmount)
+      .refine(v => Number(v) > 0, t.invalidAmount)
+      .refine(v => Number(v) <= 999_999_999, t.amountTooHigh),
+    date: z.string().min(1, t.dateRequired),
+    from_account_id: z.string().min(1, fr ? 'Compte source requis' : 'Source account required'),
+    to_account_id: z.string().min(1, fr ? 'Compte destinataire requis' : 'Destination account required'),
+    notes: z.string().max(500, t.maxChars(500)).optional().or(z.literal('')),
+  }).superRefine((data, ctx) => {
+    if (data.from_account_id && data.to_account_id && data.from_account_id === data.to_account_id) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['to_account_id'], message: t.transferSameAccount });
+    }
+  });
+};
 
 // ─── Budget ───
 export const budgetSchema = (t: { nameRequired: string; invalidAmount: string; amountTooHigh: string; maxChars: (n: number) => string }, locale: string) =>
