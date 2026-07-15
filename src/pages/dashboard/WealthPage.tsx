@@ -85,9 +85,9 @@ const WealthPage = () => {
   const [valuationValue, setValuationValue] = useState('');
   const [valuationNotes, setValuationNotes] = useState('');
   const [valuationDate, setValuationDate] = useState(new Date().toISOString().split('T')[0]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = usePersistedState<string>('wealth:search', '');
   const [filterType, setFilterType] = usePersistedState<string>('wealth:filterType', 'all');
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = usePersistedState<string>('wealth:activeTab', 'overview');
   const [historyAssetId, setHistoryAssetId] = useState<string | null>(null);
   const [aiValuing, setAiValuing] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
