@@ -96,12 +96,7 @@ const SavingsPage = () => {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [targetAccountId, setTargetAccountId] = useState('');
-  const [form, setForm] = useState({
-    name: '', target_amount: '', icon: '🎯', deadline: '', account_id: '',
-    monthly_contribution: '', start_date: '', contribution_day: '',
-    is_locked: false, interest_rate: '', interest_frequency: 'yearly', bank_name: '',
-    linked_budget_id: '',
-  });
+  const [form, setForm] = useState(EMPTY_GOAL_FORM);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
