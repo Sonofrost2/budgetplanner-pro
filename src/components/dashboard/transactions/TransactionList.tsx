@@ -8,6 +8,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate } from '
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { Transaction } from '@/hooks/useDashboardData';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+import { isTransfer as isTransferTx } from '@/lib/transactionMath';
 
 type SortField = 'date' | 'amount' | 'description';
 type SortOrder = 'asc' | 'desc';
@@ -278,12 +279,7 @@ const TransferBadge = ({ locale, compact = false }: { locale: string; compact?: 
   </span>
 );
 
-/** Detect transfer transactions robustly (linked id OR legacy "Transfert:" description prefix). */
-const isTransferTx = (tx: any): boolean => {
-  if (tx?.linked_transfer_id) return true;
-  const d = (tx?.description || '').trim().toLowerCase();
-  return d.startsWith('transfert:') || d.startsWith('transfer:');
-};
+
 
 /** Privacy indicator — shared (family) vs private (lock). Tiny, accessible, glassy. */
 const PrivacyIndicator = ({ shared, locale, compact = false }: { shared: boolean; locale: string; compact?: boolean }) => {

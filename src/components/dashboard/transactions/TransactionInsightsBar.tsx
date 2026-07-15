@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Flame, AlertTriangle, Crown, Zap } from 'lucide-react';
+import { isTransfer } from '@/lib/transactionMath';
 
 interface Props {
   userId: string | undefined;
@@ -35,14 +36,14 @@ export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Prop
       const [{ data: cur }, { data: prev }, { data: streakRows }] = await Promise.all([
         supabase
           .from('transactions')
-          .select('amount, type, category_id, description')
+          .select('amount, type, category_id, description, linked_transfer_id')
           .eq('user_id', userId!)
           .eq('type', 'expense')
           .is('deleted_at', null)
           .gte('date', monthStart),
         supabase
           .from('transactions')
-          .select('amount, category_id')
+          .select('amount, category_id, description, linked_transfer_id')
           .eq('user_id', userId!)
           .eq('type', 'expense')
           .is('deleted_at', null)
@@ -95,7 +96,8 @@ export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Prop
         }
       }
 
-      const curTxs = cur ?? [];
+      const curTxs = (cur ?? []).filter((tx: any) => !isTransfer(tx));
+      const prevTxs = (prev ?? []).filter((tx: any) => !isTransfer(tx));
       if (!curTxs.length) return result;
 
       // 1. Top expense (single transaction) — keep full description; CSS handles truncation, title shows full text.
@@ -137,7 +139,7 @@ export const TransactionInsightsBar = ({ userId, fmt, locale, categories }: Prop
 
       // 3. Anomaly: category with biggest % increase vs prev month
       const prevByCat = new Map<string, number>();
-      for (const tx of prev ?? []) {
+      for (const tx of prevTxs) {
         if (!tx.category_id) continue;
         prevByCat.set(tx.category_id, (prevByCat.get(tx.category_id) || 0) + Number(tx.amount));
       }

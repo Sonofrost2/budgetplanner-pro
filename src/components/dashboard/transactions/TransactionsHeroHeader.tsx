@@ -13,6 +13,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { exampleValue } from '@/lib/currency';
 import { QuickAddPreview } from '@/components/dashboard/QuickAddPreview';
 import { useQueryClient } from '@tanstack/react-query';
+import { isTransfer } from '@/lib/transactionMath';
 
 export interface QuickParsedTransaction {
   description: string;
@@ -112,7 +113,7 @@ export const TransactionsHeroHeader = ({
     queryFn: async () => {
       const { data } = await supabase
         .from('transactions')
-        .select('amount, type, date')
+        .select('amount, type, date, description, linked_transfer_id')
         .eq('user_id', userId!)
         .is('deleted_at', null)
         .gte('date', monthStart);
@@ -120,6 +121,7 @@ export const TransactionsHeroHeader = ({
       let income = 0, expense = 0;
       const byDay = new Map<string, number>();
       for (const tx of txs) {
+        if (isTransfer(tx as any)) continue; // Transfers never count as income/expense.
         const a = Number(tx.amount);
         if (tx.type === 'income') { income += a; byDay.set(tx.date, (byDay.get(tx.date) || 0) + a); }
         else if (tx.type === 'expense') { expense += a; byDay.set(tx.date, (byDay.get(tx.date) || 0) - a); }
