@@ -1321,7 +1321,7 @@ const SavingsPage = () => {
                       {est.requiredContribution !== null && (
                         <div className="bg-background/60 rounded-lg p-2">
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{locale === 'fr' ? 'Requis pour échéance' : 'Required for deadline'}</p>
-                          <p className="font-bold text-foreground">{fmtCurrency(Math.ceil(est.requiredContribution))}</p>
+                          <p className="font-bold text-foreground">{fmt(Math.ceil(est.requiredContribution))}</p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">{locale === 'fr' ? `par versement (${form.contribution_frequency === 'weekly' ? 'hebdo' : form.contribution_frequency === 'biweekly' ? 'quinzaine' : form.contribution_frequency === 'quarterly' ? 'trimestre' : 'mois'})` : 'per contribution'}</p>
                         </div>
                       )}
