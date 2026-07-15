@@ -69,12 +69,12 @@ const DailyJournalReport = () => {
         <CardTitle className="text-base">{t.dailyJournal}</CardTitle>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <Label className="text-xs text-muted-foreground">{t.startDate}</Label>
-            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-8 w-36 text-xs rounded-lg" />
+            <Label htmlFor="daily-journal-start" className="text-xs text-muted-foreground">{t.startDate}</Label>
+            <Input id="daily-journal-start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-8 w-36 text-xs rounded-lg" />
           </div>
           <div className="flex items-center gap-1.5">
-            <Label className="text-xs text-muted-foreground">{t.endDate}</Label>
-            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-8 w-36 text-xs rounded-lg" />
+            <Label htmlFor="daily-journal-end" className="text-xs text-muted-foreground">{t.endDate}</Label>
+            <Input id="daily-journal-end" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-8 w-36 text-xs rounded-lg" />
           </div>
         </div>
       </CardHeader>
@@ -84,21 +84,26 @@ const DailyJournalReport = () => {
         ) : (
           <div className="overflow-x-auto">
             <Table>
+              <caption className="sr-only">
+                {locale === 'fr'
+                  ? `Journal quotidien du ${startDate} au ${endDate} : ${data.length} jour(s) avec revenus, dépenses et solde cumulé.`
+                  : `Daily journal from ${startDate} to ${endDate}: ${data.length} day(s) with income, expenses, and running balance.`}
+              </caption>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t.date}</TableHead>
-                  <TableHead className="text-right">{t.income}</TableHead>
-                  <TableHead className="text-right">{t.expenses}</TableHead>
-                  <TableHead className="text-right">Net</TableHead>
-                  <TableHead className="text-right">{locale === 'fr' ? 'Cumul Rev.' : 'Cum. Inc.'}</TableHead>
-                  <TableHead className="text-right">{locale === 'fr' ? 'Cumul Dép.' : 'Cum. Exp.'}</TableHead>
-                  <TableHead className="text-right">{locale === 'fr' ? 'Solde' : 'Balance'}</TableHead>
+                  <TableHead scope="col">{t.date}</TableHead>
+                  <TableHead scope="col" className="text-right">{t.income}</TableHead>
+                  <TableHead scope="col" className="text-right">{t.expenses}</TableHead>
+                  <TableHead scope="col" className="text-right">Net</TableHead>
+                  <TableHead scope="col" className="text-right">{locale === 'fr' ? 'Cumul Rev.' : 'Cum. Inc.'}</TableHead>
+                  <TableHead scope="col" className="text-right">{locale === 'fr' ? 'Cumul Dép.' : 'Cum. Exp.'}</TableHead>
+                  <TableHead scope="col" className="text-right">{locale === 'fr' ? 'Solde' : 'Balance'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.map((row, i) => (
                   <TableRow key={i}>
-                    <TableCell className="text-sm font-medium">{new Date(row.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}</TableCell>
+                    <TableCell scope="row" className="text-sm font-medium">{new Date(row.date).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}</TableCell>
                     <TableCell className="text-right text-sm text-secondary">{row.income > 0 ? `+${fmt(row.income)}` : '—'}</TableCell>
                     <TableCell className="text-right text-sm text-destructive">{row.expenses > 0 ? `-${fmt(row.expenses)}` : '—'}</TableCell>
                     <TableCell className={`text-right text-sm font-semibold ${row.net >= 0 ? 'text-secondary' : 'text-destructive'}`}>{fmt(row.net)}</TableCell>
@@ -110,7 +115,7 @@ const DailyJournalReport = () => {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell className="font-bold">{t.savingsTotal}</TableCell>
+                  <TableCell scope="row" className="font-bold">{t.savingsTotal}</TableCell>
                   <TableCell className="text-right font-bold text-secondary">+{fmt(totalIncome)}</TableCell>
                   <TableCell className="text-right font-bold text-destructive">-{fmt(totalExpenses)}</TableCell>
                   <TableCell className={`text-right font-bold ${totalIncome - totalExpenses >= 0 ? 'text-secondary' : 'text-destructive'}`}>{fmt(totalIncome - totalExpenses)}</TableCell>
