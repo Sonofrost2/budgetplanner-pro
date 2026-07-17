@@ -12,6 +12,17 @@ const tFr = {
 
 const today = new Date().toISOString().slice(0, 10);
 
+type ValidationFailure = { success: false; errors: Record<string, string> };
+type ValidationResult = { success: true; data: unknown } | ValidationFailure;
+
+const expectValidationErrors = (result: ValidationResult): Record<string, string> => {
+  expect(result.success).toBe(false);
+  if (result.success === false) {
+    return result.errors;
+  }
+  throw new Error('expected failure');
+};
+
 describe('transactionSchema', () => {
   it('accepts a valid expense payload', () => {
     const r = validateForm(transactionSchema(tFr, 'fr'), {
@@ -25,9 +36,7 @@ describe('transactionSchema', () => {
     const r = validateForm(transactionSchema(tFr, 'fr'), {
       description: '', amount: '10', type: 'expense', date: today, notes: '',
     });
-    expect(r.success).toBe(false);
-    if (r.success) { throw new Error("expected failure"); }
-    const errors = r.errors;
+    const errors = expectValidationErrors(r);
     expect(errors.description).toBe(tFr.descriptionRequired);
   });
 
@@ -35,9 +44,7 @@ describe('transactionSchema', () => {
     const r = validateForm(transactionSchema(tFr, 'fr'), {
       description: 'x', amount: '0', type: 'expense', date: today, notes: '',
     });
-    expect(r.success).toBe(false);
-    if (r.success) { throw new Error("expected failure"); }
-    const errors = r.errors;
+    const errors = expectValidationErrors(r);
     expect(errors.amount).toBe(tFr.invalidAmount);
   });
 
@@ -45,9 +52,7 @@ describe('transactionSchema', () => {
     const r = validateForm(transactionSchema(tFr, 'fr'), {
       description: 'x', amount: '9999999999', type: 'expense', date: today, notes: '',
     });
-    expect(r.success).toBe(false);
-    if (r.success) { throw new Error("expected failure"); }
-    const errors = r.errors;
+    const errors = expectValidationErrors(r);
     expect(errors.amount).toBe(tFr.amountTooHigh);
   });
 });
@@ -66,9 +71,7 @@ describe('transferSchema', () => {
       description: 'x', amount: '0', date: today,
       from_account_id: 'a', to_account_id: 'b', notes: '',
     });
-    expect(r.success).toBe(false);
-    if (r.success) { throw new Error("expected failure"); }
-    const errors = r.errors;
+    const errors = expectValidationErrors(r);
     expect(errors.amount).toBe(tFr.invalidAmount);
   });
 
@@ -77,9 +80,7 @@ describe('transferSchema', () => {
       description: 'x', amount: '100', date: today,
       from_account_id: 'a', to_account_id: 'a', notes: '',
     });
-    expect(r.success).toBe(false);
-    if (r.success) { throw new Error("expected failure"); }
-    const errors = r.errors;
+    const errors = expectValidationErrors(r);
     expect(errors.to_account_id).toBe(tFr.transferSameAccount);
   });
 
@@ -88,9 +89,7 @@ describe('transferSchema', () => {
       description: 'x', amount: '100', date: today,
       from_account_id: '', to_account_id: 'b', notes: '',
     });
-    expect(r.success).toBe(false);
-    if (r.success) { throw new Error("expected failure"); }
-    const errors = r.errors;
+    const errors = expectValidationErrors(r);
     expect(errors.from_account_id).toBe('Compte source requis');
   });
 });
