@@ -17,10 +17,10 @@ type ValidationResult = { success: true; data: unknown } | ValidationFailure;
 
 const expectValidationErrors = (result: ValidationResult): Record<string, string> => {
   expect(result.success).toBe(false);
-  if (result.success) {
-    throw new Error('expected failure');
+  if (result.success === false) {
+    return result.errors;
   }
-  return result.errors;
+  throw new Error('expected failure');
 };
 
 describe('transactionSchema', () => {
