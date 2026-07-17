@@ -13,12 +13,14 @@ const tFr = {
 const today = new Date().toISOString().slice(0, 10);
 
 type ValidationFailure = { success: false; errors: Record<string, string> };
+type ValidationResult = { success: true; data: unknown } | ValidationFailure;
 
-const expectValidationFailure = (result: { success: boolean }): asserts result is ValidationFailure => {
+const expectValidationErrors = (result: ValidationResult): Record<string, string> => {
   expect(result.success).toBe(false);
-  if (result.success !== false) {
+  if (result.success) {
     throw new Error('expected failure');
   }
+  return result.errors;
 };
 
 describe('transactionSchema', () => {
@@ -34,24 +36,24 @@ describe('transactionSchema', () => {
     const r = validateForm(transactionSchema(tFr, 'fr'), {
       description: '', amount: '10', type: 'expense', date: today, notes: '',
     });
-    expectValidationFailure(r);
-    expect(r.errors.description).toBe(tFr.descriptionRequired);
+    const errors = expectValidationErrors(r);
+    expect(errors.description).toBe(tFr.descriptionRequired);
   });
 
   it('rejects zero amount with shared message', () => {
     const r = validateForm(transactionSchema(tFr, 'fr'), {
       description: 'x', amount: '0', type: 'expense', date: today, notes: '',
     });
-    expectValidationFailure(r);
-    expect(r.errors.amount).toBe(tFr.invalidAmount);
+    const errors = expectValidationErrors(r);
+    expect(errors.amount).toBe(tFr.invalidAmount);
   });
 
   it('rejects amount above cap', () => {
     const r = validateForm(transactionSchema(tFr, 'fr'), {
       description: 'x', amount: '9999999999', type: 'expense', date: today, notes: '',
     });
-    expectValidationFailure(r);
-    expect(r.errors.amount).toBe(tFr.amountTooHigh);
+    const errors = expectValidationErrors(r);
+    expect(errors.amount).toBe(tFr.amountTooHigh);
   });
 });
 
@@ -69,8 +71,8 @@ describe('transferSchema', () => {
       description: 'x', amount: '0', date: today,
       from_account_id: 'a', to_account_id: 'b', notes: '',
     });
-    expectValidationFailure(r);
-    expect(r.errors.amount).toBe(tFr.invalidAmount);
+    const errors = expectValidationErrors(r);
+    expect(errors.amount).toBe(tFr.invalidAmount);
   });
 
   it('requires distinct source and destination accounts', () => {
@@ -78,8 +80,8 @@ describe('transferSchema', () => {
       description: 'x', amount: '100', date: today,
       from_account_id: 'a', to_account_id: 'a', notes: '',
     });
-    expectValidationFailure(r);
-    expect(r.errors.to_account_id).toBe(tFr.transferSameAccount);
+    const errors = expectValidationErrors(r);
+    expect(errors.to_account_id).toBe(tFr.transferSameAccount);
   });
 
   it('requires source account', () => {
@@ -87,7 +89,7 @@ describe('transferSchema', () => {
       description: 'x', amount: '100', date: today,
       from_account_id: '', to_account_id: 'b', notes: '',
     });
-    expectValidationFailure(r);
-    expect(r.errors.from_account_id).toBe('Compte source requis');
+    const errors = expectValidationErrors(r);
+    expect(errors.from_account_id).toBe('Compte source requis');
   });
 });
