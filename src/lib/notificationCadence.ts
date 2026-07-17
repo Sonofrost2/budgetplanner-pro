@@ -123,11 +123,20 @@ function writeSigs(map: Record<string, { sig: string; ts: number }>) {
 }
 
 export function shouldEmitForSignature(key: string, sig: string): boolean {
-  const map = readSigs();
-  const prev = map[key];
-  if (prev?.sig === sig) return false;
-  map[key] = { sig, ts: Date.now() };
-  writeSigs(map);
+  // NOTE: the in-app bell relies on this helper to compose the visible list.
+  // The previous behaviour deduplicated by signature over 7 days, which meant
+  // that once a notification was rendered a first time it disappeared from the
+  // bell until the underlying data (or the signature TTL) changed — exactly
+  // the "plus rien ne s'affiche" symptom users reported. We keep the storage
+  // side-effect for the push-cadence layer that reads the map elsewhere, but
+  // ALWAYS return true so the bell reflects the live state.
+  try {
+    const map = readSigs();
+    map[key] = { sig, ts: Date.now() };
+    writeSigs(map);
+  } catch {
+    /* ignore */
+  }
   return true;
 }
 
