@@ -120,6 +120,7 @@ export const TransactionForm = ({
 
   const filteredCategories = categories.filter(c => c.type === form.type);
   const isTransfer = form.type === 'transfer';
+  const descriptionError = isTransfer ? undefined : errors.description;
   // Keep the transfer tab visible even when editing so the form layout matches
   // the create form (consistent 3-tab selector). When editing, the transfer
   // tab is disabled with a tooltip explaining why.
@@ -338,14 +339,14 @@ export const TransactionForm = ({
             }}
             onFocus={() => setShowSuggestions(true)}
             placeholder={locale === 'fr' ? 'Ex: Courses supermarché' : 'E.g: Grocery shopping'}
-            className={`rounded-xl h-11 ${errors.description ? 'border-destructive' : ''}`} />
+            className={`rounded-xl h-11 ${descriptionError ? 'border-destructive' : ''}`} />
           {aiSuggesting && (
             <div className="absolute right-3 top-[calc(100%-2rem)] flex items-center gap-1 text-xs text-primary">
               <Loader2 className="w-3 h-3 animate-spin" />
               <span>{locale === 'fr' ? 'IA...' : 'AI...'}</span>
             </div>
           )}
-          {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
+          {descriptionError && <p className="text-xs text-destructive">{descriptionError}</p>}
           <AnimatePresence>
             {showSuggestions && descriptionSuggestions.length > 0 && (
               <motion.div
