@@ -668,29 +668,40 @@ export const useBudgetNotifications = () => {
   useEffect(() => { checkNotifications(); }, [checkNotifications]);
 
   useEffect(() => {
-    const interval = setInterval(checkNotifications, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    // Poll every 60s as a safety net for time-based alerts (échéances J-x,
+    // bilans de période) that no DB change would otherwise trigger, and to
+    // recover from any missed realtime event.
+    const interval = setInterval(checkNotifications, 60 * 1000);
+    // Also refresh when the tab regains focus / visibility.
+    const onFocus = () => checkNotifications();
+    const onVis = () => { if (document.visibilityState === 'visible') checkNotifications(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [checkNotifications]);
 
   // Realtime: refresh immediately when a transaction is inserted/updated/deleted
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
     if (!user) return;
+    const trigger = () => {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => checkNotifications(), 600);
+    };
     const channel = supabase
       .channel('notif-bell-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => {
-        // Debounce to avoid multiple rapid refreshes (e.g. bulk import)
-        clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => checkNotifications(), 800);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${user.id}` }, () => {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => checkNotifications(), 800);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'savings_goals', filter: `user_id=eq.${user.id}` }, () => {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => checkNotifications(), 800);
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, trigger)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${user.id}` }, trigger)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'savings_goals', filter: `user_id=eq.${user.id}` }, trigger)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_accounts', filter: `user_id=eq.${user.id}` }, trigger)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_transactions', filter: `user_id=eq.${user.id}` }, trigger)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'debts', filter: `user_id=eq.${user.id}` }, trigger)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cash_counts', filter: `user_id=eq.${user.id}` }, trigger)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notification_preferences', filter: `user_id=eq.${user.id}` }, trigger)
       .subscribe();
     return () => {
       clearTimeout(debounceRef.current);
