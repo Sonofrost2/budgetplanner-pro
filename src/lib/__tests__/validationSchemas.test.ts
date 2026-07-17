@@ -66,6 +66,14 @@ describe('transferSchema', () => {
     expect(r.success).toBe(true);
   });
 
+  it('accepts a transfer without description', () => {
+    const r = validateForm(transferSchema(tFr, 'fr'), {
+      description: '', amount: '2000', date: today,
+      from_account_id: 'a', to_account_id: 'b', notes: '',
+    });
+    expect(r.success).toBe(true);
+  });
+
   it('reuses the same amount rules as transactions', () => {
     const r = validateForm(transferSchema(tFr, 'fr'), {
       description: 'x', amount: '0', date: today,
