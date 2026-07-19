@@ -32,7 +32,10 @@ export const transferSchema = (
   const fr = locale === 'fr';
   return z.object({
     // Description is optional for transfers (UI labels it "(optionnel)").
-    description: z.string().trim().max(200, t.maxChars(200)).optional().or(z.literal('')),
+    // Accept undefined, null, or '' — the API layer normalizes to NULL.
+    description: z
+      .union([z.string().trim().max(200, t.maxChars(200)), z.literal(''), z.null()])
+      .optional(),
     amount: z.string()
       .min(1, t.invalidAmount)
       .refine(v => Number(v) > 0, t.invalidAmount)
