@@ -1,0 +1,1 @@
+ALTER TABLE public.transactions ALTER COLUMN description DROP NOT NULL;
