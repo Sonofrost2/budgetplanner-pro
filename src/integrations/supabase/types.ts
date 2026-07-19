@@ -1962,7 +1962,7 @@ export type Database = {
           created_at: string
           date: string
           deleted_at: string | null
-          description: string
+          description: string | null
           family_category_id: string | null
           id: string
           is_transfer: boolean
@@ -1982,7 +1982,7 @@ export type Database = {
           created_at?: string
           date?: string
           deleted_at?: string | null
-          description: string
+          description?: string | null
           family_category_id?: string | null
           id?: string
           is_transfer?: boolean
@@ -2002,7 +2002,7 @@ export type Database = {
           created_at?: string
           date?: string
           deleted_at?: string | null
-          description?: string
+          description?: string | null
           family_category_id?: string | null
           id?: string
           is_transfer?: boolean
