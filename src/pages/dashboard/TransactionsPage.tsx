@@ -511,12 +511,13 @@ const TransactionsPage = () => {
     const amt = Number(form.amount);
     setSaving(true);
     try {
+      const trimmedDesc = (form.description ?? '').trim();
       const { error } = await supabase.rpc('perform_transfer', {
         p_user_id: user.id,
         p_from_account_id: form.from_account_id,
         p_to_account_id: form.to_account_id,
         p_amount: amt,
-        p_description: form.description.trim(),
+        p_description: trimmedDesc.length > 0 ? trimmedDesc : null,
       });
       if (error) throw error;
       setDialogOpen(false);
