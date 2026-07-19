@@ -92,7 +92,7 @@ export const TransferDialog = ({ open, onOpenChange, accounts, userId, t, onSucc
         p_from_account_id: fromAccountId,
         p_to_account_id: toAccountId,
         p_amount: Number(amount),
-        p_description: description.trim(),
+        p_description: description.trim().length > 0 ? description.trim() : null,
         p_date: date,
       });
 
