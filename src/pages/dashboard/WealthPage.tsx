@@ -147,6 +147,19 @@ const WealthPage = () => {
     enabled: !!user,
   });
 
+  const { data: liveAccounts = [] } = useQuery({
+    queryKey: ['payment-accounts-wealth-live', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('payment_accounts')
+        .select('id, name, type, real_balance, icon, archived_at')
+        .eq('user_id', user!.id)
+        .is('archived_at', null);
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['assets', user?.id] });
     queryClient.invalidateQueries({ queryKey: ['asset-valuations', user?.id] });
@@ -608,6 +621,61 @@ const WealthPage = () => {
             <div className="text-center py-12 space-y-3">
               <Building2 className="w-12 h-12 mx-auto text-muted-foreground/30" />
               <p className="text-sm text-muted-foreground">{wt.noAssetsFound}</p>
+            </div>
+          )}
+
+          {(filterType === 'all' || filterType === 'savings') && (savingsGoals.length > 0 || liveAccounts.length > 0) && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2 px-1">
+                <Wallet className="w-4 h-4 text-primary" />
+                <h3 className="text-xs font-bold uppercase tracking-wider">
+                  {isFr ? 'Épargne & Comptes' : 'Savings & Accounts'}
+                </h3>
+                <span className="text-[10px] text-muted-foreground">
+                  ({savingsGoals.length + liveAccounts.length})
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {savingsGoals
+                  .filter(g => !searchQuery || g.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((g, i) => (
+                    <Card key={`goal-${i}`} className="rounded-2xl border-border/50">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{g.icon || '🎯'}</span>
+                          <div className="min-w-0">
+                            <p className="font-bold text-sm truncate">{g.name}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {isFr ? 'Objectif d\'épargne' : 'Savings goal'}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-lg font-extrabold tabular-nums">{fmt(Number(g.current_amount))}</p>
+                        {Number(g.target_amount) > 0 && (
+                          <p className="text-[10px] text-muted-foreground">
+                            / {fmt(Number(g.target_amount))} ({Math.min(100, Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100))}%)
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                {liveAccounts
+                  .filter(a => !searchQuery || a.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map(a => (
+                    <Card key={`acc-${a.id}`} className="rounded-2xl border-border/50">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{a.icon || '💳'}</span>
+                          <div className="min-w-0">
+                            <p className="font-bold text-sm truncate">{a.name}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase">{a.type}</p>
+                          </div>
+                        </div>
+                        <p className="text-lg font-extrabold tabular-nums">{fmt(Number(a.real_balance || 0))}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
             </div>
           )}
         </TabsContent>
