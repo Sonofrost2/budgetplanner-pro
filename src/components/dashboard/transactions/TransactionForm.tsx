@@ -338,7 +338,9 @@ export const TransactionForm = ({
               }
             }}
             onFocus={() => setShowSuggestions(true)}
-            placeholder={locale === 'fr' ? 'Ex: Courses supermarché' : 'E.g: Grocery shopping'}
+            placeholder={isTransfer
+              ? (isFr ? 'Ex: Virement vers épargne (facultatif)' : 'E.g: Transfer to savings (optional)')
+              : (isFr ? 'Ex: Courses supermarché' : 'E.g: Grocery shopping')}
             className={`rounded-xl h-11 ${descriptionError ? 'border-destructive' : ''}`} />
           {aiSuggesting && (
             <div className="absolute right-3 top-[calc(100%-2rem)] flex items-center gap-1 text-xs text-primary">
@@ -347,6 +349,13 @@ export const TransactionForm = ({
             </div>
           )}
           {descriptionError && <p className="text-xs text-destructive">{descriptionError}</p>}
+          {isTransfer && !descriptionError && (
+            <p className="text-[11px] text-muted-foreground">
+              {isFr
+                ? 'Laissez vide pour utiliser un libellé automatique « Transfert : source → destination ».'
+                : 'Leave empty to use an automatic label “Transfer: source → destination”.'}
+            </p>
+          )}
           <AnimatePresence>
             {showSuggestions && descriptionSuggestions.length > 0 && (
               <motion.div
