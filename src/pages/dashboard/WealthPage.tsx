@@ -147,6 +147,19 @@ const WealthPage = () => {
     enabled: !!user,
   });
 
+  const { data: liveAccounts = [] } = useQuery({
+    queryKey: ['payment-accounts-wealth-live', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('payment_accounts')
+        .select('id, name, type, real_balance, icon, archived_at')
+        .eq('user_id', user!.id)
+        .is('archived_at', null);
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['assets', user?.id] });
     queryClient.invalidateQueries({ queryKey: ['asset-valuations', user?.id] });
