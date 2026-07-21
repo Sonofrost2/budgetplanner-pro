@@ -650,11 +650,27 @@ const CategoriesPage = () => {
                 <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">— {isFr ? 'Aucune (racine)' : 'None (root)'} —</SelectItem>
-                  {parentCandidates.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>
-                  ))}
+                  {parentCandidates
+                    // Order by breadcrumb so parents sit above their children
+                    .slice()
+                    .sort((a, b) => parentDisplayLabel(a).localeCompare(parentDisplayLabel(b)))
+                    .map(c => {
+                      const depth = computeDepth(c.id, categoryIndexes.byId);
+                      const indent = '\u00A0\u00A0'.repeat(Math.max(0, depth - 1));
+                      const prefix = depth > 1 ? '└ ' : '';
+                      return (
+                        <SelectItem key={c.id} value={c.id}>
+                          {indent}{prefix}{c.icon} {parentDisplayLabel(c)}
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground">
+                {isFr
+                  ? `Hiérarchie jusqu'à ${MAX_CATEGORY_DEPTH} niveaux.`
+                  : `Up to ${MAX_CATEGORY_DEPTH} levels of hierarchy.`}
+              </p>
             </div>
           </FormSection>
 
