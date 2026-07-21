@@ -12,6 +12,7 @@ interface Category {
   icon: string;
   type?: string;
   color?: string;
+  parent_category_id?: string | null;
 }
 
 interface CategoryComboboxProps {
@@ -44,18 +45,51 @@ export const CategoryCombobox = ({
   const labels = TYPE_LABELS[fr ? 'fr' : 'en'];
   const ph = placeholder ?? (fr ? 'Sélectionner une catégorie...' : 'Select a category...');
 
+  // Build parent → children map for hierarchical display
+  const byId = useMemo(() => {
+    const m = new Map<string, Category>();
+    categories.forEach(c => m.set(c.id, c));
+    return m;
+  }, [categories]);
+
+  // Order: each root followed by its children (indented). Orphans (parent not visible) treated as roots.
+  const orderCats = (list: Category[]): Array<{ cat: Category; depth: number }> => {
+    const childrenOf = new Map<string | null, Category[]>();
+    list.forEach(c => {
+      const pid = c.parent_category_id && byId.has(c.parent_category_id) ? c.parent_category_id : null;
+      const arr = childrenOf.get(pid) ?? [];
+      arr.push(c);
+      childrenOf.set(pid, arr);
+    });
+    for (const arr of childrenOf.values()) arr.sort((a, b) => a.name.localeCompare(b.name));
+    const out: Array<{ cat: Category; depth: number }> = [];
+    const walk = (parent: string | null, depth: number) => {
+      const kids = childrenOf.get(parent) ?? [];
+      for (const k of kids) {
+        out.push({ cat: k, depth });
+        walk(k.id, depth + 1);
+      }
+    };
+    walk(null, 0);
+    return out;
+  };
+
   const grouped = useMemo(() => {
-    if (!groupByType) return { all: categories };
+    if (!groupByType) return { all: orderCats(categories) };
     const groups: Record<string, Category[]> = {};
     categories.forEach(c => {
       const type = c.type || 'other';
       if (!groups[type]) groups[type] = [];
       groups[type].push(c);
     });
-    return groups;
-  }, [categories, groupByType]);
+    const out: Record<string, Array<{ cat: Category; depth: number }>> = {};
+    for (const [type, cats] of Object.entries(groups)) out[type] = orderCats(cats);
+    return out;
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, groupByType, byId]);
 
   const selected = categories.find(c => c.id === value);
+  const selectedParent = selected?.parent_category_id ? byId.get(selected.parent_category_id) : null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -74,7 +108,12 @@ export const CategoryCombobox = ({
           {selected ? (
             <span className="flex items-center gap-2 truncate">
               <span>{selected.icon}</span>
-              <span className="truncate">{selected.name}</span>
+              <span className="truncate">
+                {selectedParent && (
+                  <span className="text-muted-foreground">{selectedParent.name} › </span>
+                )}
+                {selected.name}
+              </span>
             </span>
           ) : (
             ph
@@ -89,7 +128,7 @@ export const CategoryCombobox = ({
             <CommandEmpty>{fr ? 'Aucune catégorie trouvée.' : 'No category found.'}</CommandEmpty>
             {Object.entries(grouped).map(([type, cats]) => (
               <CommandGroup key={type} heading={groupByType ? (labels[type] || type) : undefined}>
-                {cats.map(cat => (
+                {cats.map(({ cat, depth }) => (
                   <CommandItem
                     key={cat.id}
                     value={`${cat.name} ${cat.icon}`}
@@ -97,6 +136,7 @@ export const CategoryCombobox = ({
                       onValueChange(cat.id);
                       setOpen(false);
                     }}
+                    style={{ paddingLeft: `${0.5 + depth * 1}rem` }}
                   >
                     <Check
                       className={cn(
@@ -104,8 +144,11 @@ export const CategoryCombobox = ({
                         value === cat.id ? 'opacity-100' : 'opacity-0'
                       )}
                     />
+                    {depth > 0 && (
+                      <span className="mr-1 text-muted-foreground/60 text-xs">└</span>
+                    )}
                     <span className="mr-2">{cat.icon}</span>
-                    <span className="truncate">{cat.name}</span>
+                    <span className={cn('truncate', depth === 0 && 'font-medium')}>{cat.name}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
