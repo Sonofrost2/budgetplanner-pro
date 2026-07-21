@@ -2155,6 +2155,8 @@ export type Database = {
       }
     }
     Functions: {
+      _category_depth: { Args: { p_id: string }; Returns: number }
+      _category_subtree_height: { Args: { p_id: string }; Returns: number }
       accept_family_invitation: { Args: { p_token: string }; Returns: Json }
       activate_paid_subscription:
         | {
