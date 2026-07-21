@@ -4,6 +4,7 @@ import { RefreshCw, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // @ts-ignore -- virtual module provided by vite-plugin-pwa at build time
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { useVersionCheck } from '@/hooks/useVersionCheck';
 
 const UPDATE_CHECK_INTERVAL_MS = 5 * 60_000; // 5 min (was 60s — trop agressif)
 const DISMISS_KEY = 'pwa-update-dismissed-at';
@@ -24,7 +25,12 @@ const isNativeCapacitor = () => {
 export const PWAUpdatePrompt = () => {
   const [installing, setInstalling] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [versionMismatch, setVersionMismatch] = useState(false);
   const native = typeof window !== 'undefined' && isNativeCapacitor();
+
+  // Fallback update signal — fires when /version.json differs from the
+  // build we're running, even if the service-worker update flow misses it.
+  useVersionCheck();
 
   const {
     needRefresh: [needRefresh, setNeedRefresh],
@@ -39,9 +45,18 @@ export const PWAUpdatePrompt = () => {
     },
   });
 
+  // Listen for the version-check fallback signal.
+  useEffect(() => {
+    const onUpdate = () => setVersionMismatch(true);
+    window.addEventListener('app:update-available', onUpdate as EventListener);
+    return () => window.removeEventListener('app:update-available', onUpdate as EventListener);
+  }, []);
+
+  const updateAvailable = needRefresh || versionMismatch;
+
   // Re-check dismiss state whenever a new update signal arrives.
   useEffect(() => {
-    if (!needRefresh) { setDismissed(false); return; }
+    if (!updateAvailable) { setDismissed(false); return; }
     try {
       const raw = localStorage.getItem(DISMISS_KEY);
       if (raw) {
@@ -51,10 +66,31 @@ export const PWAUpdatePrompt = () => {
         }
       }
     } catch { /* ignore */ }
-  }, [needRefresh]);
+  }, [updateAvailable]);
+
+  /**
+   * Purge every Cache Storage bucket owned by this origin's app SW before
+   * reloading. This is the belt-and-suspenders step that prevents a
+   * half-updated state (fresh HTML + stale hashed chunks referenced by an
+   * old workbox precache manifest). We intentionally skip caches that don't
+   * belong to this app (e.g. Firebase Messaging, OneSignal) by matching
+   * the workbox cacheId prefix `bp-`.
+   */
+  const purgeAppCaches = async () => {
+    if (typeof caches === 'undefined') return;
+    try {
+      const names = await caches.keys();
+      await Promise.all(
+        names
+          .filter((n) => n.startsWith('bp-') || n.startsWith('workbox-') || n === 'html-navigations')
+          .map((n) => caches.delete(n)),
+      );
+    } catch { /* ignore */ }
+  };
 
   const handleUpdate = async () => {
     setInstalling(true);
+    await purgeAppCaches();
     try {
       await updateServiceWorker(true);
     } catch { /* ignore */ }
@@ -71,12 +107,13 @@ export const PWAUpdatePrompt = () => {
     try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch { /* ignore */ }
     setDismissed(true);
     setNeedRefresh(false);
+    setVersionMismatch(false);
   };
 
   // Never show in Capacitor native (OTA path handles updates).
   if (native) return null;
 
-  const visible = needRefresh && !dismissed;
+  const visible = updateAvailable && !dismissed;
 
   return (
     <AnimatePresence>
