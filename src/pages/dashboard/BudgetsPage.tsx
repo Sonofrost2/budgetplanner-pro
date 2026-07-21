@@ -294,7 +294,7 @@ const BudgetsPage = () => {
       carry_over: !!form.carry_over,
       notes: form.notes?.trim() || null,
       priority: form.priority || 'medium',
-      tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : null,
+      tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
       payment_account_id: form.payment_account_id || null,
     };
     const { error } = editId
