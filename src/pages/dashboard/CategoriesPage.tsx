@@ -36,6 +36,50 @@ import { exportToCSV, exportToExcel } from '@/lib/export';
 import { archiveItem, unarchiveItem } from '@/lib/archive';
 import { fetchCategoryAnalytics, type CategoryStats } from '@/lib/categoryAnalytics';
 
+const MAX_CATEGORY_DEPTH = 5;
+
+/**
+ * Compute depth of a category (1 = root, 2 = child of root, ...).
+ */
+const computeDepth = (id: string, byId: Map<string, Category>): number => {
+  let depth = 0;
+  let current: string | null | undefined = id;
+  let hops = 0;
+  while (current && hops < 20) {
+    depth += 1;
+    current = byId.get(current)?.parent_category_id ?? null;
+    hops += 1;
+  }
+  return depth;
+};
+
+/**
+ * Compute height of the subtree rooted at id (0 for a leaf).
+ */
+const computeSubtreeHeight = (id: string, childrenByParent: Map<string, Category[]>): number => {
+  const children = childrenByParent.get(id) ?? [];
+  if (children.length === 0) return 0;
+  return 1 + Math.max(...children.map(c => computeSubtreeHeight(c.id, childrenByParent)));
+};
+
+/**
+ * Collect all descendant IDs of a given category (inclusive of id itself).
+ */
+const collectDescendants = (id: string, childrenByParent: Map<string, Category[]>): Set<string> => {
+  const out = new Set<string>([id]);
+  const stack = [id];
+  while (stack.length) {
+    const current = stack.pop()!;
+    for (const child of childrenByParent.get(current) ?? []) {
+      if (!out.has(child.id)) {
+        out.add(child.id);
+        stack.push(child.id);
+      }
+    }
+  }
+  return out;
+};
+
 const ICONS = ['🛒', '🚗', '🏠', '🎮', '💊', '💰', '💻', '📚', '👗', '🍽️', '✈️', '🎬', '📱', '💡', '🏥', '🎁', '🔧', '📁'];
 import { CHART_PALETTE as COLORS } from '@/lib/chartColors';
 
@@ -57,6 +101,21 @@ const CategoriesPage = () => {
   useEffect(() => { void markCategoriesVisited(); }, [markCategoriesVisited]);
 
   const { data: categories = [], isLoading: catLoading } = useCategories();
+
+  // Indexes for hierarchy computations
+  const categoryIndexes = useMemo(() => {
+    const byId = new Map<string, Category>();
+    const childrenByParent = new Map<string, Category[]>();
+    for (const c of categories) {
+      byId.set(c.id, c);
+      if (c.parent_category_id) {
+        const arr = childrenByParent.get(c.parent_category_id) ?? [];
+        arr.push(c);
+        childrenByParent.set(c.parent_category_id, arr);
+      }
+    }
+    return { byId, childrenByParent };
+  }, [categories]);
 
   const { data: txCounts = {}, isLoading: txCountLoading } = useQuery({
     queryKey: ['category-tx-counts', user?.id],
@@ -142,11 +201,40 @@ const CategoriesPage = () => {
     return result;
   }, [categories, typeTab, searchQuery]);
 
-  // Possible parents = root cats of same type
-  const parentCandidates = useMemo(
-    () => categories.filter(c => c.type === form.type && !c.parent_category_id && c.id !== editing?.id),
-    [categories, form.type, editing?.id]
-  );
+  /**
+   * Parent candidates: same type, not the category itself, not a descendant of it,
+   * and depth(parent) + 1 + subtreeHeight(edited) ≤ MAX_CATEGORY_DEPTH.
+   */
+  const parentCandidates = useMemo(() => {
+    const editedSubtreeHeight = editing
+      ? computeSubtreeHeight(editing.id, categoryIndexes.childrenByParent)
+      : 0;
+    const forbidden = editing
+      ? collectDescendants(editing.id, categoryIndexes.childrenByParent)
+      : new Set<string>();
+    return categories
+      .filter(c => c.type === form.type && !forbidden.has(c.id))
+      .filter(c => {
+        const d = computeDepth(c.id, categoryIndexes.byId);
+        return d + 1 + editedSubtreeHeight <= MAX_CATEGORY_DEPTH;
+      });
+  }, [categories, form.type, editing, categoryIndexes]);
+
+  /**
+   * Build a display label with breadcrumb (Parent › Child) and depth indent
+   * so the select shows the full hierarchy up to 5 levels.
+   */
+  const parentDisplayLabel = (c: Category): string => {
+    const chain: string[] = [];
+    let cur: Category | undefined = c;
+    let hops = 0;
+    while (cur && hops < 10) {
+      chain.unshift(cur.name);
+      cur = cur.parent_category_id ? categoryIndexes.byId.get(cur.parent_category_id) : undefined;
+      hops += 1;
+    }
+    return chain.join(' › ');
+  };
 
   const categoryLimitReached = !isPaid && categories.filter(c => !c.deleted_at).length >= limits.categories;
 
@@ -247,17 +335,29 @@ const CategoriesPage = () => {
 
   const handleReparent = async (childId: string, newParentId: string | null) => {
     if (!user) return;
-    // Block: cannot put a parent under another category
-    const child = categories.find(c => c.id === childId);
+    const child = categoryIndexes.byId.get(childId);
     if (!child) return;
     if (newParentId) {
-      const target = categories.find(c => c.id === newParentId);
+      const target = categoryIndexes.byId.get(newParentId);
       if (!target || target.type !== child.type) {
         toast.error(isFr ? 'Type incompatible' : 'Incompatible type');
         return;
       }
-      if (target.parent_category_id) {
-        toast.error(isFr ? 'Hiérarchie max 2 niveaux' : 'Max 2-level hierarchy');
+      // Refuse cycle : cible ne doit pas être un descendant de l'enfant déplacé.
+      const descendants = collectDescendants(childId, categoryIndexes.childrenByParent);
+      if (descendants.has(newParentId)) {
+        toast.error(isFr ? 'Déplacement invalide (cycle)' : 'Invalid move (cycle)');
+        return;
+      }
+      // Refuse dépassement de profondeur
+      const parentDepth = computeDepth(newParentId, categoryIndexes.byId);
+      const subtreeHeight = computeSubtreeHeight(childId, categoryIndexes.childrenByParent);
+      if (parentDepth + 1 + subtreeHeight > MAX_CATEGORY_DEPTH) {
+        toast.error(
+          isFr
+            ? `Hiérarchie max ${MAX_CATEGORY_DEPTH} niveaux`
+            : `Max ${MAX_CATEGORY_DEPTH}-level hierarchy`,
+        );
         return;
       }
     }
