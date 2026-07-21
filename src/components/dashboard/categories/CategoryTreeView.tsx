@@ -38,6 +38,8 @@ export const CategoryTreeView = ({
         (childrenMap[c.parent_category_id] ||= []).push(c);
       }
     });
+    // Sort children alphabetically for stable display
+    Object.values(childrenMap).forEach(arr => arr.sort((a, b) => a.name.localeCompare(b.name)));
     return { roots, childrenMap };
   }, [categories]);
 
@@ -77,28 +79,25 @@ export const CategoryTreeView = ({
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <RootDropZone isFr={isFr} />
       <div className="space-y-2 mt-2">
-        {tree.roots.map(root => {
-          const children = tree.childrenMap[root.id] ?? [];
-          const isExpanded = expanded.has(root.id);
-          return (
-            <CategoryNode
-              key={root.id}
-              category={root}
-              childrenCats={children}
-              isExpanded={isExpanded}
-              onToggleExpand={() => toggleExpand(root.id)}
-              stats={stats}
-              txCounts={txCounts}
-              selectedIds={selectedIds}
-              onToggleSelect={onToggleSelect}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onArchive={onArchive}
-              isFr={isFr}
-              familyRootId={familyRootId}
-            />
-          );
-        })}
+        {tree.roots.map(root => (
+          <CategoryNode
+            key={root.id}
+            category={root}
+            depth={1}
+            childrenMap={tree.childrenMap}
+            expanded={expanded}
+            onToggleExpand={toggleExpand}
+            stats={stats}
+            txCounts={txCounts}
+            selectedIds={selectedIds}
+            onToggleSelect={onToggleSelect}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onArchive={onArchive}
+            isFr={isFr}
+            familyRootId={familyRootId}
+          />
+        ))}
       </div>
     </DndContext>
   );
@@ -118,9 +117,10 @@ const RootDropZone = ({ isFr }: { isFr: boolean }) => {
 
 interface NodeProps {
   category: Category;
-  childrenCats: Category[];
-  isExpanded: boolean;
-  onToggleExpand: () => void;
+  depth: number;
+  childrenMap: Record<string, Category[]>;
+  expanded: Set<string>;
+  onToggleExpand: (id: string) => void;
   stats: Record<string, CategoryStats>;
   txCounts: Record<string, number>;
   selectedIds: Set<string>;
@@ -133,13 +133,15 @@ interface NodeProps {
 }
 
 const CategoryNode = ({
-  category, childrenCats, isExpanded, onToggleExpand, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, isFr, familyRootId,
+  category, depth, childrenMap, expanded, onToggleExpand, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, isFr, familyRootId,
 }: NodeProps) => {
   const isSelected = selectedIds.has(category.id);
   const stat = stats[category.id];
   const series = normalizeSparkline(stat?.monthly_series ?? []);
   const txCount = txCounts[category.id] || 0;
+  const childrenCats = childrenMap[category.id] ?? [];
   const hasChildren = childrenCats.length > 0;
+  const isExpanded = expanded.has(category.id);
   const isFamilyRoot = (category as any).is_family_root === true;
   const isSharedChild = !!familyRootId && category.parent_category_id === familyRootId;
 
@@ -166,7 +168,7 @@ const CategoryNode = ({
           <Checkbox checked={isSelected} onCheckedChange={() => onToggleSelect(category.id)} />
 
           {hasChildren ? (
-            <button onClick={onToggleExpand} className="text-muted-foreground hover:text-foreground transition-transform" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none' }}>
+            <button onClick={() => onToggleExpand(category.id)} className="text-muted-foreground hover:text-foreground transition-transform" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none' }}>
               <ChevronRight className="w-4 h-4" />
             </button>
           ) : <span className="w-4" />}
@@ -178,6 +180,9 @@ const CategoryNode = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium text-sm truncate">{category.name}</p>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/30 font-medium">
+                N{depth}
+              </span>
               {isFamilyRoot && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/20 font-semibold flex items-center gap-0.5">
                   👨‍👩‍👧 {isFr ? 'Racine Famille' : 'Family root'}
@@ -223,9 +228,10 @@ const CategoryNode = ({
             <CategoryNode
               key={child.id}
               category={child}
-              childrenCats={[]}
-              isExpanded={false}
-              onToggleExpand={() => {}}
+              depth={depth + 1}
+              childrenMap={childrenMap}
+              expanded={expanded}
+              onToggleExpand={onToggleExpand}
               stats={stats}
               txCounts={txCounts}
               selectedIds={selectedIds}
