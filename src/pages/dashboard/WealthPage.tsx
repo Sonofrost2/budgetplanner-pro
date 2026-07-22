@@ -617,13 +617,6 @@ const WealthPage = () => {
             </AnimatePresence>
           </div>
 
-          {filteredAssets.length === 0 && !isLoading && (
-            <div className="text-center py-12 space-y-3">
-              <Building2 className="w-12 h-12 mx-auto text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">{wt.noAssetsFound}</p>
-            </div>
-          )}
-
           {(filterType === 'all' || filterType === 'savings') && (savingsGoals.length > 0 || liveAccounts.length > 0) && (
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2 px-1">
@@ -676,6 +669,15 @@ const WealthPage = () => {
                     </Card>
                   ))}
               </div>
+            </div>
+          )}
+
+          {filteredAssets.length === 0 && !isLoading && !(
+            (filterType === 'all' || filterType === 'savings') && (savingsGoals.length > 0 || liveAccounts.length > 0)
+          ) && (
+            <div className="text-center py-12 space-y-3">
+              <Building2 className="w-12 h-12 mx-auto text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">{wt.noAssetsFound}</p>
             </div>
           )}
         </TabsContent>
