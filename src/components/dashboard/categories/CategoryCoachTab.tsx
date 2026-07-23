@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Lightbulb, TrendingDown, Merge, RefreshCcw, Loader2 } from 'lucide-react';
+import { Sparkles, Lightbulb, TrendingDown, Merge, RefreshCcw, Loader2, AlertTriangle, Copy, ShieldOff } from 'lucide-react';
 import { invokeAuthedEdgeFunction } from '@/lib/aiEdge';
 import { toast } from 'sonner';
 import type { Category } from '@/hooks/useDashboardData';
 import type { CategoryStats } from '@/lib/categoryAnalytics';
+import { findDuplicateCategories, isCatchAllCategory, normalizeSparkline } from '@/lib/categoryAnalytics';
 
 interface Suggestion {
   type: 'duplicate' | 'unused' | 'reparent' | 'split';
@@ -21,9 +22,10 @@ interface Props {
   stats: Record<string, CategoryStats>;
   isFr: boolean;
   onRefresh: () => void;
+  budgetCategoryIds?: Set<string>;
 }
 
-export const CategoryCoachTab = ({ categories, stats, isFr, onRefresh }: Props) => {
+export const CategoryCoachTab = ({ categories, stats, isFr, onRefresh, budgetCategoryIds }: Props) => {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
@@ -48,6 +50,15 @@ export const CategoryCoachTab = ({ categories, stats, isFr, onRefresh }: Props) 
   };
 
   const unusedLocal = categories.filter(c => (stats[c.id]?.transaction_count ?? 0) === 0);
+  const duplicatesLocal = findDuplicateCategories(categories);
+  const catchAllLocal = categories.filter(c => isCatchAllCategory(c.name));
+  const orphanLocal = categories.filter(c => {
+    if (c.type !== 'expense') return false;
+    if (budgetCategoryIds?.has(c.id)) return false;
+    const s = stats[c.id];
+    const series = normalizeSparkline(s?.monthly_series ?? []);
+    return (series[series.length - 1] ?? 0) > 0;
+  });
 
   return (
     <div className="space-y-4">
@@ -73,23 +84,64 @@ export const CategoryCoachTab = ({ categories, stats, isFr, onRefresh }: Props) 
         </CardContent>
       </Card>
 
-      {/* Quick local insight: unused */}
-      {unusedLocal.length > 0 && (
-        <Card className="rounded-2xl">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingDown className="w-4 h-4 text-amber-500" />
-              <h4 className="font-medium text-sm">{isFr ? `${unusedLocal.length} catégories sans transaction` : `${unusedLocal.length} categories with no transaction`}</h4>
-            </div>
+      {/* Quick local insights */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {duplicatesLocal.length > 0 && (
+          <LocalCard
+            icon={<Copy className="w-4 h-4 text-primary" />}
+            title={isFr ? `${duplicatesLocal.length} groupe(s) de doublons` : `${duplicatesLocal.length} duplicate group(s)`}
+            hint={isFr ? 'Sélectionne-les puis clique "Fusionner".' : 'Select them then click "Merge".'}
+          >
             <div className="flex flex-wrap gap-1.5">
-              {unusedLocal.slice(0, 12).map(c => (
-                <span key={c.id} className="text-xs px-2 py-1 rounded-lg bg-muted">{c.icon} {c.name}</span>
+              {duplicatesLocal.slice(0, 6).map((d, i) => (
+                <span key={i} className="text-[11px] px-2 py-1 rounded-lg bg-muted">
+                  {d.name} <span className="text-muted-foreground">·{d.ids.length}</span>
+                </span>
               ))}
-              {unusedLocal.length > 12 && <span className="text-xs text-muted-foreground self-center">+{unusedLocal.length - 12}</span>}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </LocalCard>
+        )}
+        {catchAllLocal.length > 0 && (
+          <LocalCard
+            icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
+            title={isFr ? `${catchAllLocal.length} catégorie(s) fourre-tout` : `${catchAllLocal.length} catch-all categor(y|ies)`}
+            hint={isFr ? 'Renomme-les et divise en sous-catégories plus précises.' : 'Rename and split into more precise sub-categories.'}
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {catchAllLocal.slice(0, 8).map(c => (
+                <span key={c.id} className="text-[11px] px-2 py-1 rounded-lg bg-muted">{c.icon} {c.name}</span>
+              ))}
+            </div>
+          </LocalCard>
+        )}
+        {orphanLocal.length > 0 && (
+          <LocalCard
+            icon={<ShieldOff className="w-4 h-4 text-amber-500" />}
+            title={isFr ? `${orphanLocal.length} dépense(s) sans budget` : `${orphanLocal.length} expense(s) without budget`}
+            hint={isFr ? 'Crée un budget lié pour ces catégories actives.' : 'Create a linked budget for these active categories.'}
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {orphanLocal.slice(0, 8).map(c => (
+                <span key={c.id} className="text-[11px] px-2 py-1 rounded-lg bg-muted">{c.icon} {c.name}</span>
+              ))}
+            </div>
+          </LocalCard>
+        )}
+        {unusedLocal.length > 0 && (
+          <LocalCard
+            icon={<TrendingDown className="w-4 h-4 text-muted-foreground" />}
+            title={isFr ? `${unusedLocal.length} catégorie(s) sans transaction` : `${unusedLocal.length} unused categor(y|ies)`}
+            hint={isFr ? 'Archive celles que tu n\'utilises plus.' : 'Archive the ones you no longer use.'}
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {unusedLocal.slice(0, 10).map(c => (
+                <span key={c.id} className="text-[11px] px-2 py-1 rounded-lg bg-muted">{c.icon} {c.name}</span>
+              ))}
+              {unusedLocal.length > 10 && <span className="text-[11px] text-muted-foreground self-center">+{unusedLocal.length - 10}</span>}
+            </div>
+          </LocalCard>
+        )}
+      </div>
 
       {suggestions.length === 0 && !loading && (
         <Card className="rounded-2xl border-dashed">
@@ -123,3 +175,16 @@ export const CategoryCoachTab = ({ categories, stats, isFr, onRefresh }: Props) 
     </div>
   );
 };
+
+const LocalCard = ({ icon, title, hint, children }: { icon: React.ReactNode; title: string; hint: string; children: React.ReactNode }) => (
+  <Card className="rounded-2xl">
+    <CardContent className="p-4 space-y-2">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h4 className="font-semibold text-sm">{title}</h4>
+      </div>
+      <p className="text-[11px] text-muted-foreground">{hint}</p>
+      {children}
+    </CardContent>
+  </Card>
+);
