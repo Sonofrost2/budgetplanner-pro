@@ -1,104 +1,138 @@
-# Refonte v2 — Module Transactions
 
-Objectif : rendre le module lisible, rapide et cohérent (calculs justes hors transferts), avec un formulaire fluide et des sous-pages harmonisées.
+# Refonte complète — Module Catégories
 
-## 1. Calculs sains (fondation)
+Objectif : transformer la page en un vrai centre de gouvernance des catégories (taxonomie, santé, analytique, gouvernance IA), tout en gardant la charte glassmorphism dark existante (Space Grotesk, `--gradient-primary`, tokens sémantiques). Aucune régression sur la DB — juste des évolutions additives.
 
-Créer un helper unique `src/lib/transactionMath.ts` :
-- `isTransfer(tx)` — déjà présent côté liste, on le centralise.
-- `sumIncome / sumExpense / netFlow` — excluent systématiquement les transferts.
-- `groupByPeriod(txs, granularity)` — jour / semaine / mois, avec bornes ISO.
-- `comparePeriods(current, previous)` — renvoie delta absolu + % + tendance.
+## 1. UX/UI — Page & navigation
 
-Impact : `TransactionsHeroHeader`, `TransactionInsightsBar`, cartes KPI Stats, graphes, exports. Fin des doublons de logique.
+**Hero header refondu (`CategoriesHeroHeader.tsx`)**
+- 6 KPI au lieu de 4 : Actives · Racines · Profondeur max · Top dépense % · Inutilisées · Sans budget lié
+- Chip "Score de taxonomie" (0–100) : pénalise doublons, catégories vides, hiérarchie plate, catégories sans couleur/icône par défaut.
+- Sparkline top-5 avec dégradé + point final animé.
+- Bouton "Nouvelle" en split-button : « Nouvelle » / « Depuis modèle » / « Import JSON ».
 
-## 2. Onglet Gestion — liste + filtres + recherche
+**Barre d'outils sticky + segments enrichis**
+- Segment `Dépenses / Revenus / Toutes` (aujourd'hui : uniquement 2).
+- Toggle vue : `Arborescence` / `Grille` / `Tableau compact` (persisté).
+- Chips filtres actifs : « inutilisées », « racines seulement », « profondeur ≥ N », « avec budget », « famille » — tous cumulables et persistés.
+- Densité `Compact / Confort` (persisté).
 
-**Barre de recherche avancée** (nouveau composant `SmartSearchInput`)
-- Opérateurs : `>1000`, `<500`, `=250`, `montant:1000..5000`, `compte:wave`, `cat:transport`, `tag:vacances`, `type:expense`.
-- Chips visibles quand un opérateur est parsé, suppression au clic.
-- Suggestions instantanées (comptes, catégories, tags récents).
-- Raccourci `/` pour focus, `Esc` pour vider.
+**Arborescence (`CategoryTreeView.tsx`)**
+- Ligne enrichie : icône, nom, breadcrumb parent, badge N-niveau, badge budget lié 💰, badge partage famille, montant du mois + variation vs mois précédent (▲ ▼), % du type, mini-sparkline 6 mois, nombre de tx.
+- Drag & drop amélioré : indicateur de drop **au-dessus / à l'intérieur / sur racine**, halo animé, aperçu du chemin cible dans un tooltip.
+- Actions : expand-all / collapse-all, bouton « Ajouter un enfant » directement sur la ligne parent.
+- Rappel de profondeur restante quand on approche du max (5).
 
-**Filtres persistés + Vues sauvegardées**
-- Réutilise la table existante `saved_filters`.
-- Sheet "Filtres avancés" gagne une section "Mes vues" avec CRUD (nom, icône, couleur).
-- Le dernier filtre actif est mémorisé en `localStorage` par utilisateur.
+**Vue Grille & Tableau**
+- Grille : cartes 200×120 avec halo couleur, KPI mois + variation, actions rapides.
+- Tableau : colonnes triables (Nom, Type, Parent, Tx, Total mois, Δ vs mois-1, Budget, Statut).
 
-**Liste**
-- Densité configurable (Confort / Compact / Ultra-compact) mémorisée.
-- Tri multi-colonnes (Date + Montant) avec badges d'ordre.
-- Actions bulk existantes conservées ; ajout de "Assigner tag" et "Convertir en récurrent".
-- Header sticky reste, on retire la double barre de compte total (déjà unifiée).
+**Onglet Évolution enrichi**
+- Sélecteur de période (30j / 3m / 6m / 12m / YTD / custom).
+- Comparaison N/N-1, toggle « Empilé / Superposé / 100% ».
+- Heatmap dépenses par catégorie × mois.
+- Top mouvers (plus fortes hausses/baisses).
 
-## 3. Onglet Statistiques — KPI + graphes v2
+**Onglet Coach refondu (`CategoryCoachTab.tsx`)**
+- 4 sections : Doublons potentiels · Inutilisées · Hiérarchie à plat · Catégories fourre-tout (« Autres »).
+- Chaque suggestion devient **actionnable en un clic** : Fusionner, Archiver, Déplacer, Renommer.
+- Cache des suggestions (ai_cache) pour éviter recalcul.
 
-**Cartes KPI (grid 4 colonnes desktop / 2 mobile)**
-- Revenus, Dépenses, Net, Taux d'épargne — tous **hors transferts**.
-- Chaque carte : valeur XL + delta vs période précédente (flèche + %) + mini-sparkline 30 pts.
-- Période active pilotée par un `PeriodPicker` (7j, 30j, Ce mois, Mois dernier, YTD, Perso).
+**Empty states & responsive**
+- Empty states illustrés, CTA doubles, tips contextuels.
+- Mobile : arborescence en accordéon plein écran, barre d'action flottante, drag & drop remplacé par sheet « Déplacer vers… ».
 
-**Graphes**
-- `CashFlowChart` — aires empilées Revenus/Dépenses + ligne Net, avec ligne pointillée pour la période précédente (comparaison).
-- `CategoryBreakdown` — donut interactif avec drill-down (clic = filtre liste).
-- `TopMerchants` — barres horizontales top 8 descriptions récurrentes.
-- `HeatmapCalendar` — intensité des dépenses jour par jour (30/90j).
+## 2. Formulaire unifié création/édition (`CategoryForm.tsx` — nouveau)
 
-Tous les graphes s'appuient sur `transactionMath.ts` — aucune duplication.
+Extrait de `CategoriesPage.tsx` dans un composant dédié, servant à la fois création et édition.
 
-## 4. Formulaire de saisie — v2
+- Zod schema centralisé dans `src/lib/validationSchemas.ts` (`categorySchema`) + React Hook Form.
+- Aperçu live en haut (déjà présent, retravaillé) + preview « comme affichée dans une transaction ».
+- Sélecteur parent en **combobox hiérarchique cherchable** (réutilise `CategoryCombobox`) avec badge de profondeur restante.
+- Sélecteur d'icône : recherche + onglets (Finance / Vie quotidienne / Loisirs / Emojis récents).
+- Palette couleurs élargie + picker HSL + « couleur du parent » (suggestion auto).
+- Champs additionnels (optionnels, sans migration lourde — utilisent colonnes existantes ou tags) :
+  - **Alias** (mots-clés pour l'auto-catégorisation IA) — stockés dans `tags`.
+  - **Budget mensuel suggéré** (readonly info depuis les budgets liés).
+- Validation :
+  - Nom unique par type (pas globalement) — corrige un faux positif actuel.
+  - Longueur, caractères, profondeur, cycle, type-parent cohérent.
+  - Messages inline sous chaque champ.
+- Bouton « Enregistrer et créer une sous-catégorie » (chain-create).
 
-`TransactionForm.tsx` retravaillé :
-- **Layout 2 colonnes desktop** : à gauche saisie principale (type/montant/description/date), à droite contexte (compte, catégorie, tags, notes, pièce jointe).
-- **Champ montant** : gros clavier calculette optionnel (mobile) avec opérations simples (`+ - × ÷`), formatage live avec séparateur milliers.
-- **Sélecteur catégorie** : grille avec icônes, catégories favorites/récentes en tête, recherche instantanée.
-- **Sélecteur compte** : liste avec solde actuel affiché.
-- **Onglet Transfert** : source + destination côte à côte, prévisualisation "Nouveau solde" pour les deux comptes.
-- **Validation inline** par champ (déjà en place) — on ajoute des messages spécifiques et un résumé en bas quand plusieurs erreurs.
-- **Raccourcis** : `Cmd+Enter` = enregistrer, `Cmd+Shift+Enter` = enregistrer & nouveau, `Tab` optimisé.
-- Mode "Saisie rapide" (déjà existant) préservé.
+## 3. Actions puissantes
 
-## 5. Sous-pages du module
+**Bulk actions étendues (`BulkActionBar` extras)**
+- Fusionner N → 1 (existe, on améliore le dialog : compteur tx, aperçu impact).
+- Déplacer sous un parent (bulk reparent — RPC déjà là, on ajoute picker hiérarchique).
+- Archiver / Désarchiver / Supprimer en masse.
+- Changer icône / couleur en masse.
+- Export JSON de la sélection (en plus de CSV/Excel).
 
-**Charges récurrentes (`RecurringPage`)**
-- Header aligné sur `PageHeader` avec KPI : Total mensuel, Prochaines 7j, Actives, En pause.
-- Cartes récurrentes avec countdown "Dans X jours" + badge statut.
-- Actions rapides : Exécuter maintenant, Suspendre, Éditer.
+**Templates (`CategoryTemplatesDialog.tsx`)**
+- Regrouper en packs : Ménage, Freelance, Famille, Étudiant, Auto-entrepreneur, Investissement.
+- Preview des catégories avant application, cases à cocher individuelles, détection des doublons (skip auto).
 
-**Reçus (`ReceiptsPage`)**
-- Vue grille (miniatures) + vue liste, toggle mémorisé.
-- Filtres : par période, par plan payé, par méthode.
-- Bouton "Télécharger PDF" homogène avec la génération existante.
+**Import/Export**
+- Import CSV en plus du JSON, mapping des colonnes.
+- Export : JSON, CSV, Excel avec stats.
+- Historique d'import récent (localStorage).
 
-## 6. Fichiers touchés (résumé technique)
+## 4. Analytique & Coach IA
 
-Nouveaux :
-- `src/lib/transactionMath.ts`
-- `src/components/dashboard/transactions/SmartSearchInput.tsx`
-- `src/components/dashboard/transactions/SavedViewsMenu.tsx`
-- `src/components/dashboard/transactions/PeriodPicker.tsx`
-- `src/components/dashboard/transactions/charts/CashFlowChart.tsx`
-- `src/components/dashboard/transactions/charts/CategoryBreakdown.tsx`
-- `src/components/dashboard/transactions/charts/TopMerchants.tsx`
-- `src/components/dashboard/transactions/charts/HeatmapCalendar.tsx`
-- `src/components/dashboard/transactions/form/AmountCalculator.tsx`
-- `src/components/dashboard/transactions/form/CategoryGrid.tsx`
+**`categoryAnalytics.ts` — enrichi**
+- Ajout : variation N vs N-1, part du type, part du total, tendance (regression linéaire slope), rang.
+- Cache local via TanStack Query (staleTime 5 min).
 
-Modifiés :
-- `src/pages/dashboard/TransactionsPage.tsx` (recomposition Gestion + Stats)
-- `src/pages/dashboard/RecurringPage.tsx`
-- `src/pages/dashboard/ReceiptsPage.tsx`
-- `src/components/transactions/TransactionForm.tsx`
-- `src/components/dashboard/transactions/TransactionsHeroHeader.tsx`
-- `src/components/dashboard/transactions/TransactionInsightsBar.tsx`
-- `src/components/dashboard/transactions/TransactionList.tsx`
-- `src/components/dashboard/transactions/AdvancedFiltersSheet.tsx`
-- `src/hooks/useSavedFilters.ts` (si absent, création)
+**`CategoryEvolutionChart.tsx`**
+- Multi-sélection catégories comparables (max 6, checkbox palette).
+- Métriques : montant, nombre de tx, ticket moyen.
+- Export PNG du graphique.
 
-## 7. Livraison en 3 vagues
+**Coach IA (edge function `ai-categories-suggest` — étendue)**
+- Nouveau prompt structuré JSON : `duplicate`, `unused`, `flat_hierarchy`, `catch_all`, `rename`, `split`.
+- Utilise `ai_cache` (clé = hash liste catégories + hash stats mensuelles).
+- Actions server-safe : fusion et reparent via RPC existants.
 
-1. **Fondation** — `transactionMath.ts` + application aux KPI/insights/liste (calculs justes hors transferts).
-2. **Gestion v2** — recherche avancée + vues sauvegardées + densité + tri.
-3. **Stats v2 + Formulaire v2 + sous-pages** — graphes, PeriodPicker, formulaire 2 colonnes, Recurring/Receipts harmonisés.
+## 5. Fichiers touchés
 
-Chaque vague est indépendante et testable en preview avant la suivante.
+**Créés**
+- `src/components/dashboard/categories/CategoryForm.tsx`
+- `src/components/dashboard/categories/CategoryGridView.tsx`
+- `src/components/dashboard/categories/CategoryTableView.tsx`
+- `src/components/dashboard/categories/CategoryToolbar.tsx`
+- `src/components/dashboard/categories/CategoryHealthScore.tsx`
+- `src/components/dashboard/categories/CategoryCoachActionCard.tsx`
+- `src/components/dashboard/categories/IconPickerAdvanced.tsx`
+
+**Modifiés**
+- `src/pages/dashboard/CategoriesPage.tsx` (allégé, orchestrateur uniquement)
+- `src/components/dashboard/categories/CategoriesHeroHeader.tsx` (6 KPI + score)
+- `src/components/dashboard/categories/CategoryTreeView.tsx` (KPI par ligne, DnD amélioré)
+- `src/components/dashboard/categories/CategoryEvolutionChart.tsx` (comparaisons + heatmap)
+- `src/components/dashboard/categories/CategoryCoachTab.tsx` (sections actionnables)
+- `src/components/dashboard/categories/CategoryTemplatesDialog.tsx` (packs + preview)
+- `src/components/dashboard/categories/MergeCategoriesDialog.tsx` (impact preview)
+- `src/lib/categoryAnalytics.ts` (variation, tendance, score)
+- `src/lib/validationSchemas.ts` (`categorySchema`)
+- `src/i18n/dashTranslations.ts` (nouvelles clés FR/EN)
+- `supabase/functions/ai-categories-suggest/index.ts` (prompt structuré + cache)
+
+**Non touché**
+- Schéma DB (aucune migration) — on reste sur les colonnes existantes.
+- RLS, RPC `bulk_reparent_categories`, RPC `merge_categories`, triggers hiérarchie (déjà OK).
+
+## 6. Détails techniques
+
+- Persistance : `usePersistedState` pour vue, densité, chips filtres, période Évolution, sélection Comparaison.
+- Perf : `useMemo` pour l'index d'arborescence, `React.memo` sur `CategoryNode`, virtualisation via `@tanstack/react-virtual` si > 100 catégories.
+- Accessibilité : rôles ARIA `tree/treeitem`, focus visibles, raccourcis clavier (E=édit, D=supprimer, A=archiver, N=nouveau enfant, / focus recherche).
+- Bilingue : chaque nouvelle clé ajoutée en FR + EN.
+- Tests : `categorySchema.test.ts` (unique par type, longueurs, caractères, profondeur), `categoryAnalytics.test.ts` (score, variation).
+
+## 7. Livraison
+
+Le travail sera fait en 3 commits séquentiels :
+1. **Fondations** — schema Zod, analytique enrichie, `CategoryForm`, i18n.
+2. **UI page** — hero refondu, toolbar, vues Grille/Tableau, arborescence enrichie.
+3. **Actions & Coach** — bulk étendus, templates packs, Coach actionnable, edge function.

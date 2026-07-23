@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, ChevronRight, GripVertical, FolderTree, Archive, RotateCcw } from 'lucide-react';
 import type { Category } from '@/hooks/useDashboardData';
 import type { CategoryStats } from '@/lib/categoryAnalytics';
-import { normalizeSparkline } from '@/lib/categoryAnalytics';
+import { normalizeSparkline, momDelta, isCatchAllCategory } from '@/lib/categoryAnalytics';
 import { CategorySparkline } from './CategorySparkline';
 
 interface Props {
@@ -22,10 +22,11 @@ interface Props {
   onArchive?: (id: string) => void;
   onReparent: (childId: string, newParentId: string | null) => void;
   isFr: boolean;
+  budgetCategoryIds?: Set<string>;
 }
 
 export const CategoryTreeView = ({
-  categories, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, onReparent, isFr,
+  categories, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, onReparent, isFr, budgetCategoryIds,
 }: Props) => {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -96,6 +97,7 @@ export const CategoryTreeView = ({
             onArchive={onArchive}
             isFr={isFr}
             familyRootId={familyRootId}
+            budgetCategoryIds={budgetCategoryIds}
           />
         ))}
       </div>
@@ -130,10 +132,11 @@ interface NodeProps {
   onArchive?: (id: string) => void;
   isFr: boolean;
   familyRootId?: string | null;
+  budgetCategoryIds?: Set<string>;
 }
 
 const CategoryNode = ({
-  category, depth, childrenMap, expanded, onToggleExpand, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, isFr, familyRootId,
+  category, depth, childrenMap, expanded, onToggleExpand, stats, txCounts, selectedIds, onToggleSelect, onEdit, onDelete, onArchive, isFr, familyRootId, budgetCategoryIds,
 }: NodeProps) => {
   const isSelected = selectedIds.has(category.id);
   const stat = stats[category.id];
@@ -144,6 +147,11 @@ const CategoryNode = ({
   const isExpanded = expanded.has(category.id);
   const isFamilyRoot = (category as any).is_family_root === true;
   const isSharedChild = !!familyRootId && category.parent_category_id === familyRootId;
+  const delta = momDelta(series);
+  const hasBudget = budgetCategoryIds?.has(category.id) ?? false;
+  const catchAll = isCatchAllCategory(category.name);
+  const currentMonth = series[series.length - 1] ?? 0;
+  const orphan = category.type === 'expense' && !hasBudget && currentMonth > 0;
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: category.id });
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({ id: category.id });
@@ -198,9 +206,29 @@ const CategoryNode = ({
                   {childrenCats.length}
                 </span>
               )}
+              {hasBudget && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-500 border border-emerald-500/25 font-semibold">
+                  {isFr ? '💰 Budget' : '💰 Budget'}
+                </span>
+              )}
+              {orphan && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-500 border border-amber-500/25 font-semibold" title={isFr ? 'Dépenses actives sans budget' : 'Active spending without budget'}>
+                  {isFr ? '⚠ Sans budget' : '⚠ No budget'}
+                </span>
+              )}
+              {catchAll && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/40 italic" title={isFr ? 'Nom trop générique' : 'Too generic'}>
+                  {isFr ? 'générique' : 'generic'}
+                </span>
+              )}
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              {txCount > 0 ? `${txCount} tx` : (isFr ? 'Aucune tx' : 'No tx')}
+            <p className="text-[11px] text-muted-foreground flex items-center gap-2">
+              <span>{txCount > 0 ? `${txCount} tx` : (isFr ? 'Aucune tx' : 'No tx')}</span>
+              {delta !== null && txCount > 0 && (
+                <span className={`tabular-nums font-medium ${delta > 0 ? 'text-destructive' : delta < 0 ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                  {delta > 0 ? '▲' : delta < 0 ? '▼' : '·'} {Math.abs(delta)}% {isFr ? 'm/m' : 'MoM'}
+                </span>
+              )}
             </p>
           </div>
 
@@ -241,6 +269,7 @@ const CategoryNode = ({
               onArchive={onArchive}
               isFr={isFr}
               familyRootId={familyRootId}
+              budgetCategoryIds={budgetCategoryIds}
             />
           ))}
         </div>

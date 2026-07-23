@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
-import { Tags, Plus, Sparkles, Layers, FlaskConical } from 'lucide-react';
+import { Tags, Plus, Sparkles, Layers, FlaskConical, ShieldCheck, GitBranch, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { HeroHeaderShell } from '@/components/dashboard/HeroHeaderShell';
 import type { CategoryStats } from '@/lib/categoryAnalytics';
+import { computeCategoryMetrics, computeTaxonomyScore } from '@/lib/categoryAnalytics';
 import type { Category } from '@/hooks/useDashboardData';
 
 interface Props {
@@ -18,7 +19,7 @@ interface Props {
 export const CategoriesHeroHeader = ({ categories, stats, onCreate, onOpenTemplates, isFr }: Props) => {
   const kpis = useMemo(() => {
     // "Actives" = non-archived categories. Header text and KpiCard must use the same source.
-    const activeCats = categories.filter(c => !(c as any).deleted_at);
+    const activeCats = categories.filter(c => !(c as any).deleted_at && !(c as any).archived_at);
     const active = activeCats.length;
     let unused = 0;
     let topName = '—';
@@ -59,11 +60,42 @@ export const CategoriesHeroHeader = ({ categories, stats, onCreate, onOpenTempla
       return sum;
     });
 
-    return { active, unused, topName, topIcon, topPct, series };
+    // Hierarchy metrics + taxonomy score
+    const roots = activeCats.filter(c => !c.parent_category_id).length;
+    const withParent = activeCats.length - roots;
+    const maxDepth = activeCats.reduce((max, c) => {
+      let d = 1;
+      let cur: Category | undefined = c;
+      let hops = 0;
+      const byId = new Map(activeCats.map(x => [x.id, x] as const));
+      while (cur?.parent_category_id && hops < 10) {
+        d += 1;
+        cur = byId.get(cur.parent_category_id);
+        hops += 1;
+      }
+      return Math.max(max, d);
+    }, 1);
+
+    const metrics = computeCategoryMetrics(
+      activeCats,
+      stats,
+      new Set(), // Hero has no budget knowledge; score without budget penalty
+      new Map(),
+    );
+    const { score } = computeTaxonomyScore(activeCats, metrics);
+
+    return { active, unused, topName, topIcon, topPct, series, withParent, maxDepth, score };
   }, [categories, stats]);
 
   const max = Math.max(...kpis.series, 1);
   const points = kpis.series.map((v, i) => `${(i / 5) * 100},${100 - (v / max) * 90 - 5}`).join(' ');
+
+  const scoreColor = kpis.score >= 80 ? 'text-emerald-500' : kpis.score >= 60 ? 'text-amber-500' : 'text-destructive';
+  const scoreLabel = kpis.score >= 80
+    ? (isFr ? 'Excellent' : 'Excellent')
+    : kpis.score >= 60
+      ? (isFr ? 'Correct' : 'OK')
+      : (isFr ? 'À améliorer' : 'Needs work');
 
   return (
     <HeroHeaderShell>
@@ -107,10 +139,23 @@ export const CategoriesHeroHeader = ({ categories, stats, onCreate, onOpenTempla
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <KpiCard icon={<Layers className="w-4 h-4" />} label={isFr ? 'Actives' : 'Active'} value={kpis.active} />
+        <KpiCard icon={<GitBranch className="w-4 h-4" />} label={isFr ? 'Hiérarchie' : 'Hierarchy'} value={kpis.maxDepth} suffix={isFr ? ' niv.' : ' lvl'} />
+        <KpiCard icon={<Tags className="w-4 h-4" />} label={isFr ? 'Sous-cat.' : 'Sub-cats'} value={kpis.withParent} />
         <KpiCard icon={<Sparkles className="w-4 h-4" />} label={isFr ? 'Top dépense' : 'Top expense'} value={kpis.topPct} suffix="%" />
-        <KpiCard icon={<Tags className="w-4 h-4" />} label={isFr ? 'Inutilisées' : 'Unused'} value={kpis.unused} accent={kpis.unused > 0} />
+        <KpiCard icon={<AlertTriangle className="w-4 h-4" />} label={isFr ? 'Inutilisées' : 'Unused'} value={kpis.unused} accent={kpis.unused > 0} />
+        <div className={`rounded-2xl border border-[hsl(var(--glass-border))] bg-[hsl(var(--glass))]/40 p-3`}>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            {isFr ? 'Score taxonomie' : 'Taxonomy score'}
+          </div>
+          <div className={`mt-1 text-2xl font-bold font-display tabular-nums ${scoreColor}`}>
+            <AnimatedNumber value={kpis.score} />
+            <span className="text-base text-muted-foreground ml-0.5">/100</span>
+          </div>
+          <p className={`text-[10px] mt-0.5 ${scoreColor}`}>{scoreLabel}</p>
+        </div>
         <div className="rounded-2xl border border-[hsl(var(--glass-border))] bg-[hsl(var(--glass))]/40 p-3 flex flex-col justify-between">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Sparkles className="w-3.5 h-3.5" />

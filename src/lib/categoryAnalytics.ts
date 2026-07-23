@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Category } from '@/hooks/useDashboardData';
 
 export interface CategoryStats {
   category_id: string;
@@ -44,6 +45,143 @@ export function momDelta(values: number[]): number | null {
   const curr = values[n - 1];
   if (prev === 0) return curr > 0 ? 100 : 0;
   return Math.round(((curr - prev) / prev) * 100);
+}
+
+/** Simple linear regression slope on a normalized series (index vs value) */
+export function trendSlope(values: number[]): number {
+  const n = values.length;
+  if (n < 2) return 0;
+  const meanX = (n - 1) / 2;
+  const meanY = values.reduce((a, b) => a + b, 0) / n;
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (i - meanX) * (values[i] - meanY);
+    den += (i - meanX) ** 2;
+  }
+  return den === 0 ? 0 : num / den;
+}
+
+export interface CategoryMetrics {
+  id: string;
+  currentMonth: number;
+  previousMonth: number;
+  delta: number | null;
+  slope: number;
+  shareOfType: number;
+  txCount: number;
+  last6mSum: number;
+  hasBudget: boolean;
+  isRoot: boolean;
+  depth: number;
+}
+
+/** Aggregate per-category metrics used by the UI */
+export function computeCategoryMetrics(
+  categories: Category[],
+  stats: Record<string, CategoryStats>,
+  budgetCategoryIds: Set<string>,
+  depthById: Map<string, number>,
+): Map<string, CategoryMetrics> {
+  // Totals per type over the current month
+  const totalByType = new Map<string, number>();
+  categories.forEach((c) => {
+    const s = stats[c.id];
+    const series = normalizeSparkline(s?.monthly_series ?? []);
+    const current = series[series.length - 1] ?? 0;
+    totalByType.set(c.type, (totalByType.get(c.type) ?? 0) + current);
+  });
+
+  const out = new Map<string, CategoryMetrics>();
+  categories.forEach((c) => {
+    const s = stats[c.id];
+    const series = normalizeSparkline(s?.monthly_series ?? []);
+    const current = series[series.length - 1] ?? 0;
+    const prev = series[series.length - 2] ?? 0;
+    const typeTotal = totalByType.get(c.type) ?? 0;
+    out.set(c.id, {
+      id: c.id,
+      currentMonth: current,
+      previousMonth: prev,
+      delta: momDelta(series),
+      slope: trendSlope(series),
+      shareOfType: typeTotal > 0 ? current / typeTotal : 0,
+      txCount: s?.transaction_count ?? 0,
+      last6mSum: series.reduce((a, b) => a + b, 0),
+      hasBudget: budgetCategoryIds.has(c.id),
+      isRoot: !c.parent_category_id,
+      depth: depthById.get(c.id) ?? 1,
+    });
+  });
+  return out;
+}
+
+/**
+ * Taxonomy score 0-100. Penalises: unused categories, no hierarchy at all,
+ * catch-all names ("Autres"/"Other"/"Divers"), categories without budget on
+ * high-spend expense buckets, duplicate names.
+ */
+export function computeTaxonomyScore(
+  categories: Category[],
+  metrics: Map<string, CategoryMetrics>,
+): { score: number; issues: number } {
+  if (categories.length === 0) return { score: 0, issues: 0 };
+
+  let issues = 0;
+  const CATCH_ALL = /^(autre|autres|divers|misc|other|others)$/i;
+
+  // Unused count
+  const unused = categories.filter((c) => (metrics.get(c.id)?.txCount ?? 0) === 0).length;
+  issues += unused;
+
+  // Flat hierarchy: everything at root and > 8 categories
+  const roots = categories.filter((c) => !c.parent_category_id).length;
+  const flat = roots === categories.length && categories.length > 8;
+  if (flat) issues += Math.min(10, roots - 8);
+
+  // Catch-all buckets
+  const catchAll = categories.filter((c) => CATCH_ALL.test(c.name.trim())).length;
+  issues += catchAll * 2;
+
+  // Duplicate names (same normalized name & type)
+  const seen = new Map<string, number>();
+  categories.forEach((c) => {
+    const k = `${c.type}::${c.name.trim().toLowerCase()}`;
+    seen.set(k, (seen.get(k) ?? 0) + 1);
+  });
+  const dupes = Array.from(seen.values()).filter((n) => n > 1).length;
+  issues += dupes * 3;
+
+  // High-spend expense buckets without a linked budget
+  const orphans = categories.filter((c) => {
+    if (c.type !== 'expense') return false;
+    const m = metrics.get(c.id);
+    return m && !m.hasBudget && m.currentMonth > 0;
+  }).length;
+  issues += orphans;
+
+  const raw = 100 - Math.min(100, Math.round((issues / Math.max(4, categories.length)) * 100));
+  return { score: Math.max(0, Math.min(100, raw)), issues };
+}
+
+/** True if a category name matches known "catch-all" patterns */
+export function isCatchAllCategory(name: string): boolean {
+  return /^(autre|autres|divers|misc|other|others)$/i.test(name.trim());
+}
+
+/** Find potential duplicate categories (same type + fuzzy same name) */
+export function findDuplicateCategories(categories: Category[]): Array<{ ids: string[]; name: string; type: string }> {
+  const norm = (s: string) => s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const bucket = new Map<string, Category[]>();
+  categories.forEach((c) => {
+    const key = `${c.type}::${norm(c.name)}`;
+    (bucket.get(key) ?? bucket.set(key, []).get(key)!).push(c);
+  });
+  const out: Array<{ ids: string[]; name: string; type: string }> = [];
+  for (const arr of bucket.values()) {
+    if (arr.length > 1) out.push({ ids: arr.map((c) => c.id), name: arr[0].name, type: arr[0].type });
+  }
+  return out;
 }
 
 export const CATEGORY_TEMPLATE_PACKS = [
