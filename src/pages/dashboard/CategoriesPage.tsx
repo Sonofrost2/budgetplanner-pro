@@ -6,7 +6,7 @@ import { usePersistedState } from '@/hooks/usePersistedState';
 import { useLanguage } from '@/i18n/LanguageContext';
 import { dashT } from '@/i18n/dashTranslations';
 import { supabase } from '@/integrations/supabase/client';
-import { useCategories, useInvalidate, type Category } from '@/hooks/useDashboardData';
+import { useCategories, useBudgets, useInvalidate, type Category } from '@/hooks/useDashboardData';
 import { useActivationChecklist } from '@/hooks/useActivationChecklist';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -101,6 +101,11 @@ const CategoriesPage = () => {
   useEffect(() => { void markCategoriesVisited(); }, [markCategoriesVisited]);
 
   const { data: categories = [], isLoading: catLoading } = useCategories();
+  const { data: budgets = [] } = useBudgets();
+  const budgetCategoryIds = useMemo(
+    () => new Set(budgets.map(b => b.category_id).filter(Boolean) as string[]),
+    [budgets]
+  );
 
   // Indexes for hierarchy computations
   const categoryIndexes = useMemo(() => {
@@ -541,6 +546,7 @@ const CategoriesPage = () => {
               onArchive={handleArchive}
               onReparent={handleReparent}
               isFr={isFr}
+              budgetCategoryIds={budgetCategoryIds}
             />
           )}
 
@@ -597,7 +603,7 @@ const CategoriesPage = () => {
         </TabsContent>
 
         <TabsContent value="coach" className="mt-0">
-          <CategoryCoachTab categories={categories} stats={analytics} isFr={isFr} onRefresh={refreshData} />
+          <CategoryCoachTab categories={categories} stats={analytics} isFr={isFr} onRefresh={refreshData} budgetCategoryIds={budgetCategoryIds} />
         </TabsContent>
       </Tabs>
 
