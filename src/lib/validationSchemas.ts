@@ -135,6 +135,52 @@ export const debtSchema = (locale: string) => {
   });
 };
 
+// ─── Category ───
+// Shared schema used by the unified CategoryForm (create + edit).
+// Enforces uniqueness (name + type), max depth via depthOfParent + 1 ≤ 5
+// and consistent icon/color/type. The `existing` list is passed in so we can
+// detect name collisions without requiring a DB round-trip.
+export const categorySchema = (
+  locale: string,
+  ctx: {
+    existingByTypeName: Set<string>; // key = `${type}::${normalizedName}`
+    editingId?: string | null;
+    depthOfSelectedParent: number; // 0 when parent = root
+    maxDepth: number;
+  },
+) => {
+  const fr = locale === 'fr';
+  return z.object({
+    name: z.string().trim()
+      .min(1, fr ? 'Le nom est requis' : 'Name is required')
+      .max(50, fr ? 'Max 50 caractères' : 'Max 50 characters'),
+    icon: z.string().min(1, fr ? 'Icône requise' : 'Icon required').max(4),
+    color: z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, fr ? 'Couleur invalide' : 'Invalid color'),
+    type: z.enum(['expense', 'income']),
+    parent_category_id: z.string().optional().nullable().or(z.literal('')),
+  }).superRefine((data, zctx) => {
+    // Unique by type + normalized name (excluding editing row)
+    const key = `${data.type}::${data.name.trim().toLowerCase()}`;
+    if (ctx.existingByTypeName.has(key)) {
+      zctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['name'],
+        message: fr ? 'Ce nom existe déjà pour ce type' : 'This name already exists for this type',
+      });
+    }
+    // Max depth
+    if (data.parent_category_id && ctx.depthOfSelectedParent + 1 > ctx.maxDepth) {
+      zctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['parent_category_id'],
+        message: fr
+          ? `Hiérarchie max ${ctx.maxDepth} niveaux`
+          : `Max ${ctx.maxDepth}-level hierarchy`,
+      });
+    }
+  });
+};
+
 /** Parse a zod schema and return errors as Record<string, string> or null if valid */
 export function validateForm<T>(schema: z.ZodSchema<T>, data: unknown): { success: true; data: T } | { success: false; errors: Record<string, string> } {
   const result = schema.safeParse(data);
