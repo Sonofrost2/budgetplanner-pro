@@ -702,11 +702,9 @@ const TransactionsPage = () => {
 
       {/* Filters */}
       <motion.div
-        id="tx-filters-block"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.3 }}
-        className="lg:hidden"
       >
         <Card className="border border-border/40 rounded-2xl bg-card/80 backdrop-blur-sm overflow-hidden">
           <CardContent className="p-3 sm:p-4">
@@ -1186,6 +1184,7 @@ const TransactionsPage = () => {
         t={t}
         locale={locale}
       />
+          </div>
         </TabsContent>
       </Tabs>
     </motion.div>
