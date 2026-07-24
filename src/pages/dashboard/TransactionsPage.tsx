@@ -624,26 +624,6 @@ const TransactionsPage = () => {
           <div className="tx-ivory rounded-3xl border border-border shadow-[var(--shadow-card)] p-4 sm:p-6 lg:p-8 space-y-5">
       {limitReached && <UpgradeBanner message={t.limitReachedTransactions(thisMonthCount, limits.transactionsPerMonth)} />}
 
-      <div className="lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-6 space-y-5 lg:space-y-0">
-        {/* Sidebar filtres */}
-        <aside className="lg:sticky lg:top-4 lg:self-start space-y-4 order-2 lg:order-1">
-          <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] overflow-hidden">
-            <div className="px-5 py-4 border-b border-border">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                {locale === 'fr' ? 'Filtres' : 'Filters'}
-              </p>
-              <h3 className="font-heading text-lg font-bold text-foreground mt-1">
-                {locale === 'fr' ? 'Affiner la vue' : 'Refine view'}
-              </h3>
-            </div>
-            <div id="tx-ivory-filters" className="p-4">
-              {/* placeholder — the Filters block below is portalled visually via CSS grid ordering */}
-            </div>
-          </div>
-        </aside>
-
-        {/* Zone principale */}
-        <div className="min-w-0 space-y-5 order-1 lg:order-2">
       {/* Hero Header — premium */}
       <TransactionsHeroHeader
         userId={user?.id}
