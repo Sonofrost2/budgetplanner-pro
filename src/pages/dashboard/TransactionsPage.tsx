@@ -621,6 +621,7 @@ const TransactionsPage = () => {
         </TabsContent>
 
         <TabsContent value="manage">
+          <div className="tx-ivory rounded-3xl border border-border shadow-[var(--shadow-card)] p-4 sm:p-6 lg:p-8 space-y-5">
       {limitReached && <UpgradeBanner message={t.limitReachedTransactions(thisMonthCount, limits.transactionsPerMonth)} />}
 
       {/* Hero Header — premium */}
@@ -1183,6 +1184,7 @@ const TransactionsPage = () => {
         t={t}
         locale={locale}
       />
+          </div>
         </TabsContent>
       </Tabs>
     </motion.div>
