@@ -818,6 +818,54 @@ const CategoriesPage = () => {
 
       <CategoryTemplatesDialog open={templatesOpen} onOpenChange={setTemplatesOpen} isFr={isFr} onApplied={refreshData} />
 
+      <Dialog open={bulkReparentOpen} onOpenChange={setBulkReparentOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              {isFr ? 'Déplacer les catégories' : 'Move categories'}
+            </DialogTitle>
+            <DialogDescription>
+              {bulk.count} {isFr ? 'sélectionné(s)' : 'selected'} —{' '}
+              {isFr ? 'choisir un parent ou les mettre à la racine.' : 'choose a parent or move to root.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {isFr ? 'Nouveau parent' : 'New parent'}
+              </Label>
+              <CategoryCombobox
+                categories={bulkReparentCandidates}
+                value={bulkReparentParentId}
+                onValueChange={setBulkReparentParentId}
+                placeholder={isFr ? 'Rechercher un parent...' : 'Search a parent...'}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                {isFr
+                  ? 'Les descendants et catégories d’un autre type sont masqués.'
+                  : 'Descendants and categories of another type are hidden.'}
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setBulkReparentOpen(false)} className="rounded-xl">
+              {t.cancel}
+            </Button>
+            <Button variant="outline" className="rounded-xl" onClick={() => handleBulkReparent(null)}>
+              {isFr ? 'Mettre à la racine' : 'Move to root'}
+            </Button>
+            <Button
+              className="text-primary-foreground rounded-xl"
+              style={{ background: 'var(--gradient-primary)' }}
+              disabled={!bulkReparentParentId}
+              onClick={() => handleBulkReparent(bulkReparentParentId)}
+            >
+              {t.applyChanges}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <MergeCategoriesDialog
         open={mergeOpen}
         onOpenChange={setMergeOpen}
