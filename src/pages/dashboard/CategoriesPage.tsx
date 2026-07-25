@@ -19,6 +19,8 @@ import { ResponsiveFormDialog } from '@/components/ui/responsive-form-dialog';
 import { InputField } from '@/components/ui/input-field';
 import { FormSection } from '@/components/ui/form-section';
 import { Plus, Tag, Palette, Inbox, Merge, FolderTree, Download, Upload, Archive, RotateCcw, Trash2 } from 'lucide-react';
+import { MoveRight } from 'lucide-react';
+import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { EmptyState } from '@/components/ui/empty-state';
 import CategoryEvolutionChart from '@/components/dashboard/categories/CategoryEvolutionChart';
 import { CategoriesHeroHeader } from '@/components/dashboard/categories/CategoriesHeroHeader';
@@ -154,6 +156,8 @@ const CategoriesPage = () => {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
   const [bulkModifyForm, setBulkModifyForm] = useState({ type: '' });
+  const [bulkReparentOpen, setBulkReparentOpen] = useState(false);
+  const [bulkReparentParentId, setBulkReparentParentId] = useState<string>('');
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = usePersistedState<string>('categories:search', '');
@@ -338,6 +342,71 @@ const CategoriesPage = () => {
     if (ok) toast.success(t.saved);
   };
 
+  // Bulk reparent selected categories under a target parent (or root).
+  const bulkReparentValidation = useMemo(() => {
+    const items = bulk.selectedItems;
+    if (items.length === 0) return { ok: false, reason: '' };
+    const type = items[0].type;
+    if (items.some(i => i.type !== type)) {
+      return { ok: false, reason: isFr ? 'Sélection de types mixtes' : 'Mixed types in selection' };
+    }
+    return { ok: true as const, type, reason: '' };
+  }, [bulk.selectedItems, isFr]);
+
+  const bulkReparentCandidates = useMemo(() => {
+    if (!bulkReparentValidation.ok) return [] as Category[];
+    const excluded = new Set<string>();
+    for (const it of bulk.selectedItems) {
+      collectDescendants(it.id, categoryIndexes.childrenByParent).forEach(id => excluded.add(id));
+    }
+    return categories.filter(c => c.type === bulkReparentValidation.type && !excluded.has(c.id));
+  }, [bulkReparentValidation, bulk.selectedItems, categories, categoryIndexes]);
+
+  const handleBulkReparent = async (target: string | null) => {
+    if (!user) return;
+    const ids = bulk.selectedItems.map(c => c.id);
+    if (ids.length === 0) return;
+    if (!bulkReparentValidation.ok) {
+      toast.error(bulkReparentValidation.reason);
+      return;
+    }
+    if (target) {
+      const parent = categoryIndexes.byId.get(target);
+      if (!parent) { toast.error(isFr ? 'Parent introuvable' : 'Parent not found'); return; }
+      if (parent.type !== bulkReparentValidation.type) {
+        toast.error(isFr ? 'Type incompatible' : 'Incompatible type');
+        return;
+      }
+      const parentDepth = computeDepth(target, categoryIndexes.byId);
+      for (const id of ids) {
+        const descendants = collectDescendants(id, categoryIndexes.childrenByParent);
+        if (descendants.has(target)) {
+          toast.error(isFr ? 'Déplacement invalide (cycle)' : 'Invalid move (cycle)');
+          return;
+        }
+        const subtreeHeight = computeSubtreeHeight(id, categoryIndexes.childrenByParent);
+        if (parentDepth + 1 + subtreeHeight > MAX_CATEGORY_DEPTH) {
+          toast.error(isFr ? `Hiérarchie max ${MAX_CATEGORY_DEPTH} niveaux` : `Max ${MAX_CATEGORY_DEPTH}-level hierarchy`);
+          return;
+        }
+      }
+    }
+    const { error } = await supabase.rpc('bulk_reparent_categories', {
+      p_user_id: user.id,
+      p_category_ids: ids,
+      p_new_parent_id: target,
+    });
+    if (error) { toast.error(error.message); return; }
+    setBulkReparentOpen(false);
+    setBulkReparentParentId('');
+    refreshData();
+    toast.success(
+      target
+        ? (isFr ? `${ids.length} catégorie(s) déplacée(s)` : `${ids.length} categor${ids.length > 1 ? 'ies' : 'y'} moved`)
+        : (isFr ? 'Mises à la racine' : 'Moved to root')
+    );
+  };
+
   const handleReparent = async (childId: string, newParentId: string | null) => {
     if (!user) return;
     const child = categoryIndexes.byId.get(childId);
@@ -510,11 +579,23 @@ const CategoriesPage = () => {
               onExportExcel={() => handleBulkExport('excel')}
               onClear={bulk.clear}
               extraActions={
-                bulk.count >= 2 ? (
-                  <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => setMergeOpen(true)}>
-                    <Merge className="w-3.5 h-3.5" />{isFr ? 'Fusionner' : 'Merge'}
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl gap-1.5"
+                    onClick={() => { setBulkReparentParentId(''); setBulkReparentOpen(true); }}
+                    disabled={!bulkReparentValidation.ok}
+                    title={bulkReparentValidation.ok ? undefined : bulkReparentValidation.reason}
+                  >
+                    <MoveRight className="w-3.5 h-3.5" />{isFr ? 'Déplacer' : 'Move'}
                   </Button>
-                ) : null
+                  {bulk.count >= 2 && (
+                    <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => setMergeOpen(true)}>
+                      <Merge className="w-3.5 h-3.5" />{isFr ? 'Fusionner' : 'Merge'}
+                    </Button>
+                  )}
+                </>
               }
             />
           )}
