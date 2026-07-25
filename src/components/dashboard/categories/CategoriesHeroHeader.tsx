@@ -13,10 +13,11 @@ interface Props {
   stats: Record<string, CategoryStats>;
   onCreate: () => void;
   onOpenTemplates: () => void;
+  onOpenAISuggest?: () => void;
   isFr: boolean;
 }
 
-export const CategoriesHeroHeader = ({ categories, stats, onCreate, onOpenTemplates, isFr }: Props) => {
+export const CategoriesHeroHeader = ({ categories, stats, onCreate, onOpenTemplates, onOpenAISuggest, isFr }: Props) => {
   const kpis = useMemo(() => {
     // "Actives" = non-archived categories. Header text and KpiCard must use the same source.
     const activeCats = categories.filter(c => !(c as any).deleted_at && !(c as any).archived_at);
@@ -123,6 +124,12 @@ export const CategoriesHeroHeader = ({ categories, stats, onCreate, onOpenTempla
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {onOpenAISuggest && (
+            <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={onOpenAISuggest}>
+              <Sparkles className="w-4 h-4" />
+              {isFr ? 'Suggestions IA' : 'AI suggest'}
+            </Button>
+          )}
           <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={onOpenTemplates}>
             <FlaskConical className="w-4 h-4" />
             {isFr ? 'Templates' : 'Templates'}
