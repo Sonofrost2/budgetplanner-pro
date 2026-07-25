@@ -27,6 +27,7 @@ import { CategoriesHeroHeader } from '@/components/dashboard/categories/Categori
 import { CategoryTreeView } from '@/components/dashboard/categories/CategoryTreeView';
 import { CategoryCoachTab } from '@/components/dashboard/categories/CategoryCoachTab';
 import { CategoryTemplatesDialog } from '@/components/dashboard/categories/CategoryTemplatesDialog';
+import { AICategoriesProposeDialog } from '@/components/dashboard/categories/AICategoriesProposeDialog';
 import { MergeCategoriesDialog } from '@/components/dashboard/categories/MergeCategoriesDialog';
 import { FilterToolbar } from '@/components/dashboard/FilterToolbar';
 import { toast } from 'sonner';
@@ -159,6 +160,7 @@ const CategoriesPage = () => {
   const [bulkReparentOpen, setBulkReparentOpen] = useState(false);
   const [bulkReparentParentId, setBulkReparentParentId] = useState<string>('');
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [aiProposeOpen, setAiProposeOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = usePersistedState<string>('categories:search', '');
   const [typeTab, setTypeTab] = usePersistedState<'expense' | 'income'>('categories:typeTab', 'expense');
@@ -502,6 +504,7 @@ const CategoriesPage = () => {
         stats={analytics}
         onCreate={openNew}
         onOpenTemplates={() => setTemplatesOpen(true)}
+        onOpenAISuggest={isPaid ? () => setAiProposeOpen(true) : undefined}
         isFr={isFr}
       />
 
@@ -817,6 +820,28 @@ const CategoriesPage = () => {
       </Dialog>
 
       <CategoryTemplatesDialog open={templatesOpen} onOpenChange={setTemplatesOpen} isFr={isFr} onApplied={refreshData} />
+
+      <AICategoriesProposeDialog
+        open={aiProposeOpen}
+        onOpenChange={setAiProposeOpen}
+        categories={categories}
+        isFr={isFr}
+        onApplied={refreshData}
+        onPrefill={(p) => {
+          const byName = new Map(categories.map(c => [c.name.toLowerCase().trim(), c] as const));
+          const parent = p.parent_name ? byName.get(p.parent_name.toLowerCase().trim()) : undefined;
+          setEditing(null);
+          setForm({
+            name: p.name,
+            icon: p.icon,
+            color: p.color,
+            type: p.type,
+            parent_category_id: parent && parent.type === p.type ? parent.id : '',
+          });
+          setFormErrors({});
+          setDialogOpen(true);
+        }}
+      />
 
       <Dialog open={bulkReparentOpen} onOpenChange={setBulkReparentOpen}>
         <DialogContent className="sm:max-w-md">
