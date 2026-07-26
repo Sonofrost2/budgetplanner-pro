@@ -506,7 +506,7 @@ export const useBudgetNotifications = () => {
             severity: 'warning',
             title: isFr ? `🔍 Écart de solde` : `🔍 Balance discrepancy`,
             message: `${account.icon} ${account.name}: ${sign}${formatNumber(Math.round(diff), locale)} (${isFr ? 'réel' : 'actual'}: ${formatNumber(Math.round(realBalance), locale)} / ${isFr ? 'calculé' : 'calculated'}: ${formatNumber(Math.round(theoreticalBalance), locale)})`,
-            action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}` },
+            action: { label: isFr ? 'Corriger le compte' : 'Fix account', path: `/dashboard/accounts?q=${encodeURIComponent(account.name)}&discrepancy=1` },
             daysLeft: 0,
             dueLabelKey: 'now',
           });
@@ -521,7 +521,7 @@ export const useBudgetNotifications = () => {
             severity: 'warning',
             title: isFr ? `🔍 Écart sur ${discrepancies.length} comptes` : `🔍 Discrepancy on ${discrepancies.length} accounts`,
             message: `${isFr ? 'Total' : 'Total'}: ${formatNumber(Math.round(totalDiff), locale)}`,
-            action: { label: isFr ? 'Voir les comptes' : 'View accounts', path: `/dashboard/accounts` },
+            action: { label: isFr ? 'Voir les comptes' : 'View accounts', path: `/dashboard/accounts?discrepancy=1` },
             daysLeft: 0,
             dueLabelKey: 'now',
           });
