@@ -14,7 +14,7 @@ import { useEffect, useRef } from 'react';
  *  - Only runs in production, not in Capacitor native, not in iframes.
  */
 
-const POLL_INTERVAL_MS = 5 * 60_000;
+const POLL_INTERVAL_MS = 60_000;
 const BUILD_ID: string | undefined =
   typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : undefined;
 
@@ -68,7 +68,7 @@ export const useVersionCheck = () => {
     };
 
     // Initial check after a short delay (let the app settle).
-    const t0 = window.setTimeout(check, 15_000);
+    const t0 = window.setTimeout(check, 5_000);
     const interval = window.setInterval(check, POLL_INTERVAL_MS);
     const onFocus = () => { check(); };
     const onOnline = () => { check(); };
