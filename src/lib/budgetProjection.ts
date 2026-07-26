@@ -183,26 +183,68 @@ export function computeDaysRemaining(
 export const DAYS_PER_YEAR = 365.25;
 export const WEEKS_PER_YEAR = DAYS_PER_YEAR / 7; // ≈ 52.17857
 
-export function computeAnnualizedAmount(
-  amount: number,
+/** Actual number of days in a given calendar year (leap-aware). */
+export function daysInYear(year: number = new Date().getFullYear()): number {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
+}
+
+/**
+ * Exact number of times the given ISO weekdays (1 = Monday … 7 = Sunday)
+ * occur in a calendar year. Ex. 2026 → 261 jours ouvrés (Lun-Ven).
+ */
+export function countWeekdayOccurrences(
+  dayKeys: number[],
+  year: number = new Date().getFullYear(),
+): number {
+  const wanted = new Set(dayKeys.filter(d => d >= 1 && d <= 7));
+  if (wanted.size === 0) return 0;
+  const total = daysInYear(year);
+  const fullWeeks = Math.floor(total / 7); // 52
+  let count = wanted.size * fullWeeks;
+  // Remaining 1 or 2 days at the end of the year
+  const rest = total - fullWeeks * 7;
+  const jan1 = new Date(year, 0, 1).getDay(); // 0 = Sunday
+  for (let i = 0; i < rest; i++) {
+    const js = (jan1 + fullWeeks * 7 + i) % 7;
+    const iso = js === 0 ? 7 : js;
+    if (wanted.has(iso)) count++;
+  }
+  return count;
+}
+
+/** Number of occurrences of one budget period within a calendar year. */
+export function occurrencesPerYear(
   period: string,
   activeDays?: string | null,
+  year: number = new Date().getFullYear(),
 ): number {
+  const total = daysInYear(year);
   if (period === 'daily') {
-    const activeDaysArr = activeDays ? String(activeDays).split(',').filter(Boolean) : [];
-    if (activeDaysArr.length > 0 && activeDaysArr.length < 7) {
-      return Math.round(amount * activeDaysArr.length * WEEKS_PER_YEAR);
-    }
-    return Math.round(amount * DAYS_PER_YEAR);
+    const keys = activeDays
+      ? String(activeDays).split(',').map(s => Number(s.trim())).filter(n => n >= 1 && n <= 7)
+      : [];
+    if (keys.length > 0 && keys.length < 7) return countWeekdayOccurrences(keys, year);
+    return total;
   }
-  const multipliers: Record<string, number> = {
-    weekly: WEEKS_PER_YEAR,
+  const map: Record<string, number> = {
+    weekly: total / 7,
     monthly: 12,
     quarterly: 4,
     semi_annual: 2,
     yearly: 1,
   };
-  return Math.round(amount * (multipliers[period] || 12));
+  return map[period] ?? 12;
+}
+
+export function computeAnnualizedAmount(
+  amount: number,
+  period: string,
+  activeDays?: string | null,
+): number {
+  // Calendar-exact: uses the real number of occurrences in the current year
+  // (365/366 days, 261 jours ouvrés en 2026, …) instead of a 365.25 average
+  // which produced odd, non-reproducible totals.
+  return Math.round(amount * occurrencesPerYear(period, activeDays));
 }
 
 /**
@@ -219,21 +261,11 @@ export function getBudgetPeriodDays(
   period: string,
   activeDays?: string | null,
 ): number {
-  if (period === 'daily') {
-    const activeDaysArr = activeDays ? String(activeDays).split(',').filter(Boolean) : [];
-    if (activeDaysArr.length > 0 && activeDaysArr.length < 7) {
-      return 7 / activeDaysArr.length;
-    }
-    return 1;
-  }
-  const daysMap: Record<string, number> = {
-    weekly: 7,
-    monthly: DAYS_PER_YEAR / 12,       // ≈ 30.4375
-    quarterly: DAYS_PER_YEAR / 4,      // ≈ 91.3125
-    semi_annual: DAYS_PER_YEAR / 2,    // ≈ 182.625
-    yearly: DAYS_PER_YEAR,             // 365.25
-  };
-  return daysMap[period] || daysMap.monthly;
+  const occ = occurrencesPerYear(period, activeDays);
+  if (occ <= 0) return daysInYear();
+  // Perfectly consistent with computeAnnualizedAmount:
+  // normalizeAmountToDays(amount, period, ad, daysInYear()) === annualized.
+  return daysInYear() / occ;
 }
 
 /**

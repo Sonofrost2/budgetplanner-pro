@@ -11,7 +11,7 @@ import { LinkPicker } from '@/components/dashboard/LinkPicker';
 import { TrendingUp, TrendingDown, Calendar, Tag, Settings2, BarChart3, CalendarClock, Link2, Repeat, Wallet, StickyNote, Flag } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { computeAnnualizedAmount } from '@/lib/budgetProjection';
+import { computeAnnualizedAmount, occurrencesPerYear } from '@/lib/budgetProjection';
 import { DEFAULT_CURRENCY, currencySymbol, exampleAmount, amountLabel } from '@/lib/currency';
 import type { DashTranslations } from '@/i18n/dashTranslations';
 
@@ -207,29 +207,54 @@ export const BudgetForm = ({
         )}
 
         {/* Impact Preview */}
-        <div className="rounded-xl border border-primary/15 px-4 py-3 space-y-1" style={{ background: 'hsl(var(--primary) / 0.04)' }}>
-          <p className="text-[11px] font-bold text-primary flex items-center gap-1.5">
-            <BarChart3 className="w-3.5 h-3.5" />
-            {isFr ? 'Impact du paramétrage' : 'Configuration impact'}
-          </p>
-          <p className="text-[10px] text-muted-foreground">
-            {(() => {
-              const amt = Number(form.amount) || 0;
-              if (amt <= 0) return isFr ? 'Saisissez un montant pour voir l\'impact.' : 'Enter an amount to see the impact.';
-              const annualized = computeAnnualizedAmount(amt, form.period, form.active_days);
-              return `${fmt(amt)} → ${fmt(annualized)}/${isFr ? 'an' : 'yr'}`;
-            })()}
-          </p>
-          {Number(form.amount) > 0 && (
-            <p className="text-[11px] font-bold text-primary amount-display mt-1">
-              → {isFr ? 'Coût annuel' : 'Annual cost'}: {fmt(computeAnnualizedAmount(Number(form.amount), form.period, form.active_days))}
-            </p>
-          )}
-        </div>
+        {(() => {
+          const amt = Number(form.amount) || 0;
+          const occ = occurrencesPerYear(form.period, form.active_days);
+          const annualized = computeAnnualizedAmount(amt, form.period, form.active_days);
+          const monthlyEq = Math.round(annualized / 12);
+          const year = new Date().getFullYear();
+          const occLabel = form.period === 'daily'
+            ? (isFr ? `jours actifs en ${year}` : `active days in ${year}`)
+            : (isFr ? `périodes/an` : `periods/yr`);
+          return (
+            <div className="rounded-xl border border-primary/15 px-4 py-3 space-y-2" style={{ background: 'hsl(var(--primary) / 0.04)' }}>
+              <p className="text-[11px] font-bold text-primary flex items-center gap-1.5">
+                <BarChart3 className="w-3.5 h-3.5" />
+                {isFr ? 'Impact du paramétrage' : 'Configuration impact'}
+              </p>
+              {amt <= 0 ? (
+                <p className="text-[10px] text-muted-foreground">
+                  {isFr ? 'Saisissez un montant pour voir l\'impact.' : 'Enter an amount to see the impact.'}
+                </p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { k: isFr ? 'Par période' : 'Per period', v: fmt(amt) },
+                      { k: isFr ? 'Équiv. mensuel' : 'Monthly eq.', v: fmt(monthlyEq) },
+                      { k: isFr ? 'Coût annuel' : 'Annual cost', v: fmt(annualized) },
+                    ].map(item => (
+                      <div key={item.k} className="rounded-lg bg-background/60 border border-border/50 px-2 py-1.5">
+                        <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold">{item.k}</p>
+                        <p className="text-[11px] font-bold text-foreground amount-display truncate">{item.v}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {isFr
+                      ? `Calcul : ${fmt(amt)} × ${Math.round(occ * 100) / 100} ${occLabel} = ${fmt(annualized)}`
+                      : `Formula: ${fmt(amt)} × ${Math.round(occ * 100) / 100} ${occLabel} = ${fmt(annualized)}`}
+                  </p>
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Planning Section */}
         <FormSection title={isFr ? 'Planification' : 'Planning'} icon={<CalendarClock className="w-3.5 h-3.5" />} collapsible defaultOpen={!!editId}>
           <div className="grid grid-cols-2 gap-3">
+            {form.period !== 'daily' && (
             <div className="space-y-1.5">
               <Label className="form-label flex items-center gap-1.5">
                 <Calendar className="w-3 h-3" />{t.expectedDay}
@@ -245,6 +270,7 @@ export const BudgetForm = ({
                 {form.period === 'weekly' ? t.expectedDayWeekHint : t.expectedDayMonthHint}
               </p>
             </div>
+            )}
             <div className="space-y-1.5">
               <Label className="form-label">{t.occurrenceFrequency}</Label>
               <Select

@@ -52,6 +52,17 @@ export const PWAUpdatePrompt = () => {
     return () => window.removeEventListener('app:update-available', onUpdate as EventListener);
   }, []);
 
+  // Clean the cache-busting marker left by a forced update reload.
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('_v')) {
+        url.searchParams.delete('_v');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   const updateAvailable = needRefresh || versionMismatch;
 
   // Re-check dismiss state whenever a new update signal arrives.
@@ -88,19 +99,40 @@ export const PWAUpdatePrompt = () => {
     } catch { /* ignore */ }
   };
 
+  /**
+   * Hard reload that cannot be served from any cache layer:
+   * unregister every SW of this origin, drop the caches, then navigate to a
+   * cache-busted URL (a plain `location.reload()` can still be answered by a
+   * controlling service worker or by bfcache).
+   */
+  const hardReload = async () => {
+    try { localStorage.removeItem(DISMISS_KEY); } catch { /* ignore */ }
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
+      }
+    } catch { /* ignore */ }
+    await purgeAppCaches();
+    const url = new URL(window.location.href);
+    url.searchParams.set('_v', String(Date.now()));
+    window.location.replace(url.toString());
+  };
+
   const handleUpdate = async () => {
     setInstalling(true);
     await purgeAppCaches();
+    let reloaded = false;
     try {
-      await updateServiceWorker(true);
+      // Only meaningful when a waiting SW exists (needRefresh).
+      if (needRefresh) {
+        await updateServiceWorker(true);
+        reloaded = true;
+      }
     } catch { /* ignore */ }
-    // Fallback: si le SW ne recharge pas la page en 3s, on force le reload.
-    setTimeout(() => {
-      try {
-        localStorage.removeItem(DISMISS_KEY);
-        window.location.reload();
-      } catch { /* ignore */ }
-    }, 3000);
+    // If the SW path did nothing (version.json mismatch without waiting SW)
+    // or did not reload within 2.5s, force a fully uncached reload.
+    window.setTimeout(() => { hardReload(); }, reloaded ? 2500 : 0);
   };
 
   const handleDismiss = () => {
