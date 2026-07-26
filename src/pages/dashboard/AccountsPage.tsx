@@ -92,7 +92,9 @@ const AccountsPage = () => {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [sortField, setSortField] = useState<'name' | 'real_balance' | 'type' | 'discrepancy'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [showDiscrepancyOnly, setShowDiscrepancyOnly] = useState(false);
+  const [showDiscrepancyOnly, setShowDiscrepancyOnly] = useState(
+    () => searchParams.get('discrepancy') === '1',
+  );
   const [viewMode, setViewMode] = useState<AccountsViewMode>(() => (localStorage.getItem('accounts-view-mode') as AccountsViewMode) || 'cards');
   const [drilldownAccount, setDrilldownAccount] = useState<Account | null>(null);
   const [showArchived, setShowArchived] = useState(false);
