@@ -101,6 +101,13 @@ const AccountsPage = () => {
 
   useEffect(() => { localStorage.setItem('accounts-view-mode', viewMode); }, [viewMode]);
 
+  // Keep the "with discrepancy" filter in sync with the URL (notification bell
+  // deep-links to /dashboard/accounts?discrepancy=1 — the page may already be
+  // mounted, so a state initializer alone is not enough).
+  useEffect(() => {
+    if (searchParams.get('discrepancy') === '1') setShowDiscrepancyOnly(true);
+  }, [searchParams]);
+
   const handleArchiveToggle = async (acc: Account) => {
     const fn = acc.archived_at ? unarchiveItem : archiveItem;
     const { error } = await fn('payment_accounts', acc.id);
