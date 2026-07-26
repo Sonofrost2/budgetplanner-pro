@@ -52,6 +52,17 @@ export const PWAUpdatePrompt = () => {
     return () => window.removeEventListener('app:update-available', onUpdate as EventListener);
   }, []);
 
+  // Clean the cache-busting marker left by a forced update reload.
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('_v')) {
+        url.searchParams.delete('_v');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   const updateAvailable = needRefresh || versionMismatch;
 
   // Re-check dismiss state whenever a new update signal arrives.
