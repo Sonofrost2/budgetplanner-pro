@@ -4,17 +4,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { CategoryCombobox } from '@/components/dashboard/CategoryCombobox';
 import { AccountCombobox } from '@/components/dashboard/AccountCombobox';
+import { TagsInput } from '@/components/dashboard/transactions/TagsInput';
+import { Button as UIButton } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 import type { Category, Account } from '@/hooks/useDashboardData';
 import type { DashTranslations } from '@/i18n/dashTranslations';
+
+export interface BulkModifyForm {
+  category_id: string;
+  account_id: string;
+  tags: string[];
+  tagsMode: 'add' | 'replace';
+}
 
 interface BulkModifyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   categories: Category[];
   accounts: Account[];
-  form: { category_id: string; account_id: string };
-  setForm: (fn: (f: { category_id: string; account_id: string }) => { category_id: string; account_id: string }) => void;
+  form: BulkModifyForm;
+  setForm: (fn: (f: BulkModifyForm) => BulkModifyForm) => void;
   onApply: () => void;
   selectedCount: number;
   t: DashTranslations;
@@ -48,6 +57,32 @@ export const BulkModifyDialog = ({
             value={form.account_id}
             onValueChange={v => setForm(f => ({ ...f, account_id: v }))}
             placeholder={locale === 'fr' ? 'Rechercher...' : 'Search...'}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="form-label">{locale === 'fr' ? 'Tags (association)' : 'Tags (link)'}</Label>
+            <div className="flex items-center gap-1">
+              {(['add', 'replace'] as const).map(mode => (
+                <UIButton
+                  key={mode}
+                  type="button"
+                  size="sm"
+                  variant={form.tagsMode === mode ? 'default' : 'outline'}
+                  className="h-7 rounded-lg text-[11px] px-2"
+                  onClick={() => setForm(f => ({ ...f, tagsMode: mode }))}
+                >
+                  {mode === 'add'
+                    ? (locale === 'fr' ? 'Ajouter' : 'Add')
+                    : (locale === 'fr' ? 'Remplacer' : 'Replace')}
+                </UIButton>
+              ))}
+            </div>
+          </div>
+          <TagsInput
+            value={form.tags}
+            onChange={tags => setForm(f => ({ ...f, tags }))}
+            locale={locale}
           />
         </div>
       </div>
