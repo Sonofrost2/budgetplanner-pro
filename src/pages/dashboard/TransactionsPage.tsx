@@ -889,6 +889,32 @@ const TransactionsPage = () => {
         </Card>
       </motion.div>
 
+      <div className={`grid gap-5 items-start ${filtersSidebarOpen ? 'lg:grid-cols-[280px_minmax(0,1fr)]' : 'lg:grid-cols-1'}`}>
+        {/* Persistent filters sidebar (desktop) */}
+        {filtersSidebarOpen && (
+          <aside className="hidden lg:block lg:sticky lg:top-4">
+            <Card className="border border-border/40 rounded-2xl bg-card/80 backdrop-blur-sm">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    {locale === 'fr' ? 'Filtres' : 'Filters'}
+                  </h2>
+                  {advancedActiveCount > 0 && (
+                    <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive" onClick={clearFilters}>
+                      <X className="w-3 h-3 mr-0.5" />{t.clearFilters}
+                    </Button>
+                  )}
+                </div>
+                <ScrollArea className="max-h-[calc(100vh-12rem)] pr-2">
+                  <TransactionFiltersPanel {...filtersPanelProps} />
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </aside>
+        )}
+
+        <div className="min-w-0 space-y-5">
       {/* Bulk actions */}
       <AnimatePresence>
         {someSelected && (
@@ -961,6 +987,8 @@ const TransactionsPage = () => {
           onDuplicate={handleDuplicateOne}
         />
       </motion.div>
+        </div>
+      </div>
 
       {/* Add/Edit Dialog */}
       <TransactionForm
