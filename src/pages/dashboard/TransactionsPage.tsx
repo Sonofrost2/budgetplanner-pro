@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDeleteDialog from '@/components/dashboard/ConfirmDeleteDialog';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import BulkActionBar from '@/components/dashboard/BulkActionBar';
+import type { BulkModifyForm } from '@/components/dashboard/transactions/TransactionDialogs';
 import { useSearchParams } from 'react-router-dom';
 import { exportToCSV, exportToExcel } from '@/lib/export';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -64,7 +65,7 @@ const TransactionsPage = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkModifyOpen, setBulkModifyOpen] = useState(false);
-  const [bulkModifyForm, setBulkModifyForm] = useState({ category_id: '', account_id: '' });
+  const [bulkModifyForm, setBulkModifyForm] = useState<BulkModifyForm>({ category_id: '', account_id: '', tags: [], tagsMode: 'add' });
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ description: '', amount: '', type: 'expense', category_id: '', account_id: '', date: new Date().toISOString().split('T')[0], notes: '', family_category_id: '', from_account_id: '', to_account_id: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -337,16 +338,44 @@ const TransactionsPage = () => {
     const updates: Record<string, any> = {};
     if (bulkModifyForm.category_id) updates.category_id = bulkModifyForm.category_id;
     if (bulkModifyForm.account_id) updates.account_id = bulkModifyForm.account_id;
-    if (Object.keys(updates).length === 0) { toast.error(t.noChange); return; }
-    const { error } = await supabase.from('transactions').update(updates as any).in('id', ids);
-    if (error) { showApiError(error, locale); return; }
+    const hasTags = bulkModifyForm.tags.length > 0 || bulkModifyForm.tagsMode === 'replace';
+    if (Object.keys(updates).length === 0 && !hasTags) { toast.error(t.noChange); return; }
+
+    // Categories never apply to transfer legs — keep them untouched
+    const categorizableIds = updates.category_id
+      ? ids.filter(id => { const tx = transactions.find(t => t.id === id); return !tx?.linked_transfer_id && !tx?.is_transfer; })
+      : ids;
+
+    if (Object.keys(updates).length > 0) {
+      const { category_id, ...rest } = updates;
+      if (Object.keys(rest).length > 0) {
+        const { error } = await supabase.from('transactions').update(rest as any).in('id', ids);
+        if (error) { showApiError(error, locale); return; }
+      }
+      if (category_id && categorizableIds.length > 0) {
+        const { error } = await supabase.from('transactions').update({ category_id } as any).in('id', categorizableIds);
+        if (error) { showApiError(error, locale); return; }
+      }
+    }
+
+    if (hasTags) {
+      for (const id of ids) {
+        const tx = transactions.find(t => t.id === id);
+        const current: string[] = Array.isArray(tx?.tags) ? (tx!.tags as string[]) : [];
+        const nextTags = bulkModifyForm.tagsMode === 'replace'
+          ? bulkModifyForm.tags
+          : Array.from(new Set([...current, ...bulkModifyForm.tags])).slice(0, 8);
+        const { error } = await supabase.from('transactions').update({ tags: nextTags } as any).eq('id', id);
+        if (error) { showApiError(error, locale); return; }
+      }
+    }
     if (updates.account_id) {
       const affectedAccounts = new Set<string>();
       ids.forEach(id => { const tx = transactions.find(t => t.id === id); if (tx?.account_id) affectedAccounts.add(tx.account_id); });
       affectedAccounts.add(updates.account_id);
       for (const accId of affectedAccounts) await supabase.rpc('recalculate_account_balance', { p_account_id: accId });
     }
-    setBulkModifyOpen(false); setBulkModifyForm({ category_id: '', account_id: '' });
+    setBulkModifyOpen(false); setBulkModifyForm({ category_id: '', account_id: '', tags: [], tagsMode: 'add' });
     setSelectedIds(new Set()); refreshData();
     coachToast.saved(t.bulkModified(ids.length));
   };
@@ -1070,7 +1099,7 @@ const TransactionsPage = () => {
             <BulkActionBar
               count={selectedIds.size}
               onDelete={() => setBulkDeleteOpen(true)}
-              onModify={() => { setBulkModifyForm({ category_id: '', account_id: '' }); setBulkModifyOpen(true); }}
+              onModify={() => { setBulkModifyForm({ category_id: '', account_id: '', tags: [], tagsMode: 'add' }); setBulkModifyOpen(true); }}
               onDuplicate={handleBulkDuplicate}
               onExportCSV={canExportAdvanced ? () => handleExportSelection('csv') : undefined}
               onExportExcel={canExportAdvanced ? () => handleExportSelection('excel') : undefined}
