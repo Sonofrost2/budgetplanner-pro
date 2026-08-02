@@ -13,6 +13,12 @@ import { isTransfer as isTransferTx } from '@/lib/transactionMath';
 
 type SortField = 'date' | 'amount' | 'description';
 type SortOrder = 'asc' | 'desc';
+export type TxViewMode = 'list' | 'grid' | 'table';
+
+type TxGroup = {
+  date: string; label: string; weekday: string;
+  txs: Transaction[]; income: number; expense: number;
+};
 
 interface TransactionListProps {
   transactions: Transaction[];
