@@ -420,7 +420,8 @@ export const TransactionList = ({
             )}
 
             {/* Grouped transaction rows */}
-            <div className={viewMode === 'list' ? '' : 'hidden'}>
+            {viewMode === 'list' && (
+            <div>
               {groups.map((group, groupIndex) => (
                 <div key={group.date}>
                   {/* Date separator — compact or detailed */}
