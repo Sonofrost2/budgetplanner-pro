@@ -692,6 +692,241 @@ export const TransactionList = ({
   );
 };
 
+/** Segmented control: list / grid / table */
+const ViewModeToggle = ({ value, onChange, locale }: {
+  value: TxViewMode; onChange: (v: TxViewMode) => void; locale: string;
+}) => {
+  const isFr = locale === 'fr';
+  const options: { value: TxViewMode; icon: typeof LayoutList; label: string }[] = [
+    { value: 'list', icon: LayoutList, label: isFr ? 'Liste' : 'List' },
+    { value: 'grid', icon: LayoutGrid, label: isFr ? 'Grille' : 'Grid' },
+    { value: 'table', icon: Table2, label: isFr ? 'Tableau' : 'Table' },
+  ];
+  return (
+    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-xl bg-muted/40 border border-border/30">
+      {options.map(opt => {
+        const Icon = opt.icon;
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            aria-pressed={active}
+            title={opt.label}
+            className={`inline-flex items-center gap-1 h-6 px-2 rounded-lg text-[10px] font-bold transition-all ${
+              active ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Icon className="w-3 h-3" />
+            <span className="hidden lg:inline">{opt.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+interface ViewProps {
+  groups: TxGroup[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onEdit: (tx: Transaction) => void;
+  onDelete: (id: string) => void;
+  onDuplicate?: (tx: Transaction) => void;
+  onFilterCategory?: (categoryId: string) => void;
+  onFilterAccount?: (accountId: string) => void;
+  fmt: (n: number) => string;
+  t: DashTranslations;
+  locale: string;
+}
+
+/** Dense table view — Date · Libellé · Catégorie · Compte · Type · Montant */
+const TransactionTable = ({
+  groups, selectedIds, onToggleSelect, onEdit, onDelete, onDuplicate,
+  onFilterCategory, onFilterAccount, fmt, t, locale,
+}: ViewProps) => {
+  const isFr = locale === 'fr';
+  const loc = isFr ? 'fr-FR' : 'en-US';
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead className="sticky top-0 z-10 bg-[hsl(var(--glass))] backdrop-blur-xl">
+          <tr className="text-[10px] uppercase tracking-wide text-muted-foreground/70 border-b border-border/25">
+            <th className="w-8 px-3 py-2" />
+            <th className="px-2 py-2 text-left font-bold">{t.date}</th>
+            <th className="px-2 py-2 text-left font-bold">{t.description}</th>
+            <th className="px-2 py-2 text-left font-bold hidden sm:table-cell">{isFr ? 'Catégorie' : 'Category'}</th>
+            <th className="px-2 py-2 text-left font-bold hidden md:table-cell">{isFr ? 'Compte' : 'Account'}</th>
+            <th className="px-2 py-2 text-left font-bold hidden lg:table-cell">{isFr ? 'Statut' : 'Status'}</th>
+            <th className="px-2 py-2 text-right font-bold">{t.amount}</th>
+            <th className="w-16 px-2 py-2" />
+          </tr>
+        </thead>
+        <tbody>
+          {groups.map(group => (
+            <>
+              <tr key={`h-${group.date}`} className="bg-muted/25 border-y border-border/15">
+                <td colSpan={8} className="px-3 py-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold capitalize text-foreground/70">{group.label}</span>
+                    <span className="text-[9px] text-muted-foreground/50 capitalize">{group.weekday}</span>
+                    <span className="text-[9px] bg-muted/50 px-1.5 rounded-full font-semibold text-muted-foreground/60">{group.txs.length}</span>
+                    <div className="flex-1" />
+                    {group.income > 0 && <span className="text-[9px] font-bold text-secondary tabular-nums">+{fmt(group.income)}</span>}
+                    {group.expense > 0 && <span className="text-[9px] font-bold text-destructive tabular-nums">-{fmt(group.expense)}</span>}
+                  </div>
+                </td>
+              </tr>
+              {group.txs.map(tx => (
+                <tr
+                  key={tx.id}
+                  className={`group border-b border-border/10 transition-colors ${
+                    selectedIds.has(tx.id) ? 'bg-primary/[0.06]' : 'hover:bg-[hsl(var(--glass-hover))]'
+                  }`}
+                >
+                  <td className="px-3 py-2 align-middle">
+                    <Checkbox className="h-3.5 w-3.5" checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
+                  </td>
+                  <td className="px-2 py-2 tabular-nums text-muted-foreground/70 whitespace-nowrap">
+                    {new Date(tx.date + 'T12:00:00').toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                  </td>
+                  <td className="px-2 py-2 max-w-[260px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="flex-shrink-0">{tx.categories?.icon || '📁'}</span>
+                      <span className="truncate font-semibold text-foreground/85" title={tx.description}>{tx.description}</span>
+                      {isTransferTx(tx) && <TransferBadge locale={locale} compact />}
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 hidden sm:table-cell">
+                    <button
+                      type="button"
+                      onClick={() => { if (tx.category_id && onFilterCategory) onFilterCategory(tx.category_id); }}
+                      disabled={!onFilterCategory || !tx.category_id}
+                      className="text-[10px] text-muted-foreground/70 hover:text-primary hover:underline underline-offset-2 disabled:hover:no-underline disabled:hover:text-muted-foreground/70"
+                    >
+                      {tx.categories?.name || '-'}
+                    </button>
+                  </td>
+                  <td className="px-2 py-2 hidden md:table-cell">
+                    <button
+                      type="button"
+                      onClick={() => { if (tx.account_id && onFilterAccount) onFilterAccount(tx.account_id); }}
+                      disabled={!onFilterAccount || !tx.account_id}
+                      className="text-[10px] text-muted-foreground/60 hover:text-primary hover:underline underline-offset-2 disabled:hover:no-underline disabled:hover:text-muted-foreground/60"
+                    >
+                      {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
+                    </button>
+                  </td>
+                  <td className="px-2 py-2 hidden lg:table-cell">
+                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60">
+                      <span className={`w-1.5 h-1.5 rounded-full ${isTransferTx(tx) ? 'bg-primary' : tx.type === 'income' ? 'bg-secondary' : 'bg-destructive'}`} />
+                      {isTransferTx(tx) ? (isFr ? 'Transfert' : 'Transfer') : tx.type === 'income' ? (isFr ? 'Revenu' : 'Income') : (isFr ? 'Dépense' : 'Expense')}
+                    </span>
+                  </td>
+                  <td className={`px-2 py-2 text-right font-bold tabular-nums whitespace-nowrap ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
+                    {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="flex items-center justify-end gap-0.5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                      <Button aria-label={t.edit} variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary" onClick={() => onEdit(tx)}>
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                      {onDuplicate && !isTransferTx(tx) && (
+                        <Button aria-label={isFr ? 'Dupliquer' : 'Duplicate'} variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary" onClick={() => onDuplicate(tx)}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      )}
+                      <Button aria-label={t.delete} variant="ghost" size="icon" className="h-6 w-6 rounded-md text-destructive hover:bg-destructive/10" onClick={() => onDelete(tx.id)}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+/** Card grid view — aerated, 1/2/3 columns */
+const TransactionGrid = ({
+  groups, selectedIds, onToggleSelect, onEdit, onDelete, onDuplicate, fmt, t, locale,
+}: ViewProps) => {
+  const isFr = locale === 'fr';
+  return (
+    <div className="p-4 space-y-5">
+      {groups.map(group => (
+        <div key={group.date}>
+          <div className="flex items-center gap-2 mb-2.5 px-1">
+            <Calendar className="w-3 h-3 text-primary/70" />
+            <span className="text-[11px] font-bold capitalize text-foreground/80">{group.label}</span>
+            <span className="text-[9px] text-muted-foreground/50 capitalize">{group.weekday}</span>
+            <div className="flex-1 h-px bg-border/25" />
+            {group.income > 0 && <span className="text-[10px] font-bold text-secondary tabular-nums">+{fmt(group.income)}</span>}
+            {group.expense > 0 && <span className="text-[10px] font-bold text-destructive tabular-nums">-{fmt(group.expense)}</span>}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            {group.txs.map(tx => (
+              <motion.div
+                key={tx.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className={`group relative rounded-2xl border p-3.5 backdrop-blur-sm transition-all ${
+                  selectedIds.has(tx.id)
+                    ? 'border-primary/40 bg-primary/[0.06]'
+                    : 'border-[hsl(var(--glass-border))] bg-[hsl(var(--glass))] hover:bg-[hsl(var(--glass-hover))]'
+                }`}
+              >
+                <div className="flex items-start gap-2.5">
+                  <Checkbox className="mt-0.5" checked={selectedIds.has(tx.id)} onCheckedChange={() => onToggleSelect(tx.id)} />
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-base flex-shrink-0 border border-white/10"
+                    style={{ background: getCategoryGradient(tx.categories?.color, tx.type) }}
+                  >
+                    {tx.categories?.icon || '📁'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold truncate text-foreground/90 flex items-center gap-1.5" title={tx.description}>
+                      <span className="truncate">{tx.description}</span>
+                      {isTransferTx(tx) && <TransferBadge locale={locale} compact />}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">
+                      {tx.categories?.name || '-'} · {tx.payment_accounts?.icon} {tx.payment_accounts?.name || '-'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                  <span className={`text-base font-extrabold tabular-nums ${tx.type === 'income' ? 'text-secondary' : 'text-destructive'}`}>
+                    {tx.type === 'income' ? '+' : '-'}{fmt(Number(tx.amount))}
+                  </span>
+                  <div className="flex gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <Button aria-label={t.edit} variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary" onClick={() => onEdit(tx)}>
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    {onDuplicate && !isTransferTx(tx) && (
+                      <Button aria-label={isFr ? 'Dupliquer' : 'Duplicate'} variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary" onClick={() => onDuplicate(tx)}>
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                    <Button aria-label={t.delete} variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => onDelete(tx.id)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const SortButton = ({ field, current, order, onSort, label }: {
   field: SortField; current: SortField; order: SortOrder;
   onSort: (f: SortField) => void; label: string;
