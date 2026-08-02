@@ -319,6 +319,7 @@ export const TransactionList = ({
   const groups = useMemo(() => groupByDate(transactions, locale), [transactions, locale]);
   const isMobile = useIsMobile();
   const [condensed, setCondensed] = useState(false);
+  const [viewMode, setViewMode] = usePersistedState<TxViewMode>('tx:viewMode', 'list');
 
   return (
     <Card className={`border border-[hsl(var(--glass-border))] rounded-2xl overflow-hidden shadow-[var(--shadow-glass)] backdrop-blur-sm bg-[hsl(var(--glass))] transition-all duration-300 ${isFetching ? 'opacity-50' : ''}`}>
@@ -364,21 +365,56 @@ export const TransactionList = ({
               <SortButton field="description" current={sortField} order={sortOrder} onSort={onSort} label={t.description} />
               <div className="flex-1" />
               <SortButton field="amount" current={sortField} order={sortOrder} onSort={onSort} label={t.amount} />
-              <div className="ml-auto pl-2">
-                <Button aria-label="Action"
-                  variant="ghost"
-                  size="icon"
-                  className={`h-7 w-7 rounded-lg transition-colors ${condensed ? 'bg-primary/10 text-primary' : 'hover:bg-muted/40'}`}
-                  onClick={() => setCondensed(c => !c)}
-                  title={condensed ? (locale === 'fr' ? 'Vue détaillée' : 'Detailed view') : (locale === 'fr' ? 'Vue condensée' : 'Condensed view')}
-                >
-                  {condensed ? <LayoutGrid className="w-3.5 h-3.5" /> : <LayoutList className="w-3.5 h-3.5" />}
-                </Button>
+              <div className="ml-auto pl-2 flex items-center gap-1.5">
+                {viewMode === 'list' && (
+                  <Button aria-label={locale === 'fr' ? 'Changer la densité' : 'Toggle density'}
+                    variant="ghost"
+                    size="icon"
+                    className={`h-7 w-7 rounded-lg transition-colors ${condensed ? 'bg-primary/10 text-primary' : 'hover:bg-muted/40'}`}
+                    onClick={() => setCondensed(c => !c)}
+                    title={condensed ? (locale === 'fr' ? 'Vue détaillée' : 'Detailed view') : (locale === 'fr' ? 'Vue condensée' : 'Condensed view')}
+                  >
+                    {condensed ? <LayoutGrid className="w-3.5 h-3.5" /> : <LayoutList className="w-3.5 h-3.5" />}
+                  </Button>
+                )}
+                <ViewModeToggle value={viewMode} onChange={setViewMode} locale={locale} />
               </div>
             </div>
 
+            {/* Table view — dense columns */}
+            {viewMode === 'table' && (
+              <TransactionTable
+                groups={groups}
+                selectedIds={selectedIds}
+                onToggleSelect={onToggleSelect}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+                onFilterCategory={onFilterCategory}
+                onFilterAccount={onFilterAccount}
+                fmt={fmt}
+                t={t}
+                locale={locale}
+              />
+            )}
+
+            {/* Grid view — cards */}
+            {viewMode === 'grid' && (
+              <TransactionGrid
+                groups={groups}
+                selectedIds={selectedIds}
+                onToggleSelect={onToggleSelect}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+                fmt={fmt}
+                t={t}
+                locale={locale}
+              />
+            )}
+
             {/* Grouped transaction rows */}
-            <div>
+            <div className={viewMode === 'list' ? '' : 'hidden'}>
               {groups.map((group, groupIndex) => (
                 <div key={group.date}>
                   {/* Date separator — compact or detailed */}
