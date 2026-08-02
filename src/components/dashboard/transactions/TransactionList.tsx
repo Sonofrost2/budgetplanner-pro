@@ -1,4 +1,4 @@
-import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
+import { Fragment, useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -765,8 +765,8 @@ const TransactionTable = ({
         </thead>
         <tbody>
           {groups.map(group => (
-            <>
-              <tr key={`h-${group.date}`} className="bg-muted/25 border-y border-border/15">
+            <Fragment key={group.date}>
+              <tr className="bg-muted/25 border-y border-border/15">
                 <td colSpan={8} className="px-3 py-1.5">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold capitalize text-foreground/70">{group.label}</span>
@@ -844,7 +844,7 @@ const TransactionTable = ({
                   </td>
                 </tr>
               ))}
-            </>
+            </Fragment>
           ))}
         </tbody>
       </table>
