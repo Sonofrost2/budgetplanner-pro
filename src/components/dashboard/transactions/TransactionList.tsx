@@ -682,7 +682,8 @@ export const TransactionList = ({
                   </motion.div>
                 </div>
               ))}
-            </div>
+             </div>
+            )}
 
             {/* Pagination */}
             <PaginationBar page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={onPageChange} t={t} />
