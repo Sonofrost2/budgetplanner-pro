@@ -545,7 +545,7 @@ Deno.serve(async (req) => {
       // ────── Balance discrepancy — 1× / month (lowered from weekly to reduce fatigue) ──────
       if (prefBalance) {
         const monthTag = `${now.getFullYear()}m${now.getMonth()}`;
-        const discrepancies: { name: string; icon: string; sign: string; diff: number }[] = [];
+        const discrepancies: { accountId: string; name: string; icon: string; sign: string; diff: number }[] = [];
         for (const account of accounts) {
           // Cash accounts auto-reconcile via cash_counts → real_balance, skip
           if ((account.type || "") === "cash") continue;
@@ -561,6 +561,7 @@ Deno.serve(async (req) => {
           const discThreshold = Math.max(1000, Math.abs(realBalance) * 0.005);
           if (diff > discThreshold) {
             discrepancies.push({
+              accountId: account.id,
               name: account.name,
               icon: account.icon || "💳",
               sign: realBalance > theoreticalBalance ? "+" : "-",
@@ -575,7 +576,7 @@ Deno.serve(async (req) => {
             body: `${d.icon} ${d.name}: ${d.sign}${Math.round(d.diff).toLocaleString()}`,
             notification_type: "balance_discrepancy",
             dedup_key: `balance_disc_single_${monthTag}`,
-            reference_id: accountTxs.length > 0 ? discrepancies[0].accountId : undefined as any,
+            reference_id: d.accountId,
           });
         } else if (discrepancies.length > 1) {
           const total = discrepancies.reduce((s, d) => s + d.diff, 0);
