@@ -112,10 +112,10 @@ Deno.serve(async (req) => {
         supabase.from("recurring_transactions").select("*")
           .eq("user_id", userId).eq("active", true).lte("next_date", sevenDaysLaterStr),
         supabase.from("profiles").select("locale").eq("user_id", userId).maybeSingle(),
-        supabase.from("payment_accounts").select("id, name, icon, real_balance, opening_balance")
+        supabase.from("payment_accounts").select("id, name, icon, type, real_balance, opening_balance")
           .eq("user_id", userId).is("archived_at", null).is("deleted_at", null),
         supabase.from("transactions").select("account_id, amount, type")
-          .eq("user_id", userId).is("deleted_at", null).not("account_id", "is", null),
+          .eq("user_id", userId).is("deleted_at", null).not("account_id", "is", null).limit(100000),
       ]);
 
       const locale = profileRes.data?.locale || "fr";
@@ -550,17 +550,12 @@ Deno.serve(async (req) => {
           // Cash accounts auto-reconcile via cash_counts → real_balance, skip
           if ((account.type || "") === "cash") continue;
           const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
-          // Only standalone tx (transfers handled separately)
           const txSum = acctTxs
-            .filter((tx: any) => !tx.linked_transfer_id)
             .reduce((s: number, tx: any) =>
               s + (tx.type === "income" ? Number(tx.amount) : -Number(tx.amount)), 0);
-          // Transfers in/out for this account
-          const transferSum = acctTxs
-            .filter((tx: any) => tx.linked_transfer_id)
-            .reduce((s: number, tx: any) =>
-              s + (tx.type === "income" ? Number(tx.amount) : -Number(tx.amount)), 0);
-          const theoreticalBalance = Number(account.opening_balance) + txSum + transferSum;
+          // Transfer legs already carry the correct income/expense sign for
+          // their respective account, so they belong in the same ledger sum.
+          const theoreticalBalance = Number(account.opening_balance) + txSum;
           const realBalance = Number(account.real_balance);
           const diff = Math.abs(realBalance - theoreticalBalance);
           const discThreshold = Math.max(1000, Math.abs(realBalance) * 0.005);
@@ -580,7 +575,7 @@ Deno.serve(async (req) => {
             body: `${d.icon} ${d.name}: ${d.sign}${Math.round(d.diff).toLocaleString()}`,
             notification_type: "balance_discrepancy",
             dedup_key: `balance_disc_single_${monthTag}`,
-            reference_id: undefined as any,
+            reference_id: accountTxs.length > 0 ? discrepancies[0].accountId : undefined as any,
           });
         } else if (discrepancies.length > 1) {
           const total = discrepancies.reduce((s, d) => s + d.diff, 0);
