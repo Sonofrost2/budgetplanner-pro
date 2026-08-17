@@ -136,15 +136,27 @@ Deno.serve(async (req) => {
         if (!plan) throw new Error(`Plan not found: ${planName}`);
         const now = new Date();
         const end = new Date(now.getTime() + days * 86400_000);
-        const { error: se } = await admin.from("subscriptions").upsert({
-          user_id: target,
+        // There is no plain unique constraint on subscriptions.user_id (only a
+        // partial unique index on active rows), so upsert/onConflict is invalid.
+        // Update the existing active subscription if any, otherwise insert one.
+        const { data: existing, error: ee } = await admin
+          .from("subscriptions").select("id")
+          .eq("user_id", target).eq("status", "active").maybeSingle();
+        if (ee) throw ee;
+        const payload = {
           plan_id: plan.id,
           status: "active",
           current_period_start: now.toISOString(),
           current_period_end: end.toISOString(),
           payment_method: "admin_override",
-        }, { onConflict: "user_id" });
-        if (se) throw se;
+        };
+        if (existing?.id) {
+          const { error: ue } = await admin.from("subscriptions").update(payload).eq("id", existing.id);
+          if (ue) throw ue;
+        } else {
+          const { error: ie } = await admin.from("subscriptions").insert({ user_id: target, ...payload });
+          if (ie) throw ie;
+        }
         await audit("set_plan", target, "success", body.reason || `Plan set to ${planName} for ${days}d`, {
           plan: planName, duration_days: days,
         });
