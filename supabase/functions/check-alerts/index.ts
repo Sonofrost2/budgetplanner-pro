@@ -112,9 +112,9 @@ Deno.serve(async (req) => {
         supabase.from("recurring_transactions").select("*")
           .eq("user_id", userId).eq("active", true).lte("next_date", sevenDaysLaterStr),
         supabase.from("profiles").select("locale").eq("user_id", userId).maybeSingle(),
-        supabase.from("payment_accounts").select("id, name, icon, type, real_balance, opening_balance")
+        supabase.from("payment_accounts").select("id, name, icon, type, real_balance, opening_balance, created_at, updated_at")
           .eq("user_id", userId).is("archived_at", null).is("deleted_at", null),
-        supabase.from("transactions").select("account_id, amount, type")
+        supabase.from("transactions").select("account_id, amount, type, created_at")
           .eq("user_id", userId).is("deleted_at", null).not("account_id", "is", null).limit(100000),
       ]);
 
