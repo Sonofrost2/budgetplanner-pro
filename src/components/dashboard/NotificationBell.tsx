@@ -477,10 +477,43 @@ export const useBudgetNotifications = () => {
     // by manual cash counts (`cash_counts`) so a divergence vs the theoretical
     // ledger is expected and tracked elsewhere.
     if (prefs?.balance_discrepancy !== false) {
+      // A discrepancy is only meaningful when the user has actually declared a
+      // real balance (manual update or cash count) AFTER the last transaction
+      // on that account. Otherwise `real_balance` is simply stale and the gap
+      // is expected — emitting an alert here is a false positive.
+      const accountIds = accounts.filter((a: any) => a.type !== 'cash').map((a: any) => a.id);
+      const lastCountByAccount: Record<string, string> = {};
+      if (accountIds.length > 0) {
+        const { data: counts } = await supabase
+          .from('cash_counts').select('account_id, counted_at')
+          .eq('user_id', user.id).in('account_id', accountIds);
+        for (const c of counts || []) {
+          const accId = (c as any).account_id as string;
+          const at = (c as any).counted_at as string | null;
+          if (!accId || !at) continue;
+          if (!lastCountByAccount[accId] || at > lastCountByAccount[accId]) lastCountByAccount[accId] = at;
+        }
+      }
+      const lastTxByAccount: Record<string, string> = {};
+      for (const tx of accountTxs as any[]) {
+        const accId = tx.account_id as string;
+        const at = tx.created_at as string | undefined;
+        if (!accId || !at) continue;
+        if (!lastTxByAccount[accId] || at > lastTxByAccount[accId]) lastTxByAccount[accId] = at;
+      }
       type Discrep = { account: any; diff: number; realBalance: number; theoreticalBalance: number };
       const discrepancies: Discrep[] = [];
       for (const account of accounts) {
         if ((account as any).type === 'cash') continue;
+        // Never reconciled → no reliable "real" reference, skip.
+        const declaredAt = [
+          lastCountByAccount[account.id],
+          (account as any).updated_at !== (account as any).created_at ? (account as any).updated_at : undefined,
+        ].filter(Boolean).sort().pop();
+        if (!declaredAt) continue;
+        // Transactions recorded after the last declaration make the gap expected.
+        const lastTxAt = lastTxByAccount[account.id];
+        if (lastTxAt && lastTxAt > declaredAt) continue;
         const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
         const txSum = acctTxs.reduce((sum: number, tx: any) => {
           return sum + (tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount));
