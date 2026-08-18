@@ -545,10 +545,41 @@ Deno.serve(async (req) => {
       // ────── Balance discrepancy — 1× / month (lowered from weekly to reduce fatigue) ──────
       if (prefBalance) {
         const monthTag = `${now.getFullYear()}m${now.getMonth()}`;
+        // Only alert when a real balance was actually declared (manual update or
+        // cash count) AFTER the last transaction on the account. Otherwise
+        // `real_balance` is stale and the gap is expected → false positive.
+        const nonCashIds = accounts
+          .filter((a: any) => (a.type || "") !== "cash").map((a: any) => a.id);
+        const lastCountByAccount: Record<string, string> = {};
+        if (nonCashIds.length > 0) {
+          const { data: counts } = await supabase
+            .from("cash_counts").select("account_id, counted_at")
+            .eq("user_id", userId).in("account_id", nonCashIds);
+          for (const c of counts || []) {
+            const accId = (c as any).account_id;
+            const at = (c as any).counted_at;
+            if (!accId || !at) continue;
+            if (!lastCountByAccount[accId] || at > lastCountByAccount[accId]) lastCountByAccount[accId] = at;
+          }
+        }
+        const lastTxByAccount: Record<string, string> = {};
+        for (const tx of accountTxs as any[]) {
+          if (!tx.account_id || !tx.created_at) continue;
+          if (!lastTxByAccount[tx.account_id] || tx.created_at > lastTxByAccount[tx.account_id]) {
+            lastTxByAccount[tx.account_id] = tx.created_at;
+          }
+        }
         const discrepancies: { accountId: string; name: string; icon: string; sign: string; diff: number }[] = [];
         for (const account of accounts) {
           // Cash accounts auto-reconcile via cash_counts → real_balance, skip
           if ((account.type || "") === "cash") continue;
+          const declaredAt = [
+            lastCountByAccount[account.id],
+            account.updated_at !== account.created_at ? account.updated_at : undefined,
+          ].filter(Boolean).sort().pop();
+          if (!declaredAt) continue;
+          const lastTxAt = lastTxByAccount[account.id];
+          if (lastTxAt && lastTxAt > declaredAt) continue;
           const acctTxs = accountTxs.filter((tx: any) => tx.account_id === account.id);
           const txSum = acctTxs
             .reduce((s: number, tx: any) =>
